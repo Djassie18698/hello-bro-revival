@@ -389,6 +389,13 @@ module.exports = {
       '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.awardFull({ coin: r.win ? 300 : 0 }) + '</root>';
   },
 
+  // Battles / tower ("dup"): Cmd 7000 = chapter list. Fights (rl_w_dup) are not built yet, so progress stays at the start.
+  rl_r_dup: ({ db, params: p }) => {
+    if (Number(p.Cmd) === 7002) return '<root code="0"><dup_count><total>5</total><remain>5</remain><vip>0</vip></dup_count><dup_list></dup_list></root>';
+    const chaps = [1, 2, 3].map((c) => `<dup><chapid>${c}</chapid><process>0</process></dup>`).join('');
+    return `<root code="0"><duplist maxchap="3" current_round="1" remain_reset_count="3" status="0">${chaps}</duplist></root>`;
+  },
+
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
   rl_r_dailytask: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
