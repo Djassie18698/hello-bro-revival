@@ -52,3 +52,4 @@ Parser field lists live in PROTOCOL-NOTES.txt. Card element fields: type,id,exp,
 - Server-only (not clicked through): rl_w_newlife (equipment advance Cmd 7/8, ninja reincarnation Cmd 1 with addattack/adddefend). The C++ Reincarnate screen's card-select button ignored taps on the emulator.
 - Gacha reveal "Sample Text" still unsolved (see docs/NEXT-STEPS.md for what was tried).
 - Unhandled endpoints still: rl_r_comm Cmd 20 (evolve), rl_w_ramen, rl_r_mtree/rl_w_mtree, rl_w_msg, rl_r_adventure/rl_w_adventure, rl_w_comm (mora), rl_w_countrynew/rl_w_warnew, rl_r_tear*.
+- GACHA REVEAL SOLVED: award dropid must be non-zero (client skips cardlist when 0). Suitlist items need attributes (id,type) or login crashes once a set is active. See docs/NEXT-STEPS.md.
