@@ -370,6 +370,29 @@ module.exports = {
     return '<root code="0"></root>';
   },
 
+  rl_r_group_rank: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    return pl ? `<root code="0">${guild.rankXml(db, pl)}</root>` : '<root code="3"><message>session expired</message></root>';
+  },
+  rl_r_group_hall: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 2) { const r = guild.checkin(db, pl, Number(p.TaskID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0">${r.xml}</root>`; }
+    const x = guild.hallXml(db, pl);
+    return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>';
+  },
+  rl_r_group_store: () => `<root code="0">${guild.shopXml()}</root>`,
+  rl_r_group_contri: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 2) { const r = guild.donate(db, pl, p.Cash); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>'; }
+    const x = guild.contriXml(db, pl);
+    return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>';
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
