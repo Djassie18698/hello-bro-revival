@@ -39,6 +39,7 @@ function ensure(db) {
   try { db.exec('ALTER TABLE players ADD COLUMN vip INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vipexp INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE cards ADD COLUMN newlife INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
+  for (const c of ['pot_att', 'pot_def', 'pot_ckr', 'pend_att', 'pend_def', 'pend_ckr']) { try { db.exec(`ALTER TABLE cards ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* already there */ } }
   ready.add(db);
 }
 
@@ -80,7 +81,7 @@ function cardXml(c) {
   const f = {
     type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: 0, starlevel: c.starlevel,
     newlife: c.newlife || 0, tupo_level: 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
-    attack_add: 0, defence_add: 0, cha_add: 0, status: 0,
+    attack_add: c.pot_att || 0, defence_add: c.pot_def || 0, cha_add: c.pot_ckr || 0, status: 0,
   };
   return '<card>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</card>';
 }
@@ -426,6 +427,33 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
   return { grade: next, cost };
 }
 
+// ---- Potential training ("Train" screen, rl_x_develop): roll gains, then save them. Free here (no pills needed).
+const potLimit = (c) => 100 + 40 * (c.starlevel || 0) + 10 * (c.level || 1) + 100 * (c.newlife || 0);
+function potentialXml(db, pl, seq) {
+  const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);
+  if (!c) return null;
+  const lim = potLimit(c);
+  return `<attack limit_att="${lim}" add_att="${c.pot_att}"/><defense limit_def="${lim}" add_def="${c.pot_def}"/><chakra limit_ckr="${lim}" add_ckr="${c.pot_ckr}"/>` +
+    '<cost_list><cost cost_id="1" name="Training pill" type="1" need_miyao="0" need_golden="0"/><cost cost_id="2" name="Gold training" type="2" need_miyao="0" need_golden="0"/></cost_list>';
+}
+function potentialRoll(db, pl, seq, costId) {
+  const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);
+  if (!c) return { error: 'no such card' };
+  const lim = potLimit(c), hi = costId === 2 ? 14 : 8, lo = costId === 2 ? 3 : -2;
+  const roll = () => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+  const d = { att: roll(), def: roll(), ckr: roll() };
+  // never push a stat outside 0..limit
+  d.att = Math.max(-c.pot_att, Math.min(lim - c.pot_att, d.att)); d.def = Math.max(-c.pot_def, Math.min(lim - c.pot_def, d.def)); d.ckr = Math.max(-c.pot_ckr, Math.min(lim - c.pot_ckr, d.ckr));
+  db.prepare('UPDATE cards SET pend_att=?, pend_def=?, pend_ckr=? WHERE seq=?').run(d.att, d.def, d.ckr, seq);
+  return d;
+}
+function potentialSave(db, pl, seq) {
+  const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);
+  if (!c) return false;
+  db.prepare('UPDATE cards SET pot_att=pot_att+pend_att, pot_def=pot_def+pend_def, pot_ckr=pot_ckr+pend_ckr, pend_att=0, pend_def=0, pend_ckr=0 WHERE seq=?').run(seq);
+  return true;
+}
+
 // ---- Secret (soul) shop ----------------------------------------------------------------------
 const SOUL = 9999; // props id used for ninja souls
 function soulOf(db, pl) {
@@ -463,6 +491,8 @@ function ninjaStats(card) {
   const o = {};
   const mult = 1 + 0.05 * (card.starlevel || 0) + 0.1 * (card.newlife || 0); // sage growth +5% per level, reincarnation +10% per grade
   KEYS.forEach((k, i) => { o[k] = n ? Math.round(((n[19 + i] || 0) + (n[25 + i] || 0) * (card.level - 1)) * mult) : 0; });
+  const pot = [card.pot_att, card.pot_att, card.pot_def, card.pot_def, card.pot_ckr, card.pot_ckr];
+  KEYS.forEach((k, i) => { o[k] += pot[i] || 0; });
   return o;
 }
 function equipStats(card) {
@@ -644,4 +674,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

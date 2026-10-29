@@ -403,6 +403,17 @@ module.exports = {
     return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><newlife count="${r.grade}"/></root>`;
   },
 
+  // Potential training ("Train" icon): Cmd 1 = load card, 2 = roll (CostId), 3 = save the rolled gains.
+  rl_x_develop: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const bag = Number(p.BagId), cmd = Number(p.Cmd);
+    if (cmd === 1) { const x = game.potentialXml(db, pl, bag); return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no such card</message></root>'; }
+    if (cmd === 2) { const d = game.potentialRoll(db, pl, bag, Number(p.CostId)); return d.error ? `<root code="5"><message>${d.error}</message></root>` : `<root code="0"><add_num att="${d.att}" def="${d.def}" ckr="${d.ckr}"/><cost miyao="0" yuanbao="0"/></root>`; }
+    return game.potentialSave(db, pl, bag) ? '<root code="0"></root>' : '<root code="5"><message>no such card</message></root>';
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
