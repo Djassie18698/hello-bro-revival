@@ -5,6 +5,7 @@ const vip = require('./vip');
 const wheel = require('./wheel');
 const signin = require('./signin');
 const guild = require('./guild');
+const mora = require('./mora');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -421,6 +422,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
     if (cmd === 16) return '<root code="0"><basic><status>2</status><amount>4900</amount><current>4900</current></basic><awards><item><id>1</id><num>1</num></item></awards></root>';
+    if (cmd === 3) return '<root code="0">' + mora.infoXml(db, pl) + '</root>';
     if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
     if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
     if (cmd === 13) return '<root code="0"><basic><cash>0</cash><remain>86400</remain></basic><award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award></root>';
@@ -433,6 +435,10 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const wc = Number(p.Cmd);
+    if (wc === 4) { const r = mora.play(db, pl, Number(p.GambleNPCID), Number(p.GambleMustWin) === 1); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
+    if (wc === 7) { const r = mora.buyLife(db, pl, Number(p.GambleCashType)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>'; }
+    if (wc === 5 || wc === 6) { const r = mora.exchange(db, pl, Number(p.GambleExchangeID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (Number(p.Cmd) === 26) { // 49$ gift: free here
       const done = db.prepare("SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9026").get(pl.uid, pl.server_id);
       if (done) return '<root code="610002"><message>received</message></root>';

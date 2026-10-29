@@ -316,7 +316,7 @@ function actXml(db, pl) {
   const subs = (a) => a.map((i) => `<subitem subid="${i}"></subitem>`).join('');
   return `<activity type="1" loginallnum="${c.days}"><item actid="1">${subs(c.login)}</item></activity>` +
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="-1"></item></activity><activity type="4"><item actid="4"></item></activity>` +
-    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + '</items></conf>';
+    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1], [21, 5, 1]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + '</items></conf>';
 }
 function actClaim(db, pl, actid, subid) {
   const c = actClaimable(db, pl);
