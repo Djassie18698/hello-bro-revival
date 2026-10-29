@@ -314,7 +314,7 @@ function actXml(db, pl) {
   const subs = (a) => a.map((i) => `<subitem subid="${i}"></subitem>`).join('');
   return `<activity type="1" loginallnum="${c.days}"><item actid="1">${subs(c.login)}</item></activity>` +
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="-1"></item></activity><activity type="4"><item actid="4"></item></activity>` +
-    '<conf><items>' + [[1, 1], [2, 2]].map(([id, pos]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>2</type></item>`).join('') + '</items></conf>';
+    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 1], [20, 4, 1]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + '</items></conf>';
 }
 function actClaim(db, pl, actid, subid) {
   const c = actClaimable(db, pl);
@@ -483,44 +483,6 @@ function teamStats(db, uid, sid) {
   return { slots, total: tot, suits, bonus };
 }
 
-// ---- VIP -----------------------------------------------------------------------------------------
-// VIP level comes from players.vip (set it in the admin page or by "top-up"); exp needed for the next level = 1000 * (level + 1).
-const vipNeed = (lv) => 1000 * (lv + 1);
-function vipAddExp(db, pl, exp) {
-  let lv = pl.vip || 0, cur = (pl.vipexp || 0) + exp;
-  while (lv < 24 && cur >= vipNeed(lv)) { cur -= vipNeed(lv); lv++; }
-  db.prepare('UPDATE players SET vip=?, vipexp=? WHERE uid=? AND server_id=?').run(lv, cur, pl.uid, pl.server_id);
-  return lv;
-}
-function vipShopXml(db, pl) {
-  actEnsure(db);
-  const bought = new Set(db.prepare('SELECT subid FROM actclaim WHERE uid=? AND server_id=? AND actid=100').all(pl.uid, pl.server_id).map((r) => r.subid));
-  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const items = table('vip_gift').rows.map((r) => `<item>${el('id', r[0])}${el('vip', r[0])}${el('price', r[2])}${el('orgin_price', r[9])}${el('desc', esc(r[10]))}${el('icon', r[3])}${el('canbuy', bought.has(r[0]) ? 1 : (pl.vip || 0) >= r[0] ? 2 : 0) /* 0 not eligible, 1 bought, 2 can buy */}</item>`).join('');
-  return `${el('lv', pl.vip || 0)}${el('exp', pl.vipexp || 0)}${el('lvexp', vipNeed(pl.vip || 0))}<vipshoplist>${items}</vipshoplist>`;
-}
-function vipBuy(db, pl, giftId) {
-  actEnsure(db);
-  const g = table('vip_gift').rows.find((r) => r[0] === giftId);
-  if (!g) return { error: 'no such gift' };
-  if ((pl.vip || 0) < giftId) return { error: 'vip level too low' };
-  if (db.prepare('SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=100 AND subid=?').get(pl.uid, pl.server_id, giftId)) return { error: 'already bought' };
-  if (pl.gold < g[2]) return { error: 'not enough gold' };
-  db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(g[2], pl.uid, pl.server_id);
-  db.prepare('INSERT INTO actclaim(uid,server_id,actid,subid) VALUES(?,?,100,?)').run(pl.uid, pl.server_id, giftId);
-  // contents are described in text: "Name*N, Name*N"; silver and known items are granted, special gear is skipped.
-  let coin = 0;
-  for (const part of String(g[10]).split(',')) {
-    const m = part.trim().match(/^(.+?)\*(\d+)$/); if (!m) continue;
-    const name = m[1].trim().toLowerCase(), n = Number(m[2]);
-    if (name === 'silver') { coin += n; continue; }
-    const row = table('consumeinfo').rows.find((r) => String(r[2]).toLowerCase().replace(/[()]/g, '').startsWith(name.replace(/[()]/g, '')) || String(r[2]).toLowerCase() === name);
-    if (row) propAdd(db, pl.uid, pl.server_id, row[1], n);
-  }
-  if (coin) db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
-  return { coin, price: g[2] };
-}
-
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -531,4 +493,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { vipShopXml, vipBuy, vipAddExp, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

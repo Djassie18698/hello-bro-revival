@@ -1,6 +1,9 @@
 // One handler per CGI. Each returns an XML string. Field names come from the client's own parser.
 const crypto = require('crypto');
 const game = require('./game');
+const vip = require('./vip');
+const wheel = require('./wheel');
+const signin = require('./signin');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -129,7 +132,7 @@ module.exports = {
       level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: 0, meritscore: 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
-      score: 0, viplevel: pl.vip || 0, soul: 0, totalm: 0 };
+      score: 0, viplevel: vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist><chipbag></chipbag>' +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
@@ -201,10 +204,57 @@ module.exports = {
     if (!r) return '<root code="5"><message>not available</message></root>';
     return '<root code="0">' + game.awardFull(r) + '</root>';
   },
-  rl_r_wheel: () => '<root code="0"><info><bigcash>0</bigcash><jifeng>0</jifeng><lasttime>0</lasttime><per_jifeng>0</per_jifeng></info><award_list></award_list></root>',
+  // Small activities (month sign-in is Cmd 7/8; others not built yet -> empty OK reply).
+  rl_x_small_activity: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    if (cmd === 7) return '<root code="0">' + signin.listXml(db, pl) + '</root>';
+    if (cmd === 8) {
+      const r = signin.sign(db, pl, Number(p.SignId));
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
+    return '<root code="0"></root>';
+  },
+  rl_r_wheel: ({ db, params: p }) => {
+    if (Number(p.Cmd) !== 1401) return '<root code="0"><info><bigcash>0</bigcash><jifeng>0</jifeng><lasttime>0</lasttime><per_jifeng>0</per_jifeng></info><award_list></award_list></root>';
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + wheel.loadXml(db, pl) + '</root>';
+  },
+  rl_w_wheel: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = wheel.spin(db, pl, Number(p.Cmd) === 1401 ? 10 : 1);
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return '<root code="0">' + r.xml + '</root>';
+  },
 
   // Misc event-center screens with no content yet.
   rl_x_award_msg: () => '<root code="0"><expiry>7</expiry><msglist></msglist></root>',
+  // VIP gift shop (VipListView.lua) and free top-up reward.
+  rl_r_vipshop: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + vip.listXml(db, pl) + '</root>';
+  },
+  rl_w_vipshopbuy: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = vip.buy(db, pl, Number(p.GiftId));
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return '<root code="0">' + r.xml + '</root>';
+  },
+  rl_w_paypack: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    if (!acc) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + game.awardFull({}) + '</root>';
+  },
   rl_r_paypack: () => '<root code="0"><payheaplist></payheaplist></root>',
   // Hall of fame: all real players ranked by level.
   rl_r_ninja_rank: ({ db, params: p }) => {
@@ -281,23 +331,6 @@ module.exports = {
   },
 
   rl_r_group_comm: () => '<root code="0"></root>',
-
-  // VIP gift shop.
-  rl_r_vipshop: ({ db, params: p }) => {
-    game.ensure(db);
-    const acc = accountBySession(db, p);
-    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
-    if (!pl) return '<root code="3"><message>session expired</message></root>';
-    return '<root code="0">' + game.vipShopXml(db, pl) + '</root>';
-  },
-  rl_w_vipshopbuy: ({ db, params: p }) => {
-    const acc = accountBySession(db, p);
-    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
-    if (!pl) return '<root code="3"><message>session expired</message></root>';
-    const r = game.vipBuy(db, pl, Number(p.GiftId));
-    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-    return '<root code="0">' + game.awardFull({ coin: r.coin }) + '</root>';
-  },
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
   rl_r_dailytask: ({ db, params: p }) => {
