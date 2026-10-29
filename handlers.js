@@ -50,6 +50,28 @@ function trainingFight(db, pl, chap, stage) {
     game.awardFull({ coin, exp }) + '</root>';
 }
 
+const MT = { perday: 50, low: 1, top: 5, cost: 20, free: 5, start: 5000 };
+function mtree(db, p, shake) {
+  const acc = accountBySession(db, p);
+  const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+  if (!pl) return '<root code="3"><message>session expired</message></root>';
+  db.exec('CREATE TABLE IF NOT EXISTS mtree (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER DEFAULT 0, last INTEGER DEFAULT 0, PRIMARY KEY(uid,server_id))');
+  const day = new Date().toISOString().slice(0, 10);
+  let m = db.prepare('SELECT * FROM mtree WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
+  if (!m) { db.prepare('INSERT INTO mtree(uid,server_id,day) VALUES(?,?,?)').run(pl.uid, pl.server_id, day); m = { day, used: 0, last: 0 }; }
+  if (m.day !== day) { m.day = day; m.used = 0; }
+  const free = Math.max(0, MT.free - m.used);
+  if (!shake) return `<root code="0"><cf><timesperday>${MT.perday}</timesperday><low_multiple>${MT.low}</low_multiple><top_multiple>${MT.top}</top_multiple><shake_cost>${MT.cost}</shake_cost><free_shake>${MT.free}</free_shake><start_silver>${MT.start}</start_silver></cf><user><usedTimes>${m.used}</usedTimes><freeTimes>${free}</freeTimes><latestSilver>${m.last}</latestSilver><latestTimest>${Math.floor(Date.now() / 1000)}</latestTimest></user></root>`;
+  if (m.used >= MT.perday) return '<root code="5"><message>no shakes left today</message></root>';
+  const cost = free > 0 ? 0 : MT.cost;
+  if (pl.gold < cost) return '<root code="5"><message>not enough gold</message></root>';
+  const win = MT.start * (MT.low + Math.floor(Math.random() * (MT.top - MT.low + 1)));
+  db.prepare('UPDATE players SET gold=gold-?, coin=coin+? WHERE uid=? AND server_id=?').run(cost, win, pl.uid, pl.server_id);
+  game.bumpTask(db, pl.uid, pl.server_id, 17);
+  db.prepare('UPDATE mtree SET day=?, used=?, last=? WHERE uid=? AND server_id=?').run(day, m.used + 1, win, pl.uid, pl.server_id);
+  return `<root code="0"><user><usedTimes>${m.used + 1}</usedTimes><freeTimes>${Math.max(0, free - 1)}</freeTimes><latestSilver>${win}</latestSilver><cash>${pl.gold - cost}</cash><coin>${pl.coin + win}</coin></user></root>`;
+}
+
 module.exports = {
   // Server directory: server list + notices
   xk_r_dir: (ctx) =>
@@ -488,6 +510,10 @@ module.exports = {
     db.prepare('UPDATE players SET gold=gold+500 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
     return '<root code="0">' + game.awardFull({ cash: 500 }) + '</root>';
   },
+
+  // Money tree: shake for silver. 5 free shakes a day, then 20 gold each; reward = start silver * random multiple (low..top).
+  rl_r_mtree: ({ db, params: p }) => mtree(db, p, false),
+  rl_w_mtree: ({ db, params: p }) => mtree(db, p, true),
 
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
