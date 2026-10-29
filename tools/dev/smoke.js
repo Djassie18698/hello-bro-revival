@@ -19,6 +19,6 @@ const run = (name, cmd, extra = {}) => {
 };
 run('rl_w_login2', 0); run('rl_w_reg2', 0, { Nick: 'Smoke', Card: 1 });
 for (const name of Object.keys(handlers)) for (const c of (cmds[name] || [0])) run(name, c);
-fs.rmSync(tmp, { force: true });
+try { fs.rmSync(tmp, { force: true }); } catch {}
 console.log(bad ? bad + ' problem(s)' : 'all ' + Object.keys(handlers).length + ' handlers OK');
 process.exit(bad ? 1 : 0);

@@ -60,3 +60,9 @@ Format: endpoint  - Lua files that call it (empty = C++ only, disassemble libgam
 - `rl_w_wheel_gift` - 
 - `rl_x_develop` - 
 - `rl_x_sport_ext` - 
+
+## Local test results (PC, BlueStacks "Claude Root", 2026-10-29 evening)
+- Merge of cloud branch OK; smoke test passes (41 handlers).
+- Month sign-in must be a POPUP entry (type 2) in actXml: type 1 = home-screen button needs a `btnImg` icon file, which activity 41 does not have (crashed ui_mainActivityBtn.lua:47). Fixed.
+- Lucky wheel verified in game (opens, spin works, reward screen). Wheel needs player level >= 30 (functionconfig row 15), same for other locked modes.
+- Rooted instance tips: `su -c 'ls /data/tombstones'` for native crash dumps; the game sometimes renders sideways after long taps - relaunch it.
