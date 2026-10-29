@@ -129,7 +129,7 @@ module.exports = {
       level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: 0, meritscore: 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
-      score: 0, viplevel: 0, soul: 0, totalm: 0 };
+      score: 0, viplevel: pl.vip || 0, soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist><chipbag></chipbag>' +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
@@ -281,6 +281,23 @@ module.exports = {
   },
 
   rl_r_group_comm: () => '<root code="0"></root>',
+
+  // VIP gift shop.
+  rl_r_vipshop: ({ db, params: p }) => {
+    game.ensure(db);
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + game.vipShopXml(db, pl) + '</root>';
+  },
+  rl_w_vipshopbuy: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = game.vipBuy(db, pl, Number(p.GiftId));
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return '<root code="0">' + game.awardFull({ coin: r.coin }) + '</root>';
+  },
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
   rl_r_dailytask: ({ db, params: p }) => {
