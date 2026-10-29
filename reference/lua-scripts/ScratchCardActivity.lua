@@ -1,0 +1,23 @@
+require("RLRequest")
+require("util/protocol")
+require("util/tools")
+require("util/common")
+require("global/cfg")
+require("util/localizable")
+require("ui_common/node_base_t")
+require("ui_common/layer_base_t")
+require("LuaXml")
+require("CommonDialogView")
+require("ui_layer/ui_scratchGoldAnimation")
+require("ui_layer/ui_scratchTipLayer")
+require("ui_layer/ui_scratchCardLayer")
+require("ui_layer/ui_rouletteLayer")
+
+function initScratchCardLayer()
+	local activityView = GetActivityView()
+	local contentNode = activityView:GetNodeContent()
+	local scratchLayer = createObj(ui_scratchCardLayer)
+	contentNode:addChild(scratchLayer.node_)
+end
+
+xpcall(initScratchCardLayer, __G__TRACKBACK__)

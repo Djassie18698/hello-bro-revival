@@ -1,0 +1,213 @@
+--2015/08/24
+--gongsun
+--宠物列表
+
+module("ui_petListItemLayer", package.seeall)
+baseClass(layer_base_t, ui_petListItemLayer)
+
+require('ui_layer/ui_petListItemCell')
+
+function init(self, parent, pos, petoldid)
+	self.playerMgr_ = CPlayerDataMgr:instance()
+	self.playerData_ = self.playerMgr_:GetPlayerInfoData()
+
+	self.contentSize_ = GetMainMenu():GetSubContentNode():getContentSize()
+	local ccbiAttrTable = {name="sub_ui/PetListItemView.ccbi", size=self.contentSize_}
+	layer_base_t.init(self, true, ccbiAttrTable)
+
+    --data
+    self.tableData = {}
+    self.cellNodes = {}
+    self.parent = parent
+    self.pos = pos
+    self.petoldid = petoldid
+
+    --init
+    initHeader(self.proxy_)
+	self:init_ui()
+	self:init_binding_event()
+end
+
+function init_ui(self)
+	if self.proxy_ ~= nil then
+        --
+        self.label_title = tolua.cast(self.proxy_:getNode("label_title"), "CCLabelTTF")
+        self.label_title:setString(localizable.ui_label_list_text)
+		--node
+		self.node_content = tolua.cast(self.proxy_:getNode("node_tablecontent"), "CCNode")
+		self.node_cell = tolua.cast(self.proxy_:getNode("node_cardcontent"), "CCNode")
+		--btn
+		self.btn_back = tolua.cast(self.proxy_:getNode("btn_back"), "CCControlButton")
+		--base request
+		self:requestBaseLayerInfo()
+	end
+end
+
+function requestBaseLayerInfo(self)
+	--获取基本信息
+	local urlpath = GetUrlNormalHeader(self.playerData_.m_uid, 1, "rl_x_pet")
+	GetMainMenu():ShowLoadingDlg()
+	CCHttpRequest:open(urlpath, kHttpPost, "query=param1&other=params"):sendWithHandler(
+		function(res, hnd)
+			GetMainMenu():CloseLoadding()
+			local resData = res:getResponseData()
+			local code = res:getResponseCode()
+			local xfile = xml.parse(resData)
+			local item = xfile:find("RENLONG")
+			if item == nil then
+				return nil
+			end
+			--cclog("rl_x_pet ret = %s", resData)
+			local retcode = item.code
+			if retcode == "0" then
+                self.tableData = {}
+				local pets = item:find("pets")
+                if pets then
+                    local size = #pets
+				    for i=1,size do
+                        local data = {}
+                        data.id = tonumber(pets[i]:find("id")[1])
+                        data.petid = tonumber(pets[i]:find("pet_id")[1])
+                        data.level = tonumber(pets[i]:find("level")[1])
+                        local equ = tonumber(pets[i]:find("rank")[1])
+                        data.star = tonumber(pets[i]:find("star")[1])
+                        data.attack = tonumber(pets[i]:find("attack")[1])
+                        data.defense = tonumber(pets[i]:find("defense")[1])
+                        data.chakala = tonumber(pets[i]:find("chakala")[1])
+                        data.inuse = tonumber(pets[i]:find("work")[1])
+
+                        data.pet = CPlayerPet:new(data.petid, data.level, equ, data.star)
+                        data.listLayer = self
+                        table.insert(self.tableData, data)
+                    end
+                end								
+				--ext init ui
+				self:init_ext_ui()
+			else
+				GetMainMenu():ShowErrorTip(tonumber(retcode),-1)
+			end
+		end)
+end
+
+function init_ext_ui(self)
+	--排序  品质>等级>id
+    table.sort(self.tableData, function (a, b)
+    if a.pet:getQuality() == b.pet:getQuality() then
+        if a.pet:getLevel() == b.pet:getLevel() then
+            if a.pet:getEqu() == b.pet:getEqu() then
+                return a.pet:getStar() > b.pet:getStar()
+            else
+                return a.pet:getEqu() > b.pet:getEqu()
+            end
+        else
+            return a.pet:getLevel() > b.pet:getLevel()
+        end
+    else
+        return a.pet:getQuality() > b.pet:getQuality()
+    end
+end)
+    --最后插入一行获取入口提示
+    table.insert(self.tableData, {id = 0, petid = 0, listLayer = self})
+	self:createTableView()
+end
+
+function createTableView(self)
+	if self._tableView == nil then
+		local cellContentSize = self.node_cell:getContentSize()
+		self._cell_size = CCSizeMake(cellContentSize.width,cellContentSize.height)
+
+		self._content_size = self.node_content:getContentSize()
+		self:initTableHandle()
+		self._tableView = LuaTableView:createWithHandler(self._tableViewHandler, CCSizeMake(self._content_size.width, self._content_size.height))
+		self._tableView:setDirection(kCCScrollViewDirectionVertical)
+		self._tableView:setVerticalFillOrder(kCCTableViewFillTopDown)
+		self._tableView:setTouchPriority(kCCMenuHandlerPriority - 1)
+
+		self.node_content:addChild(self._tableView)
+	else
+		self._tableView:reloadData()
+	end
+end
+
+function initTableHandle(self)
+	self._tableViewHandler = LuaEventHandler:create(function(fn, table, a1, a2, x, y)
+		local r
+		if fn == "cellSize" then
+			r = self._cell_size;
+		elseif fn == "cellAtIndex" then
+    		local nodeLayer = createObj(ui_petListItemCell, self._cell_size, self.tableData[a1 + 1])
+			--tableView cell container
+			self.cellNodes[a1+1] = nodeLayer
+			if not a2 then
+				a2 = CCTableViewCell:create()
+				a2:addChild(nodeLayer.node_)
+			else
+				a2:removeAllChildrenWithCleanup(true)
+        		a2:addChild(nodeLayer.node_)
+			end
+			r = a2
+		elseif fn == "numberOfCells" then
+			r = #self.tableData;
+		    -- Cell events:
+		elseif fn == "cellTouched" then			-- A cell was touched, a1 is cell that be touched. This is not necessary.
+		elseif fn == "cellTouchBegan" then		-- A cell is touching, a1 is cell, a2 is CCTouch
+			r = true
+		elseif fn == "cellTouchEnded" then		-- A cell was touched, a1 is cell, a2 is CCTouch
+			r = true
+		elseif fn == "cellHighlight" then		-- A cell is highlighting, coco2d-x 2.1.3 or above
+		elseif fn == "cellUnhighlight" then		-- A cell had been unhighlighted, coco2d-x 2.1.3 or above
+		elseif fn == "cellWillRecycle" then		-- A cell will be recycled, coco2d-x 2.1.3 or above
+		end
+		return r
+	end)
+end
+
+function init_binding_event(self)
+	if self.proxy_ ~= nil then
+		local function CCLayerTouch(event, x, y)
+			local rect = self.node_:boundingBox()
+			rect.origin = ccp(0, 0)
+			local p = self.node_:convertToNodeSpace(ccp(x, y))
+			if event == "began" then
+				if rect:containsPoint(p) == true then
+					return true
+				else
+					return false
+				end
+			end
+		end
+
+		self.node_:setTouchEnabled(true)
+		self.node_:registerScriptTouchHandler(CCLayerTouch, false, kCCMenuHandlerPriority - 1, true)
+		-- 返回
+        self:init_btn_binding_event(self.btn_back, 
+            function(button, event)
+                self.node_:removeFromParentAndCleanup(true)
+            end,
+            localizable.ui_label_back_text
+        )
+    end
+end
+
+function onNodeCleanup(self)
+	if self.proxy_ then
+    	self.proxy_:release()
+    end
+
+    layer_base_t.onNodeCleanup(self)
+end
+
+function init_btn_binding_event(self, btn_node, callback, btn_title_text)
+    btn_node:setTouchEnabled(true)
+    btn_node:setTouchPriority(kCCMenuHandlerPriority - 1)
+    self.proxy_:handleButtonEvent(btn_node, callback , CCControlEventTouchUpInside)
+    if btn_title_text ~= nil then
+        --btn_node:setTitleForState(btn_title_text, CCControlStateNormal)
+        --btn_node:setTitleForState(btn_title_text, CCControlStateHighlighted)
+        --btn_node:setTitleForState(btn_title_text, CCControlStateDisabled)    
+    end
+end
+
+function update_ui(self)
+    self:requestBaseLayerInfo()
+end

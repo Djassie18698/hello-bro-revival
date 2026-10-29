@@ -1,0 +1,28 @@
+require("RLRequest")
+require("util/protocol")
+require("util/tools")
+require("util/common")
+require("util/localizable")
+require("global/cfg")
+require("ui_common/node_base_t")
+require("ui_common/layer_base_t")
+require("LuaXml")
+require("CommonDialogView")
+
+require("ui_layer/ui_lotteryTicketLayer")
+require("ui_layer/ui_lotteryLuckyNumCell")
+require("ui_layer/ui_lotteryPreWinerListLayer")
+require("ui_layer/ui_lotteryPreWinerListCell")
+require("ui_layer/ui_lotteryMyLuckyNumListLayer")
+require("ui_layer/ui_lotteryMyLuckyNumListCell")
+require("ui_layer/ui_lotteryShowDetail")
+require("ui_layer/ui_lotteryShowDetailCell")
+
+function initLotteryTicketLayer()
+	local activityView = GetActivityView()
+	local contentNode = activityView:GetNodeContent()
+	local currentlayer = createObj(ui_lotteryTicketLayer)
+	contentNode:addChild(currentlayer.node_)
+end
+
+xpcall(initLotteryTicketLayer, __G__TRACKBACK__)

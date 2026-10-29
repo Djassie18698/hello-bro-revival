@@ -1,0 +1,9 @@
+innews_info_data = {}
+innews_info_data[1] = {innews_id=1,history_id="忍魂之仙人鳴人",innews_inside="萬裏挑一招募就有可能獲得仙之鳴人的忍魂，40個仙之鳴人忍魂就能夠兌換一張仙之鳴人攻擊卡！快來招募吧！！",innewsskip_page="GetMainMenu():ChangeToSub(E_STOREITEMSVIEW);",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[2] = {innews_id=2,history_id="刮刮樂活動開始嘍！",innews_inside="20元寶一張的刮刮樂卡有驚喜！無數元寶天上掉嘍！參加這個活動吧！",innewsskip_page="GetMainMenu():ChangeToActivity(\"ScratchCardActivity\");",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[3] = {innews_id=3,history_id="傳說三忍兌換波風水門！",innews_inside="集齊傳說三忍——自來也、大蛇丸、千手綱手就能夠換取五星紫卡“波風水門”！趕緊行動起來吧！",innewsskip_page="GetMainMenu():ChangeToActivity(\"collectCardActivity\");",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[4] = {innews_id=4,history_id="集齊“阿凱班”得阿凱老師！",innews_inside="集齊阿凱班的三個忍者——天天、日向寧次、李洛克就能夠獲得四星藍卡“阿凱老師”和10顆轉生丹哦！",innewsskip_page="GetMainMenu():ChangeToActivity(\"collectCardActivity\");",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[5] = {innews_id=5,history_id="超值月卡等你來",innews_inside="百分百10倍返還，最有實用價值的充值，就在活動中心裏的超值月卡，趕緊去參加吧。",innewsskip_page="GetMainMenu():ChangeToActivity(\"monthCardActivity\");",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[6] = {innews_id=6,history_id="財神獎勵轉不停",innews_inside="進入遊戲，點擊首頁活動，可以參加財神活動，大量元寶大酬賓，來就賺。",innewsskip_page="GetMainMenu():ChangeToActivity(\"lotteryActivity\");",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[7] = {innews_id=7,history_id="登錄就送五星鳴人",innews_inside="親愛的玩家，你只要登錄7天，便可以在活動的登錄禮包裏領取到五星鳴人，還等什麼呢？趕快登錄吧！",innewsskip_page="GetMainMenu():ChangeToActivity(\"loginPackActivity\");",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}
+innews_info_data[8] = {innews_id=8,history_id="首沖有獎",innews_inside="玩家充值任意金額，便可以領取四代雷影、最強之矛以及潛影蛇手。",innewsskip_page="GetMainMenu():ShowPurchasList();",innews_way="1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"}

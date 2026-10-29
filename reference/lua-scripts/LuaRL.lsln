@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XmlLuaSolutionDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Documents />
+  <DocumentGroups>
+    <DocumentRef FileName=".\LuaRL.luaproj" />
+  </DocumentGroups>
+  <DocumentFolders />
+  <ActiveProject FileName="D:\mygameprj\my_renlong\trunk\renlong\Resources\script\LuaRL.luaproj" />
+  <Id>597a7c10-147a-452c-8aa9-041a78263870</Id>
+</XmlLuaSolutionDocument>

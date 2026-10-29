@@ -1,0 +1,23 @@
+require("RLRequest")
+require("util/protocol")
+require("util/tools")
+require("util/common")
+require("global/cfg")
+require("util/localizable")
+require("ui_common/node_base_t")
+require("ui_common/layer_base_t")
+require("LuaXml")
+require("CommonDialogView")
+require("ui_layer/ui_webpurchase")
+require("config/firstpurchase_config")
+require("ui_layer/ui_purchaseLayerForWeb")
+require("ui_layer/ui_purchaseTableCellForWeb")
+
+function initWebPurchaseApp()
+	local activityView = GetActivityView()
+	local contentNode = activityView:GetNodeContent()
+	local ui_accMoney = createObj(ui_webpurchase)
+	contentNode:addChild(ui_accMoney.node_)
+end
+
+xpcall(initWebPurchaseApp, __G__TRACKBACK__)

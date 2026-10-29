@@ -1,0 +1,20 @@
+require("RLRequest")
+require("util/protocol")
+require("util/tools")
+require("util/common")
+require("global/cfg")
+require("util/localizable")
+require("ui_common/node_base_t")
+require("ui_common/layer_base_t")
+require("LuaXml")
+require("CommonDialogView")
+require("ui_layer/ui_gameEvaluate")
+
+function initEvaluateApp()
+	local activityView = GetActivityView()
+	local contentNode = activityView:GetNodeContent()
+	local ui_accMoney = createObj(ui_gameEvaluate)
+	contentNode:addChild(ui_accMoney.node_)
+end
+
+xpcall(initEvaluateApp, __G__TRACKBACK__)

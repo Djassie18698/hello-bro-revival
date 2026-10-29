@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XmlLuaProjectDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Documents>
+    <DocumentRef FileName=".\test.lua" />
+    <DocumentRef FileName=".\extern.lua" />
+    <DocumentRef FileName=".\loginActivityData.lua" />
+    <DocumentRef FileName=".\loginPackActivity.lua" />
+    <DocumentRef FileName=".\LuaSubView.lua" />
+    <DocumentRef FileName=".\LuaXml.lua" />
+    <DocumentRef FileName=".\mainActivity.lua" />
+    <DocumentRef FileName=".\MainView.lua" />
+    <DocumentRef FileName=".\monthCardActivity.lua" />
+    <DocumentRef FileName=".\monthCardData.lua" />
+    <DocumentRef FileName=".\payhistorydrop.lua" />
+    <DocumentRef FileName=".\payhistorydropData.lua" />
+    <DocumentRef FileName=".\reloadActivityData.lua" />
+    <DocumentRef FileName=".\RLRequest.lua" />
+    <DocumentRef FileName=".\upgradeActivityData.lua" />
+    <DocumentRef FileName=".\upradePackActivity.lua" />
+    <DocumentRef FileName=".\VipListView.lua" />
+    <DocumentRef FileName=".\VipCellView.lua" />
+    <DocumentRef FileName=".\SplitCard.lua" />
+    <DocumentRef FileName=".\MenuBtnsData.lua" />
+    <DocumentRef FileName=".\MenuBtnsView.lua" />
+    <DocumentRef FileName=".\MenuBtnsCellView.lua" />
+    <DocumentRef FileName=".\InGameNoticeListView.lua" />
+    <DocumentRef FileName=".\InGameNoticeCellView.lua" />
+  </Documents>
+  <DocumentGroups />
+  <DocumentFolders />
+  <ProjectProperties>
+    <ExternalProgram>..\..\..\Debug.win32\renlong.win32.exe</ExternalProgram>
+    <CmdLineArgs />
+    <StartupFileName>.\test.lua</StartupFileName>
+    <WorkingDir>D:\mygameprj\my_renlong\trunk\renlong\Resources</WorkingDir>
+    <UseRemoteMachine>false</UseRemoteMachine>
+    <RemoteMachineName />
+    <BuildOutputDir />
+    <PreBuildEventCmdLine />
+    <PostBuildEventCmdLine />
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+  </ProjectProperties>
+</XmlLuaProjectDocument>
