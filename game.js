@@ -112,7 +112,7 @@ function stateXml(db, uid, sid) {
   const eqRows = db.prepare('SELECT slot, kind, seq FROM equipped WHERE uid=? AND server_id=?').all(uid, sid);
   const eqOf = (slot) => Object.fromEntries(eqRows.filter((r) => r.slot === slot).map((r) => [r.kind, r.seq]));
   return {
-    suitlist: '<suitlist>' + ts.suits.map((r) => `<item>${el('id', r[0])}${el('type', r[2])}</item>`).join('') + '</suitlist>',
+    suitlist: '<suitlist>' + ts.suits.map((r) => `<item id="${r[0]}" type="${r[2]}"/>`).join('') + '</suitlist>',
     totals: ts.total,
     cards: cards.map(cardXml).join(''),
     ninjalist: '<ninjalist>' + team.map((t, i) => slotXml(t.seq, i, eqOf(i + 1), (ts.slots[i] || {}))).join('') + '</ninjalist>',
@@ -133,7 +133,7 @@ let byStar = null;
 function pools() {
   if (!byStar) {
     byStar = {};
-    for (const r of ninjas().values()) if (r[4] === 1) (byStar[r[11]] = byStar[r[11]] || []).push(r[0]);
+    for (const r of ninjas().values()) if (r[4] === 1 && r[6] === 0) (byStar[r[11]] = byStar[r[11]] || []).push(r[0]);
   }
   return byStar;
 }
@@ -153,20 +153,20 @@ function pull(db, pl, type, count, free) {
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
   const got = [];
   for (let i = 0; i < count; i++) {
-    const nid = rollOne(type);
+    const nid = process.env.HB_FORCE ? Number(process.env.HB_FORCE) : rollOne(type);
     got.push({ ninja: nid, seq: giveCard(db, pl.uid, pl.server_id, nid) });
   }
   return { cost, got };
 }
 function awardXml(c) {
-  return '<award dropid="0"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) +
+  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) +
     '</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>';
 }
 // Cmd 1900 (one pull): <recruit .../> attributes + <award>. Cmd 1901 (ten pulls): <recruit_list> of exactly 10 <item><award>.
 function pullXml(res, count) {
   if (count === 1) {
     const c = res.got[0];
-    return `<recruit ninjaid="${c.ninja}" cost="${res.cost}" bagid="${c.seq}" attr="0" costprop="0"/>` + awardXml(c);
+    return `<recruit ninjaid="${c.ninja}" cost="${res.cost}" bagid="${c.seq}" attr="0" costprop="0"/>` + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
   }
   return '<recruit_list>' + res.got.map((c) => '<item>' + awardXml(c) + '</item>').join('') + '</recruit_list>';
 }
