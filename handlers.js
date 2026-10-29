@@ -85,7 +85,7 @@ module.exports = {
 
   // Account login. Unknown accounts are auto-created (like the old test servers).
   xk_w_login: ({ db, params: p, host, cgi, ...rest }) => {
-    const name = p.UserName || p.Machine || p.MachineCheck || `guest${Date.now()}`;
+    const name = (p.UserName || p.Machine || p.MachineCheck || `guest${Date.now()}`) + (process.env.HB_TEST_SUFFIX || '');
     const pwd = p.Password || '';
     let acc = db.prepare('SELECT * FROM accounts WHERE username=?').get(name);
     if (!acc) {
