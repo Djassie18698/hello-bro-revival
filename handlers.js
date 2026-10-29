@@ -440,6 +440,27 @@ module.exports = {
     return '<root code="0"></root>';
   },
 
+  // "Save time": trade ramen (prop 3) for exp + silver based on the current training chapter. Cmd 1 = info, Cmd 2 = exchange one.
+  rl_r_savetime: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const sid = Number(p.ServerID || 1);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const RAMEN = 3, chap = game.getStage(db, pl.uid, sid, 1000), exp = 500 * Math.max(1, pl.level), coin = 500 * Math.max(1, pl.level);
+    let have = game.propCounts(db, pl.uid, sid)[RAMEN];
+    if (have === undefined) { game.propAdd(db, pl.uid, sid, RAMEN, 99); have = 99; }
+    if (Number(p.Cmd) === 2) {
+      if (have < 1) return '<root code="5"><message>no ramen</message></root>';
+      game.propAdd(db, pl.uid, sid, RAMEN, -1); game.addExp(db, pl, exp);
+      db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
+      return `<root code="0"><basic><ratio>1</ratio><exp>${exp}</exp><coin>${coin}</coin><remain>${have - 1}</remain></basic></root>`;
+    }
+    return `<root code="0"><basic><chapter>${chap}</chapter><round>1</round><prop_num>${have}</prop_num><total_trans>99</total_trans><used_trans>0</used_trans><cost_cash>10</cost_cash><vip_add>99</vip_add><exp>${exp}</exp><coin>${coin}</coin><vip_limit>1</vip_limit><level_limit>1</level_limit></basic></root>`;
+  },
+
+  // Mail actions (read / delete / accept): nothing to change on this server, acknowledge.
+  rl_w_msg: () => '<root code="0"></root>',
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
