@@ -544,6 +544,12 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     return '<root code="0">' + game.friendsXml(db, pl) + '</root>';
   },
+  rl_r_nickinfo: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + game.friendsXml(db, pl, String(p.Nick || '')) + '</root>';
+  },
   rl_w_friend: () => '<root code="0"></root>',
 
   // Arena (ranked ladder): rl_r_sport Cmd 2000-ish = list, rl_r_sportrank = top 50, rl_w_sport Cmd 2008 = fight (ToRank).

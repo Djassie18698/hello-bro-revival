@@ -565,8 +565,10 @@ function sageGrow(db, pl, seq, stoneId, stoneNum) {
 }
 
 // Friends: on this offline server every other registered player is automatically your friend.
-function friendsXml(db, pl) {
-  const real = db.prepare('SELECT * FROM players WHERE server_id=? AND uid!=? ORDER BY level DESC').all(pl.server_id, pl.uid);
+function friendsXml(db, pl, nick) {
+  const real = nick
+    ? db.prepare('SELECT * FROM players WHERE server_id=? AND uid!=? AND nick LIKE ? ORDER BY level DESC').all(pl.server_id, pl.uid, '%' + nick + '%')
+    : db.prepare('SELECT * FROM players WHERE server_id=? AND uid!=? ORDER BY level DESC').all(pl.server_id, pl.uid);
   const f = (r) => {
     const t = teamStats(db, r.uid, r.server_id);
     const o = { id: r.uid, level: r.level, nick: String(r.nick).replace(/[<>&"]/g, ''), attacklow: t.total.al, attackhigh: t.total.ah, defenselow: t.total.dl, defenseHigh: t.total.dh,
