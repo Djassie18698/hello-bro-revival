@@ -6,6 +6,7 @@ const wheel = require('./wheel');
 const signin = require('./signin');
 const guild = require('./guild');
 const mora = require('./mora');
+const slot = require('./slot');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -448,8 +449,8 @@ module.exports = {
     if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
     if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
     if (cmd === 13) return '<root code="0"><basic><cash>0</cash><remain>86400</remain></basic><award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award></root>';
-    if (cmd === 15) return '<root code="0"><basic><score>0</score><bet_cost>10</bet_cost><cost>10</cost><times>1</times><remain>86400</remain></basic><ninjas></ninjas></root>';
-    if (cmd === 18) return '<root code="0"><basic><remain>86400</remain><score>0</score></basic><package></package></root>';
+    if (cmd === 15) return '<root code="0">' + slot.info(db, pl) + '</root>';
+    if (cmd === 18) return '<root code="0">' + slot.listXml(db, pl) + '</root>';
     if (cmd === 9) return '<root code="0"><basic><cost_cash>0</cost_cash><level>1</level><star>0</star><newlife>0</newlife><add_attack>0</add_attack><add_defense>0</add_defense></basic></root>';
     return '<root code="0"></root>';
   },
@@ -458,6 +459,9 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
+    if (wc === 24) return '<root code="0">' + slot.bet(db, pl) + '</root>';
+    if (wc === 23) { const r = slot.spin(db, pl); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
+    if (wc === 25) { const r = slot.exchange(db, pl, Number(p.Id || p.PackageID || p.ID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 4) { const r = mora.play(db, pl, Number(p.GambleNPCID), Number(p.GambleMustWin) === 1); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 7) { const r = mora.buyLife(db, pl, Number(p.GambleCashType)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>'; }
     if (wc === 5 || wc === 6) { const r = mora.exchange(db, pl, Number(p.GambleExchangeID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
