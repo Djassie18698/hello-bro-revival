@@ -411,11 +411,26 @@ module.exports = {
       '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.awardFull({ coin: r.win ? 300 : 0 }) + '</root>';
   },
 
-  // Battles / tower ("dup"): Cmd 7000 = chapter list. Fights (rl_w_dup) are not built yet, so progress stays at the start.
+  // Battles / tower ("dup"): Cmd 7000 = chapter list; rl_w_dup Cmd 3100 (Chap, Round) = fight. A chapter has 6 rounds; process = the round to fight next.
   rl_r_dup: ({ db, params: p }) => {
     if (Number(p.Cmd) === 7002) return '<root code="0"><dup_count><total>5</total><remain>5</remain><vip>0</vip></dup_count><dup_list></dup_list></root>';
-    const chaps = [1, 2, 3].map((c) => `<dup><chapid>${c}</chapid><process>0</process></dup>`).join('');
+    const acc = accountBySession(db, p);
+    const sid = Number(p.ServerID || 1);
+    const chaps = [1, 2, 3].map((c) => `<dup><chapid>${c}</chapid><process>${acc ? game.getStage(db, acc.uid, sid, 1000 + c) : 1}</process></dup>`).join('');
     return `<root code="0"><duplist maxchap="3" current_round="1" remain_reset_count="3" status="0">${chaps}</duplist></root>`;
+  },
+  rl_w_dup: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const sid = Number(p.ServerID || 1);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const chap = Number(p.Chap || 1), round = Number(p.Round || 1);
+    const exp = 60 * chap, coin = 90 * chap;
+    game.addExp(db, pl, exp);
+    db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
+    game.setStage(db, pl.uid, sid, 1000 + chap, round + 1);
+    game.bumpTask(db, pl.uid, sid, 1);
+    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { enemyLevel: 10 * chap }) + game.awardFull({ coin, exp }) + '</root>';
   },
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
