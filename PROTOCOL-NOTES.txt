@@ -1,0 +1,18 @@
+PROTOCOL NOTES (reverse-engineered from libgame.so)
+- All replies: <RENLONG code="0">...</RENLONG> (code attr, child-element text; some values are ATTRIBUTES, e.g. <chapinfo currentchap="1" currentstage="1"/>)
+- Spaces appear raw in some request URLs (Lua side); server percent-encodes them.
+- Boot: xk_r_dir -> rl_r_version -> xk_w_login/rl_w_login2 -> rl_w_reg2 (new char) -> xk_w_dir -> rl_r_mainpage(1301/1302) -> rl_r_trackpoint (needs <activity/>) -> rl_r_activity -> main menu
+- <user> fields: uid nick cash coin curaction cursp level country maxteammember activeTeamId attactlow attacthigh defenselow defensehigh chakralow chakrahigh caneat meritlevel meritscore warpower LastActionUpdatePastTime LastSPUpdatePastTime score viplevel soul totalm
+- Elements parsed by the client after <user>: card (repeated), suitlist, defensesuitlist, chipbag, ninjalist, defenseninjalist, chapinfo
+Field names seen in the parsers (string literals, in read order):
+card/item object (inside <card>…): type, id, exp, seq, level, attri, starlevel, newlife, tupo_level, cha_tupo, defence_tupo, attack_tupo, attackadd, defenseadd, attack_add, defence_add, cha_add, status
+suitlist: type, item, id
+ninjalist: ninja, seq
+chipbag: chipitem, num
+
+Still UNHANDLED when the main screen loads: rl_r_msg (1800-1802), rl_r_activity (9000), rl_r_wheel (1400), rl_r_warnew (7200), rl_r_shoplist ...
+Card/skill ids live in tables.bin inside the OBB (zip-like archive of .db tables).
+
+GAME DATA TABLES (data\*.json, extracted from OBB tables.bin with tools\mbs.py / export_tables.py)
+- tables.bin is a zip with signature 40 42 3E 52; each .dbf is "MBS" format: u32 rows, cols, idx_off, type_off, data_off, ?, pool_off; types string 'u' = u32, 's' = (u32 pool_off, u16 len). Row ids list at idx_off.
+- ninjainfo = 2546 characters (cards). recruitinfo = gacha: [id, ?, type, cost(gold), "a|b|c|d", freeCooldown?...]. roundinfo = Training stages. dropinfo = drops. playerlevel, vipinfo, secret_shop, towerfloor, ninjamatch ...

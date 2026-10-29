@@ -1,0 +1,8 @@
+run.log
+*.keystore
+*.apk
+*.obb
+*.xapk
+node_modules/
+*.db-wal
+*.db-shm
