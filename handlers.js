@@ -515,6 +515,14 @@ module.exports = {
   rl_r_mtree: ({ db, params: p }) => mtree(db, p, false),
   rl_w_mtree: ({ db, params: p }) => mtree(db, p, true),
 
+  // Ramen shop: eating restores energy to full (client sets energy/action to max itself).
+  rl_w_ramen: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    if (!acc) return '<root code="3"><message>session expired</message></root>';
+    db.prepare('UPDATE players SET energy=MAX(energy,106) WHERE uid=? AND server_id=?').run(acc.uid, Number(p.ServerID || 1));
+    return '<root code="0"></root>';
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
