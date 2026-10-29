@@ -16,8 +16,10 @@ follow `PLAN.md`, and **commit + push after every working change** (`git add -A;
 - `reference/client-endpoints.txt` = every endpoint the client can call. `PROTOCOL-NOTES.txt`, `docs/PROJECT-NOTES.md` = verified formats
   and lessons learned (READ THESE FIRST).
 - `tools/` = apk patcher (`patch_apk.py`, `patch_dex.py`), `armdis.py` (ARM disassembler for libgame.so), `dev/*.sh` (adb test helpers).
-- NOT in the repo (copyright/size): the original APK/OBB, `libgame.so`, the signing keystore, the patched xapk. The owner has them on
-  their PC (`Desktop\HelloBro-revival.xapk`). C++ screens are parsed inside libgame.so (disassemble it when Lua has no answer).
+- `release/HelloBro-revival.apk` = the patched game APK (server address 192.168.178.111:18080), `release/revival.keystore` = its signing key
+  (password `revival`, alias `revival`; use it with tools/patch_apk.py so updates install over the old app). The full XAPK (apk + 112 MB
+  data file) is a GitHub Release asset on this repo (tag v1-xapk): `gh release download v1-xapk`.
+- NOT in the repo: the original unpatched APK/OBB and `libgame.so` (extract from the release XAPK if needed; the OBB inside is a plain zip). C++ screens are parsed inside libgame.so (disassemble it when Lua has no answer).
 
 ## Protocol basics
 - Client POSTs/GETs `/<endpoint>` with params `Uid, Session, ServerID, GroupID, Cmd, ...`. Replies are XML `<RENLONG code="0">...</RENLONG>`
