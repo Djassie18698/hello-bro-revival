@@ -159,7 +159,7 @@ function pull(db, pl, type, count, free) {
   return { cost, got };
 }
 function awardXml(c) {
-  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) +
+  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) +
     '</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>';
 }
 // Cmd 1900 (one pull): <recruit .../> attributes + <award>. Cmd 1901 (ten pulls): <recruit_list> of exactly 10 <item><award>.
@@ -683,16 +683,18 @@ function setStage(db, uid, sid, chap, stage) {
 // ---- God-card synthesis ("evolve"): two matching cards -> the 6-star version of that character (same npc icon family).
 function godOf(ninjaId) {
   const n = ninjas().get(ninjaId); if (!n) return null;
-  const fam = String(n[3]).split('_')[0];
-  const cand = [...ninjas().values()].find((r) => r[4] === 1 && r[11] === 6 && String(r[3]).split('_')[0] === fam && r[0] !== ninjaId);
-  return cand ? cand[0] : null;
+  const fam = String(n[3]);
+  const cand = [...ninjas().values()].find((r) => r[4] === 1 && r[11] === 6 && String(r[3]) === fam && r[0] !== ninjaId);
+  if (cand) return cand[0];
+  const gods = [...ninjas().values()].filter((r) => r[4] === 1 && r[6] === 0 && r[11] === 6 && /God/.test(r[2]));
+  return gods.length ? gods[ninjaId % gods.length][0] : null; // no same-character god card: pick a god card deterministically
 }
 function godSynth(db, pl, attSeq, defSeq) {
   ensure(db);
   const a = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(attSeq, pl.uid, pl.server_id);
   const b = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(defSeq, pl.uid, pl.server_id);
   if (!a || !b || a.seq === b.seq) return { error: 'cards missing' };
-  const god = godOf(a.ninja_id); if (!god) return { error: 'no evolution for this card' };
+  const god = godOf(b.ninja_id) || godOf(a.ninja_id); if (!god) return { error: 'no evolution for this card' };
   for (const c of [a, b]) if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(c.seq)) return { error: 'remove cards from the team first' };
   db.prepare('DELETE FROM cards WHERE seq IN (?,?)').run(a.seq, b.seq);
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
