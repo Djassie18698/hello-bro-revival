@@ -9,6 +9,17 @@ const handlers = require('./handlers');
 const admin = require('./admin');
 
 const PORT = process.env.PORT || 18080;
+// Safety copy of the save on every start (keeps the last 10) in backups/.
+try {
+  const fs = require('fs'), path = require('path');
+  const src = process.env.DB || 'hellobro.db';
+  if (fs.existsSync(src)) {
+    fs.mkdirSync('backups', { recursive: true });
+    fs.copyFileSync(src, path.join('backups', 'hellobro-' + new Date().toISOString().replace(/[:.]/g, '-') + '.db'));
+    const old = fs.readdirSync('backups').filter((f) => f.endsWith('.db')).sort().slice(0, -10);
+    for (const f of old) fs.rmSync(path.join('backups', f), { force: true });
+  }
+} catch (e) { console.error('backup failed', e.message); }
 const db = new DatabaseSync(process.env.DB || 'hellobro.db');
 require('./schema')(db);
 
