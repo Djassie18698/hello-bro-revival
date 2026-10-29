@@ -409,22 +409,26 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
 }
 
 // ---- Reincarnation / equipment advance (rl_w_newlife Cmd 7): ReadyCard gains +1 grade, EatCard (same item id) is consumed.
-const NEWLIFE_MAX = () => table('equipnewlifeprop').rows.length;
+const NEWLIFE_MAX = (type) => (type === 1 ? 6 : table('equipnewlifeprop').rows.length);
 const NEWLIFE_COST = (grade) => 5000 * grade;
 function newlife(db, pl, readySeq, eatSeq, grade) {
   ensure(db);
   const a = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(readySeq, pl.uid, pl.server_id);
   const b = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(eatSeq, pl.uid, pl.server_id);
-  if (!a || !b || a.seq === b.seq) return { error: 'cards missing' };
-  if (a.type !== b.type || a.ninja_id !== b.ninja_id) return { error: 'cards must match' };
-  if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
-  const next = Math.min(NEWLIFE_MAX(), (a.newlife || 0) + 1);
+  if (!a) return { error: 'cards missing' };
+  // The material is either another copy of the same card (consumed) or a reincarnation pill (free on this server).
+  if (b) {
+    if (a.seq === b.seq || a.type !== b.type || a.ninja_id !== b.ninja_id) return { error: 'cards must match' };
+    if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
+  }
+  const next = Math.min(NEWLIFE_MAX(a.type), (a.newlife || 0) + 1);
   const cost = NEWLIFE_COST(next);
   if (pl.coin < cost) return { error: 'not enough silver' };
   db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
   db.prepare('UPDATE cards SET newlife=?, level=1, exp=0 WHERE seq=?').run(next, a.seq);
-  db.prepare('DELETE FROM cards WHERE seq=?').run(b.seq);
-  return { grade: next, cost };
+  if (b) db.prepare('DELETE FROM cards WHERE seq=?').run(b.seq);
+  const gain = Math.round(((ninjaStats({ ...a, newlife: next }).ah) - ninjaStats(a).ah) / 2) || 0;
+  return { grade: next, cost, gain };
 }
 
 // ---- Potential training ("Train" screen, rl_x_develop): roll gains, then save them. Free here (no pills needed).

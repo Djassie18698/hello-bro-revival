@@ -398,9 +398,9 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
-    if (Number(p.Cmd) === 8) return `<root code="0"><info><max_lv>${game.NEWLIFE_MAX()}</max_lv><coin>${game.NEWLIFE_COST(1)}</coin></info></root>`;
+    if (Number(p.Cmd) === 8) return `<root code="0"><info><max_lv>${game.NEWLIFE_MAX(2)}</max_lv><coin>${game.NEWLIFE_COST(1)}</coin></info></root>`;
     const r = game.newlife(db, pl, Number(p.ReadyCard), Number(p.EatCard), Number(p.NewLifeCount));
-    return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><newlife count="${r.grade}"/></root>`;
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><newlife count="${r.grade}"/><addattack>${r.gain}</addattack><adddefend>${Math.round(r.gain / 2)}</adddefend></root>`;
   },
 
   // Potential training ("Train" icon): Cmd 1 = load card, 2 = roll (CostId), 3 = save the rolled gains.
