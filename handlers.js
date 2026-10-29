@@ -332,6 +332,21 @@ module.exports = {
 
   rl_r_group_comm: () => '<root code="0"></root>',
 
+  // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
+  rl_w_star: ({ db, params: p }) => {
+    if (Number(p.Cmd) === 3) {
+      let items = '';
+      for (let i = 0; i < 20; i++) items += `<item star_now="${i}" max_percent="${Math.max(30, 100 - i * 4)}" stone_level="1" stone_added_percent="10"/>`;
+      return '<root code="0"><star_list>' + items + '</star_list></root>';
+    }
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = game.sageGrow(db, pl, Number(p.ReadyCard), Number(p.StarStoneID), Number(p.StarStoneNum));
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return `<root code="0" levelSuccess="${r.win ? 1 : 0}" levelDrop="${r.drop}" currentLevel="${r.lv}" propLeft="${r.left}" extPropLeft="0"></root>`;
+  },
+
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
   rl_r_dailytask: ({ db, params: p }) => {
     const acc = accountBySession(db, p);

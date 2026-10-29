@@ -441,7 +441,8 @@ const KEYS = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
 function ninjaStats(card) {
   const n = ninjas().get(card.ninja_id);
   const o = {};
-  KEYS.forEach((k, i) => { o[k] = n ? Math.round((n[19 + i] || 0) + (n[25 + i] || 0) * (card.level - 1)) : 0; });
+  const mult = 1 + 0.05 * (card.starlevel || 0); // sage growth: +5% per level
+  KEYS.forEach((k, i) => { o[k] = n ? Math.round(((n[19 + i] || 0) + (n[25 + i] || 0) * (card.level - 1)) * mult) : 0; });
   return o;
 }
 function equipStats(card) {
@@ -483,6 +484,27 @@ function teamStats(db, uid, sid) {
   return { slots, total: tot, suits, bonus };
 }
 
+// Sage growth (rl_w_star Cmd 1): spend sage stones on a card for a chance at +1 sage level (stored in cards.starlevel).
+function sageGrow(db, pl, seq, stoneId, stoneNum) {
+  const card = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(seq, pl.uid, pl.server_id);
+  if (!card) return { error: 'card not found' };
+  const have = propCounts(db, pl.uid, pl.server_id)[stoneId] || 0;
+  stoneNum = Math.max(1, stoneNum);
+  if (have < stoneNum) return { error: 'not enough stones' };
+  const cost = 50 * (card.starlevel + 1);
+  if (pl.coin < cost) return { error: 'not enough silver' };
+  propAdd(db, pl.uid, pl.server_id, stoneId, -stoneNum);
+  db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
+  const chance = Math.min(100, Math.max(30, 100 - card.starlevel * 4) + (stoneId === 8 ? 10 : 0) + (stoneNum - 1) * 5);
+  const win = Math.random() * 100 < chance;
+  let lv = card.starlevel, drop = 0;
+  if (win) lv++;
+  else if (lv > 0) { const floor = Math.floor(lv / 3) * 3; if (lv > floor) { lv = Math.max(floor, lv - 1); drop = 1; } }
+  db.prepare('UPDATE cards SET starlevel=? WHERE seq=?').run(lv, seq);
+  bumpTask(db, pl.uid, pl.server_id, 5);
+  return { win, drop, lv, left: have - stoneNum };
+}
+
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -493,4 +515,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
