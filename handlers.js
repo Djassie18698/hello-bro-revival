@@ -420,6 +420,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
+    if (cmd === 16) return '<root code="0"><basic><status>2</status><amount>4900</amount><current>4900</current></basic><awards><item><id>1</id><num>1</num></item></awards></root>';
     if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
     if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
     if (cmd === 13) return '<root code="0"><basic><cash>0</cash><remain>86400</remain></basic><award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award></root>';
@@ -432,6 +433,13 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 26) { // 49$ gift: free here
+      const done = db.prepare("SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9026").get(pl.uid, pl.server_id);
+      if (done) return '<root code="610002"><message>received</message></root>';
+      db.prepare('INSERT INTO actclaim(uid,server_id,actid,subid) VALUES(?,?,9026,1)').run(pl.uid, pl.server_id);
+      db.prepare('UPDATE players SET gold=gold+4900 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
+      return '<root code="0">' + game.awardFull({ cash: 4900 }) + '</root>';
+    }
     if (Number(p.Cmd) === 28) {
       const r = game.godSynth(db, pl, Number(p.AttackCardBagIndex), Number(p.DefenseCardBagIndex));
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
