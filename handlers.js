@@ -1,6 +1,7 @@
 // One handler per CGI. Each returns an XML string. Field names come from the client's own parser.
 const crypto = require('crypto');
 const game = require('./game');
+const vip = require('./vip');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -129,7 +130,7 @@ module.exports = {
       level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: 0, meritscore: 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
-      score: 0, viplevel: 0, soul: 0, totalm: 0 };
+      score: 0, viplevel: vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist><chipbag></chipbag>' +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
@@ -205,6 +206,26 @@ module.exports = {
 
   // Misc event-center screens with no content yet.
   rl_x_award_msg: () => '<root code="0"><expiry>7</expiry><msglist></msglist></root>',
+  // VIP gift shop (VipListView.lua) and free top-up reward.
+  rl_r_vipshop: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + vip.listXml(db, pl) + '</root>';
+  },
+  rl_w_vipshopbuy: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = vip.buy(db, pl, Number(p.GiftId));
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return '<root code="0">' + r.xml + '</root>';
+  },
+  rl_w_paypack: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    if (!acc) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + game.awardFull({}) + '</root>';
+  },
   rl_r_paypack: () => '<root code="0"><payheaplist></payheaplist></root>',
   // Hall of fame: all real players ranked by level.
   rl_r_ninja_rank: ({ db, params: p }) => {
