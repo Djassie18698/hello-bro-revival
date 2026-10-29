@@ -1,5 +1,6 @@
 // VIP system: VIP level per player (offline server: free, set from the admin page), VIP gift shop, free "top-up".
 const game = require('./game');
+const drops = require('./drops');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const DEFAULT_VIP = 18; // everybody starts with max VIP; nothing is paid for here
 const MAX_VIP = 18;
@@ -37,19 +38,6 @@ function listXml(db, pl) {
   return el('lv', lv) + el('exp', exp) + el('lvexp', next) + `<vipshoplist>${items}</vipshoplist>`;
 }
 
-// Give one dropinfo row to the player. Props/silver are returned for the reward dialog; cards/gear are added silently
-// (the reveal dialog crashes the client for non-ninja items). Unsupported drop kinds (seals, ninjutsu, fragments) become silver.
-function giveDrop(db, pl, dropId, out) {
-  const d = game.table('dropinfo').rows.find((r) => r[0] === dropId);
-  if (!d) return;
-  const n = Math.max(1, d[13] || 1);
-  if (d[3] && game.ninjas().has(d[3])) { for (let i = 0; i < n; i++) game.giveCard(db, pl.uid, pl.server_id, d[3]); }
-  if (d[4]) { for (let i = 0; i < n; i++) game.giveEquip(db, pl.uid, pl.server_id, d[4]); }
-  if (d[7]) { game.propAdd(db, pl.uid, pl.server_id, d[7], n); out.props[d[7]] = (out.props[d[7]] || 0) + n; }
-  if (d[11]) out.coin += d[11] * n;
-  if (d[5] || d[6] || d[8]) out.coin += 20000 * n; // ninjutsu / seal / fragment: not implemented yet
-}
-
 function buy(db, pl, giftId) {
   ensure(db);
   const g = gifts().find((r) => r[0] === giftId);
@@ -59,11 +47,10 @@ function buy(db, pl, giftId) {
   if (pl.gold < g[2]) return { error: 'not enough gold' };
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(g[2], pl.uid, pl.server_id);
   db.prepare('INSERT INTO vipbought(uid,server_id,gift_id) VALUES(?,?,?)').run(pl.uid, pl.server_id, giftId);
-  const out = { props: {}, coin: 0 };
-  [4, 5, 6, 7, 8].forEach((i) => g[i] && giveDrop(db, pl, g[i], out));
-  if (out.coin) db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(out.coin, pl.uid, pl.server_id);
-  const props = Object.entries(out.props).map(([id, num]) => `<prop>${el('id', id)}${el('num', num)}</prop>`).join('');
-  return { xml: `<award dropid="0"><cardlist></cardlist><proplist>${props}</proplist><chipbag></chipbag><coin>${out.coin}</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>` };
+  const out = drops.newOut();
+  [4, 5, 6, 7, 8].forEach((i) => g[i] && drops.give(db, pl, g[i], out));
+  drops.settle(db, pl, out);
+  return { xml: drops.awardXml(out) };
 }
 
 module.exports = { level, setLevel, listXml, buy, MAX_VIP, DEFAULT_VIP };

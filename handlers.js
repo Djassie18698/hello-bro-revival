@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const game = require('./game');
 const vip = require('./vip');
+const wheel = require('./wheel');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -202,7 +203,21 @@ module.exports = {
     if (!r) return '<root code="5"><message>not available</message></root>';
     return '<root code="0">' + game.awardFull(r) + '</root>';
   },
-  rl_r_wheel: () => '<root code="0"><info><bigcash>0</bigcash><jifeng>0</jifeng><lasttime>0</lasttime><per_jifeng>0</per_jifeng></info><award_list></award_list></root>',
+  rl_r_wheel: ({ db, params: p }) => {
+    if (Number(p.Cmd) !== 1401) return '<root code="0"><info><bigcash>0</bigcash><jifeng>0</jifeng><lasttime>0</lasttime><per_jifeng>0</per_jifeng></info><award_list></award_list></root>';
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + wheel.loadXml(db, pl) + '</root>';
+  },
+  rl_w_wheel: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = wheel.spin(db, pl, Number(p.Cmd) === 1401 ? 10 : 1);
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return '<root code="0">' + r.xml + '</root>';
+  },
 
   // Misc event-center screens with no content yet.
   rl_x_award_msg: () => '<root code="0"><expiry>7</expiry><msglist></msglist></root>',
