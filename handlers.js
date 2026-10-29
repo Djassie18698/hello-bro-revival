@@ -4,6 +4,7 @@ const game = require('./game');
 const vip = require('./vip');
 const wheel = require('./wheel');
 const signin = require('./signin');
+const guild = require('./guild');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -346,10 +347,28 @@ module.exports = {
     return '<root code="0">' + game.secretXml(db, pl) + '</root>';
   },
 
-  // Akatsuki (guilds): not built; Cmd 8 says "no guild yet" so the guild list screen opens.
-  rl_r_group_comm: ({ params: p }) => Number(p.Cmd) === 8
-    ? '<root code="0"><min_user_level>1</min_user_level><member_status>0</member_status><groupid>0</groupid></root>'
-    : '<root code="0"><member_status>0</member_status><grouplist></grouplist></root>',
+  // Akatsuki (guild): see guild.js. Cmd 1/5 list, 2 detail, 3 create, 6 apply (instant join), 7 create cost, 8 entry check, 9 buildings, 10 quit.
+  rl_r_group_comm: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd), bad = (m) => `<root code="5"><message>${m}</message></root>`;
+    if (cmd === 8) { const s = guild.status(db, pl); return `<root code="0"><min_user_level>1</min_user_level><member_status>${s.member_status}</member_status><groupid>${s.groupid}</groupid></root>`; }
+    if (cmd === 7) return `<root code="0"><cash>${guild.CREATE_COST}</cash></root>`;
+    if (cmd === 3) { const r = guild.create(db, pl, p.GroupName, p.Desc); return r.error ? bad(r.error) : `<root code="0"><groupid>${r.id}</groupid></root>`; }
+    if (cmd === 2) { const x = guild.detailXml(db, pl, Number(p.GroupId)); return x ? `<root code="0">${x}</root>` : bad('no such group'); }
+    if (cmd === 6) { const r = guild.join(db, pl, Number(p.GroupId)); return r.error ? bad(r.error) : '<root code="0"></root>'; }
+    if (cmd === 9) { const g = guild.myGroup(db, pl.uid, pl.server_id); return g ? `<root code="0">${guild.buildingsXml(g)}</root>` : bad('no group'); }
+    if (cmd === 10) { guild.quit(db, pl); return '<root code="0"></root>'; }
+    return `<root code="0">${guild.listXml(db, pl)}</root>`;
+  },
+  rl_w_group_admin: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 1) { const x = guild.adminXml(db, pl); return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>'; }
+    return '<root code="0"></root>';
+  },
 
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
