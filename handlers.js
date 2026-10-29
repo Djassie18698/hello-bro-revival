@@ -346,7 +346,10 @@ module.exports = {
     return '<root code="0">' + game.secretXml(db, pl) + '</root>';
   },
 
-  rl_r_group_comm: () => '<root code="0"></root>',
+  // Akatsuki (guilds): not built; Cmd 8 says "no guild yet" so the guild list screen opens.
+  rl_r_group_comm: ({ params: p }) => Number(p.Cmd) === 8
+    ? '<root code="0"><min_user_level>1</min_user_level><member_status>0</member_status><groupid>0</groupid></root>'
+    : '<root code="0"><member_status>0</member_status><grouplist></grouplist></root>',
 
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
