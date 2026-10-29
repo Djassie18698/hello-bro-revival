@@ -21,4 +21,6 @@ B) Friend is somewhere else (different house)
    4. OPEN-FIREWALL.bat on your PC (once) and keep START-SERVER.bat running.
 
 Admin page (give gold, characters, set level): http://<server address>:18080/admin
-Known problems: Gacha result screens show placeholders but cards are added.
+Known problems: Border war, adventure tab and the slot machine are not available. Everything else (training, spar, arena, tower, guild, gacha, shops, VIP, events) works.
+
+TIP: release\HelloBro-for-Tailscale-100.111.115.0.apk already points at this PC's Tailscale address (100.111.115.0). A friend who joins your Tailscale network can install it directly (plus the OBB, see B3).

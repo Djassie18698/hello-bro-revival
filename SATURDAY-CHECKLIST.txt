@@ -1,0 +1,11 @@
+SATURDAY CHECKLIST (you + a friend)
+1. On your PC: double-click START-SERVER.bat and leave the window open. (Needs Node 24, already installed.)
+2. Once: right-click OPEN-FIREWALL.bat -> Run as administrator.
+3. Same Wi-Fi: friend installs HelloBro-revival.xapk (server 192.168.178.111). If your IP changed, run MAKE-FRIEND-APK.bat.
+   Different place: both use Tailscale (free), friend installs release\HelloBro-for-Tailscale-100.111.115.0.apk + the OBB (see FRIENDS-README.txt).
+4. Press START in the game. Each person gets their own character automatically.
+5. Open http://localhost:18080/admin on your PC (or http://<server address>:18080/admin) to give gold, characters, items and levels.
+   Tip: set level 80 for Dun and Arena (25), Tower (30), Wheel (30).
+6. Playing together: Spar list, Arena ladder, Akatsuki (create a guild, friend joins it from the list), Friend list.
+7. Things to open the Shop once after starting the game: item counts (pills, ramen) only load after the Shop was opened.
+If something breaks: send me the server window text / what screen you were on.
