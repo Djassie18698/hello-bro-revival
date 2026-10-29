@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const game = require('./game');
 const vip = require('./vip');
 const wheel = require('./wheel');
+const signin = require('./signin');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -202,6 +203,19 @@ module.exports = {
     const r = game.actClaim(db, pl, Number(p.ActID), Number(p.SubID));
     if (!r) return '<root code="5"><message>not available</message></root>';
     return '<root code="0">' + game.awardFull(r) + '</root>';
+  },
+  // Small activities (month sign-in is Cmd 7/8; others not built yet -> empty OK reply).
+  rl_x_small_activity: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    if (cmd === 7) return '<root code="0">' + signin.listXml(db, pl) + '</root>';
+    if (cmd === 8) {
+      const r = signin.sign(db, pl, Number(p.SignId));
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
+    return '<root code="0"></root>';
   },
   rl_r_wheel: ({ db, params: p }) => {
     if (Number(p.Cmd) !== 1401) return '<root code="0"><info><bigcash>0</bigcash><jifeng>0</jifeng><lasttime>0</lasttime><per_jifeng>0</per_jifeng></info><award_list></award_list></root>';
