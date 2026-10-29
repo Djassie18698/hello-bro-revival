@@ -83,10 +83,10 @@ function cardXml(c) {
 }
 
 // One team slot as CTeamCard::firefly_InitFromXml reads it (ninjaid = the card's seq).
-function slotXml(seq, slot, eq = {}) {
+function slotXml(seq, slot, eq = {}, st = {}) {
   const f = { seq: slot + 1, ninjaid: seq, weaponid: eq[1] || 0, armorid: eq[2] || 0, decoratorid: eq[3] || 0, markid: eq[4] || 0,
     ninjintsu1seq: eq[5] || 0, ninjintsu2seq: eq[6] || 0, ninjintsu3seq: eq[7] || 0, ninjintsu4seq: eq[8] || 0,
-    attacklow: 10, attackhigh: 20, defenselow: 5, defensehigh: 10, chakralow: 10, chakrahigh: 20, skillsuit: 0 };
+    attacklow: st.al || 10, attackhigh: st.ah || 20, defenselow: st.dl || 5, defensehigh: st.dh || 10, chakralow: st.cl || 10, chakrahigh: st.ch || 20, skillsuit: 0 };
   return '<ninja>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') +
     '<combinlist></combinlist><readycombinlist></readycombinlist></ninja>';
 }
@@ -104,11 +104,14 @@ function stateXml(db, uid, sid) {
   const cards = db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=? ORDER BY seq').all(uid, sid);
   let team = db.prepare('SELECT seq FROM team WHERE uid=? AND server_id=? ORDER BY slot').all(uid, sid);
   if (process.env.HB_TEAM_SLOTS !== undefined) team = team.slice(0, Number(process.env.HB_TEAM_SLOTS)); // debugging aid
+  const ts = teamStats(db, uid, sid);
   const eqRows = db.prepare('SELECT slot, kind, seq FROM equipped WHERE uid=? AND server_id=?').all(uid, sid);
   const eqOf = (slot) => Object.fromEntries(eqRows.filter((r) => r.slot === slot).map((r) => [r.kind, r.seq]));
   return {
+    suitlist: '<suitlist>' + ts.suits.map((r) => `<item>${el('id', r[0])}${el('type', r[2])}</item>`).join('') + '</suitlist>',
+    totals: ts.total,
     cards: cards.map(cardXml).join(''),
-    ninjalist: '<ninjalist>' + team.map((t, i) => slotXml(t.seq, i, eqOf(i + 1))).join('') + '</ninjalist>',
+    ninjalist: '<ninjalist>' + team.map((t, i) => slotXml(t.seq, i, eqOf(i + 1), (ts.slots[i] || {}))).join('') + '</ninjalist>',
   };
 }
 
@@ -173,7 +176,8 @@ function ninjaXml(n) {
 }
 function battleXml(db, pl, chap, stage, opt = {}) {
   const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
-  const mine = team.map((t) => ({ id: t.ninja_id, bagid: t.seq, low: 40 + stage * 2, high: 60 + stage * 3, end: 500, level: t.level, star: t.starlevel }));
+  const ts = teamStats(db, pl.uid, pl.server_id);
+  const mine = team.map((t, i) => { const q = ts.slots[i] || {}; return { id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), level: t.level, star: t.starlevel }; });
   const foes = (opt.enemyIds || [21, 22, 23]).map((id, i) => ({ id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, level: opt.enemyLevel || 1, star: 0 }));
   const rounds = [];
   foes.forEach((foe, i) => {
@@ -194,10 +198,12 @@ function battleXml(db, pl, chap, stage, opt = {}) {
 // Spar fight against rival ToUid (a real player or a bot). Strength = level + stars of the team; a little luck.
 function sparFight(db, pl, toUid) {
   const rv = rivals(db, pl, 12).find((r) => r.id === toUid) || { id: toUid, level: pl.level, nick: 'Rival', ninja: 5 };
-  const power = (lv, star) => lv * 2 + star * 10 + 10;
-  const cards = db.prepare('SELECT c.level, c.ninja_id FROM cards c JOIN team t ON t.seq=c.seq WHERE t.uid=? AND t.server_id=?').all(pl.uid, pl.server_id);
-  const mine = cards.reduce((a, c) => a + power(c.level + Math.floor(pl.level / 3), (ninjas().get(c.ninja_id) || [])[11] || 3), 0) || 10;
-  const theirs = 3 * power(rv.level, rv.star || 3);
+  const botAtk = (lv, star) => 150 + lv * 55 + star * 60;
+  const ts = teamStats(db, pl.uid, pl.server_id);
+  const mine = (ts.total.al + ts.total.ah) / 2 / Math.max(1, ts.slots.length);
+  let theirs;
+  if (rv.id < 9000000) { const o = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id); const t2 = o ? teamStats(db, o.uid, o.server_id) : null; theirs = t2 ? (t2.total.al + t2.total.ah) / 2 / Math.max(1, t2.slots.length) : botAtk(rv.level, 3); }
+  else theirs = botAtk(rv.level, rv.star || 3);
   const win = mine * (0.7 + Math.random() * 0.6) >= theirs;
   const xml = battleXml(db, pl, 0, 1, { enemyIds: [rv.ninja, rv.ninja, rv.ninja], enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, win });
   const coin = win ? 3 + rv.level : 0, exp = win ? 14 : 2;
@@ -427,6 +433,54 @@ function secretBuy(db, pl, rowId) {
   return { ninja: r[5], seq };
 }
 
+// ---- Stats: ninja level growth + gear + set bonuses ------------------------------------------
+// ninjainfo cols 19-24 = base atk lo/hi, def lo/hi, chakra lo/hi; 25-30 = growth per level. equipmentinfo: 7-12 base, 13-18 growth.
+const KEYS = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
+function ninjaStats(card) {
+  const n = ninjas().get(card.ninja_id);
+  const o = {};
+  KEYS.forEach((k, i) => { o[k] = n ? Math.round((n[19 + i] || 0) + (n[25 + i] || 0) * (card.level - 1)) : 0; });
+  return o;
+}
+function equipStats(card) {
+  const e = equipRows().find((r) => r[0] === card.ninja_id);
+  const o = {};
+  KEYS.forEach((k, i) => { o[k] = e ? Math.round((e[7 + i] || 0) + (e[13 + i] || 0) * (card.level - 1)) : 0; });
+  return o;
+}
+const addStats = (a, b) => { const o = {}; KEYS.forEach((k) => { o[k] = (a[k] || 0) + (b[k] || 0); }); return o; };
+// Set bonuses: type 1 = N cards of >= X stars, type 2 = N cards of level >= X (counted over all owned ninja cards).
+function activeSuits(db, uid, sid) {
+  const cards = db.prepare('SELECT ninja_id, level FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid);
+  const best = {};
+  for (const r of table('suit_info').rows) {
+    const [, , type, need, count] = r;
+    const have = cards.filter((c) => (type === 1 ? ((ninjas().get(c.ninja_id) || [])[11] || 0) >= need : c.level >= need)).length;
+    if (have >= count && (!best[type] || count > best[type][4])) best[type] = r;
+  }
+  return Object.values(best);
+}
+function teamStats(db, uid, sid) {
+  ensure(db);
+  const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
+  const eqRows = db.prepare('SELECT e.slot, e.kind, c.* FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?').all(uid, sid);
+  const slots = team.map((c, i) => {
+    let st = ninjaStats(c);
+    for (const e of eqRows.filter((x) => x.slot === i + 1)) st = addStats(st, equipStats(e));
+    return { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st };
+  });
+  let tot = slots.reduce((a, s) => addStats(a, s), {});
+  const suits = activeSuits(db, uid, sid);
+  let bonus = {};
+  for (const r of suits) {
+    bonus = addStats(bonus, { al: r[5], ah: r[5], dl: r[7], dh: r[7], cl: r[9], ch: r[9] });
+    const pct = { al: r[6], ah: r[6], dl: r[8], dh: r[8], cl: r[10], ch: r[10] };
+    KEYS.forEach((k) => { bonus[k] += Math.round((tot[k] || 0) * pct[k]); });
+  }
+  tot = addStats(tot, bonus);
+  return { slots, total: tot, suits, bonus };
+}
+
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -437,4 +491,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

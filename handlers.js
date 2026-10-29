@@ -127,11 +127,11 @@ module.exports = {
     const gs = game.stateXml(db, acc.uid, pl.server_id);
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: 10,
       level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
-      attactlow: 10, attacthigh: 20, defenselow: 5, defensehigh: 10, chakralow: 10, chakrahigh: 20,
+      attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: 0, meritscore: 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
       score: 0, viplevel: 0, soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
-      '<suitlist></suitlist><defensesuitlist></defensesuitlist><chipbag></chipbag>' +
+      gs.suitlist + '<defensesuitlist></defensesuitlist><chipbag></chipbag>' +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
       '<chapinfo currentchap="1" currentstage="1"/></root>';
   },
@@ -262,7 +262,7 @@ module.exports = {
     const kind = Number(p.Cmd) - 2300;
     if (kind >= 1 && kind <= 8) game.equip(db, pl, Number(p.Seq), kind, Number(p.NewID) || 0);
     const gs = game.stateXml(db, pl.uid, pl.server_id);
-    return `<root code="0"><teamid>${Number(p.TeamId) || 0}</teamid><suitlist></suitlist>${gs.ninjalist}</root>`;
+    return `<root code="0"><teamid>${Number(p.TeamId) || 0}</teamid>${gs.suitlist}${gs.ninjalist}</root>`;
   },
 
   // Secret (soul) shop: Cmd 1 list, 2 refresh, 4 buy (Soul=row id), 5 soul value of cards.
