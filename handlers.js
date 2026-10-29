@@ -270,8 +270,19 @@ module.exports = {
     return `<root code="0"><player><rank>${me || 1}</rank><min_score>10</min_score><max_score>20</max_score></player><rank_list>${items}</rank_list></root>`;
   },
 
-  // Eight Gates (Dun) overview - numbers only, no upgrading yet.
-  rl_w_eight_gate: () => '<root code="0"><basic><soul>0</soul><gate_level>0</gate_level><cost_soul>100</cost_soul><cost_coin>1000</cost_coin><gate_id id="1"></gate_id></basic><attribute><add_attack>0</add_attack><add_defense>0</add_defense><add_chakala>0</add_chakala><add_attack_per>0</add_attack_per><add_defense_per>0</add_defense_per><add_chakala_per>0</add_chakala_per></attribute></root>',
+  // Eight Gates (Dun): Cmd 1 = info, Cmd 2 = open the next gate.
+  rl_w_eight_gate: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 2) {
+      const r = game.gateOpen(db, pl);
+      if (r.error) return `<root code="${r.code || 5}"><message>${r.error}</message></root>`;
+      pl.coin -= 0;
+    }
+    const fresh = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, pl.server_id);
+    return '<root code="0">' + game.gateXml(db, fresh) + '</root>';
+  },
 
   // Shop purchase of a consumable (Goodsid, Count).
   rl_w_shopbuy: ({ db, params: p }) => {

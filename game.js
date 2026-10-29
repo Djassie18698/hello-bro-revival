@@ -481,6 +481,8 @@ function teamStats(db, uid, sid) {
     KEYS.forEach((k) => { bonus[k] += Math.round((tot[k] || 0) * pct[k]); });
   }
   tot = addStats(tot, bonus);
+  const gb = gateBonus(gateLevel(db, uid, sid));
+  if (gb.flat) { const g = {}; KEYS.forEach((k) => { g[k] = gb.flat + Math.round((tot[k] || 0) * gb.pct); }); tot = addStats(tot, g); }
   return { slots, total: tot, suits, bonus };
 }
 
@@ -517,6 +519,31 @@ function friendsXml(db, pl) {
   return '<userlist page="1">' + real.map(f).join('') + '</userlist>';
 }
 
+// ---- Eight Inner Gates (Dun) -----------------------------------------------------------------
+// gate level 0-8 per player; each gate costs souls (prop 9998) + silver; bonus = flat + percent on the team total.
+const GATE_SOUL = 9998;
+function gateLevel(db, uid, sid) { return Math.min(8, propCounts(db, uid, sid)[9997] || 0); }
+function gateBonus(lv) { return { flat: 120 * lv, pct: 0.02 * lv }; }
+function gateXml(db, pl) {
+  const c = propCounts(db, pl.uid, pl.server_id);
+  if (c[GATE_SOUL] === undefined) { propAdd(db, pl.uid, pl.server_id, GATE_SOUL, 5000); c[GATE_SOUL] = 5000; }
+  const lv = gateLevel(db, pl.uid, pl.server_id), b = gateBonus(lv), nx = gateBonus(Math.min(8, lv + 1));
+  const kinds = [1, 2, 3].map((t) => `<gate type="${t}" value="${nx.flat - b.flat}"/>`).join('');
+  return `<basic>${el('soul', c[GATE_SOUL])}${el('gate_level', lv)}${el('cost_soul', 100 * (lv + 1))}${el('cost_coin', 1000 * (lv + 1))}<gate_id id="${Math.min(8, lv + 1)}">${kinds}</gate_id></basic>` +
+    `<attribute>${el('add_attack', b.flat)}${el('add_defense', b.flat)}${el('add_chakala', b.flat)}${el('add_attack_per', Math.round(b.pct * 100))}${el('add_defense_per', Math.round(b.pct * 100))}${el('add_chakala_per', Math.round(b.pct * 100))}</attribute>`;
+}
+function gateOpen(db, pl) {
+  const lv = gateLevel(db, pl.uid, pl.server_id);
+  if (lv >= 8) return { error: 'all gates open' };
+  const c = propCounts(db, pl.uid, pl.server_id), soul = c[GATE_SOUL] === undefined ? 5000 : c[GATE_SOUL];
+  if (soul < 100 * (lv + 1)) return { error: 'not enough souls', code: 400006 };
+  if (pl.coin < 1000 * (lv + 1)) return { error: 'not enough silver' };
+  db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(1000 * (lv + 1), pl.uid, pl.server_id);
+  propAdd(db, pl.uid, pl.server_id, GATE_SOUL, c[GATE_SOUL] === undefined ? 5000 - 100 * (lv + 1) : -100 * (lv + 1));
+  propAdd(db, pl.uid, pl.server_id, 9997, 1);
+  return {};
+}
+
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -527,4 +554,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
