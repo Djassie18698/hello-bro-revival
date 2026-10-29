@@ -371,6 +371,24 @@ module.exports = {
   },
   rl_w_friend: () => '<root code="0"></root>',
 
+  // Arena (ranked ladder): rl_r_sport Cmd 2000-ish = list, rl_r_sportrank = top 50, rl_w_sport Cmd 2008 = fight (ToRank).
+  rl_r_sport: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + game.arenaListXml(db, pl) + '</root>';
+  },
+  rl_r_sportrank: ({ db }) => '<root code="0">' + game.arenaRankXml(db) + '</root>',
+  rl_w_sport: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = game.arenaFight(db, pl, Number(p.ToRank));
+    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    return '<root code="0">' + r.xml.replace('</fight>', '</fight>') + `<sport renown_delta="${r.renown}" fromrank="${r.from}" torank="${r.to}"/>` +
+      '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.awardFull({ coin: r.win ? 300 : 0 }) + '</root>';
+  },
+
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
   rl_r_dailytask: ({ db, params: p }) => {
     const acc = accountBySession(db, p);

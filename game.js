@@ -544,6 +544,74 @@ function gateOpen(db, pl) {
   return {};
 }
 
+// ---- Arena (ranked ladder) --------------------------------------------------------------------
+// Ladder = persistent order of "slots": real players (uid) and bots (ids 9100001+). Rank 1 is best. A win over a higher rank swaps places.
+const ARENA_BOTS = 20;
+function arenaEnsure(db) {
+  db.exec('CREATE TABLE IF NOT EXISTS arena (rank INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)');
+  if (!db.prepare('SELECT COUNT(*) n FROM arena').get().n) {
+    const ins = db.prepare('INSERT INTO arena(rank,uid) VALUES(?,?)');
+    for (let i = 1; i <= ARENA_BOTS; i++) ins.run(i, 9100000 + i);
+  }
+}
+function arenaJoin(db, pl) {
+  arenaEnsure(db);
+  if (!db.prepare('SELECT 1 FROM arena WHERE uid=?').get(pl.uid)) {
+    const n = db.prepare('SELECT COUNT(*) n FROM arena').get().n;
+    db.prepare('INSERT INTO arena(rank,uid) VALUES(?,?)').run(n + 1, pl.uid);
+  }
+  return db.prepare('SELECT rank FROM arena WHERE uid=?').get(pl.uid).rank;
+}
+function arenaInfo(db, uid) {
+  if (uid >= 9100001 && uid <= 9100000 + ARENA_BOTS) {
+    const i = uid - 9100000, pool = Array.from(ninjas().values()).filter((r) => r[4] === 1 && r[11] >= 4);
+    const n = pool[(i * 37) % pool.length];
+    return { uid, nick: BOT_NAMES[i % BOT_NAMES.length] + ' ' + i, level: 20 + i * 3, ninja: n[0], star: n[11], country: 1 + (i % 3), power: 1500 - i * 60 };
+  }
+  const p = db.prepare('SELECT * FROM players WHERE uid=?').get(uid);
+  if (!p) return null;
+  const t = teamStats(db, p.uid, p.server_id);
+  return { uid, nick: p.nick, level: p.level, ninja: firstNinja(db, p), star: 5, country: p.country, power: (t.total.al + t.total.ah) / 2 / Math.max(1, t.slots.length) };
+}
+const arenaReward = (rank) => ({ coin: Math.max(500, 6000 - rank * 100), renown: Math.max(10, 200 - rank * 5) });
+function arenaListXml(db, pl) {
+  const my = arenaJoin(db, pl);
+  const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank').all();
+  const idx = rows.findIndex((r) => r.uid === pl.uid);
+  const targets = rows.slice(Math.max(0, idx - 6), idx).concat(rows.slice(idx + 1, idx + 4)).filter((r) => r.uid !== pl.uid);
+  const esc = (t) => String(t).replace(/[<>&"]/g, '');
+  const opp = targets.map((r) => {
+    const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank);
+    return `<user>${el('id', r.uid)}${el('rank', r.rank)}${el('nick', esc(o.nick))}${el('level', o.level)}${el('ninja', o.ninja)}${el('country', o.country)}${el('firstninjastar', o.star)}${el('newlife', 0)}${el('winexp', 20)}${el('wincoin', 300)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('failexp', 5)}${el('failcoin', 50)}${el('host', 0)}<teammate></teammate></user>`;
+  }).join('');
+  const renown = propCounts(db, pl.uid, pl.server_id)[9996] || 0;
+  return `<sport><my>${el('rank', my)}${el('renown', renown)}${el('rewardtimeleft', 3600)}${el('timeleft', 3600)}${el('dayrewardstat', 0)}${el('todayresttime', 99)}${el('todayall', 99)}${el('resttime', 0)}${el('restbatter', 99)}${el('restpack', 0)}</my></sport><oppe>${opp}</oppe>`;
+}
+function arenaRankXml(db) {
+  const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank LIMIT 50').all();
+  const items = rows.map((r) => { const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank); return `<item>${el('nick', String(o.nick).replace(/[<>&"]/g, ''))}${el('rank', r.rank)}${el('level', o.level)}${el('host', 0)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('firstninjastar', o.star)}<teammate></teammate></item>`; }).join('');
+  return `<sportrank>${items}</sportrank>`;
+}
+function arenaFight(db, pl, toRank) {
+  const my = arenaJoin(db, pl);
+  const t = db.prepare('SELECT * FROM arena WHERE rank=?').get(toRank);
+  if (!t || t.uid === pl.uid) return { error: 'bad target' };
+  const o = arenaInfo(db, t.uid);
+  const ts = teamStats(db, pl.uid, pl.server_id);
+  const mine = (ts.total.al + ts.total.ah) / 2 / Math.max(1, ts.slots.length);
+  const win = mine * (0.75 + Math.random() * 0.5) >= o.power;
+  const xml = battleXml(db, pl, 0, 1, { enemyIds: [o.ninja, o.ninja, o.ninja], enemyName: o.nick, enemyUid: o.uid, enemyLevel: o.level, win });
+  let from = my, to = my, renown = 0;
+  if (win) {
+    if (toRank < my) { db.prepare('UPDATE arena SET uid=-1 WHERE rank=?').run(my); db.prepare('UPDATE arena SET uid=? WHERE rank=?').run(my === 0 ? 0 : pl.uid, toRank); db.prepare('UPDATE arena SET uid=? WHERE rank=?').run(t.uid, my); to = toRank; }
+    renown = arenaReward(to).renown;
+    propAdd(db, pl.uid, pl.server_id, 9996, renown);
+    db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(300, pl.uid, pl.server_id);
+  }
+  bumpTask(db, pl.uid, pl.server_id, 4);
+  return { win, xml, from, to, renown };
+}
+
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -554,4 +622,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
