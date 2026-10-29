@@ -678,4 +678,23 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+
+// ---- God-card synthesis ("evolve"): two matching cards -> the 6-star version of that character (same npc icon family).
+function godOf(ninjaId) {
+  const n = ninjas().get(ninjaId); if (!n) return null;
+  const fam = String(n[3]).split('_')[0];
+  const cand = [...ninjas().values()].find((r) => r[4] === 1 && r[11] === 6 && String(r[3]).split('_')[0] === fam && r[0] !== ninjaId);
+  return cand ? cand[0] : null;
+}
+function godSynth(db, pl, attSeq, defSeq) {
+  ensure(db);
+  const a = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(attSeq, pl.uid, pl.server_id);
+  const b = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(defSeq, pl.uid, pl.server_id);
+  if (!a || !b || a.seq === b.seq) return { error: 'cards missing' };
+  const god = godOf(a.ninja_id); if (!god) return { error: 'no evolution for this card' };
+  for (const c of [a, b]) if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(c.seq)) return { error: 'remove cards from the team first' };
+  db.prepare('DELETE FROM cards WHERE seq IN (?,?)').run(a.seq, b.seq);
+  return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
+}
+
+module.exports = { godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

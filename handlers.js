@@ -414,6 +414,32 @@ module.exports = {
     return game.potentialSave(db, pl, bag) ? '<root code="0"></root>' : '<root code="5"><message>no such card</message></root>';
   },
 
+  // Misc "comm" screens. Read (Cmd 20/8 evolve, 13 consumption, 15/18 slot machine, 9 inherit, 16 shop-ish) and write (28 evolve).
+  rl_r_comm: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
+    if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
+    if (cmd === 13) return '<root code="0"><basic><cash>0</cash><remain>86400</remain></basic><award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award></root>';
+    if (cmd === 15) return '<root code="0"><basic><score>0</score><bet_cost>10</bet_cost><cost>10</cost><times>1</times><remain>86400</remain></basic><ninjas></ninjas></root>';
+    if (cmd === 18) return '<root code="0"><basic><remain>86400</remain><score>0</score></basic><package></package></root>';
+    if (cmd === 9) return '<root code="0"><basic><cost_cash>0</cost_cash><level>1</level><star>0</star><newlife>0</newlife><add_attack>0</add_attack><add_defense>0</add_defense></basic></root>';
+    return '<root code="0"></root>';
+  },
+  rl_w_comm: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 28) {
+      const r = game.godSynth(db, pl, Number(p.AttackCardBagIndex), Number(p.DefenseCardBagIndex));
+      if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+      return '<root code="0"><prop_num>0</prop_num>' + game.awardXml(r) + '</root>';
+    }
+    return '<root code="0"></root>';
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
