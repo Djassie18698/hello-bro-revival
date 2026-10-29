@@ -137,7 +137,7 @@ module.exports = {
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist><chipbag></chipbag>' +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
-      '<chapinfo currentchap="1" currentstage="1"/></root>';
+      '<chapinfo currentchap="19" currentstage="1"/></root>';
   },
 
   // Gacha status (free pulls / pity counters). Everything available, nothing to track yet.
