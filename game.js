@@ -505,6 +505,18 @@ function sageGrow(db, pl, seq, stoneId, stoneNum) {
   return { win, drop, lv, left: have - stoneNum };
 }
 
+// Friends: on this offline server every other registered player is automatically your friend.
+function friendsXml(db, pl) {
+  const real = db.prepare('SELECT * FROM players WHERE server_id=? AND uid!=? ORDER BY level DESC').all(pl.server_id, pl.uid);
+  const f = (r) => {
+    const t = teamStats(db, r.uid, r.server_id);
+    const o = { id: r.uid, level: r.level, nick: String(r.nick).replace(/[<>&"]/g, ''), attacklow: t.total.al, attackhigh: t.total.ah, defenselow: t.total.dl, defenseHigh: t.total.dh,
+      firstninja: firstNinja(db, r), country: r.country, firstninjastar: 5, newlife: 0 };
+    return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
+  };
+  return '<userlist page="1">' + real.map(f).join('') + '</userlist>';
+}
+
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -515,4 +527,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

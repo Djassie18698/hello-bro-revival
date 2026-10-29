@@ -185,7 +185,12 @@ module.exports = {
   rl_r_countrynew: () => '<root code="0"><display>0</display><pack><canget>0</canget><resttime>0</resttime></pack><resttime>0</resttime><officallist></officallist><decllist><has_decl>0</has_decl><allicountry></allicountry><oppecountry></oppecountry></decllist><timeinfo><begin>0</begin><end>0</end></timeinfo></root>',
 
   // Mailbox / notices (nothing yet), scrolling bulletin, activity list (no events), lucky wheel info.
-  rl_r_msg: () => '<root code="0"><msglist></msglist></root>',
+  // Mailbox: Cmd 1802 = system notices (a welcome message), 1800 fights / 1801 friends stay empty.
+  rl_r_msg: ({ params: p }) => {
+    if (Number(p.Cmd) !== 1802) return '<root code="0"><msglist></msglist></root>';
+    const now = Math.floor(Date.now() / 1000);
+    return `<root code="0"><msglist><msg><iTime>${now}</iTime><ID>1</ID><iStatus>1</iStatus><text>Welcome back to Hello Bro! Offline revival server.</text></msg></msglist></root>`;
+  },
   rl_r_bulletin: () => {
     const now = Math.floor(Date.now() / 1000);
     return `<root code="0"><servertime>${now}</servertime><bulletinlist><bulletin><id>1</id><type>1</type><cycle>60</cycle><begintime>${now - 86400}</begintime><endtime>${now + 86400 * 3650}</endtime><content>Welcome back to Hello Bro! Offline revival server - have fun with your friends.</content></bulletin></bulletinlist></root>`;
@@ -346,6 +351,14 @@ module.exports = {
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
     return `<root code="0" levelSuccess="${r.win ? 1 : 0}" levelDrop="${r.drop}" currentLevel="${r.lv}" propLeft="${r.left}" extPropLeft="0"></root>`;
   },
+
+  rl_r_friend: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + game.friendsXml(db, pl) + '</root>';
+  },
+  rl_w_friend: () => '<root code="0"></root>',
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
   rl_r_dailytask: ({ db, params: p }) => {
