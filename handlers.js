@@ -461,6 +461,20 @@ module.exports = {
   // Mail actions (read / delete / accept): nothing to change on this server, acknowledge.
   rl_w_msg: () => '<root code="0"></root>',
 
+  // Invitation code (settings): any non-empty code pays 500 gold, once per code per player.
+  rl_w_invitecode: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const code = String(p.Code || '').trim();
+    if (!code) return '<root code="5"><message>empty code</message></root>';
+    db.exec('CREATE TABLE IF NOT EXISTS invites (uid INTEGER, server_id INTEGER, code TEXT, PRIMARY KEY(uid,server_id,code))');
+    if (db.prepare('SELECT 1 FROM invites WHERE uid=? AND server_id=? AND code=?').get(pl.uid, pl.server_id, code)) return '<root code="5"><message>code already used</message></root>';
+    db.prepare('INSERT INTO invites VALUES(?,?,?)').run(pl.uid, pl.server_id, code);
+    db.prepare('UPDATE players SET gold=gold+500 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
+    return '<root code="0">' + game.awardFull({ cash: 500 }) + '</root>';
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
