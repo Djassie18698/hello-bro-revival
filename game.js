@@ -427,6 +427,7 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
   db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
   db.prepare('UPDATE cards SET newlife=?, level=1, exp=0 WHERE seq=?').run(next, a.seq);
   if (b) db.prepare('DELETE FROM cards WHERE seq=?').run(b.seq);
+  else if (propCounts(db, pl.uid, pl.server_id)[11] > 0) propAdd(db, pl.uid, pl.server_id, 11, -Math.min(80, propCounts(db, pl.uid, pl.server_id)[11]));
   const gain = Math.round(((ninjaStats({ ...a, newlife: next }).ah) - ninjaStats(a).ah) / 2) || 0;
   return { grade: next, cost, gain };
 }
