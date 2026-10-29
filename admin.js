@@ -24,6 +24,10 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
  <div class="row"><input id="q" placeholder="Search name (Naruto, Itachi...)" oninput="search()" style="flex:1;min-width:200px">
  <select id="ninja" style="min-width:260px"></select><input id="count" type="number" value="1" style="width:70px"><button onclick="giveCard()">Give</button></div>
  <small>Stars shown after the name. Same player as selected above.</small></div>
+<div class="card"><h3>Give an item or equipment</h3>
+ <div class="row"><input id="q2" placeholder="Search items / equipment (ramen, sword, pill...)" oninput="search2()" style="flex:1;min-width:200px">
+ <select id="thing" style="min-width:260px"></select><input id="count2" type="number" value="1" style="width:70px"><button onclick="giveThing()">Give</button></div>
+ <small>Items go into the backpack, equipment arrives as cards. Same player as selected above.</small></div>
 <div id="msg"></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -35,7 +39,9 @@ async function load(){const d=await api('players');
 async function give(){const r=await api('give',{uid:+$('uid').value,field:$('field').value,amount:+$('amount').value});toast(r.ok?'Done':r.error);load();}
 async function search(){const d=await api('ninjas?q='+encodeURIComponent($('q').value));$('ninja').innerHTML=d.map(n=>'<option value="'+n.id+'">'+n.name+' '+'★'.repeat(n.stars)+' (#'+n.id+')</option>').join('');}
 async function giveCard(){const r=await api('givecard',{uid:+$('uid').value,ninja:+$('ninja').value,count:+$('count').value});toast(r.ok?'Card(s) added - restart the game to see them':r.error);load();}
-load();search();
+async function search2(){const d=await api('things?q='+encodeURIComponent($('q2').value));$('thing').innerHTML=d.map(n=>'<option value="'+n.kind+':'+n.id+'">'+n.name+' ['+n.kind+(n.stars?' '+'★'.repeat(n.stars):'')+']</option>').join('');}
+async function giveThing(){const [k,i]=$('thing').value.split(':');const r=await api('givething',{uid:+$('uid').value,kind:k,id:+i,count:+$('count2').value});toast(r.ok?'Given - reopen the screen in game to see it':r.error);load();}
+load();search();search2();
 </script></body></html>`;
 
 const json = (res, o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -62,6 +68,13 @@ module.exports = async function admin(req, res, u, db, readBody) {
     }
     return json(res, out);
   }
+  if (u.pathname === '/admin/api/things') {
+    const q = String(u.query.q || '').toLowerCase();
+    const out = [];
+    for (const r of game.table('consumeinfo').rows) { if (!q || String(r[2]).toLowerCase().includes(q)) out.push({ kind: 'item', id: r[1], name: r[2], stars: 0 }); if (out.length >= 40) break; }
+    for (const r of game.table('equipmentinfo').rows) { if (out.length >= 80) break; if (!q || String(r[2]).toLowerCase().includes(q)) out.push({ kind: 'equip', id: r[0], name: r[2], stars: r[6] }); }
+    return json(res, out);
+  }
   if (req.method === 'POST') {
     let b;
     try { b = JSON.parse(await readBody(req)); } catch { return json(res, { ok: false, error: 'bad json' }); }
@@ -76,6 +89,12 @@ module.exports = async function admin(req, res, u, db, readBody) {
       const sql = (col === 'level' || col === 'vip') ? `UPDATE players SET ${col}=? WHERE uid=?` : `UPDATE players SET ${col}=${col}+? WHERE uid=?`;
       db.prepare(sql).run(amt, b.uid);
       return json(res, { ok: true });
+    }
+    if (u.pathname === '/admin/api/givething') {
+      const n = Math.min(Math.max(Math.trunc(b.count) || 1, 1), 999);
+      if (b.kind === 'item') { game.propAdd(db, pl.uid, pl.server_id, b.id, n); return json(res, { ok: true }); }
+      if (b.kind === 'equip') { for (let i = 0; i < Math.min(n, 50); i++) if (!game.giveEquip(db, pl.uid, pl.server_id, b.id)) return json(res, { ok: false, error: 'unknown equipment' }); return json(res, { ok: true }); }
+      return json(res, { ok: false, error: 'bad kind' });
     }
     if (u.pathname === '/admin/api/givecard') {
       if (!game.ninjas().has(b.ninja)) return json(res, { ok: false, error: 'unknown character' });
