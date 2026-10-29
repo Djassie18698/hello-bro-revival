@@ -393,6 +393,16 @@ module.exports = {
     return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>';
   },
 
+  // Reincarnation / equipment advance. Cmd 8 = info for the screen, Cmd 7 = do it (ReadyCard keeps, EatCard is consumed).
+  rl_w_newlife: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 8) return `<root code="0"><info><max_lv>${game.NEWLIFE_MAX()}</max_lv><coin>${game.NEWLIFE_COST(1)}</coin></info></root>`;
+    const r = game.newlife(db, pl, Number(p.ReadyCard), Number(p.EatCard), Number(p.NewLifeCount));
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><newlife count="${r.grade}"/></root>`;
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {

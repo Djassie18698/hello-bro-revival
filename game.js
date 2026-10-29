@@ -38,6 +38,7 @@ function ensure(db) {
   `);
   try { db.exec('ALTER TABLE players ADD COLUMN vip INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vipexp INTEGER NOT NULL DEFAULT 0'); } catch {}
+  try { db.exec('ALTER TABLE cards ADD COLUMN newlife INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
   ready.add(db);
 }
 
@@ -78,7 +79,7 @@ const el = (n, v) => `<${n}>${v}</${n}>`;
 function cardXml(c) {
   const f = {
     type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: 0, starlevel: c.starlevel,
-    newlife: 0, tupo_level: 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
+    newlife: c.newlife || 0, tupo_level: 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
     attack_add: 0, defence_add: 0, cha_add: 0, status: 0,
   };
   return '<card>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</card>';
@@ -406,6 +407,25 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
   return { exp, cost };
 }
 
+// ---- Reincarnation / equipment advance (rl_w_newlife Cmd 7): ReadyCard gains +1 grade, EatCard (same item id) is consumed.
+const NEWLIFE_MAX = () => table('equipnewlifeprop').rows.length;
+const NEWLIFE_COST = (grade) => 5000 * grade;
+function newlife(db, pl, readySeq, eatSeq, grade) {
+  ensure(db);
+  const a = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(readySeq, pl.uid, pl.server_id);
+  const b = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(eatSeq, pl.uid, pl.server_id);
+  if (!a || !b || a.seq === b.seq) return { error: 'cards missing' };
+  if (a.type !== b.type || a.ninja_id !== b.ninja_id) return { error: 'cards must match' };
+  if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
+  const next = Math.min(NEWLIFE_MAX(), (a.newlife || 0) + 1);
+  const cost = NEWLIFE_COST(next);
+  if (pl.coin < cost) return { error: 'not enough silver' };
+  db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
+  db.prepare('UPDATE cards SET newlife=?, level=1, exp=0 WHERE seq=?').run(next, a.seq);
+  db.prepare('DELETE FROM cards WHERE seq=?').run(b.seq);
+  return { grade: next, cost };
+}
+
 // ---- Secret (soul) shop ----------------------------------------------------------------------
 const SOUL = 9999; // props id used for ninja souls
 function soulOf(db, pl) {
@@ -441,14 +461,16 @@ const KEYS = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
 function ninjaStats(card) {
   const n = ninjas().get(card.ninja_id);
   const o = {};
-  const mult = 1 + 0.05 * (card.starlevel || 0); // sage growth: +5% per level
+  const mult = 1 + 0.05 * (card.starlevel || 0) + 0.1 * (card.newlife || 0); // sage growth +5% per level, reincarnation +10% per grade
   KEYS.forEach((k, i) => { o[k] = n ? Math.round(((n[19 + i] || 0) + (n[25 + i] || 0) * (card.level - 1)) * mult) : 0; });
   return o;
 }
 function equipStats(card) {
   const e = equipRows().find((r) => r[0] === card.ninja_id);
   const o = {};
-  KEYS.forEach((k, i) => { o[k] = e ? Math.round((e[7 + i] || 0) + (e[13 + i] || 0) * (card.level - 1)) : 0; });
+  const row = table('equipnewlifeprop').rows.find((r) => r[0] === (card.newlife || 0));
+  const mult = 1 + (row ? row[4] : 0); // reincarnation grade grows the whole stat block
+  KEYS.forEach((k, i) => { o[k] = e ? Math.round(((e[7 + i] || 0) + (e[13 + i] || 0) * (card.level - 1)) * mult) : 0; });
   return o;
 }
 const addStats = (a, b) => { const o = {}; KEYS.forEach((k) => { o[k] = (a[k] || 0) + (b[k] || 0); }); return o; };
@@ -622,4 +644,4 @@ function setStage(db, uid, sid, chap, stage) {
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 
-module.exports = { arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
