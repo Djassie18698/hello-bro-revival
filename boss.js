@@ -112,7 +112,8 @@ function exchange(db, pl, id) {
 }
 function heroXml(db, pl) {
   const b = boss(db, pl.server_id), m = me(db, pl);
-  const rows = (list) => list.slice(0, 20).map((r, i) => `<item>${el('rank', i + 1)}${el('nick', esc(r.nick))}${el('val', r.dmg)}</item>`).join('');
+  const country = (uid) => (db.prepare('SELECT country FROM players WHERE uid=? AND server_id=?').get(uid, pl.server_id) || { country: 1 }).country;
+  const rows = (list) => list.slice(0, 20).map((r, i) => `<item>${el('rank', i + 1)}${el('country', country(r.uid))}${el('nick', esc(r.nick))}${el('score', r.dmg)}</item>`).join('');
   const prev = db.prepare('SELECT * FROM boss_hits WHERE server_id=? AND day<? AND dmg>0 ORDER BY day DESC, dmg DESC LIMIT 20').all(pl.server_id, day());
   return `<currrank my="${rankOf(db, pl)}">${rows(board(db, pl.server_id))}</currrank><hisrank>${rows(prev)}</hisrank>` + previewXml(db, pl, b, m);
 }
