@@ -498,11 +498,16 @@ module.exports = {
 
   // Team editing: Cmd 2301.. = equip card NewID into slot Seq (kind = Cmd - 2300).
   rl_w_ninjalist: ({ db, params: p }) => {
+    if (process.env.HB_DEBUG) console.log('ninjalist', JSON.stringify(p));
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const kind = Number(p.Cmd) - 2300;
     if (kind >= 1 && kind <= 8) game.equip(db, pl, Number(p.Seq), kind, Number(p.NewID) || 0);
+    if (kind === 0) {
+      const err = game.teamSwap(db, pl, Number(p.OldID) || 0, Number(p.NewID) || 0);
+      if (err) return `<root code="5"><message>${err}</message></root>`;
+    }
     const gs = game.stateXml(db, pl.uid, pl.server_id);
     return `<root code="0"><teamid>${Number(p.TeamId) || 0}</teamid>${gs.suitlist}${gs.ninjalist}</root>`;
   },

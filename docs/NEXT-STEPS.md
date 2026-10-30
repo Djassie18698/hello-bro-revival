@@ -173,3 +173,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   from the mystery shop, which now sells the original secret_shop mix by weight.
 - Pet stats/training use petinfo values; breakthrough raises only the card's element stats; Ninja Test takes 4-5 star only.
 - Full list of what each Base building needs: docs/BASE-FEATURES.md.
+
+## Team swap fixed (2026-10-30)
+- rl_w_ninjalist Cmd 2300 (Team > card > Change) was ignored. Params: Seq (slot, 1-based), OldID (card leaving, 0 = empty),
+  NewID (card joining), TeamId. game.teamSwap: replace, trade places if the new card is already in the team, or add to an
+  empty slot (max 5). Verified in game. HB_DEBUG=1 logs the params of this endpoint.
+- Claude Root rotation lock removed (accelerometer_rotation 1, user_rotation deleted); the game still asks for portrait itself.

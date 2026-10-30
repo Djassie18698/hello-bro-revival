@@ -38,6 +38,6 @@ const run = (name, cmd, extra = {}) => {
 };
 run('rl_w_login2', 0); run('rl_w_reg2', 0, { Nick: 'Smoke', Card: 1 });
 for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[name] || [])])) run(name, c);
-fs.rmSync(tmp, { force: true });
+try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
 console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
 process.exit(bad ? 1 : 0);
