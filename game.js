@@ -376,11 +376,12 @@ function actClaimable(db, pl) {
   return { days, login, up };
 }
 function actXml(db, pl) {
+  require('./stagegift').ensure(db);
   const c = actClaimable(db, pl);
   const subs = (a) => a.map((i) => `<subitem subid="${i}"></subitem>`).join('');
   return `<activity type="1" loginallnum="${c.days}"><item actid="1">${subs(c.login)}</item></activity>` +
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="-1"></item></activity><activity type="4"><item actid="4"></item></activity>` +
-    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1], [21, 5, 1], [12, 6, 2], [24, 7, 1], [47, 8, 2]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
+    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1], [21, 5, 1], [12, 6, 2], [24, 7, 1], [47, 8, 2]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + `<item><id>31</id><pos>9</pos><status>1</status><onoff>1</onoff><type>1</type><timeleft>${db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
 }
 function actClaim(db, pl, actid, subid) {
   const c = actClaimable(db, pl);
