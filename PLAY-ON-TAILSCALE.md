@@ -11,6 +11,9 @@ Everything you need is in this private repository:
 4. Admin page: http://localhost:18080/admin (give items, set levels, **reset a player**).
 
 ## Your friend
+0. Get the game: either send them `HelloBro-Tailscale-100.111.115.0.xapk` yourself, or add them to this private repo
+   (GitHub > Settings > Collaborators > Add people) so they can download it from
+   https://github.com/Djassie18698/hello-bro-revival/releases/tag/tailscale-play
 1. Install Tailscale, log in, and accept your invite to your tailnet (Tailscale admin console → Share or Invite users).
 2. Install BlueStacks 5 and drag `HelloBro-Tailscale-100.111.115.0.xapk` onto it.
 3. Open Hello Bro and press START. When it says "confirm update?", tap Confirm. Those are the server's game fixes.
