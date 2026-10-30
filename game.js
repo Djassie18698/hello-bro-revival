@@ -808,11 +808,17 @@ function getStage(db, uid, sid, chap) {
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
   return r ? r.stage : 1;
 }
+// Training chapters: roundinfo [4] = chapter (1-19), [2] = stage number inside it.
+function chapterStages(chap) { return table('roundinfo').rows.filter((r) => r[4] === chap).reduce((m, r) => Math.max(m, r[2]), 1); }
+function furthestChapter(db, uid, sid) {
+  ensure(db);
+  return db.prepare('SELECT chap, stage FROM progress WHERE uid=? AND server_id=? AND chap<1000 ORDER BY chap DESC LIMIT 1').get(uid, sid) || { chap: 1, stage: 1 };
+}
 // <normal> = where the player is now, <chaplist> = every opened chapter (roundinfo [3] = chapter).
 function roundInfoXml(db, pl) {
   ensure(db);
   const per = {};
-  table('roundinfo').rows.forEach((r) => { per[r[3]] = (per[r[3]] || 0) + 1; });
+  for (let c = 1; c <= 19; c++) per[c] = chapterStages(c);
   const open = db.prepare('SELECT chap, stage FROM progress WHERE uid=? AND server_id=? AND chap<1000 ORDER BY chap').all(pl.uid, pl.server_id);
   if (!open.length) open.push({ chap: 1, stage: 1 });
   const cur = open[open.length - 1];
@@ -846,4 +852,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

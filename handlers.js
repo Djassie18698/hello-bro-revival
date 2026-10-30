@@ -62,6 +62,7 @@ function trainingFight(db, pl, chap, stage) {
   const lv = game.addExp(db, pl, exp);
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
   game.setStage(db, pl.uid, pl.server_id, chap, stage + 1);
+  if (stage >= game.chapterStages(chap) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   const energy = Math.max(0, pl.energy - cost);
   const attrs = `curchapter="${chap}" curstage="${stage + 1}" pos="1" pos_time="0" pk_boss_times="0" curaction="${energy}" LastActionUpdatePastTime="0"`;
@@ -198,6 +199,9 @@ module.exports = {
     const lvRow = game.table('playerlevel').rows.find((r) => r[1] === pl.level);
     if (lvRow && pl.energy < lvRow[4]) { db.prepare('UPDATE players SET energy=? WHERE uid=? AND server_id=?').run(lvRow[4], pl.uid, pl.server_id); pl.energy = lvRow[4]; }
     const gs = game.stateXml(db, acc.uid, pl.server_id);
+    // Training chapters open one by one as the previous one is cleared (a new player is on chapter 1: the tutorial
+    // breaks if the client is told about a later chapter).
+    const cur = game.furthestChapter(db, acc.uid, pl.server_id);
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: 10,
       level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
@@ -206,7 +210,7 @@ module.exports = {
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
-      '<chapinfo currentchap="19" currentstage="1"/></root>';
+      `<chapinfo currentchap="${cur.chap}" currentstage="${cur.stage}"/></root>`;
   },
 
   // Gacha status (free pulls / pity counters). Everything available, nothing to track yet.
