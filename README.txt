@@ -1,3 +1,6 @@
+HOST YOUR OWN SERVER: read HOST-YOUR-OWN-SERVER.md (download, HOST-MY-SERVER.bat, START-SERVER.bat, play).
+PLAY ON THIS SERVER (Tailscale 100.111.115.0): read PLAY-ON-TAILSCALE.md.
+
 HELLO BRO REVIVAL
 =================
 1. Double-click START-SERVER.bat (keep the window open while playing).
