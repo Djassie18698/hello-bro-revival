@@ -8,6 +8,7 @@ const guild = require('./guild');
 const mora = require('./mora');
 const slot = require('./slot');
 const rankings = require('./rankings');
+const boss = require('./boss');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -624,6 +625,30 @@ module.exports = {
     // Cmd 1: the client treats a code-0 reply as a reward to show (and crashes without one); the list itself comes
     // from the client's exchange_award table, so answer "nothing to collect".
     return '<root code="1"></root>';
+  },
+
+  // World boss (fightBossView.lua). Cmd 1 info, 3 dice, 4 claim rank award, 6 hero ranking, 7 exchange, 8 boss hp, 10 clear cd, 11 fight feed.
+  rl_w_xiao: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd), wrap = (r) => (r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>');
+    if (cmd === 3) return wrap(boss.dice(db, pl));
+    if (cmd === 4) return wrap(boss.claim(db, pl));
+    if (cmd === 6) return '<root code="0">' + boss.heroXml(db, pl) + '</root>';
+    if (cmd === 7) return wrap(boss.exchange(db, pl, Number(p.Exchangeid)));
+    if (cmd === 8) return '<root code="0">' + boss.bossInfo(db, pl) + '</root>';
+    if (cmd === 9) return '<root code="0"><preview addval="0" addall="0"/></root>';
+    if (cmd === 10) return wrap(boss.clearCd(db, pl));
+    if (cmd === 11) return '<root code="0">' + boss.msgs(db, pl, Number(p.MsgImportID), Number(p.MsgNormalID)) + '</root>';
+    return '<root code="0">' + boss.infoXml(db, pl) + '</root>';
+  },
+  rl_w_xiao_war: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = boss.fight(db, pl);
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
 
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
