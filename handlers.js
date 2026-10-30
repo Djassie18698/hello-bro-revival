@@ -83,6 +83,11 @@ const TOPUPS = [ // the original Google Play packages (rmb = price in cents)
   { id: 6, rmb: 1999, gold: 1050, give: 80 }, { id: 7, rmb: 4999, gold: 2700, give: 300 }, { id: 8, rmb: 9999, gold: 5500, give: 800 },
 ];
 
+// Tower sweep counter: one progress row per day (stage = uses + 1; setStage keeps the max).
+const SWEEP_DAILY = 5;
+const sweepKey = () => 100000 + Math.floor(Date.now() / 86400000);
+const sweepsUsed = (db, uid, sid) => game.getStage(db, uid, sid, sweepKey()) - 1;
+
 module.exports = {
   // Server directory: server list + notices
   xk_r_dir: (ctx) =>
@@ -665,17 +670,44 @@ module.exports = {
 
   // Battles / tower ("dup"): Cmd 7000 = chapter list; rl_w_dup Cmd 3100 (Chap, Round) = fight. A chapter has 6 rounds; process = the round to fight next.
   rl_r_dup: ({ db, params: p }) => {
-    if (Number(p.Cmd) === 7002) return '<root code="0"><dup_count><total>5</total><remain>5</remain><vip>0</vip></dup_count><dup_list></dup_list></root>';
     const acc = accountBySession(db, p);
     const sid = Number(p.ServerID || 1);
+    if (Number(p.Cmd) === 7002) {
+      // Sweep screen: one entry per tower round (3 chapters x 6 rounds, id = (chap-1)*6+round); selectable once cleared.
+      const used = acc ? sweepsUsed(db, acc.uid, sid) : 0;
+      let list = '';
+      for (let c = 1; c <= 3; c++) for (let r = 1; r <= 6; r++) {
+        const done = acc && game.getStage(db, acc.uid, sid, 1000 + c) > r;
+        list += `<dup name="${c}-${r}" selectable="${done ? 1 : 0}"/>`;
+      }
+      return `<root code="0"><dup_count><total>${SWEEP_DAILY}</total><remain>${Math.max(0, SWEEP_DAILY - used)}</remain><vip>0</vip></dup_count><dup_list>${list}</dup_list></root>`;
+    }
     const chaps = [1, 2, 3].map((c) => `<dup><chapid>${c}</chapid><process>${acc ? game.getStage(db, acc.uid, sid, 1000 + c) : 1}</process></dup>`).join('');
     return `<root code="0"><duplist maxchap="3" current_round="1" remain_reset_count="3" status="0">${chaps}</duplist></root>`;
   },
   rl_w_dup: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const sid = Number(p.ServerID || 1);
-    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
+    let pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 3102) {
+      // Sweep: DupId = 'id|id|..'; each costs one of the daily sweeps and pays the same reward as winning that round.
+      const ids = String(p.DupId || '').split('|').map(Number).filter((n) => n >= 1 && n <= 18);
+      const used = sweepsUsed(db, pl.uid, sid);
+      if (!ids.length || used + ids.length > SWEEP_DAILY) return '<root code="5"><message>no sweeps left</message></root>';
+      let list = '';
+      for (const id of ids) {
+        const c = Math.ceil(id / 6), r = ((id - 1) % 6) + 1;
+        if (game.getStage(db, pl.uid, sid, 1000 + c) <= r) return '<root code="5"><message>round not cleared</message></root>';
+        const ex = 60 * c, co = 90 * c;
+        game.addExp(db, pl, ex);
+        pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, sid);
+        db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(co, pl.uid, sid);
+        list += `<dup name="${c}-${r}">${game.awardFull({ coin: co, exp: ex })}</dup>`;
+      }
+      game.setStage(db, pl.uid, sid, sweepKey(), used + ids.length + 1);
+      return '<root code="0"><dup_list>' + list + '</dup_list></root>';
+    }
     const chap = Number(p.Chap || 1), round = Number(p.Round || 1);
     const exp = 60 * chap, coin = 90 * chap;
     game.addExp(db, pl, exp);
