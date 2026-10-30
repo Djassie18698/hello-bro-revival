@@ -10,6 +10,7 @@ const slot = require('./slot');
 const rankings = require('./rankings');
 const boss = require('./boss');
 const country = require('./country');
+const war = require('./war');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -230,8 +231,33 @@ module.exports = {
     const pl = acc && db.prepare('SELECT gold FROM players WHERE uid=?').get(acc.uid);
     return `<root code="0"><cash>${pl ? pl.gold : 0}</cash><chiplist></chiplist><markmerge></markmerge></root>`;
   },
-  rl_r_warnew: ({ params: p }) =>
-    Number(p.Cmd) === 7200 ? '<root code="0"><preview resttime="0" open="0"/></root>' : '<root code="0"><display>0</display></root>',
+  // Country war (War > War tab). Cmd 7200 status (also polled from home), 7300ish war info.
+  rl_r_warnew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    return '<root code="0">' + war.infoXml(db, pl) + '<display>0</display></root>';
+  },
+  // 4102 attack, 4101 revive (buy lives), 4103 auto attack, 4104 clear cd.
+  rl_w_warnew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    const r = cmd === 4102 ? war.attack(db, pl) : cmd === 4101 ? war.revive(db, pl) : { xml: '<preview cost_cash="0"/>' };
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+  },
+  rl_r_warresultnew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    return pl ? '<root code="0">' + war.resultXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
+  },
+  rl_r_warmsgnew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    return pl ? '<root code="0">' + war.msgXml(db, pl, Number(p.Cmd) === 7701) + '</root>' : '<root code="3"><message>session expired</message></root>';
+  },
+  rl_w_warresultnew: () => '<root code="0"></root>',
   // Country officials (War > Country tab): Cmd 7100 seat list + salary state.
   rl_r_countrynew: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
