@@ -152,3 +152,17 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Shown via hot update 28.0.5 (conf item 47, type 2). Verified in game: list, day 1 claim, "Go" to the national treasure screen.
 - National treasure verified in game: plunder (no defender -> direct grab), contribute (+3000 silver), defend. Nations are 0-4.
 - Quest texts come from the Thai data table (sevendays_quest), so they show in Thai; would need a table edit to fix.
+
+## Base: Ninja Test, Breakthrough, Pets (2026-10-30) - all verified in game
+- exam.js (rl_x_exam): 15 stages x 5 guards (odd = you attack, even = you defend), team of 4-star+ ninjas, fallen ninjas stay
+  fallen for the day, 3 tries/day (+20 gold each), chests (3 on every 5th stage), score shop incl. grain/nostrum and the
+  player's own god-card fragments. Cmd 1 info, 2 team, 3 exchange, 4 buy try, 5 fight, 6 chest, 7 next stage.
+- tupo.js (rl_x_breakthrough): god cards (quality 6) only; level n -> n+1 costs 5+5n of that card's fragments and
+  50000*(n+1) silver, max 10; each level +4% stats (cards.breaklvl, used in game.ninjaStats).
+- Card fragments are now real: props 30000+pieceId, granted by drops (dropinfo col 8), sent at login as <chipbag><chipitem id num/>.
+  Soul drops (dropinfo col 9) are granted too.
+- pet.js (rl_x_pet): everyone gets all 8 pets + 200 grain + 200 nostrum. Level (grain, petupgrade), rank (nostrum,
+  petupgradeequ chance), stars via training (gold, max 5 = what the screen draws). Master pet 50% + helpers 15% of their
+  stats go to team stats; master pet id is sent in fights (<master_pet>). Pets open at level 30 via hot update 28.0.6.
+- rl_r_shoplist 1601 now also lists owned items without a price: the client reads bag counts from it (opening the Shop
+  once refreshes them). Pet screens show 0 grain until the Shop has been opened once after login.
