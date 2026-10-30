@@ -407,8 +407,8 @@ module.exports = {
   // Top-up screen header (VIP bar) + first-recharge gift state. Everyone is VIP on this server.
   rl_r_paypack: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
-    const lv = acc ? vip.level(db, acc.uid, Number(p.ServerID || 1)) : 0;
-    return `<root code="0"><payheaplist></payheaplist><maxlv>${vip.MAX_VIP}</maxlv><exp>${lv * 1000}</exp><lvexp>${(lv + 1) * 1000}</lvexp>` +
+    const vp = acc ? vip.progress(db, acc.uid, Number(p.ServerID || 1)) : { lv: 0, exp: 0, lvexp: 10 };
+    return `<root code="0"><payheaplist></payheaplist><maxlv>${vip.MAX_VIP}</maxlv><exp>${vp.exp}</exp><lvexp>${vp.lvexp}</lvexp>` +
       '<canget>1</canget><first_pay>1</first_pay><multiple>1</multiple><servertime>0</servertime><endtime>0</endtime></root>';
   },
   // Top-up packages. Buying is FREE here (the hot-updated ui_purchaseLayer.lua calls rl_x_free_topup instead of Google Play).
@@ -434,7 +434,10 @@ module.exports = {
   rl_w_ky_payorder: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const t = TOPUPS.find((x) => x.id === Number(p.ItemId));
-    if (acc && t) db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, acc.uid, Number(p.ServerID || 1));
+    if (acc && t) {
+      db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, acc.uid, Number(p.ServerID || 1));
+      vip.addExp(db, acc.uid, Number(p.ServerID || 1), t.rmb / 10); // cents / 10 = dollars x 10
+    }
     return '<root code="1"></root>';
   },
   rl_x_free_topup: ({ db, params: p }) => {
@@ -444,6 +447,7 @@ module.exports = {
     const t = TOPUPS.find((x) => x.id === Number(p.RechargeId));
     if (!t) return '<root code="5"><message>bad package</message></root>';
     db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, pl.uid, pl.server_id);
+    vip.addExp(db, pl.uid, pl.server_id, t.rmb / 10); // cents / 10 = dollars x 10
     return '<root code="0">' + game.awardFull({ cash: t.gold + t.give }) + '</root>';
   },
   // Hall of fame: all real players ranked by level.
