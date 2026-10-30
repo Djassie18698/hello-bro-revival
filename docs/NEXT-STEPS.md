@@ -137,3 +137,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Seals equip in the team Seal slot (rl_w_ninjalist Cmd 2304) and multiply the wearer's stat by markinfo col 7 ("ATK +35%") - verified 791-1236 -> 1068-1669.
 - BORDER WAR (Boundary Monument) built + verified (border.js; rl_r_frontiers_war_info/user_info/attack/enemy_info/clear/award_info/recv_award/rank). Countries 0-4 (Wind, Thunder, Water, Fire, Earth). Taunt (gold, Cmd 1) / Wander (silver, Cmd 2) station 30 min in an enemy country and damage its monument (2M HP/day); enemy list + Clean fights for defenders (clear not clicked: needs a second player stationed in your country); intruder/defender rankings (yesterday = today, history = all); rank chest claim = 500 gold via grantDrop. Lua list nodes use ATTRIBUTES (`<item id num/>`, `<item rank nick country level score award/>`).
 - Endpoints now handled: 61 of 73 client endpoints + border/boss/etc. Left: adventure (rl_r/w_adventure, no reachable button found), tear raids (rl_*_tear*, C++ only), rl_got, rl_r_bagage, rl_r_ninjalist, rl_w_sportpack, payment-only endpoints.
+
+## National treasure raids + Ninja Treasure (2026-10-30)
+- tear.js: rl_r_tear (<trea> bank info), rl_r_tearcountry (<countrylist>), rl_w_tearcountry (raid ToCountry; guard fight or direct grab),
+  rl_w_tear (hand in: 5000 silver + 10 merit each), rl_w_tearguard (toggle guard). 5 raids/day. Screen is C++ CCountryTreasure,
+  only reachable from the seven-day event (quest index 12 "Go") -> not yet verified in game.
+- sudoku.js: Ninja Treasure (activity 24, chest icon on the home screen's left column). rl_r_sudoku board, rl_w_sudoku Cmd 1 reroll (20 gold),
+  Cmd 2 explore (10 + 10 per prize taken), Cmd 3 take all. Verified in game: board, explore, take-all, auto reroll.

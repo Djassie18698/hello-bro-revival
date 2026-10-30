@@ -5,7 +5,7 @@ import os, re, shutil, sys
 
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out = os.path.abspath(sys.argv[1])
-CODE = ['server.js', 'handlers.js', 'game.js', 'guild.js', 'mora.js', 'slot.js', 'rankings.js', 'boss.js', 'country.js', 'war.js', 'seals.js', 'border.js', 'vip.js', 'wheel.js',
+CODE = ['server.js', 'handlers.js', 'game.js', 'guild.js', 'mora.js', 'slot.js', 'rankings.js', 'boss.js', 'country.js', 'war.js', 'seals.js', 'border.js', 'tear.js', 'sudoku.js', 'vip.js', 'wheel.js',
         'signin.js', 'drops.js', 'admin.js', 'schema.js', 'OPEN-FIREWALL.bat']
 TOOLS = ['tools/mbs.py', 'tools/patch_apk.py', 'tools/setup_from_xapk.py', 'tools/build_cdn.py', 'tools/dev/smoke.js']
 DATA = ['data/activity_packs.json']  # made by us, not extracted from the game
