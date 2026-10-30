@@ -7,6 +7,7 @@ const signin = require('./signin');
 const guild = require('./guild');
 const mora = require('./mora');
 const slot = require('./slot');
+const rankings = require('./rankings');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -529,6 +530,20 @@ module.exports = {
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     db.prepare('UPDATE players SET energy=MAX(energy,106) WHERE uid=? AND server_id=?').run(acc.uid, Number(p.ServerID || 1));
     return '<root code="0"></root>';
+  },
+
+  // Wheel of Fortune ranking and its rank / points gifts.
+  rl_r_fwheel_rank: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    return pl ? '<root code="0">' + rankings.wheelRankXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
+  },
+  rl_w_wheel_gift: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = rankings.wheelGift(db, pl, Number(p.Cmd), Number(p.GiftId));
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
 
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
