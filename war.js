@@ -47,6 +47,7 @@ function attack(db, pl) {
   const theirs = foe ? power(db, foe.uid, pl.server_id) : Math.round(mine * (0.6 + Math.random() * 0.6)); // guard bot when nobody is there
   const win = mine * (0.8 + Math.random() * 0.4) >= theirs;
   const score = win ? 20 : 5;
+  game.propAdd(db, pl.uid, pl.server_id, 9994, win ? 10 : 2); // war exploit for the Reward shop
   db.prepare('UPDATE war SET score=score+?, kills=kills+?, alive=alive-? WHERE server_id=? AND day=? AND uid=?')
     .run(score, win ? 1 : 0, win ? 0 : 1, pl.server_id, day(), pl.uid);
   if (foe && win) { me(db, foe); db.prepare('UPDATE war SET beattack=beattack+1 WHERE server_id=? AND day=? AND uid=?').run(pl.server_id, day(), foe.uid); }
@@ -87,4 +88,14 @@ function msgXml(db, pl, mine) {
   return mine ? `<usermsglist>${items}</usermsglist>` : `<warmsglist>${items}</warmsglist>`;
 }
 
-module.exports = { msgXml, resultXml, infoXml, attack, revive };
+// War exploit shop (Reward tab): warconfig rows of type 2 = [id, id, name, 2, slot, cost, dropid]. Exploit = players.meritscore (prop 9994).
+function exchange(db, pl, packId) {
+  const row = game.table('warconfig').rows.find((r) => r[0] === packId && r[3] === 2);
+  if (!row) return { error: 'bad pack' };
+  const have = game.propCounts(db, pl.uid, pl.server_id)[9994] || 0;
+  if (have < row[5]) return { error: 'not enough exploit' };
+  game.propAdd(db, pl.uid, pl.server_id, 9994, -row[5]);
+  return { xml: game.grantDrop(db, pl, row[6]) };
+}
+
+module.exports = { exchange, msgXml, resultXml, infoXml, attack, revive };

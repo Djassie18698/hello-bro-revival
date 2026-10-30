@@ -182,7 +182,7 @@ module.exports = {
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: 10,
       level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
-      caneat: 0, meritlevel: 0, meritscore: 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
+      caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
       score: 0, viplevel: vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist><chipbag></chipbag>' +
@@ -244,7 +244,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
-    const r = cmd === 4102 ? war.attack(db, pl) : cmd === 4101 ? war.revive(db, pl) : { xml: '<preview cost_cash="0"/>' };
+    const r = cmd === 4102 ? war.attack(db, pl) : cmd === 4101 ? war.revive(db, pl) : cmd === 4100 ? war.exchange(db, pl, Number(p.PackID)) : { xml: '<preview cost_cash="0"/>' };
     return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
   rl_r_warresultnew: ({ db, params: p }) => {
