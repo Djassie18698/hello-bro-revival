@@ -46,7 +46,21 @@ load();search();search2();
 
 const json = (res, o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
 
+// Private play: no password. Public server: set ADMIN_PASSWORD; the browser then asks for it (user name is ignored).
+function authorized(req) {
+  const pw = process.env.ADMIN_PASSWORD;
+  if (!pw) return true;
+  const m = /^Basic (.+)$/.exec(req.headers.authorization || '');
+  if (!m) return false;
+  const given = Buffer.from(m[1], 'base64').toString('utf8').split(':').slice(1).join(':');
+  return given === pw;
+}
+
 module.exports = async function admin(req, res, u, db, readBody) {
+  if (!authorized(req)) {
+    res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
+    return res.end('password required');
+  }
   if (u.pathname === '/admin' || u.pathname === '/admin/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(PAGE);

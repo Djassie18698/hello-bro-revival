@@ -26,15 +26,37 @@ require('./schema')(db);
 function parseBody(req) {
   return new Promise((res) => {
     const chunks = [];
-    req.on('data', (c) => chunks.push(c));
+    let size = 0;
+    req.on('data', (c) => { size += c.length; if (size <= 65536) chunks.push(c); }); // cap bodies at 64 KB
     req.on('end', () => res(Buffer.concat(chunks).toString('utf8')));
   });
 }
 
+// Simple flood guard: at most RATE_LIMIT requests per IP per 10 seconds (the game sends a few per screen).
+const RATE = Number(process.env.RATE_LIMIT || 300);
+const hits = new Map();
+setInterval(() => hits.clear(), 10000).unref();
+function limited(req) {
+  const ip = req.socket.remoteAddress || '?';
+  const n = (hits.get(ip) || 0) + 1;
+  hits.set(ip, n);
+  return n > RATE;
+}
+
+// Errors also go to logs/error.log so problems on a public server can be read later.
+function logError(...a) {
+  console.error(...a);
+  try {
+    require('fs').mkdirSync('logs', { recursive: true });
+    require('fs').appendFileSync('logs/error.log', new Date().toISOString() + ' ' + a.map((x) => (x && x.stack) || String(x)).join(' ') + String.fromCharCode(10));
+  } catch {}
+}
+
 const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, resp) => {
+  if (limited(req)) { resp.writeHead(429); return resp.end('slow down'); }
   const u = url.parse(req.url, true);
   if (u.pathname.startsWith('/admin')) {
-    try { return await admin(req, resp, u, db, parseBody); } catch (e) { console.error('admin error', e); resp.writeHead(500); return resp.end('error'); }
+    try { return await admin(req, resp, u, db, parseBody); } catch (e) { logError('admin error', e); resp.writeHead(500); return resp.end('error'); }
   }
   const body = req.method === 'POST' ? await parseBody(req) : '';
   const params = { ...u.query, ...Object.fromEntries(new URLSearchParams(body)) };
@@ -44,7 +66,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   try {
     out = h ? h({ db, params, cgi, host: req.headers.host }) : null;
   } catch (e) {
-    console.error('handler error', cgi, e);
+    logError('handler error', cgi, e);
     out = null;
   }
   if (out == null) {

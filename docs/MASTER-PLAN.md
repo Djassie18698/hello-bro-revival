@@ -89,7 +89,7 @@ Legend: [ ] not built, [~] stub or partial, [x] done. The letter in brackets is 
 
 | # | Milestone | Done when |
 |---|---|---|
-| M1 | Security for public play | device-bound accounts, admin password, rate limit, error log |
+| M1 | Security for public play | DONE 2026-10-30: STRICT_SESSIONS=1 (only login may change a session; verified with the real client), ADMIN_PASSWORD (browser login), 300 req/10 s per IP, 64 KB body cap, logs/error.log. STILL OPEN: the Uin comes from the Gumptech SDK inside the APK and anyone who knows a uid can log in as it; real fix = patch the SDK login to use our own xk_w_login account + password (M1b, needed before a truly public server) |
 | M2 | Economy and daily reset | free "top-up" grants replace payments; top-up grid; daily reset job; rl_got, rl_r_readconf |
 | M3 | Social + leaderboards | ranking service + all rank endpoints; real friends, mail, horn chat; arena shop + rewards; guild shop/admin |
 | M4 | Missing PvE | adventure/awakening, tower sweep/reset, training boss, plunder seals + markchip, slot entry, inherit |

@@ -22,13 +22,17 @@ const serverXml = (s, tag) =>
 
 // Private server: any Uin/Session pair is accepted. Unknown accounts (e.g. the saved id from the
 // original game servers) are created on the fly and keep the session the client sent.
-function accountBySession(db, p) {
+// STRICT_SESSIONS=1 (public server): only rl_w_login2 may change an account's session; every other request
+// must carry the session of the latest login, so a stale or copied session is refused.
+function accountBySession(db, p, isLogin = false) {
   const uid = Number(p.Uin || p.Uid);
   if (!uid) return null;
   let acc = db.prepare('SELECT * FROM accounts WHERE uid=?').get(uid);
   if (!acc) {
     db.prepare('INSERT INTO accounts(uid,username,password,session) VALUES(?,?,?,?)').run(uid, 'guest' + uid, '', p.Session || '');
     acc = db.prepare('SELECT * FROM accounts WHERE uid=?').get(uid);
+  } else if (process.env.STRICT_SESSIONS === '1' && !isLogin && p.Session !== acc.session) {
+    return null;
   } else if (p.Session && acc.session !== p.Session) {
     db.prepare('UPDATE accounts SET session=? WHERE uid=?').run(p.Session, uid);
     acc.session = p.Session;
@@ -119,7 +123,7 @@ module.exports = {
 
   // Enter a game server. hasreg=0 sends the client to character creation.
   rl_w_login2: ({ db, params: p }) => {
-    const acc = accountBySession(db, p);
+    const acc = accountBySession(db, p, true);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     return (
