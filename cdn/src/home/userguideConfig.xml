@@ -1,0 +1,1802 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Config>
+    <steplevel No="901">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Welcome to the world of Naruto! Let us begin the adventure in the shinobi world!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainround</borderName>
+                    <maskButton>btn_mainround</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>1</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Let us begin from the simplest adventure!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>0</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>chapter_container1</borderName>
+                    <maskButton>chapter_container1</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>1</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_move</borderName>
+                    <maskButton>sprite_move</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on becoming level 2, and gaining a new team card slot. Let us go and recruit a new shinobi!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>0</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainstore</borderName>
+                    <maskButton>btn_mainstore</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>1</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>You can gain a new shinobi by drawing a card to strengthen your battle points. Click Recruit to obtain your own shinobi card.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>0</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_getit</borderName>
+                    <maskButton>sprite_btn_getit</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+			<step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>1</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_pray_one</borderName>
+                    <maskButton>btn_pray_one</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+			<step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>1</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>closeButton</borderName>
+                    <maskButton>closeButton</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>0</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Let us send shinobis into play. The more shinobis in play, the greater your battle power.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>13</stepNo>
+                    <type>0</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>14</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>This is the shinobi team interface, click on an empty slot to set a shinobi, let's try.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>15</stepNo>
+                    <type>0</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_ninjaicon</borderName>
+                    <maskButton>sprite_ninjaicon</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>16</stepNo>
+                    <type>1</type>
+                    <menu>12</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_upgrade</borderName>
+                    <maskButton>sprite_btn_upgrade</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>17</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Your team has become strong! Let us challenge the level boss!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>18</stepNo>
+                    <type>0</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainround</borderName>
+                    <maskButton>btn_mainround</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>19</stepNo>
+                    <type>0</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>chapter_container1</borderName>
+                    <maskButton>chapter_container1</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>20</stepNo>
+                    <type>1</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_move</borderName>
+                    <maskButton>sprite_move</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>21</stepNo>
+                    <type>1</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_move</borderName>
+                    <maskButton>sprite_move</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>22</stepNo>
+                    <type>1</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_move</borderName>
+                    <maskButton>sprite_move</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>23</stepNo>
+                    <type>1</type>
+                    <menu>35</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on gaining your first victory! Continue on your new adventure!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="905">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on becoming level 5! Let us level-up the shinobis and prepare to challenge other players!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Let us level up the team first!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_ninjaicon</borderName>
+                    <maskButton>sprite_ninjaicon</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_upgrade</borderName>
+                    <maskButton>ctrl_upgrade</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>1</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Choose a material card to provide experience points for high level shinobi cards, and to increase their levels! This is levelling up.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>0</type>
+                    <menu>5</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_frame</borderName>
+                    <maskButton>sprite_frame</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>0</type>
+                    <menu>5</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_upgrade</borderName>
+                    <maskButton>btn_upgrade</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>0</type>
+                    <menu>5</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>After a shinobi card has levelled up, your power increases. Let us now PK other players and test your power!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>0</type>
+                    <menu>5</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainfight</borderName>
+                    <maskButton>btn_mainfight</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>1</type>
+                    <menu>6</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>在Winning other players in 【Spar】allows you to steal their silver, and have a chance to get  equipments and ninjitsus.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>13</stepNo>
+                    <type>0</type>
+                    <menu>6</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_fight</borderName>
+                    <maskButton>sprite_btn_fight</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>14</stepNo>
+                    <type>1</type>
+                    <menu>6</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_fight</borderName>
+                    <maskButton>ctrl_fight</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>15</stepNo>
+                    <type>1</type>
+                    <menu>6</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Each spar, after a shinobi wins, they will obtain an equipment card or ninjitsu card. Let me guide you on how to use equipment cards!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>16</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>17</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_weaponicon</borderName>
+                    <maskButton>sprite_weaponicon</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>18</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_upgrade</borderName>
+                    <maskButton>sprite_btn_upgrade</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>19</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainround</borderName>
+                    <maskButton>btn_mainround</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>20</stepNo>
+                    <type>1</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>You will be more powerful after equipping yourself! Begin a new adventure!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="910">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on becoming level 10! Let me bring you to claim your Lv.10 gift pack!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_activity</borderName>
+                    <maskButton>btn_activity</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_activity_3</borderName>
+                    <maskButton>sprite_activity_3</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>1</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_get</borderName>
+                    <maskButton>sprite_btn_get</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Tailed Beast Seal can quickly increase your power, let me tell you how to obtain a Tailed Beast Seal!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>0</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_plunder</borderName>
+                    <maskButton>btn_plunder</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>1</type>
+                    <menu>11</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>The seals must be stolen from other shinobis, when stealing, there may be a chance of success or failure! Go and steal Tailed Beast Seals!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>0</type>
+                    <menu>11</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn6</borderName>
+                    <maskButton>sprite_btn6</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>1</type>
+                    <menu>7</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_plunder</borderName>
+                    <maskButton>sprite_btn_plunder</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>1</type>
+                    <menu>7</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_fight</borderName>
+                    <maskButton>ctrl_fight</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>13</stepNo>
+                    <type>1</type>
+                    <menu>11</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_finish</borderName>
+                    <maskButton>btn_finish</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>14</stepNo>
+                    <type>1</type>
+                    <menu>11</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>leftButton</borderName>
+                    <maskButton>leftButton</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>15</stepNo>
+                    <type>1</type>
+                    <menu>11</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on synthesising a seal. Let us equip the seal!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>16</stepNo>
+                    <type>0</type>
+                    <menu>11</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>17</stepNo>
+                    <type>0</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_markicon</borderName>
+                    <maskButton>sprite_markicon</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>18</stepNo>
+                    <type>1</type>
+                    <menu>12</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_upgrade</borderName>
+                    <maskButton>sprite_btn_upgrade</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>19</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>You have successfully equipped your first Tailed Beast Seal, continue on with your adventure!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>20</stepNo>
+                    <type>0</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainround</borderName>
+                    <maskButton>btn_mainround</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>21</stepNo>
+                    <type>1</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Continue on with our adventure!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="920">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on reaching level 20, let me bring you to claim the Lv.20 gift pack!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_activity</borderName>
+                    <maskButton>btn_activity</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_activity_3</borderName>
+                    <maskButton>sprite_activity_3</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>1</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_get</borderName>
+                    <maskButton>sprite_btn_get</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Let me teach you to use ninjitsus.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_skill1</borderName>
+                    <maskButton>sprite_skill1</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>0</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Each Shinobi can equip up to 4 ninjitsus. The more ninjitsus, the greater chance of activation in battle! At the same time, the chakra level affects the effect of the ninjitsu!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>0</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Come, quickly equip more ninjitsus to try their power in battle!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainround</borderName>
+                    <maskButton>btn_mainround</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>1</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Continue on with our adventure!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="925">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on reaching level 25. Now, you need to prove your strength by going to the arena</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_arean</borderName>
+                    <maskButton>btn_arean</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>0</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Defeating other players in the arena gains reputation and other rewards! The higher the ranking, the greater the rewards!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>0</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_rank</borderName>
+                    <maskButton>ctrl_rank</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>This is the ranking of all players in the arena!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>0</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_exchange</borderName>
+                    <maskButton>ctrl_exchange</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>1</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Reputation gained in the arena can be exchanged for various rewards!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>0</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>You want to be stronger to perform better in the arena? You can try the cash charge and claim the first charge gift pack!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>0</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainstore</borderName>
+                    <maskButton>btn_mainstore</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>0</type>
+                    <menu>27</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>A first charge allows you to redeem the Five-Star Shinobi "Fourth Raikage of Kumogakure", "One-Finger Nukite", and"Hidden Shadow Snake Hands"!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>0</type>
+                    <menu>8</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_purchase</borderName>
+                    <maskButton>btn_purchase</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="930">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on reaching level 30, let's win more rounds!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_tower</borderName>
+                    <maskButton>btn_tower</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>1</type>
+                    <menu>15</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>level_tower1</borderName>
+                    <maskButton>level_tower1</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>1</type>
+                    <menu>15</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_enter</borderName>
+                    <maskButton>ctrl_enter</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>16</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_icon01</borderName>
+                    <maskButton>btnctrl_01</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>1</type>
+                    <menu>16</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_fight</borderName>
+                    <maskButton>ctrl_fight</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>1</type>
+                    <menu>16</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Winning rounds will become more and more difficult! To increase the power of your shinobi, grow with me!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>0</type>
+                    <menu>16</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_ninjaicon</borderName>
+                    <maskButton>sprite_ninjaicon</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_upgrade1</borderName>
+                    <maskButton>ctrl_upgrade1</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>1</type>
+                    <menu>30</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_num4</borderName>
+                    <maskButton>btn_num4</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>13</stepNo>
+                    <type>0</type>
+                    <menu>30</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>button_strength</borderName>
+                    <maskButton>button_strength</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>14</stepNo>
+                    <type>1</type>
+                    <menu>30</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>There is a certain rate of success for a shinobi's growth. Using more sage stones means a greater chance of success!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="935">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on reaching level 35, fight for your country!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>layer_buildingcontent</borderName>
+                    <maskButton>layer_buildingcontent</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>1</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Each country has its corresponding officials. Officials are selected through challenges. Each official can claim a gift pack each day.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>0</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>button_reward1</borderName>
+                    <maskButton>button_reward1</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btnDialogClose</borderName>
+                    <maskButton>btnDialogClose</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>0</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Only the strongest can be an official of a country! Come, become stronger!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>0</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_countrywar_enable</borderName>
+                    <maskButton>ctrl_tab_countrywar</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>1</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Remember to join in the War each day at 19:30. Fight for your country!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>0</type>
+                    <menu>24</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainround</borderName>
+                    <maskButton>btn_mainround</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>1</type>
+                    <menu>2</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Continue on with our adventure!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+    <steplevel No="940">
+        <Steps>
+            <step>
+                <condition>
+                    <stepNo>1</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_mainpage</borderName>
+                    <maskButton>btn_mainpage</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>2</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Congratulations on reaching level 40, come with me to claim a Lv.40 gift pack!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>3</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_activity</borderName>
+                    <maskButton>btn_activity</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>4</stepNo>
+                    <type>0</type>
+                    <menu>0</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_activity_3</borderName>
+                    <maskButton>sprite_activity_3</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>5</stepNo>
+                    <type>1</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_btn_get</borderName>
+                    <maskButton>sprite_btn_get</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>6</stepNo>
+                    <type>1</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>We have gained Super Ninja pill, it can activate shinobi's potential value.</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>7</stepNo>
+                    <type>0</type>
+                    <menu>20</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_maingroup</borderName>
+                    <maskButton>btn_maingroup</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>8</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>sprite_ninjaicon</borderName>
+                    <maskButton>sprite_ninjaicon</maskButton>
+                    <modalType>0</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>9</stepNo>
+                    <type>1</type>
+                    <menu>3</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>ctrl_upgradepo</borderName>
+                    <maskButton>ctrl_upgradepo</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>10</stepNo>
+                    <type>1</type>
+                    <menu>34</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Secret Practice has a certain chance of failure. If you spend gold to hire teachers, the effect will be better!</text>
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>11</stepNo>
+                    <type>0</type>
+                    <menu>34</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_add_attack</borderName>
+                    <maskButton>btn_add_attack</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>12</stepNo>
+                    <type>0</type>
+                    <menu>34</menu>
+                </condition>
+                <action>
+                    <actionType>0</actionType>
+                    <borderName>btn_add_defense</borderName>
+                    <maskButton>btn_add_defense</maskButton>
+                    <modalType>1</modalType>
+                    <text />
+                </action>
+            </step>
+            <step>
+                <condition>
+                    <stepNo>13</stepNo>
+                    <type>0</type>
+                    <menu>34</menu>
+                </condition>
+                <action>
+                    <actionType>1</actionType>
+                    <borderName />
+                    <maskButton />
+                    <modalType>1</modalType>
+                    <text>Try to nurture your own shinobi!</text>
+                </action>
+            </step>
+        </Steps>
+    </steplevel>
+</Config>
+<progress>
+
+</progress>
