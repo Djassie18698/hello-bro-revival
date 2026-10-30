@@ -20,6 +20,7 @@ const sevenday = require('./sevenday');
 const exam = require('./exam');
 const tupo = require('./tupo');
 const pet = require('./pet');
+const monopoly = require('./monopoly');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -777,6 +778,24 @@ module.exports = {
   // Breakthrough (tupo.js, Base > Breakthrough): Cmd 1 info, Cmd 2 break through. BagIndex = card seq.
   rl_x_breakthrough: (c) => borderCall(c, (db, pl, p) =>
     tearRes(Number(p.Cmd) === 2 ? tupo.breakThrough(db, pl, Number(p.BagIndex)) : tupo.info(db, pl, Number(p.BagIndex)))),
+
+  // Calls the C++ client makes ('/rl_...' strings in libgame.so). rl_r_ninjalist = team refresh after a level-up
+  // (CMyGroupView); an unknown reply there crashed the game.
+  rl_r_ninjalist: (c) => borderCall(c, (db, pl) => {
+    const gs = game.stateXml(db, pl.uid, pl.server_id);
+    return { code: 0, xml: el('activeTeamId', 0) + gs.suitlist + gs.ninjalist + '<defensesuitlist></defensesuitlist><defenseninjalist></defenseninjalist>' };
+  }),
+  rl_r_bagage: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: game.stateXml(db, pl.uid, pl.server_id).cards })),
+  // Campaign chapter/round info (CListLevelView / CRunLevelView, CPlayerDataMgr::InitRoundInfoFromXML), from Training progress.
+  rl_r_adventure: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: game.roundInfoXml(db, pl) })),
+  rl_w_adventure: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: game.roundInfoXml(db, pl) })),
+  rl_w_sportpack: () => '<root code="0"></root>', // arena: cancel cooldown (no cooldowns on this server)
+
+  // Millionaire / Monopoly (monopoly.js, activity 17 on the home screen).
+  rl_r_monopoly_info: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: monopoly.infoXml(db, pl) })),
+  rl_w_monopoly_roll: (c) => borderCall(c, (db, pl, p) => tearRes(monopoly.roll(db, pl, Number(p.Cmd) === 2 ? 10 : 1))),
+  rl_r_monopoly_rank: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: monopoly.rankXml(db, pl) })),
+  rl_w_monopoly_receive: (c) => borderCall(c, (db, pl, p) => { const r = monopoly.receive(db, pl, Number(p.Cmd), Number(p.AwardID)); return r.code ? { code: r.code } : { code: 0, xml: r.xml }; }),
 
   // Pets (pet.js, Base > Pets).
   rl_x_pet: (c) => borderCall(c, (db, pl, p) => {

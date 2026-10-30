@@ -47,6 +47,13 @@ function ensure(db) {
 const STARTERS = { 1: 57, 2: 56, 3: 55 }; // Shikamaru, Sakura, Neji (the 3 choices on the create screen)
 const BASE_TEAM = [5, 35, 9]; // Naruto, Kakashi, Sasuke
 
+// Ninjutsu (card type 6, ninjutsuinfo): in the original a ninjutsu triggers in battle with chance [4] for extra damage.
+// Fights here are worked out from team stats, so an equipped ninjutsu adds its expected value: chance x 20% to attack (ours).
+function ninjutsuBonus(st, id) {
+  const r = table('ninjutsuinfo').rows.find((x) => x[0] === id);
+  const pct = r ? (Number(r[4]) || 0) * 0.2 : 0;
+  return { ...st, al: Math.round(st.al * (1 + pct)), ah: Math.round(st.ah * (1 + pct)) };
+}
 function giveCard(db, uid, sid, ninjaId, type = 1) {
   const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id) VALUES(?,?,?,?)').run(uid, sid, type, ninjaId);
   return Number(r.lastInsertRowid);
@@ -79,8 +86,8 @@ function randomEquip(slot, minStar = 3) {
 const el = (n, v) => `<${n}>${v}</${n}>`;
 function cardXml(c) {
   const f = {
-    type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: 0, starlevel: c.starlevel,
-    newlife: c.newlife || 0, tupo_level: 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
+    type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: c.attri || 0, starlevel: c.starlevel,
+    newlife: c.newlife || 0, tupo_level: c.breaklvl || 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
     attack_add: c.pot_att || 0, defence_add: c.pot_def || 0, cha_add: c.pot_ckr || 0, status: 0,
   };
   return '<card>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</card>';
@@ -222,7 +229,8 @@ function grantDrop(db, pl, dropId) {
   else if (r[8] > 0) { propAdd(db, pl.uid, pl.server_id, CHIP_BASE + r[8], n); chips = n; }
   else if (r[9] > 0) { soul = r[9] * n; propAdd(db, pl.uid, pl.server_id, SOUL, soul); }
   else if (r[14] > 0) for (let i = 0; i < n; i++) require('./pet').addPet(db, pl.uid, pl.server_id, r[14]); // pet (shown in the pet screens)
-  else if (r[5] > 0 || r[6] > 0) coin = 20000 * n; // ninjutsu / seal cards are not modelled yet
+  else if (r[5] > 0) for (let i = 0; i < n; i++) cards.push({ type: 6, id: r[5], seq: giveCard(db, pl.uid, pl.server_id, r[5], 6) });
+  else if (r[6] > 0) for (let i = 0; i < n; i++) cards.push({ type: 5, id: r[6], seq: giveCard(db, pl.uid, pl.server_id, r[6], 5) });
   if (coin || cash) db.prepare('UPDATE players SET coin=coin+?, gold=gold+? WHERE uid=? AND server_id=?').run(coin, cash, pl.uid, pl.server_id);
   const cardXml = cards.map((c) => '<card>' + el('id', c.id) + el('type', c.type) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
   const propXml = props.map((x) => '<prop>' + el('id', x.id) + el('num', x.num) + '</prop>').join('');
@@ -231,6 +239,8 @@ function grantDrop(db, pl, dropId) {
   return `<award dropid="${dropId}" coin="${coin}"><cardlist>${cardXml}</cardlist><proplist>${propXml}</proplist><chipbag>${chipXml}</chipbag>` +
     `${el('coin', coin)}${el('cash', cash)}<exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action>${el('soul', soul)}</award>`;
 }
+// (conf item 31 = stage gift stays off: its button icon ccbResources/activity_icon_11.png is not in the v28 OBB,
+// and the missing sprite makes the whole left column of event buttons fail.)
 // One <award> holding several grantDrop results (Lua screens read only the first <award>).
 function mergeAwards(list) {
   const pick = (re) => list.map((a) => (a.match(re) || ['', ''])[1]).join('');
@@ -256,6 +266,12 @@ function ninjaXml(n) {
   const f = { id: n.id, bagid: n.bagid, low: n.low, high: n.high, end: n.end, level: n.level, attri: 0, starlevel: n.star, newlife: 0 };
   return '<ninja>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</ninja>';
 }
+// <master_pet> in a fight: CFightResultData::AddMyNinja reads BOTH <id> and <pet_id> (a missing one = SIGSEGV),
+// so only send it when the player really has a master pet.
+function masterPetXml(db, pl) {
+  const p = require('./pet').masterPet(db, pl.uid, pl.server_id);
+  return p ? `<master_pet>${el('id', p.id)}${el('pet_id', p.pet_id)}</master_pet>` : '';
+}
 function battleXml(db, pl, chap, stage, opt = {}) {
   const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
@@ -274,7 +290,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   return `<fight><preview type="0" result="${win}" defensenick="${nick}" defenseuid="${opt.enemyUid || 0}" defensecountry="1" defenselevel="${opt.enemyLevel || 1}" defenseviplevel="0"/>` +
     '<guard><ninjalist>' + foes.map(ninjaXml).join('') + '</ninjalist></guard>' +
     '<killer><ninjalist>' + mine.map(ninjaXml).join('') + '</ninjalist>' +
-    `<master_pet>${el('pet_id', require('./pet').masterPetId(db, pl.uid, pl.server_id))}</master_pet></killer>` +
+    masterPetXml(db, pl) + '</killer>' +
     '<roundlist>' + roundXml + '</roundlist></fight>';
 }
 
@@ -396,7 +412,7 @@ function actXml(db, pl) {
   const subs = (a) => a.map((i) => `<subitem subid="${i}"></subitem>`).join('');
   return `<activity type="1" loginallnum="${c.days}"><item actid="1">${subs(c.login)}</item></activity>` +
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="-1"></item></activity><activity type="4"><item actid="4"></item></activity>` +
-    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1], [21, 5, 1], [12, 6, 2], [24, 7, 1], [47, 8, 2]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + `<item><id>31</id><pos>9</pos><status>1</status><onoff>1</onoff><type>1</type><timeleft>${db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
+    '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1], [21, 5, 1], [12, 6, 2], [24, 7, 1], [47, 8, 2], [17, 9, 1]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + `<item><id>31</id><pos>10</pos><status>1</status><onoff>0</onoff><type>1</type><timeleft>${db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
 }
 function actClaim(db, pl, actid, subid) {
   const c = actClaimable(db, pl);
@@ -638,6 +654,7 @@ function teamStats(db, uid, sid) {
     let st = ninjaStats(c);
     for (const e of eqRows.filter((x) => x.slot === i + 1)) {
       if (e.type === 5) { st = sealBonus(st, e.ninja_id); continue; } // tailed-beast seal: percentage bonus
+      if (e.type === 6) { st = ninjutsuBonus(st, e.ninja_id); continue; } // ninjutsu: chance of an extra hit
       st = addStats(st, equipStats(e));
     }
     return { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st };
@@ -791,6 +808,18 @@ function getStage(db, uid, sid, chap) {
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
   return r ? r.stage : 1;
 }
+// <normal> = where the player is now, <chaplist> = every opened chapter (roundinfo [3] = chapter).
+function roundInfoXml(db, pl) {
+  ensure(db);
+  const per = {};
+  table('roundinfo').rows.forEach((r) => { per[r[3]] = (per[r[3]] || 0) + 1; });
+  const open = db.prepare('SELECT chap, stage FROM progress WHERE uid=? AND server_id=? AND chap<1000 ORDER BY chap').all(pl.uid, pl.server_id);
+  if (!open.length) open.push({ chap: 1, stage: 1 });
+  const cur = open[open.length - 1];
+  const chap = (o) => '<chap>' + el('id', o.chap) + el('hardLevel', 0) + el('roundid', o.stage) + el('subroundid', 1) + el('maxround', per[o.chap] || 1) + '</chap>';
+  return '<normal>' + el('chapid', cur.chap) + el('roundid', cur.stage) + el('subroundid', 1) + el('restback', 3) + el('maxround', per[cur.chap] || 1) + '</normal>' +
+    `<chaplist>${open.map(chap).join('')}</chaplist>`;
+}
 function setStage(db, uid, sid, chap, stage) {
   ensure(db);
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
@@ -817,4 +846,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

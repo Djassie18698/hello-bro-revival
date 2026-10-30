@@ -179,3 +179,15 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   NewID (card joining), TeamId. game.teamSwap: replace, trade places if the new card is already in the team, or add to an
   empty slot (max 5). Verified in game. HB_DEBUG=1 logs the params of this endpoint.
 - Claude Root rotation lock removed (accelerometer_rotation 1, user_rotation deleted); the game still asks for portrait itself.
+
+## Main-function fixes (2026-10-30)
+- Crash after level-up -> Team: client calls rl_r_ninjalist (C++ CMyGroupView), which was unhandled. Now answered with
+  activeTeamId + suitlist + ninjalist (+ empty defense lists). Also added rl_r_bagage, rl_r_adventure/rl_w_adventure
+  (campaign round info), rl_w_sportpack. Every '/rl_...' the C++ client calls now has a handler.
+- Campaign fight crash: <master_pet> in fights must contain BOTH <id> and <pet_id>; only sent when a master pet exists.
+- Left event column vanished: conf item 31 (stage gift) uses ccbResources/activity_icon_11.png, missing in the v28 OBB.
+  Kept off (onoff 0).
+- Ninjutsu cards are real now (dropinfo col 5 -> card type 6, equipped adds chance x 20% attack); seal cards (col 6) too.
+- Millionaire/Monopoly (monopoly.js) verified in game: board, dice, ranking.
+- Admin page: "Reset a player" (keeps the login, deletes the character; backup first).
+- cdn/ (hot update zips) is now committed so a fresh clone serves the game fixes. PLAY-ON-TAILSCALE.md + release xapk.
