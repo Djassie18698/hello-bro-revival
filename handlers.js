@@ -672,6 +672,10 @@ module.exports = {
   rl_r_dup: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const sid = Number(p.ServerID || 1);
+    if (Number(p.Cmd) === 7001) {
+      const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
+      return pl ? '<root code="0">' + rankings.towerRankXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
+    }
     if (Number(p.Cmd) === 7002) {
       // Sweep screen: one entry per tower round (3 chapters x 6 rounds, id = (chap-1)*6+round); selectable once cleared.
       const used = acc ? sweepsUsed(db, acc.uid, sid) : 0;

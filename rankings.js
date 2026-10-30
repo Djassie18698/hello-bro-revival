@@ -53,4 +53,19 @@ function wheelGift(db, pl, cmd, giftId) {
   return { xml: el('jifeng', cur - row[5]) + game.grantDrop(db, pl, packDrop(row)) };
 }
 
-module.exports = { wheelRankXml, wheelGift, ensure };
+// ---- Tower ranking (rl_r_dup Cmd 7001): step_num = tower rounds cleared over all chapters (progress chap 1001-1003).
+function towerRankXml(db, pl) {
+  game.ensure(db);
+  const rows = db.prepare(`SELECT p.uid, p.nick, p.level, COALESCE(SUM(MAX(g.stage - 1, 0)), 0) steps,
+      (SELECT c.ninja_id FROM cards c WHERE c.uid=p.uid AND c.server_id=p.server_id ORDER BY c.starlevel DESC, c.seq LIMIT 1) ninja
+    FROM players p LEFT JOIN progress g ON g.uid=p.uid AND g.server_id=p.server_id AND g.chap BETWEEN 1001 AND 1099
+    WHERE p.server_id=? GROUP BY p.uid ORDER BY steps DESC, p.level DESC LIMIT 100`).all(pl.server_id);
+  const ranked = rows.filter((r) => r.steps > 0);
+  const me = ranked.findIndex((r) => r.uid === pl.uid) + 1;
+  const mine = rows.find((r) => r.uid === pl.uid) || { steps: 0 };
+  const star = (id) => ((game.ninjas().get(id) || [])[11] || 1);
+  const items = ranked.map((r, i) => `<item rank="${i + 1}" uid="${r.uid}" nick="${esc(r.nick)}" level="${r.level}" step_num="${r.steps}" firstninja="${r.ninja || 5}" firstninjastar="${star(r.ninja)}" newlife="0"/>`).join('');
+  return `<player>${el('step_num', mine.steps)}${el('rank', me)}${el('award', 0)}</player><rank_list>${items}</rank_list>`;
+}
+
+module.exports = { towerRankXml, wheelRankXml, wheelGift, ensure };
