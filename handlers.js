@@ -56,16 +56,23 @@ function accountBySession(db, p, isLogin = false) {
 
 
 // Training stage fight: always a win for now; rewards come from roundinfo (cols: 22 energy cost, 23 exp, 24 coins).
+// Training stage: roundinfo row with [4] = chapter and [2] = stage number in it. [42] = clears needed before the next
+// stage opens (the "Progress 0/2" on screen), [38] = boss stage, [43] = boss tries per day ("Challenges left").
 function trainingFight(db, pl, chap, stage) {
-  const row = game.table('roundinfo').rows.find((r) => r[0] === stage) || [];
+  const row = game.stageRow(chap, stage) || [];
+  if (game.getStage(db, pl.uid, pl.server_id, chap) < stage) return '<root code="5"><message>stage not open yet</message></root>';
+  const st = game.stageState(db, pl, chap, stage);
+  if (row[38] && st.bossLeft <= 0) return '<root code="5"><message>no challenges left today</message></root>';
   const cost = row[22] || 3, exp = row[23] || 6, coin = row[24] || 15;
   const lv = game.addExp(db, pl, exp);
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
-  game.setStage(db, pl.uid, pl.server_id, chap, stage + 1);
-  if (stage >= game.chapterStages(chap) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
+  const now = game.stageCleared(db, pl, chap, stage);
+  if (now.clears >= (row[42] || 1)) game.setStage(db, pl.uid, pl.server_id, chap, stage + 1); // enough clears: next stage opens
+  if (stage >= game.chapterStages(chap) && now.clears >= (row[42] || 1) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   const energy = Math.max(0, pl.energy - cost);
-  const attrs = `curchapter="${chap}" curstage="${stage + 1}" pos="1" pos_time="0" pk_boss_times="0" curaction="${energy}" LastActionUpdatePastTime="0"`;
+  const cur = game.getStage(db, pl.uid, pl.server_id, chap);
+  const attrs = `curchapter="${chap}" curstage="${cur}" pos="1" pos_time="${now.clears}" pk_boss_times="${now.bossLeft}" curaction="${energy}" LastActionUpdatePastTime="0"`;
   return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage) +
     game.awardFull({ coin, exp }) + '</root>';
 }
@@ -207,7 +214,7 @@ module.exports = {
     // breaks if the client is told about a later chapter).
     const cur = game.furthestChapter(db, acc.uid, pl.server_id);
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: 10,
-      level: pl.level, country: pl.country, maxteammember: 5, activeTeamId: 0,
+      level: pl.level, country: pl.country, maxteammember: game.maxTeam(db, pl), activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
       score: 0, viplevel: vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
@@ -448,7 +455,8 @@ module.exports = {
     if (!t) return '<root code="5"><message>bad package</message></root>';
     db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, pl.uid, pl.server_id);
     vip.addExp(db, pl.uid, pl.server_id, t.rmb / 10); // cents / 10 = dollars x 10
-    return '<root code="0">' + game.awardFull({ cash: t.gold + t.give }) + '</root>';
+    // <viplevel>: the hot-updated top-up screen (28.0.9) sets the new level right away
+    return '<root code="0">' + game.awardFull({ cash: t.gold + t.give }) + el('viplevel', vip.level(db, pl.uid, pl.server_id)) + '</root>';
   },
   // Hall of fame: all real players ranked by level.
   rl_r_ninja_rank: ({ db, params: p }) => {
@@ -969,7 +977,10 @@ module.exports = {
     if (Number(p.Cmd) === 3) return trainingFight(db, pl0, Number(p.ChapID || 1), Number(p.StageID || 1));
     const cur = game.getStage(db, acc.uid, sid, Number(p.ChapID || 1));
     let stages = '';
-    for (let i = 1; i <= cur; i++) stages += `<stage stageid="${i}" pos="1" pos_time="0" pk_boss_times="0"/>`;
+    for (let i = 1; i <= cur; i++) {
+      const st = game.stageState(db, pl0, Number(p.ChapID || 1), i);
+      stages += `<stage stageid="${i}" pos="1" pos_time="${st.clears}" pk_boss_times="${st.bossLeft}"/>`;
+    }
     return `<root code="0"><preview currentstage="${cur}" laststage="${cur}"/><stagelist>${stages}</stagelist><expbuf addrate="0" exp_time="0"/></root>`;
   },
 

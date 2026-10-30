@@ -569,6 +569,12 @@ function initHandle(self)
 					local item = xfile:find("RENLONG")
 					if item ~= nil and item.code == "0" then
 						ShowAward(xfile:find("award"))
+						-- the server sends the new VIP level (top-ups raise it); the client only reads it at login otherwise
+						local vipNode = xfile:find("viplevel")
+						if vipNode ~= nil then
+							pcall(function() self.playerMgr_:SetVipLevel(tonumber(vipNode[1])) end)
+							pcall(function() GetMainMenu():GetCurrentSubMenu():InitNormalHeader() end)
+						end
 						refreshChargeUI()
 					end
 				end)

@@ -112,8 +112,21 @@ function equip(db, pl, slot, kind, newSeq) {
   else db.prepare('INSERT OR REPLACE INTO equipped(uid,server_id,slot,kind,seq) VALUES(?,?,?,?,?)').run(pl.uid, pl.server_id, slot, kind, newSeq);
 }
 
+// Team slots open like the original (newcardinfo row N = slot N): a player level from the text ("reach level 6",
+// "Lv. 30 and customs clearance 1 Round 12") and, for some, a cleared training stage ([7] chapter, [8] stage).
+function maxTeam(db, pl) {
+  let n = 0;
+  for (const r of table('newcardinfo').rows) {
+    const m = /(?:level|Lv\.)\s*(\d+)/i.exec(String(r[2]));
+    const need = m ? Number(m[1]) : 999;
+    if (pl.level < need) break;
+    if (r[7] > 0 && getStage(db, pl.uid, pl.server_id, r[7]) <= r[8]) break;
+    n++;
+  }
+  return Math.max(1, n);
+}
 // Team > card > Change (rl_w_ninjalist Cmd 2300): OldID = card leaving (0 for an empty slot), NewID = card joining.
-// A card already in the team trades places with the old one. Team slots are 0-based, at most 5 ninjas.
+// A card already in the team trades places with the old one. Team slots are 0-based, at most maxTeam ninjas.
 function teamSwap(db, pl, oldSeq, newSeq) {
   ensure(db);
   const card = db.prepare('SELECT seq FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(newSeq, pl.uid, pl.server_id);
@@ -123,7 +136,7 @@ function teamSwap(db, pl, oldSeq, newSeq) {
   const from = team.find((t) => t.seq === oldSeq), there = team.find((t) => t.seq === newSeq);
   if (from) { set(from.slot, newSeq); if (there) set(there.slot, oldSeq); return null; }
   if (there) return null; // already in the team
-  if (team.length >= 5) return 'the team is full';
+  if (team.length >= maxTeam(db, pl)) return 'no free team slot yet';
   set(team.length ? Math.max(...team.map((t) => t.slot)) + 1 : 0, newSeq);
   return null;
 }
@@ -811,6 +824,31 @@ function getStage(db, uid, sid, chap) {
   return r ? r.stage : 1;
 }
 // Training chapters: roundinfo [4] = chapter (1-19), [2] = stage number inside it.
+const stageRow = (chap, stage) => table('roundinfo').rows.find((r) => r[4] === chap && r[2] === stage);
+function stageEnsure(db) {
+  db.exec('CREATE TABLE IF NOT EXISTS stage_clears (uid INTEGER, server_id INTEGER, chap INTEGER, stage INTEGER, clears INTEGER DEFAULT 0, boss_day TEXT, boss_used INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, chap, stage))');
+}
+// clears so far (capped at what the stage needs, like the screen) and boss tries left today
+function stageState(db, pl, chap, stage) {
+  stageEnsure(db);
+  const row = stageRow(chap, stage) || [];
+  const r = db.prepare('SELECT * FROM stage_clears WHERE uid=? AND server_id=? AND chap=? AND stage=?').get(pl.uid, pl.server_id, chap, stage);
+  const today = new Date().toISOString().slice(0, 10);
+  // stages opened before clears were counted are already done
+  const done = !r && getStage(db, pl.uid, pl.server_id, chap) > stage ? (row[42] || 1) : 0;
+  const used = r && r.boss_day === today ? r.boss_used : 0;
+  return { clears: Math.min(row[42] || 1, r ? r.clears : done), bossLeft: row[38] ? Math.max(0, (row[43] || 10) - used) : 0 };
+}
+function stageCleared(db, pl, chap, stage) {
+  stageEnsure(db);
+  const today = new Date().toISOString().slice(0, 10);
+  const prev = stageState(db, pl, chap, stage);
+  const row = stageRow(chap, stage) || [];
+  const used = row[38] ? (row[43] || 10) - prev.bossLeft + 1 : 0;
+  db.prepare(`INSERT INTO stage_clears(uid,server_id,chap,stage,clears,boss_day,boss_used) VALUES(?,?,?,?,?,?,?)
+    ON CONFLICT DO UPDATE SET clears=excluded.clears, boss_day=excluded.boss_day, boss_used=excluded.boss_used`).run(pl.uid, pl.server_id, chap, stage, prev.clears + 1, today, used);
+  return stageState(db, pl, chap, stage);
+}
 function chapterStages(chap) { return table('roundinfo').rows.filter((r) => r[4] === chap).reduce((m, r) => Math.max(m, r[2]), 1); }
 function furthestChapter(db, uid, sid) {
   ensure(db);
@@ -854,4 +892,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
