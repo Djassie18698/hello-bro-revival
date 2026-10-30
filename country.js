@@ -62,4 +62,22 @@ function salary(db, pl) {
   return { xml: game.grantDrop(db, pl, drop) };
 }
 
-module.exports = { infoXml, take, salary, mySeat };
+// War > Ranking: Individuals (power ranking, all countries or one) and Nations (wins/losses, king = Hokage nick).
+function rankXml(db, pl, cmd, countryFilter) {
+  ensure(db);
+  if (cmd !== 4200) {
+    const rows = db.prepare('SELECT uid, nick, country FROM players WHERE server_id=?' + (countryFilter ? ' AND country=?' : ''))
+      .all(...[pl.server_id].concat(countryFilter ? [countryFilter] : [])).map((r) => ({ ...r, power: Math.round(power(db, r.uid, pl.server_id)) }))
+      .sort((a, b) => b.power - a.power).slice(0, 50);
+    const me = rows.findIndex((r) => r.uid === pl.uid) + 1;
+    const users = rows.map((r, i) => `<user>${el('rank', i + 1)}${el('uid', r.uid)}${el('nick', esc(r.nick))}${el('power', r.power)}${el('countryid', r.country)}</user>`).join('');
+    return `<userrank myrank="${me}" curpage="1"><userlist>${users}</userlist></userrank>`;
+  }
+  const countries = [1, 2, 3].map((c) => {
+    const king = db.prepare('SELECT p.nick FROM officials o JOIN players p ON p.uid=o.uid AND p.server_id=o.server_id WHERE o.server_id=? AND o.country=? AND o.seat=1').get(pl.server_id, c);
+    return `<country>${el('id', c)}${el('king', esc(king ? king.nick : ''))}${el('winnum', 0)}${el('falinum', 0)}</country>`;
+  }).join('');
+  return `<countryrank>${countries}</countryrank>`;
+}
+
+module.exports = { rankXml, infoXml, take, salary, mySeat };

@@ -238,6 +238,11 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     return pl ? '<root code="0">' + country.infoXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
   },
+  rl_r_countryranknew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    return pl ? '<root code="0">' + country.rankXml(db, pl, Number(p.Cmd), Number(p.Country) || 0) + '</root>' : '<root code="3"><message>session expired</message></root>';
+  },
   // Cmd 4002 Offical=<seat> take/challenge a seat, Cmd 4003 collect the official's daily salary.
   rl_w_countrynew: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
