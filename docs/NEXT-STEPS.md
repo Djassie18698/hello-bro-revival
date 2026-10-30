@@ -166,3 +166,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   stats go to team stats; master pet id is sent in fights (<master_pet>). Pets open at level 30 via hot update 28.0.6.
 - rl_r_shoplist 1601 now also lists owned items without a price: the client reads bag counts from it (opening the Shop
   once refreshes them). Pet screens show 0 grain until the Shop has been opened once after login.
+
+## Base kept original (2026-10-30)
+- Pet unlock (150) and helper slot levels are the original ones again (28.0.7 undoes 28.0.6). No free pets or food:
+  pets come from 30 fragments merged in Backpack > Fragments (rl_w_comm Cmd 10, game.mergeChips), fragments/grain/nostrum
+  from the mystery shop, which now sells the original secret_shop mix by weight.
+- Pet stats/training use petinfo values; breakthrough raises only the card's element stats; Ninja Test takes 4-5 star only.
+- Full list of what each Base building needs: docs/BASE-FEATURES.md.

@@ -33,6 +33,7 @@ for d, _, files in os.walk(tmpl):
         put(os.path.relpath(full, tmpl), full)
 put('docs/ROADMAP.md', os.path.join(root, 'docs', 'MASTER-PLAN.md'))
 put('docs/HOT-UPDATE.md')
+put('docs/BASE-FEATURES.md')
 
 # safety net: refuse if anything private slipped in
 BAD = re.compile(rb'192\.168\.178\.111|100\.111\.115\.0|22079117|22078671|nellessen|dj199', re.I)
