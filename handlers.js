@@ -78,6 +78,11 @@ function mtree(db, p, shake) {
   return `<root code="0"><user><usedTimes>${m.used + 1}</usedTimes><freeTimes>${Math.max(0, free - 1)}</freeTimes><latestSilver>${win}</latestSilver><cash>${pl.gold - cost}</cash><coin>${pl.coin + win}</coin></user></root>`;
 }
 
+const TOPUPS = [ // the original Google Play packages (rmb = price in cents)
+  { id: 3, rmb: 99, gold: 45, give: 0 }, { id: 4, rmb: 499, gold: 240, give: 10 }, { id: 5, rmb: 999, gold: 490, give: 30 },
+  { id: 6, rmb: 1999, gold: 1050, give: 80 }, { id: 7, rmb: 4999, gold: 2700, give: 300 }, { id: 8, rmb: 9999, gold: 5500, give: 800 },
+];
+
 module.exports = {
   // Server directory: server list + notices
   xk_r_dir: (ctx) =>
@@ -111,9 +116,17 @@ module.exports = {
 
   // Version / update check: nothing to update.
   rl_r_version: (ctx) => {
-    // val is far below any real client version, so the client never asks for an update.
-    const v = '<version val="0.0.1"><cdn>http://' + publicHost(ctx) + '/cdn/</cdn><filelist></filelist></version>';
-    return '<root code="0"><updateversion>' + v + '<force>0</force><notice><content></content></notice></updateversion>' + v + '</root>';
+    // Hot update: cdn/manifest.json = { "val": "x.y.z", "files": [{ name, val, md5, size }] }. Without a manifest the
+    // version is far below the client's, so it never downloads anything.
+    let man = { val: '0.0.1', files: [] };
+    try { man = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, 'cdn', 'manifest.json'), 'utf8')); } catch (e) { /* no updates */ }
+    const files = man.files.map((f) => `<file name="${f.name}" val="${f.val}" md5="${f.md5}" size="${f.size}" ignor="0" force="0"/>`).join('');
+    const cdn = `<cdn>http://${publicHost(ctx)}/cdn/</cdn>`;
+    // Both blocks have the children <version val/>, <cdn>, <filelist><file .../></filelist> directly under them.
+    // <updateversion> = APK updater (Java, would download a whole APK): kept below the client so it never fires.
+    // <updatechip> = in-game resource updater (CDialogUpdateProgressView): carries our hot-update zips.
+    return '<root code="0"><updateversion><version val="0.0.1"/>' + cdn + '<filelist></filelist><force>0</force><notice><content></content></notice></updateversion>' +
+      `<updatechip><version val="${man.val}"/>${cdn}<filelist>${files}</filelist><ptfilelist></ptfilelist></updatechip></root>`;
   },
 
   // Activity / event badges (Lua side). Nothing running.
@@ -290,7 +303,34 @@ module.exports = {
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     return '<root code="0">' + game.awardFull({}) + '</root>';
   },
-  rl_r_paypack: () => '<root code="0"><payheaplist></payheaplist></root>',
+  // Top-up screen header (VIP bar) + first-recharge gift state. Everyone is VIP on this server.
+  rl_r_paypack: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const lv = acc ? vip.level(db, acc.uid, Number(p.ServerID || 1)) : 0;
+    return `<root code="0"><payheaplist></payheaplist><maxlv>${vip.MAX_VIP}</maxlv><exp>${lv * 1000}</exp><lvexp>${(lv + 1) * 1000}</lvexp>` +
+      '<canget>1</canget><first_pay>1</first_pay><multiple>1</multiple><servertime>0</servertime><endtime>0</endtime></root>';
+  },
+  // Top-up packages. Buying is FREE here (the hot-updated ui_purchaseLayer.lua calls rl_x_free_topup instead of Google Play).
+  rl_r_readconf: () => '<root code="0"><payact><mul>1</mul><bOpen>0</bOpen></payact><rechargelist>' +
+    TOPUPS.map((t) => `<item><recharge_id>${t.id}</recharge_id><recharge_rmb>${t.rmb}</recharge_rmb><recharge_yuanbao>${t.gold}</recharge_yuanbao><recharge_yuanbao_give>${t.give}</recharge_yuanbao_give></item>`).join('') +
+    '</rechargelist></root>',
+  // Native top-up button: the client asks for a Google Play order. We grant the gold right away and answer code 1
+  // ("Successfully purchased"), so the client never opens Google Play. Gold shows after the next screen refresh.
+  rl_w_ky_payorder: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const t = TOPUPS.find((x) => x.id === Number(p.ItemId));
+    if (acc && t) db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, acc.uid, Number(p.ServerID || 1));
+    return '<root code="1"></root>';
+  },
+  rl_x_free_topup: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const t = TOPUPS.find((x) => x.id === Number(p.RechargeId));
+    if (!t) return '<root code="5"><message>bad package</message></root>';
+    db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, pl.uid, pl.server_id);
+    return '<root code="0">' + game.awardFull({ cash: t.gold + t.give }) + '</root>';
+  },
   // Hall of fame: all real players ranked by level.
   rl_r_ninja_rank: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
