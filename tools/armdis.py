@@ -1,7 +1,10 @@
 import sys,struct,re
 from elftools.elf.elffile import ELFFile
 from capstone import *
-so=r'C:\Users\dj199\AppData\Local\Temp\hb\apk\lib\armeabi\libgame.so'
+# Disassembles functions of the game's native library. Usage: python tools/armdis.py <name regex> [max functions]
+# The full dump used for research is made by tools/setup_re.py (re/all.txt).
+import os
+so=os.environ.get('HB_SO') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'re','libgame.so')
 f=open(so,'rb'); e=ELFFile(f)
 data=open(so,'rb').read()
 segs=[(s['p_vaddr'],s['p_offset'],s['p_filesz']) for s in e.iter_segments() if s['p_type']=='PT_LOAD']

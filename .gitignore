@@ -10,3 +10,4 @@ logs/
 # the save file stays on each host PC (a fresh clone starts an empty server)
 hellobro.db
 *.db
+re/

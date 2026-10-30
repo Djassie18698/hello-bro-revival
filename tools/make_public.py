@@ -5,7 +5,7 @@ import os, re, shutil, sys
 
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out = os.path.abspath(sys.argv[1])
-CODE = ['server.js', 'handlers.js', 'game.js', 'guild.js', 'mora.js', 'slot.js', 'rankings.js', 'boss.js', 'country.js', 'war.js', 'seals.js', 'border.js', 'tear.js', 'sudoku.js', 'sevenday.js', 'exam.js', 'tupo.js', 'pet.js', 'monopoly.js', 'vip.js', 'wheel.js',
+CODE = ['server.js', 'handlers.js', 'game.js', 'guild.js', 'mora.js', 'slot.js', 'rankings.js', 'boss.js', 'country.js', 'war.js', 'seals.js', 'border.js', 'tear.js', 'sudoku.js', 'sevenday.js', 'exam.js', 'tupo.js', 'pet.js', 'monopoly.js', 'stagegift.js', 'vip.js', 'wheel.js',
         'signin.js', 'drops.js', 'admin.js', 'schema.js', 'OPEN-FIREWALL.bat']
 TOOLS = ['tools/mbs.py', 'tools/patch_apk.py', 'tools/setup_from_xapk.py', 'tools/build_cdn.py', 'tools/dev/smoke.js']
 DATA = ['data/activity_packs.json']  # made by us, not extracted from the game
@@ -35,6 +35,11 @@ put('docs/ROADMAP.md', os.path.join(root, 'docs', 'MASTER-PLAN.md'))
 put('docs/HOT-UPDATE.md')
 put('docs/BASE-FEATURES.md')
 
+# every local module the server requires must be in the copy (a missing one crashes the public server at start)
+for f in os.listdir(out):
+    if f.endswith('.js'):
+        for m in re.findall(r"require\('\./([a-z_]+)'\)", open(os.path.join(out, f), encoding='utf8').read()):
+            assert os.path.exists(os.path.join(out, m + '.js')), 'public copy is missing %s.js (add it to CODE)' % m
 # safety net: refuse if anything private slipped in
 BAD = re.compile(rb'192\.168\.178\.111|100\.111\.115\.0|22079117|22078671|nellessen|dj199', re.I)
 for d, _, files in os.walk(out):

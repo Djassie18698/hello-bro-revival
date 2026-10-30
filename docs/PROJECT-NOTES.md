@@ -1,12 +1,6 @@
----
-name: hello-bro-revival
-description: "Project state for reviving the dead mobile game \"Hello Bro\"/Ninja Online (com.hello.bro.yo) with a custom Node+SQLite server; what works, where files are, how to test"
-metadata:
-  node_type: memory
-  type: project
-  originSessionId: 102e8faa-3f78-4738-b036-3167ad188baf
-  modified: 2026-10-29T05:13:17.568Z
----
+# Project notes (history log, oldest first)
+
+Copied from the working notes of the first long session. Early statements can be outdated (later sections win); the current rules are in CLAUDE.md, the newest findings at the bottom of docs/NEXT-STEPS.md.
 
 User's childhood game (Naruto-themed Chinese card RPG, 2015). Goal: play everything again via a replacement server. As of 2026-10-29 the boot flow + real main screen work in BlueStacks.
 
@@ -55,5 +49,3 @@ Parser field lists live in PROTOCOL-NOTES.txt. Card element fields: type,id,exp,
 - GACHA REVEAL SOLVED: award dropid must be non-zero (client skips cardlist when 0). Suitlist items need attributes (id,type) or login crashes once a set is active. See docs/NEXT-STEPS.md.
 - 2026-10-30: docs/MASTER-PLAN.md = full roadmap (M1-M8). M1 security done (STRICT_SESSIONS, ADMIN_PASSWORD, rate limit, logs/error.log). Uin+Session come from the Gumptech SDK in the APK (new session per launch) - real auth needs an SDK patch (M1b).
 - Public release kit: tools/make_public.py builds C:\Users\dj199\hello-bro-public (git init'd, NOT yet pushed, waiting for the user's go). It ships no game files: tools/setup_from_xapk.py extracts data tables from the user's own XAPK (tables.bin is a zip with local-header magic @B>R instead of PK\x03\x04) and builds the patched APK. Hosting guide recommends playit.gg TCP / VPS / port-forward (not Cloudflare Tunnel: raw spaces in request line).
-
-**Update 2026-10-30 (cloud session, stage gift + smoke):** stagegift.js. rl_r_newbie_pay Cmd1 = `<remain_time/><item name description><gift dropid icon name/>..</item><payinfo status paymoney/>` (status 1 = buy, 2 = claim, 3 = claimed; the cells read dropid/icon/name as ATTRIBUTES), Cmd2 = claim -> `<award>`. The home button needs an `<item><id>31</id>..<onoff>1</onoff><timeleft>N</timeleft>` in the rl_r_activity conf (timeleft 0 hides it; we send 0 after claiming). Also rl_got / rl_r_ky_checkorder / rl_w_notify_gp are plain OK acks. tools/dev/smoke.js now also tries every Cmd number the Lua scripts use per endpoint (274 calls). Daily features already roll over by date key (wheel free spin, sign-in by month, daily tasks), so no separate midnight job is needed. NOT tested in the real client.
