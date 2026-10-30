@@ -144,3 +144,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   only reachable from the seven-day event (quest index 12 "Go") -> not yet verified in game.
 - sudoku.js: Ninja Treasure (activity 24, chest icon on the home screen's left column). rl_r_sudoku board, rl_w_sudoku Cmd 1 reroll (20 gold),
   Cmd 2 explore (10 + 10 per prize taken), Cmd 3 take all. Verified in game: board, explore, take-all, auto reroll.
+
+## Seven-day goals (2026-10-30)
+- sevenday.js: rl_r_activity Cmd 9002 (<seven_target><item><day/><reward/><tlist><t><id/><st/></t></tlist></item>x7) and
+  rl_w_activity ActType 7 ActID day (grants the 3 sevendays_info drops). Day = account age, claim on day d or d+1.
+  Tracked goals: level, top ninja level, arena rank, team attack/defense, treasures turned in; other goal types count as done.
+- Shown via hot update 28.0.5 (conf item 47, type 2). Verified in game: list, day 1 claim, "Go" to the national treasure screen.
+- National treasure verified in game: plunder (no defender -> direct grab), contribute (+3000 silver), defend. Nations are 0-4.
+- Quest texts come from the Thai data table (sevendays_quest), so they show in Thai; would need a table edit to fix.
