@@ -170,7 +170,7 @@ module.exports = {
     const pl = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     return (
       `<root code="0"><login_info>${el('hasreg', pl ? 1 : 0)}${el('userid', acc.uid)}${el('session', acc.session)}</login_info>` +
-      `${el('first_login', pl ? 0 : 1)}</root>`
+      `${el('first_login', 0)}</root>`
     );
   },
 
@@ -184,8 +184,12 @@ module.exports = {
     db.prepare(
       'INSERT OR IGNORE INTO players(uid,server_id,nick,country,card,created) VALUES(?,?,?,?,?,?)'
     ).run(acc.uid, sid, p.Nick || `Ninja${acc.uid}`, Number(p.Country || 1), Number(p.Card || 1), Date.now());
+    game.ensure(db);
+    if (db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=? AND server_id=?').get(acc.uid, sid).n === 0)
+      db.prepare('UPDATE players SET gold=50, coin=18000 WHERE uid=? AND server_id=?').run(acc.uid, sid); // normalconfig 38/39
     game.ensureStarterTeam(db, acc.uid, sid, Number(p.Card || 1));
-    return `<root code="0"><login_info>${el('userid', acc.uid)}${el('session', acc.session)}</login_info></root>`;
+    // first_login 0 = skip the tutorial (CRegistScene/CLoginScene set the guide flag from it). Tutorial is off for now.
+    return `<root code="0"><login_info>${el('userid', acc.uid)}${el('session', acc.session)}</login_info>${el('first_login', 0)}</root>`;
   },
 
   // Main page / initial player data. Field names are the ones CPlayerDataMgr reads from <user>.

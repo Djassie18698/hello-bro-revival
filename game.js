@@ -45,7 +45,9 @@ function ensure(db) {
 
 // Starter characters: the one picked at character creation first, then the rest of Team 7-ish.
 const STARTERS = { 1: 57, 2: 56, 3: 55 }; // Shikamaru, Sakura, Neji (the 3 choices on the create screen)
-const BASE_TEAM = [5, 35, 9]; // Naruto, Kakashi, Sasuke
+// Original start (normalconfig 38-42): only the chosen ninja, with its own starting ninjutsu equipped,
+// plus 50 gold and 18000 silver (see rl_w_reg2).
+const STARTER_JUTSU = { 55: 12, 57: 54, 56: 14 }; // Neji Gentle Fist, Shikamaru Shadow technique, Sakura Strength
 
 // Ninjutsu (card type 6, ninjutsuinfo): in the original a ninjutsu triggers in battle with chance [4] for extra damage.
 // Fights here are worked out from team stats, so an equipped ninjutsu adds its expected value: chance x 20% to attack (ours).
@@ -63,11 +65,11 @@ function ensureStarterTeam(db, uid, sid, pick) {
   ensure(db);
   const have = db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=? AND server_id=?').get(uid, sid).n;
   if (have > 0) return;
-  const ids = [STARTERS[pick] || 57, ...BASE_TEAM];
-  ids.forEach((nid, i) => {
-    const seq = giveCard(db, uid, sid, nid);
-    db.prepare('INSERT OR REPLACE INTO team(uid,server_id,slot,seq) VALUES(?,?,?,?)').run(uid, sid, i, seq);
-  });
+  const nid = STARTERS[pick] || 57;
+  const seq = giveCard(db, uid, sid, nid);
+  db.prepare('INSERT OR REPLACE INTO team(uid,server_id,slot,seq) VALUES(?,?,?,?)').run(uid, sid, 0, seq);
+  const jutsu = giveCard(db, uid, sid, STARTER_JUTSU[nid], 6);
+  db.prepare('INSERT OR REPLACE INTO equipped(uid,server_id,slot,kind,seq) VALUES(?,?,?,?,?)').run(uid, sid, 1, 5, jutsu);
 }
 
 // ---- Equipment (cards of type 2 weapon / 3 armor / 4 accessory; id = equipmentinfo id) -------
