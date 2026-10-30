@@ -9,6 +9,7 @@ const mora = require('./mora');
 const slot = require('./slot');
 const rankings = require('./rankings');
 const boss = require('./boss');
+const country = require('./country');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
@@ -231,7 +232,20 @@ module.exports = {
   },
   rl_r_warnew: ({ params: p }) =>
     Number(p.Cmd) === 7200 ? '<root code="0"><preview resttime="0" open="0"/></root>' : '<root code="0"><display>0</display></root>',
-  rl_r_countrynew: () => '<root code="0"><display>0</display><pack><canget>0</canget><resttime>0</resttime></pack><resttime>0</resttime><officallist></officallist><decllist><has_decl>0</has_decl><allicountry></allicountry><oppecountry></oppecountry></decllist><timeinfo><begin>0</begin><end>0</end></timeinfo></root>',
+  // Country officials (War > Country tab): Cmd 7100 seat list + salary state.
+  rl_r_countrynew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    return pl ? '<root code="0">' + country.infoXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
+  },
+  // Cmd 4002 Offical=<seat> take/challenge a seat, Cmd 4003 collect the official's daily salary.
+  rl_w_countrynew: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = Number(p.Cmd) === 4003 ? country.salary(db, pl) : country.take(db, pl, Number(p.Offical));
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+  },
 
   // Mailbox / notices (nothing yet), scrolling bulletin, activity list (no events), lucky wheel info.
   // Mailbox: Cmd 1802 = system notices (a welcome message), 1800 fights / 1801 friends stay empty.
