@@ -234,10 +234,15 @@ module.exports = {
 
   // Mailbox / notices (nothing yet), scrolling bulletin, activity list (no events), lucky wheel info.
   // Mailbox: Cmd 1802 = system notices (a welcome message), 1800 fights / 1801 friends stay empty.
-  rl_r_msg: ({ params: p }) => {
+  // Mailbox (Cmd 1802): welcome note + messages other players sent with the friend "Communicate" button (rl_w_friend Msg).
+  rl_r_msg: ({ db, params: p }) => {
     if (Number(p.Cmd) !== 1802) return '<root code="0"><msglist></msglist></root>';
     const now = Math.floor(Date.now() / 1000);
-    return `<root code="0"><msglist><msg><iTime>${now}</iTime><ID>1</ID><iStatus>1</iStatus><text>Welcome back to Hello Bro! Offline revival server.</text></msg></msglist></root>`;
+    const acc = accountBySession(db, p);
+    db.exec('CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, to_uid INTEGER, from_nick TEXT, text TEXT, ts INTEGER)');
+    const mails = acc ? db.prepare('SELECT * FROM mail WHERE to_uid=? ORDER BY id DESC LIMIT 50').all(acc.uid) : [];
+    const items = mails.map((m) => `<msg><iTime>${m.ts}</iTime><ID>${m.id + 1}</ID><iStatus>1</iStatus><text>${esc(m.from_nick + ': ' + m.text)}</text></msg>`).join('');
+    return `<root code="0"><msglist>${items}<msg><iTime>${now}</iTime><ID>1</ID><iStatus>1</iStatus><text>Welcome back to Hello Bro! Revival server.</text></msg></msglist></root>`;
   },
   rl_r_bulletin: () => {
     const now = Math.floor(Date.now() / 1000);
@@ -648,7 +653,16 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     return '<root code="0">' + game.friendsXml(db, pl, String(p.Nick || '')) + '</root>';
   },
-  rl_w_friend: () => '<root code="0"></root>',
+  // Friend actions. With Msg + ToUid it is a chat/invite message: delivered to the other player's mailbox.
+  rl_w_friend: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (pl && p.Msg && Number(p.ToUid)) {
+      db.exec('CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, to_uid INTEGER, from_nick TEXT, text TEXT, ts INTEGER)');
+      db.prepare('INSERT INTO mail(to_uid,from_nick,text,ts) VALUES(?,?,?,?)').run(Number(p.ToUid), pl.nick, String(p.Msg).slice(0, 200), Math.floor(Date.now() / 1000));
+    }
+    return '<root code="0"></root>';
+  },
 
   // Arena (ranked ladder): rl_r_sport Cmd 2000-ish = list, rl_r_sportrank = top 50, rl_w_sport Cmd 2008 = fight (ToRank).
   rl_r_sport: ({ db, params: p }) => {
