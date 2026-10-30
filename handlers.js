@@ -546,6 +546,36 @@ module.exports = {
     return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
 
+  // Arena extras: Cmd 1 = exchange tab opened, Cmd 2 = exchange reputation (prop 9996) for exchange_award row Exchg,
+  // Cmd 3 = daily rank reward.
+  rl_x_sport_ext: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    if (cmd === 2) {
+      const row = game.table('exchange_award').rows.find((r) => r[0] === Number(p.Exchg));
+      if (!row) return '<root code="5"><message>bad item</message></root>';
+      const rep = game.propCounts(db, pl.uid, pl.server_id)[9996] || 0;
+      if (rep < row[6]) return '<root code="5"><message>not enough reputation</message></root>';
+      game.propAdd(db, pl.uid, pl.server_id, 9996, -row[6]);
+      return '<root code="0">' + game.grantDrop(db, pl, row[7]) + '</root>';
+    }
+    if (cmd === 3) {
+      db.exec('CREATE TABLE IF NOT EXISTS rank_claims (uid INTEGER, server_id INTEGER, board TEXT, key TEXT, PRIMARY KEY(uid,server_id,board,key))');
+      const ok = db.prepare('INSERT OR IGNORE INTO rank_claims VALUES(?,?,?,?)').run(pl.uid, pl.server_id, 'arena', new Date().toISOString().slice(0, 10)).changes;
+      if (!ok) return '<root code="5"><message>already claimed today</message></root>';
+      const r = db.prepare('SELECT rank FROM arena WHERE uid=?').get(pl.uid);
+      const rank = r ? r.rank : 999, coin = Math.max(2000, 50000 - rank * 1000), rep = Math.max(50, 1000 - rank * 20);
+      game.propAdd(db, pl.uid, pl.server_id, 9996, rep);
+      db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
+      return '<root code="0">' + game.awardFull({ coin }) + '</root>';
+    }
+    // Cmd 1: the client treats a code-0 reply as a reward to show (and crashes without one); the list itself comes
+    // from the client's exchange_award table, so answer "nothing to collect".
+    return '<root code="1"></root>';
+  },
+
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.
   rl_w_star: ({ db, params: p }) => {
     if (Number(p.Cmd) === 3) {
