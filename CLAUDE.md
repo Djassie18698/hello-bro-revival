@@ -17,8 +17,10 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` **must stay private** (it holds game files and the signing keystore).
    `hellobro.db` (the save) and `re/` are never committed. A public code-only copy is built by `tools/make_public.py`.
-4. **Emulator:** only BlueStacks "App Player 5" (adb `emulator-5554`). The owner plays on it too: ask before tapping.
-   Never touch any other BlueStacks instance. Never use the BlueStacks Multi-Instance Manager.
+4. **Emulator:** only the BlueStacks instance named **"Claude"** (Android 11; "App Player 5" is gone). Its adb address is not fixed:
+   the owner starts it, then run `HD-Adb.exe devices`, ask which entry is "Claude", and save it in `tools/dev/emu.device`
+   (one line, e.g. `emulator-5564`; or set `HB_EMU`). `emu.sh` refuses to run without it so it never hits the owner's own
+   game instances. Never touch any other BlueStacks instance (the owner tests there) and never use the Multi-Instance Manager.
 5. Keep working through the open list (section 9) without asking at every step; ask only for real decisions
    (e.g. "original vs. free"). Explain what changed in plain words; say what is not verified in game.
 6. Update this file when a rule, path or the open list changes. Append findings to `docs/NEXT-STEPS.md`.

@@ -11,3 +11,4 @@ logs/
 hellobro.db
 *.db
 re/
+tools/dev/emu.device
