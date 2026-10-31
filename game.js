@@ -414,9 +414,9 @@ function addExp(db, pl, exp) {
 
 // ---- Daily tasks -----------------------------------------------------------------------------
 const today = () => new Date().toISOString().slice(0, 10);
-const DAILY_AWARDS = [ // id, points needed, reward
-  { id: 1, cost: 20, coin: 5000, cash: 0 }, { id: 2, cost: 40, coin: 0, cash: 20 }, { id: 3, cost: 60, coin: 10000, cash: 0 },
-  { id: 4, cost: 80, coin: 0, cash: 50 }, { id: 5, cost: 100, coin: 0, cash: 100 },
+const DAILY_AWARDS = [ // id, points needed, dropinfo ids paid (the original list is lost: (ours) silver and gold like before, now real drops the dialog can show)
+  { id: 1, cost: 20, drops: [46] }, { id: 2, cost: 40, drops: [97] }, { id: 3, cost: 60, drops: [56] },
+  { id: 4, cost: 80, drops: [100] }, { id: 5, cost: 100, drops: [260] },
 ];
 function dailyEnsure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS dailytask (uid INTEGER, server_id INTEGER, day TEXT, task_id INTEGER, process INTEGER DEFAULT 0, PRIMARY KEY(uid,server_id,day,task_id));
@@ -438,16 +438,19 @@ function dailyXml(db, uid, sid) {
     return `<task id="${r[0]}" process="${p}"/>`;
   }).join('');
   score = Math.min(score, 100);
-  const awards = DAILY_AWARDS.map((a) => `<award id="${a.id}" status="${claimed.has(a.id) ? 2 : score >= a.cost ? 1 : 0}" cost="${a.cost}"><drop_list></drop_list></award>`).join('');
+  const awards = DAILY_AWARDS.map((a) => `<award id="${a.id}" status="${claimed.has(a.id) ? 2 : score >= a.cost ? 1 : 0}" cost="${a.cost}"><drop_list>${a.drops.map((d) => `<item>${d}</item>`).join('')}</drop_list></award>`).join('');
   return `<player><total>100</total><current>${score}</current></player><task_list>${tasks}</task_list><award_list>${awards}</award_list>`;
 }
 function dailyClaim(db, pl, awardId) {
   dailyEnsure(db);
   const a = DAILY_AWARDS.find((x) => x.id === awardId);
   if (!a) return null;
+  if (db.prepare('SELECT 1 FROM dailyaward WHERE uid=? AND server_id=? AND day=? AND award_id=?').get(pl.uid, pl.server_id, today(), awardId)) return { error: 'already claimed' };
+  // the client greys the box until the day's points reach its cost; check the same thing here
+  const m = dailyXml(db, pl.uid, pl.server_id).match(new RegExp(`<award id="${awardId}" status="(\\d)"`));
+  if (!m || m[1] !== '1') return { error: 'points not reached' };
   db.prepare('INSERT OR IGNORE INTO dailyaward(uid,server_id,day,award_id) VALUES(?,?,?,?)').run(pl.uid, pl.server_id, today(), awardId);
-  db.prepare('UPDATE players SET coin=coin+?, gold=gold+? WHERE uid=? AND server_id=?').run(a.coin, a.cash, pl.uid, pl.server_id);
-  return a;
+  return { xml: mergeAwards(a.drops.map((id) => grantDrop(db, pl, id)).filter(Boolean)) };
 }
 // Complete <award> element (Lua requires every child to exist).
 function awardFull({ coin = 0, cash = 0, exp = 0 } = {}) {
@@ -952,6 +955,8 @@ function stageEnsure(db) {
 // Boss stages: 3 free fights a day, a 4th and later cost BOSS_COST gold (the client shows a gold button when 0 are left).
 // Owner: "in the original you only got 3 per boss fight" (roundinfo [43] says 10-20, which the owner says is not what the game did).
 const BOSS_FREE = 3, BOSS_COST = 10;
+// Clears a stage needs before the next one opens. roundinfo [42] says 3 for every boss, but the owner says the original needed ONE boss win.
+const clearsNeeded = (row) => (row[38] ? 1 : row[42] || 1);
 // clears so far (capped at what the stage needs, like the screen) and boss tries left today
 function stageState(db, pl, chap, stage) {
   stageEnsure(db);
@@ -959,9 +964,9 @@ function stageState(db, pl, chap, stage) {
   const r = db.prepare('SELECT * FROM stage_clears WHERE uid=? AND server_id=? AND chap=? AND stage=?').get(pl.uid, pl.server_id, chap, stage);
   const today = new Date().toISOString().slice(0, 10);
   // stages opened before clears were counted are already done
-  const done = !r && getStage(db, pl.uid, pl.server_id, chap) > stage ? (row[42] || 1) : 0;
+  const done = !r && getStage(db, pl.uid, pl.server_id, chap) > stage ? clearsNeeded(row) : 0;
   const used = r && r.boss_day === today ? r.boss_used : 0;
-  return { clears: Math.min(row[42] || 1, r ? r.clears : done), bossLeft: row[38] ? Math.max(0, BOSS_FREE - used) : 0 };
+  return { clears: Math.min(clearsNeeded(row), r ? r.clears : done), bossLeft: row[38] ? Math.max(0, BOSS_FREE - used) : 0 };
 }
 function stageCleared(db, pl, chap, stage) {
   stageEnsure(db);
@@ -1044,4 +1049,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

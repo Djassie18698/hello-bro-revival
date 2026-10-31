@@ -74,8 +74,8 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   const lv = game.addExp(db, pl, exp);
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
   const now = game.stageCleared(db, pl, chap, stage);
-  if (now.clears >= (row[42] || 1)) game.setStage(db, pl.uid, pl.server_id, chap, stage + 1); // enough clears: next stage opens
-  if (stage >= game.chapterStages(chap) && now.clears >= (row[42] || 1) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
+  if (now.clears >= game.clearsNeeded(row)) game.setStage(db, pl.uid, pl.server_id, chap, stage + 1); // enough clears: next stage opens
+  if (stage >= game.chapterStages(chap) && now.clears >= game.clearsNeeded(row) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   const energy = Math.max(0, pl.energy - cost);
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
@@ -1017,8 +1017,8 @@ module.exports = {
     if (Number(p.Cmd) === 2) {
       const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
       const a = game.dailyClaim(db, pl, Number(p.AwardID));
-      if (!a) return '<root code="5"><message>bad award</message></root>';
-      return '<root code="0">' + game.awardFull({ coin: a.coin, cash: a.cash }) + '</root>';
+      if (!a || a.error) return `<root code="5"><message>${a ? a.error : 'bad award'}</message></root>`;
+      return '<root code="0">' + a.xml + '</root>';
     }
     return '<root code="0">' + game.dailyXml(db, acc.uid, sid) + '</root>';
   },

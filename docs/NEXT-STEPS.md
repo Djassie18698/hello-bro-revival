@@ -296,3 +296,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Crash ~8 s into a Battles duel, after the fight played to 0/3: the reply used game.awardFull (<award dropid="0">), and the result screen crashes on dropid 0
   (same trap as the training "award needs dropid != 0"). rl_w_dup now answers with stageAward (a real low-tier drop, exp/silver not repeated because the
   client credits them from its own table). Verified on the Claude emulator: duel plays, round advances (DEFEAT stamp), no crash.
+
+## Daily task rewards and one-clear bosses (GitHub #3, 2026-10-31)
+- Daily Task chests: the reward dialog reads `<award><drop_list><item>DROPID</item>..` (ui_dailyRewardLayer: prop_list[i][1] = dropinfo id) - we sent an empty drop_list, so it
+  showed 4 empty boxes and the claim paid made-up coin/gold the dialog never showed. Now each chest lists real dropinfo ids (ours: 20 pts 5000 silver, 40 pts 20 gold,
+  60 pts 10000 silver, 80 pts 50 gold, 100 pts 100 gold; the original list is lost) and the claim pays exactly those via grantDrop, only when the points are reached, once a day.
+  Verified on the emulator (dialog shows "5000 Silver*1", chest opens, server +5000). The top bar silver refreshes on the next screen change (AddSoulAwardData does not add silver).
+- Boss stages need ONE win to open the next part (game.clearsNeeded; roundinfo [42] says 3 for all 165 boss rows, the owner says the original needed 1). Verified in game.
