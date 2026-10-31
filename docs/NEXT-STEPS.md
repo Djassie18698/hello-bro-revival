@@ -259,3 +259,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   rl_w_paypack HeapID=n pays the step (game.payHeapXml / payHeapClaim). Steps and drops come from the client's payhistorydropData.lua
   (month_dayback = total $ topped up, up to 4 dropinfo ids). Total $ = VIP exp / 10 (top-ups are free on this server but count). Claimed = actclaim 9028.
   Verified on a temp DB; not yet seen in the game's top-up screen.
+
+## The "49$ gift" row on the top-up screen (2026-10-31)
+- It is the first-pay bonus of ui_purchaseLayer.lua: rl_r_comm Cmd 16 `<basic><status 0 not reached / 1 received / 2 can claim><amount cents><current cents>` +
+  `<awards><item icon1..3 drop1..3>`, claim = rl_w_comm Cmd 26 (errors 610001 not enough top-up, 610002 received). Before, it showed 49/49 and handed out 4900 free
+  gold. Now: needs $49 of top-ups in total (VIP exp / 10), pays drops 11 (5-star shinobi card), 15 (4-star ninjutsu card) and 374 (Madara) once - those are
+  the three icons the button shows (props_015 / props_049 / props_073). The original reward list is lost (ours, from the icons).
+- Ninjutsu packs ("Four-Star Ninjutsu Card" etc.) now give a real ninjutsu card of that star (was 30000 silver placeholder).

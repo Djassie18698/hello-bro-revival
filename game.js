@@ -235,7 +235,12 @@ function rollPack(r) {
   if (low && !/Ninjutsu/.test(t)) { const pool = pools()[1 + Math.floor(Math.random() * 2)]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
   if (three && !/Ninjutsu/.test(t)) { const pool = pools()[3]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
   if (/Gold/.test(t) && Math.random() < 0.3) return { cash: Number((t.match(/(\d+) Gold/) || [0, 300])[1]) };
-  if (/Ninjutsu/.test(t)) return { coin: 30000 };
+  if (/Ninjutsu/.test(t)) { // a real ninjutsu card of the star the pack names (was a 30000 silver placeholder)
+    const want = /Five-Star/.test(t) ? [5] : /Four-Star/.test(t) ? [4] : /Three-Star/.test(t) ? [3] : /One,\s*Two/.test(t) ? [1, 2] : [3, 4];
+    const pool = table('ninjutsuinfo').rows.filter((x) => want.includes(x[5]) && x[6] === 1);
+    if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] };
+    return { coin: 30000 };
+  }
   const pool = pools()[star] || pools()[4];
   return { ninja: pool[Math.floor(Math.random() * pool.length)] };
 }
@@ -264,6 +269,7 @@ function grantDrop(db, pl, dropId) {
   const ninja = pack ? pack.ninja : r[3], equip = pack ? pack.equip : (r[3] > 0 ? 0 : r[4]);
   if (ninja > 0) for (let i = 0; i < n; i++) cards.push({ type: 1, id: ninja, seq: giveCard(db, pl.uid, pl.server_id, ninja) });
   else if (equip > 0) for (let i = 0; i < n; i++) { const seq = giveEquip(db, pl.uid, pl.server_id, equip); if (seq) cards.push({ type: db.prepare('SELECT type FROM cards WHERE seq=?').get(seq).type, id: equip, seq }); }
+  else if (pack && pack.ninjutsu) cards.push({ type: 6, id: pack.ninjutsu, seq: giveCard(db, pl.uid, pl.server_id, pack.ninjutsu, 6) });
   else if (pack) { cash = pack.cash || 0; coin = pack.coin || 0; }
   else if (r[7] > 0) { propAdd(db, pl.uid, pl.server_id, r[7], n); props.push({ id: r[7], num: n }); }
   else if (r[10] > 0) cash = r[10] * n;

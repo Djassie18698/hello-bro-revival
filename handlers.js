@@ -666,7 +666,13 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
-    if (cmd === 16) return '<root code="0"><basic><status>2</status><amount>4900</amount><current>4900</current></basic><awards><item icon1="props_015" icon2="props_049" icon3="props_073"><id>1</id><num>1</num></item></awards></root>';
+    if (cmd === 16) { // "49$ gift" on the top-up screen: status 0 not reached, 1 received, 2 can claim; amounts in cents. Gift = props_015 / props_049 / props_073 icons = drops 11, 15, 374
+      game.actEnsure(db);
+      const dollars = Math.floor(vip.progress(db, pl.uid, pl.server_id).exp / 10);
+      const got = db.prepare('SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9026').get(pl.uid, pl.server_id);
+      const status = got ? 1 : dollars >= 49 ? 2 : 0;
+      return `<root code="0"><basic><status>${status}</status><amount>4900</amount><current>${Math.min(dollars, 49) * 100}</current></basic><awards><item icon1="props_015" icon2="props_049" icon3="props_073" drop1="11" drop2="15" drop3="374"><id>1</id><num>1</num></item></awards></root>`;
+    }
     if (cmd === 3) return '<root code="0">' + mora.infoXml(db, pl) + '</root>';
     if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
     if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
@@ -688,12 +694,11 @@ module.exports = {
     if (wc === 4) { const r = mora.play(db, pl, Number(p.GambleNPCID), Number(p.GambleMustWin) === 1); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 7) { const r = mora.buyLife(db, pl, Number(p.GambleCashType)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>'; }
     if (wc === 5 || wc === 6) { const r = mora.exchange(db, pl, Number(p.GambleExchangeID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
-    if (Number(p.Cmd) === 26) { // 49$ gift: free here
-      const done = db.prepare("SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9026").get(pl.uid, pl.server_id);
-      if (done) return '<root code="610002"><message>received</message></root>';
+    if (Number(p.Cmd) === 26) { game.actEnsure(db); // 49$ gift: a 5-star shinobi card, a 4-star ninjutsu card and Madara, once, after $49 of top-ups in total
+      if (db.prepare('SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9026').get(pl.uid, pl.server_id)) return '<root code="610002"><message>received</message></root>';
+      if (Math.floor(vip.progress(db, pl.uid, pl.server_id).exp / 10) < 49) return '<root code="610001"><message>top-up amount is insufficient</message></root>';
       db.prepare('INSERT INTO actclaim(uid,server_id,actid,subid) VALUES(?,?,9026,1)').run(pl.uid, pl.server_id);
-      db.prepare('UPDATE players SET gold=gold+4900 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
-      return '<root code="0">' + game.awardFull({ cash: 4900 }) + '</root>';
+      return '<root code="0">' + game.mergeAwards([11, 15, 374].map((id) => game.grantDrop(db, pl, id)).filter(Boolean)) + '</root>';
     }
     if (Number(p.Cmd) === 28) {
       const r = game.godSynth(db, pl, Number(p.AttackCardBagIndex), Number(p.DefenseCardBagIndex));
