@@ -345,7 +345,8 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
   const mine = team.map((t, i) => { const q = ts.slots[i] || {}; return { id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
-  const mkFoes = (ratio) => (opt.enemyIds || [21, 22, 23]).map((id, i) => {
+  const given = opt.foes ? opt.foes.map((f, i) => ({ ...f, bagid: 1000 + i })) : null; // real stage enemies (game.stageFoes)
+  const mkFoes = (ratio) => given ? given.map((f) => ({ ...f })) : (opt.enemyIds || [21, 22, 23]).map((id, i) => {
     if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0 };
     // enemy stats follow the player's own first ninja so the fight we describe can end the way the server decided (ratio = enemy / me)
     const me = mine[i % mine.length] || { low: 40, high: 60, end: 300 };
@@ -371,15 +372,19 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     if (sweep === true) { // won fight: each of my hits takes one enemy down, so the client's enemy counter ends at 0 (a longer replay made it go negative)
       const weakest = Math.min(...mine.map((m) => m.low)); // the enemy card's end must be below any hit so one hit really kills
       foes.forEach((f) => { f.end = Math.max(1, Math.min(f.end, Math.round(weakest * 0.8))); });
-      foes.forEach((f, i) => round(mine[i % mine.length], f));
+      foes.forEach((f, i) => round(mine[i % mine.length], f)); // only my side hits: one kill per round
       return { rounds: rolled, won: true };
     }
-    if (sweep === 'lose') { // lost fight: the enemies take every one of my ninjas down with ONE hit each and I never land one (a longer replay breaks the client's counters)
+    if (sweep === 'lose') {
+      // Lost fight. In this game only the attacking team hits (CFightResultData::AddFightRoundData reads every round from the attacker's
+      // side): a loss is the attackers' hits failing to take every defender down. Each of my ninjas lands one weak hit (just above the
+      // enemy's defence, far below its life), the enemies stay standing and the result is "lose".
+      foes.forEach((f) => { f.end = Math.max(f.end, ((f.def || 0) + 2) * (mine.length + 2)); });
       mine.forEach((m, i) => {
-        const att = foes[i % foes.length], roll = Math.max(m.end + 1, (m.def || 0) + 1);
-        hp.set(m.bagid, 0);
-        rolled.push({ AttackNinja: att.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: m.bagid, Defense: 0, DefenseAttri: 0,
-          CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: m.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
+        const f = foes[i % foes.length], roll = (f.def || 0) + 1;
+        hp.set(f.bagid, hp.get(f.bagid) - roll);
+        rolled.push({ AttackNinja: m.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: f.bagid, Defense: 0, DefenseAttri: 0,
+          CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: f.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
           AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
       });
       return { rounds: rolled, won: false };
@@ -1011,6 +1016,40 @@ function spUse(db, pl) {
   db.prepare('UPDATE players SET sp=?, sp_t=? WHERE uid=? AND server_id=?').run(s.sp - 1, s.sp >= s.max ? Math.floor(Date.now() / 1000) : s.t, pl.uid, pl.server_id);
   return true;
 }
+// ---- Training enemies (GitHub #4 "full scaling through the whole campaign") -----------------------------------------------
+// Boss rows of roundinfo list their enemies in cols 7-21 (npc ninjainfo ids). An npc row has its level in col 7 and its star in col 11
+// but no stats (they lived on the dead server), so (ours) an npc gets the AVERAGE stats of the game's own playable cards of the same star
+// at that level: base (cols 19-24) + growth (cols 25-30) x (level - 1). A normal stage fights the followers of its part's boss
+// (without the leader, at most 3) at the boss's level. At most 5 enemies are sent (the fight screen has 5 places; (ours)).
+// ENEMY_SCALE (ours): enemies get this share of an average card's stats. 0.6 keeps the first boss (1-2) winnable with the starter card;
+// raise it to make the whole campaign harder, lower it for easier. One number, so the owner can tune it after playtesting.
+const ENEMY_SCALE = Number(process.env.HB_ENEMY_SCALE) || 0.6;
+let starAvg = null;
+function npcStats(star, level) {
+  if (!starAvg) {
+    starAvg = {};
+    for (const r of ninjas().values()) {
+      if (r[4] !== 1 || r[6] !== 0 || !(r[19] > 0)) continue;
+      const a = (starAvg[r[11]] = starAvg[r[11]] || { n: 0, v: new Array(12).fill(0) });
+      a.n++; for (let i = 0; i < 12; i++) a.v[i] += r[19 + i] || 0;
+    }
+  }
+  const a = starAvg[star] || starAvg[Math.min(6, Math.max(1, star || 2))] || starAvg[3];
+  const v = (i) => Math.round((a.v[i] / a.n + (a.v[i + 6] / a.n) * Math.max(0, level - 1)) * ENEMY_SCALE);
+  return { al: v(0), ah: v(1), dl: v(2), dh: v(3), cl: v(4), ch: v(5) };
+}
+function stageFoes(chap, stage) {
+  const parts = chapterParts(chap), sp = stagePart(chap, stage), part = parts[sp.part - 1];
+  if (!part) return [];
+  const own = stageRow(chap, stage) || [], boss = stageRow(chap, part.first + part.count - 1) || [];
+  const ids = (r) => r.slice(7, 22).filter((x) => x > 0);
+  let list = own[38] ? ids(own) : ids(boss).slice(1, 4);
+  if (!list.length) list = ids(boss).slice(0, 1);
+  return list.slice(0, 5).map((id) => {
+    const n = ninjas().get(id) || [], lv = n[7] || 1, s = npcStats(n[11] || 2, lv);
+    return { id, low: s.al, high: s.ah, def: Math.round((s.dl + s.dh) / 2), end: Math.round((s.dl + s.dh) * 2 + 300), level: lv, star: n[11] || 2, power: (s.al + s.ah) / 2 + (s.dl + s.dh) / 2 };
+  });
+}
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -1045,6 +1084,18 @@ function stageCleared(db, pl, chap, stage) {
   const used = row[38] ? BOSS_FREE - prev.bossLeft + 1 : 0;
   db.prepare(`INSERT INTO stage_clears(uid,server_id,chap,stage,clears,boss_day,boss_used) VALUES(?,?,?,?,?,?,?)
     ON CONFLICT DO UPDATE SET clears=excluded.clears, boss_day=excluded.boss_day, boss_used=excluded.boss_used`).run(pl.uid, pl.server_id, chap, stage, prev.clears + 1, today, used);
+  return stageState(db, pl, chap, stage);
+}
+// A lost boss fight still uses one of the day's tries (clears stay as they were).
+function stageTried(db, pl, chap, stage) {
+  stageEnsure(db);
+  const today = new Date().toISOString().slice(0, 10);
+  const prev = stageState(db, pl, chap, stage);
+  const row = stageRow(chap, stage) || [];
+  if (!row[38]) return prev;
+  const r = db.prepare('SELECT clears FROM stage_clears WHERE uid=? AND server_id=? AND chap=? AND stage=?').get(pl.uid, pl.server_id, chap, stage);
+  db.prepare(`INSERT INTO stage_clears(uid,server_id,chap,stage,clears,boss_day,boss_used) VALUES(?,?,?,?,?,?,?)
+    ON CONFLICT DO UPDATE SET boss_day=excluded.boss_day, boss_used=excluded.boss_used`).run(pl.uid, pl.server_id, chap, stage, r ? r.clears : 0, today, BOSS_FREE - prev.bossLeft + 1);
   return stageState(db, pl, chap, stage);
 }
 // The client counts PARTS, not single stages: roundinfo [3] restarts at 1 for every part and the last stage of a part is its
@@ -1118,4 +1169,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

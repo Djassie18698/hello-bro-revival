@@ -341,3 +341,13 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - CNewResultWinView::InitUI shows exp and silver as reward.exp / reward.coin (+ the round table values for fight type 0). The exp label shows the table value (+6) but the silver label shows 0 while
   the award carries coin 0. Putting the stage silver in `<award><coin>` fixes the label but the client then credits it a SECOND time (CSectionCellView::CalcRoundReward -> AddDataFromReward), which
   would double the silver. Left at 0: a game-side display issue, not changeable from the server.
+
+## Training enemies scale through the whole campaign (GitHub #4 URGENT, 1 Nov 2026)
+- Before: every training fight used the same 3 enemies (ninja 21-23, level 1, fixed stats), so all bosses looked alike ("3 cards, 1023 defence").
+- Now game.stageFoes(chap, stage): boss rows of roundinfo list their real enemies in cols 7-21 (npc ninjainfo ids: col 7 = level, col 11 = star, no stats).
+  An npc gets (ours) the AVERAGE base+growth stats of the game's playable cards of that star at its level, times ENEMY_SCALE (0.6, env HB_ENEMY_SCALE to tune).
+  At most 5 enemies (fight screen). Examples: 1-2 Mizuki + Chūnin L2; 1-23 boss L17-20; chapter 8 L120-125; chapter 19 L300.
+- Only boss rows are real fights (normal rows are story stages: no fight, the wheel). A boss fight is decided by team power vs enemy power (luck 0.85-1.15, ours);
+  a loss costs the energy and one boss try (game.stageTried) and opens nothing. Starter card: first boss won 60/60, chapter-1 last boss 0/30 (needs a team).
+- Lost replays: only the attacking side has rounds (CFightResultData::AddFightRoundData), so a loss is my ninjas each landing one weak hit; the client still greys the
+  enemies out by itself but shows LOSE, no crash, no negative counter (verified, HB_PVE=lose). Won boss fight verified: real enemies (Moegi, Udon L5), Victory.

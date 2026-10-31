@@ -71,6 +71,24 @@ function trainingFight(db, pl, chap, part, pos, buy) {
     db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(game.BOSS_COST, pl.uid, pl.server_id);
   }
   const cost = row[22] || 3, exp = row[23] || 6, coin = row[24] || 15;
+  // Real enemies for this stage and a real result: my team's power against theirs, with some luck (ours: 0.85-1.15). A lost fight costs the
+  // energy (and a boss try) but gives nothing and opens nothing.
+  const foes = game.stageFoes(chap, stage);
+  const ts = game.teamStats(db, pl.uid, pl.server_id);
+  const myPower = ts.slots.reduce((t, s) => t + (s.al + s.ah) / 2 + (s.dl + s.dh) / 2, 0);
+  const theirPower = foes.reduce((t, f) => t + f.power, 0);
+  // Only boss rows are real fights: normal rows are story stages (the client skips the fight and spins the wheel, crediting exp/silver itself),
+  // so they always count as won.
+  const won = !row[38] || (process.env.HB_PVE ? process.env.HB_PVE === 'win' : !foes.length || myPower * (0.85 + Math.random() * 0.3) >= theirPower); // HB_PVE = test aid
+  const foeLevel = foes.length ? Math.max(...foes.map((f) => f.level)) : 1;
+  if (!won) {
+    db.prepare('UPDATE players SET energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
+    if (row[38]) game.stageTried(db, pl, chap, stage);
+    const e0 = game.partEntry(db, pl, chap, part), cur0 = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part;
+    const a0 = `curchapter="${chap}" curstage="${cur0}" pos="${e0.pos}" pos_time="${e0.pos_time}" pk_boss_times="${e0.pk_boss_times}" curaction="${Math.max(0, pl.energy - cost)}" LastActionUpdatePastTime="0"`;
+    return `<root code="0"><pve ${a0}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` +
+      game.battleXml(db, pl, chap, stage, { foes, win: false, enemyLevel: foeLevel, enemyName: 'Enemy' }) + game.awardFull({}) + '</root>';
+  }
   const lv = game.addExp(db, pl, exp);
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
   const now = game.stageCleared(db, pl, chap, stage);
@@ -81,7 +99,7 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
   const attrs = `curchapter="${chap}" curstage="${curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
-  return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage) +
+  return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage, { foes, win: true, enemyLevel: foeLevel, enemyName: 'Enemy' }) +
     stageAward(db, pl, row, coin, exp) + '</root>';
 }
 
