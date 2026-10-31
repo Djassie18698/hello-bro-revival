@@ -243,3 +243,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   errors 250011 (not topped up) / 250010 (already claimed) are the codes the Lua shows tips for. The "49$ gift" (payheap) rewards are NOT built.
 - Not server-fixable / open: opening cartoon cannot be skipped (client code), victory screen shows silver 0 and Chinese names for the 3 filler cards
   (client-side fillDropData), story-stage wheel always lands on "work harder", 10-pull orange zoom (owner: skip).
+
+## Monthly sign-in opens one slot a day (2026-10-31)
+- Before, every day up to today's date was claimable at once. Now (signin.js) slot N+1 opens after N slots are signed and only if nothing was signed
+  today (monthsign.date). Verified on a temp DB. GitHub issue #2 ("Sign in rewards are all available").
