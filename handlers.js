@@ -245,7 +245,13 @@ module.exports = {
   },
 
   // Gacha status (free pulls / pity counters). Everything available, nothing to track yet.
-  rl_r_recruit: () => '<root code="0"><recruit protect_comming="0" ninjaid="0" cost="0" bagid="0" attr="0"/></root>',
+  rl_r_recruit: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    const type = Number(p.Type || p.RecruitID || 1);
+    const left = pl ? game.recruitState(db, pl, type === 2 ? 2 : 1).toGo : 0; // pulls still needed for the sure 5-star
+    return `<root code="0"><recruit protect_comming="${left}" ninjaid="0" cost="0" bagid="0" attr="0"/></root>`;
+  },
 
   // Gacha pull. Cmd 1901 = ten-pull, otherwise a single pull. Type = recruitinfo row (1 premium, 2 standard, 3 free).
   rl_w_recruit: ({ db, params: p }) => {
@@ -429,7 +435,15 @@ module.exports = {
   rl_w_paypack: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
-    return '<root code="0">' + game.awardFull({}) + '</root>';
+    // First-recharge gift (the Claim button on the top-up screen sends no HeapID): after the first top-up, once.
+    const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl || p.HeapID) return '<root code="0">' + game.awardFull({}) + '</root>';
+    game.actEnsure(db);
+    if (db.prepare('SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9027').get(pl.uid, pl.server_id)) return '<root code="250010"><message>already claimed</message></root>';
+    if (vip.progress(db, pl.uid, pl.server_id).exp < 10) return '<root code="250011"><message>top up first</message></root>';
+    db.prepare('INSERT INTO actclaim(uid,server_id,actid,subid) VALUES(?,?,9027,1)').run(pl.uid, pl.server_id);
+    const fp = game.table('firstpurchase').rows[0] || []; // columns 2, 5, 8 = the three dropinfo ids shown on the screen
+    return '<root code="0">' + game.mergeAwards([fp[2], fp[5], fp[8]].map((id) => game.grantDrop(db, pl, id)).filter(Boolean)) + '</root>';
   },
   // Top-up screen header (VIP bar) + first-recharge gift state. Everyone is VIP on this server.
   rl_r_paypack: ({ db, params: p }) => {
@@ -1009,11 +1023,13 @@ module.exports = {
   // Shop. Cmd 1600 = gift packs, 1601 = goods. An EMPTY list crashes the client, so always send >= 1 entry.
   rl_r_shoplist: ({ db, params: p }) => {
     const shopOwned = (q) => { const a = accountBySession(db, q); return a ? game.propCounts(db, a.uid, Number(q.ServerID || 1)) : {}; };
-    const recruits = [
-      { recruit_id: 1, recruit_yuanbao: 300, recruit_time: 0, last_recruit_time: 0, first_yuanbao: 0, free_recruit_time_left: 0, recruit_limit: 0, cur_recruit_count: 0 },
-      { recruit_id: 2, recruit_yuanbao: 150, recruit_time: 0, last_recruit_time: 0, first_yuanbao: 0, free_recruit_time_left: 0, recruit_limit: 0, cur_recruit_count: 0 },
-      { recruit_id: 3, recruit_yuanbao: 0, recruit_time: 86400, last_recruit_time: 0, first_yuanbao: 0, free_recruit_time_left: 0, recruit_limit: 0, cur_recruit_count: 0 },
-    ];
+    const rAcc = accountBySession(db, p), rPl = rAcc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rAcc.uid, Number(p.ServerID || 1));
+    const rec = (id, cost) => {
+      const s = rPl ? game.recruitState(db, rPl, id) : { every: 0, last: 0, left: 0 };
+      return { recruit_id: id, recruit_yuanbao: cost, recruit_time: s.every, last_recruit_time: s.last, first_yuanbao: 0, free_recruit_time_left: s.left, recruit_limit: 0, cur_recruit_count: 0 };
+    };
+    const recruits = [rec(1, 300), rec(2, 150),
+      { recruit_id: 3, recruit_yuanbao: 0, recruit_time: 86400, last_recruit_time: 0, first_yuanbao: 0, free_recruit_time_left: 0, recruit_limit: 0, cur_recruit_count: 0 }];
     const rows = (tag, list) => list.map((o) => `<${tag}>` + Object.entries(o).map(([k, v]) => el(k, v)).join('') + `</${tag}>`).join('');
     const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const n = (v) => Math.round(Number(v) || 0);

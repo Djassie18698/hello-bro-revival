@@ -175,25 +175,47 @@ function pools() {
   }
   return byStar;
 }
-function rollOne(type) {
+function rollOne(type, forceStar) {
   try { const f = Number(fs.readFileSync(path.join(__dirname, 'force_ninja.txt'), 'utf8')); if (f) return f; } catch {} // debugging aid
   const rates = RATES[type] || RATES[2];
   const total = Object.values(rates).reduce((a, b) => a + b, 0);
   let x = Math.random() * total;
   let star = Number(Object.keys(rates)[0]);
   for (const [s, w] of Object.entries(rates)) { if ((x -= w) < 0) { star = Number(s); break; } }
+  if (forceStar) star = Math.max(star, forceStar);
   const pool = pools()[star] || pools()[3];
   return pool[Math.floor(Math.random() * pool.length)];
 }
+// Free recruits (owner/friend: in the original the blue 150-gold recruit was free once every 8 hours and the purple 300-gold one once every 24).
+const FREE_EVERY = { 1: 24 * 3600, 2: 8 * 3600 };
+// Pity counter ("recruit N more times and you are sure to get a 5-star"): the original number is lost, so (ours) = 20 pulls.
+const PITY = 20;
+function recruitEnsure(db) {
+  db.exec('CREATE TABLE IF NOT EXISTS recruit_state (uid INTEGER, server_id INTEGER, type INTEGER, last_free INTEGER DEFAULT 0, pity INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, type))');
+}
+function recruitState(db, pl, type) {
+  recruitEnsure(db);
+  const r = db.prepare('SELECT * FROM recruit_state WHERE uid=? AND server_id=? AND type=?').get(pl.uid, pl.server_id, type) || { last_free: 0, pity: 0 };
+  const every = FREE_EVERY[type] || 0, now = Math.floor(Date.now() / 1000);
+  return { every, last: r.last_free, left: every ? Math.max(0, r.last_free + every - now) : 0, pity: r.pity, toGo: Math.max(1, PITY - r.pity) };
+}
 function pull(db, pl, type, count, free) {
+  const st = recruitState(db, pl, type);
+  if (free && st.left > 0) return { error: 'free recruit not ready yet' };
   const cost = free ? 0 : count === 10 ? (TEN_COST[type] ?? 1400) : (COST[type] ?? 150) * count; // ten-pull prices are the ones the client shows
   if (pl.gold < cost) return { error: 'not enough gold' };
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
+  let pity = st.pity;
   const got = [];
   for (let i = 0; i < count; i++) {
-    const nid = process.env.HB_FORCE ? Number(process.env.HB_FORCE) : rollOne(type);
+    const sure = FREE_EVERY[type] && pity >= PITY - 1;
+    const nid = process.env.HB_FORCE ? Number(process.env.HB_FORCE) : rollOne(type, sure ? 5 : 0);
+    const star = (ninjas().get(nid) || [])[11] || 0;
+    pity = star >= 5 ? 0 : pity + 1;
     got.push({ ninja: nid, seq: giveCard(db, pl.uid, pl.server_id, nid) });
   }
+  db.prepare(`INSERT INTO recruit_state(uid,server_id,type,last_free,pity) VALUES(?,?,?,?,?)
+    ON CONFLICT(uid,server_id,type) DO UPDATE SET last_free=excluded.last_free, pity=excluded.pity`).run(pl.uid, pl.server_id, type, free ? Math.floor(Date.now() / 1000) : st.last, pity);
   return { cost, got };
 }
 function awardXml(c) {
@@ -970,4 +992,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

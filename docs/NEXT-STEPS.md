@@ -232,3 +232,14 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - 10-pull orange-card zoom: NOT a server thing. This client (CCommonPrayDialogView / CItemView onHttpRequestCompleted) goes straight from the
   recruit_list reply to the CPrayTenDialogView list; CDialogShowBox (the zoomed card) is only used for a single pull. Needs a libgame.so
   patch or a client change; open.
+
+## Free recruits, pity counter, first-recharge gift (2026-10-31)
+- Free recruits (GitHub #2): game.FREE_EVERY = purple (type 1, 300 gold) every 24 h, blue (type 2, 150 gold) every 8 h. State in table
+  recruit_state(last_free, pity). rl_r_shoplist 1600 sends recruit_time (interval), last_recruit_time, free_recruit_time_left (CPlayerNinjaRecruitMgr::
+  AddNinjaInfoFromXML reads those); rl_w_recruit Free=1 is refused until the timer is 0. NOT verified in game: which button the client shows as free.
+- Pity counter: rl_r_recruit sends <recruit protect_comming=N> (pulls still needed for a sure 5-star). (ours) PITY = 20 for both types; the original
+  number is lost. A 5-star card resets it; the 20th pull is forced to 5-star or better.
+- First-recharge Claim (rl_w_paypack without HeapID): needs VIP exp >= 10 ($1 top-up), once (actclaim 9027), pays firstpurchase.json drops (cols 2, 5, 8);
+  errors 250011 (not topped up) / 250010 (already claimed) are the codes the Lua shows tips for. The "49$ gift" (payheap) rewards are NOT built.
+- Not server-fixable / open: opening cartoon cannot be skipped (client code), victory screen shows silver 0 and Chinese names for the 3 filler cards
+  (client-side fillDropData), story-stage wheel always lands on "work harder", 10-pull orange zoom (owner: skip).
