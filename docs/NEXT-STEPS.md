@@ -218,3 +218,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   maxStar argument now.
 - Verified: the card/prop arrives in the save (temp DB + the Claude emulator). NOT verified: how the client's 3-card victory screen and the
   story-stage reward wheel (always lands on "work harder", FightReward+0x20 decides the segment) show the new drop. Open.
+
+## Fights replay consistently; spar balance (2026-10-31)
+- battleXml now plays a real turn-based replay (my ninjas and the enemies hit in turn, a ninja falls when damage taken reaches its `end`), so the
+  winner shown on screen is the one still standing. When the server already decided win/lose (spar, arena, exam, border, war, country, tear)
+  the enemy stats are scaled to the player's ninja until the replay agrees (tested 300/300). Before, enemies had fixed weak stats and a
+  decided "lose" was a win replay -> "enemies 0 defense, then you lose" (GitHub issue #2). Training still uses fixed weak enemies (always wins).
+- Bot strength for spar = 60 + 30*level + 30*star (ours; was 150+55*level+60*star, a level-1 player could never win). About 60% wins at equal level.

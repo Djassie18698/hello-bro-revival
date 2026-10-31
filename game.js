@@ -296,16 +296,42 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
   const mine = team.map((t, i) => { const q = ts.slots[i] || {}; return { id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), level: t.level, star: t.starlevel }; });
-  const foes = (opt.enemyIds || [21, 22, 23]).map((id, i) => ({ id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, level: opt.enemyLevel || 1, star: 0 }));
-  const rounds = [];
-  foes.forEach((foe, i) => {
-    const me = mine[i % mine.length];
-    rounds.push({ AttackNinja: me.bagid, Attack: me.high, AttackAttri: 0, DefenseNinja: foe.bagid, Defense: 0, DefenseAttri: 0,
-      CauseLimit: 0, LimitVal: 0, FinalAttack: me.high, FinalDefense: 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
-      AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
+  const mkFoes = (ratio) => (opt.enemyIds || [21, 22, 23]).map((id, i) => {
+    if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, level: opt.enemyLevel || 1, star: 0 };
+    // enemy stats follow the player's own first ninja so the fight we describe can end the way the server decided (ratio = enemy / me)
+    const me = mine[i % mine.length] || { low: 40, high: 60, end: 300 };
+    const high = Math.max(1, Math.round(me.high * ratio)), low = Math.max(1, Math.round(me.low * ratio));
+    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), level: opt.enemyLevel || 1, star: 0 };
   });
+  // Turn-based replay: my ninjas and the enemies hit in turn, each target is the first living ninja on the other side; a ninja
+  // falls when the damage it took reaches its `end`. The winner is whoever still stands, so what the client shows is consistent.
+  const play = (foes) => {
+    const hp = new Map([...mine, ...foes].map((n) => [n.bagid, n.end]));
+    const rolled = [];
+    const alive = (list) => list.filter((n) => hp.get(n.bagid) > 0);
+    for (let t = 0, turn = 0; t < 200 && alive(mine).length && alive(foes).length; t++, turn++) {
+      const mineTurn = turn % 2 === 0, atkSide = alive(mineTurn ? mine : foes), defSide = alive(mineTurn ? foes : mine);
+      const att = atkSide[Math.floor(turn / 2) % atkSide.length], def = defSide[0];
+      const dmg = Math.max(1, Math.round(att.low + Math.random() * (att.high - att.low)));
+      hp.set(def.bagid, hp.get(def.bagid) - dmg);
+      rolled.push({ AttackNinja: att.bagid, Attack: att.high, AttackAttri: 0, DefenseNinja: def.bagid, Defense: 0, DefenseAttri: 0,
+        CauseLimit: 0, LimitVal: 0, FinalAttack: dmg, FinalDefense: 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
+        AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
+    }
+    return { rounds: rolled, won: alive(foes).length === 0 };
+  };
+  let foes, fight;
+  if (opt.win === undefined) { foes = mkFoes(); fight = play(foes); }
+  else { // the server already decided win/lose: pick enemy strength until the replay agrees
+    for (const ratio of opt.win ? [0.5, 0.35, 0.25, 0.15, 0.08, 0.04, 0.02] : [1.2, 1.8, 2.8, 5, 10, 30]) {
+      foes = mkFoes(ratio); fight = play(foes);
+      if (fight.won === opt.win) break;
+    }
+  }
+  const rounds = fight.rounds;
   const roundXml = rounds.map((r) => '<round>' + Object.entries(r).map(([k, v]) => el(k, v)).join('') + '<skills></skills><defense_skills></defense_skills></round>').join('');
-  const win = opt.win === false ? 0 : 1;
+  const win = fight.won ? 1 : 0;
+  if (opt.out) opt.out.win = fight.won;
   const nick = (opt.enemyName || 'Enemy').replace(/[<>&"]/g, '');
   return `<fight><preview type="0" result="${win}" defensenick="${nick}" defenseuid="${opt.enemyUid || 0}" defensecountry="1" defenselevel="${opt.enemyLevel || 1}" defenseviplevel="0"/>` +
     '<guard><ninjalist>' + foes.map(ninjaXml).join('') + '</ninjalist></guard>' +
@@ -317,7 +343,8 @@ function battleXml(db, pl, chap, stage, opt = {}) {
 // Spar fight against rival ToUid (a real player or a bot). Strength = level + stars of the team; a little luck.
 function sparFight(db, pl, toUid) {
   const rv = rivals(db, pl, 12).find((r) => r.id === toUid) || { id: toUid, level: pl.level, nick: 'Rival', ninja: 5 };
-  const botAtk = (lv, star) => 150 + lv * 55 + star * 60;
+  // bot strength in the same units as a ninja's attack (level 1 shinobi ~ 210): about even at equal level (ours)
+  const botAtk = (lv, star) => 60 + lv * 30 + star * 30;
   const ts = teamStats(db, pl.uid, pl.server_id);
   const mine = (ts.total.al + ts.total.ah) / 2 / Math.max(1, ts.slots.length);
   let theirs;

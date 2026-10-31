@@ -12,8 +12,9 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    (`data/*.json`), Lua (`reference/lua-scripts/`) or the C++ disassembly. If the original number is lost (it lived on the dead
    server), choose one, mark it `(ours)` in a code comment and in `docs/BASE-FEATURES.md`. Don't "improve" or hand out freebies.
 2. **After every working change**, in this order:
-   `node tools/dev/smoke.js` → `git add -A && git commit && git push` → `sh tools/sync_test_folder.sh` → restart the test server
-   (section 4). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
+   `node tools/dev/smoke.js` → `git add -A && git commit && git push` → `sh tools/sync_test_folder.sh` (copies the push into
+   `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on; keeps its save) → tell the owner to restart
+   their server (never stop or start it yourself while they may be playing; ask first). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
    "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` **must stay private** (it holds game files and the signing keystore).
    `hellobro.db` (the save) and `re/` are never committed. A public code-only copy is built by `tools/make_public.py`.
