@@ -25,6 +25,11 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 5. Keep working through the open list (section 9) without asking at every step; ask only for real decisions
    (e.g. "original vs. free"). Explain what changed in plain words; say what is not verified in game.
 6. Update this file when a rule, path or the open list changes. Append findings to `docs/NEXT-STEPS.md`.
+7. **Every big milestone or change** also updates the GitHub front page `README.md` (the "What works" table and the "What changed recently"
+   section) and gets a plain-words entry in a dated `docs/FIXES-<date>.md` (new file per big fix day, same layout as `docs/FIXES-2026-10-31.md`).
+   Small fixes only need `docs/NEXT-STEPS.md`. The owner approved the README look on 31 Oct 2026: keep that style.
+8. Bug lists live in GitHub issues #2 (list 1) and #3 (list 2): after fixing something, post a short status comment there (write the text to a
+   file in the scratchpad and use `gh issue comment N --body-file`; `/tmp` paths failed once).
 
 ## 2. First-time setup in a new session (5 minutes)
 - Work in `C:\Users\dj199\Desktop\HelloBroServer` (main repo). Git Bash: use short paths, `cd /c/Users/dj199/...`
@@ -117,8 +122,10 @@ Current: **28.0.9** (top-up/VIP screen, 7-day goals in Event menu, tutorial off 
   write the text to a file first). Channels include #install-help, #guides, #how-to-play, #announcements, #patch-testing.
 
 ## 9. Open work (update this list)
-Verify in game: stage clear counts (`pos_time` = clears / `pk_boss_times` = boss tries left is a guess), team slot unlocks,
-VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
+Still open from bug lists 1 and 2 (31 Oct 2026): opening scene cannot be skipped and the 10-pull orange-card zoom (both `libgame.so`, owner said skip the zoom);
+victory screen silver shows 0 (sending it double-credits, see NEXT-STEPS); the two filler cards beside a drop use the client's own table; the pity text
+("recruit N more times") and the chain "ready" list were never seen on screen; lost fights other than spar not played in game.
+Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
 Not built yet (Lua screens exist): scratch card `rl_w_guaguale`, lottery `rl_r_lottery`/`rl_w_lottery`, daily offers
 `rl_r_dailylimit`, `rl_w_dailycost`, `rl_r_multiple_task`, `rl_r_multiple_pay`, card split `rl_w_split_card`, cross-server
 battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`, `rl_r_marquee`, `rl_r_migrate_price`.
