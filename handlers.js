@@ -58,14 +58,18 @@ function accountBySession(db, p, isLogin = false) {
 // Training stage fight: always a win for now; rewards come from roundinfo (cols: 22 energy cost, 23 exp, 24 coins).
 // Training stage: roundinfo row with [4] = chapter and [2] = stage number in it. [42] = clears needed before the next
 // stage opens (the "Progress 0/2" on screen), [38] = boss stage, [43] = boss tries per day ("Challenges left").
-function trainingFight(db, pl, chap, part, pos) {
+function trainingFight(db, pl, chap, part, pos, buy) {
   const stage = game.globalStage(chap, part, pos); // the client sends the part number and the row inside it
   const row = game.stageRow(chap, stage) || [];
   // a chapter only opens once the previous one is cleared (a chapter without a progress row has never been opened)
   const opened = db.prepare('SELECT 1 FROM progress WHERE uid=? AND server_id=? AND chap=?').get(pl.uid, pl.server_id, chap);
   if (!stage || (chap > 1 && !opened) || game.getStage(db, pl.uid, pl.server_id, chap) < stage) return '<root code="5"><message>stage not open yet</message></root>';
   const st = game.stageState(db, pl, chap, stage);
-  if (row[38] && st.bossLeft <= 0) return '<root code="5"><message>no challenges left today</message></root>';
+  if (row[38] && st.bossLeft <= 0) { // free tries used up: the button now costs gold (the client sends WastCashBoss=1 when it is tapped)
+    if (!buy) return '<root code="5"><message>no challenges left today</message></root>';
+    if (pl.gold < game.BOSS_COST) return '<root code="5"><message>not enough gold</message></root>';
+    db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(game.BOSS_COST, pl.uid, pl.server_id);
+  }
   const cost = row[22] || 3, exp = row[23] || 6, coin = row[24] || 15;
   const lv = game.addExp(db, pl, exp);
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
@@ -991,7 +995,7 @@ module.exports = {
     const sid = Number(p.ServerID || 1);
     const pl0 = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
     const chap = Number(p.ChapID || 1);
-    if (Number(p.Cmd) === 3) return trainingFight(db, pl0, chap, Number(p.StageID || 1), Number(p.Pos || 1));
+    if (Number(p.Cmd) === 3) return trainingFight(db, pl0, chap, Number(p.StageID || 1), Number(p.Pos || 1), Number(p.WastCashBoss) === 1);
     // stagelist = one entry per PART reached: pos = open row inside it, pos_time = clears of that row, pk_boss_times = boss tries left
     const cur = game.stagePart(chap, game.getStage(db, acc.uid, sid, chap)).part;
     let stages = '';

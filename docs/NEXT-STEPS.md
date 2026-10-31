@@ -225,3 +225,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   the enemy stats are scaled to the player's ninja until the replay agrees (tested 300/300). Before, enemies had fixed weak stats and a
   decided "lose" was a win replay -> "enemies 0 defense, then you lose" (GitHub issue #2). Training still uses fixed weak enemies (always wins).
 - Bot strength for spar = 60 + 30*level + 30*star (ours; was 150+55*level+60*star, a level-1 player could never win). About 60% wins at equal level.
+
+## Boss stages: 3 free fights, then gold (2026-10-31)
+- Owner/friend: the original gave 3 boss fights a day, not roundinfo [43] (10-20). game.BOSS_FREE = 3; with 0 left the client shows a gold button and
+  sends WastCashBoss=1: the server then charges BOSS_COST = 10 gold (the number on the button) and lets the fight happen. (GitHub issue #2.)
+- 10-pull orange-card zoom: NOT a server thing. This client (CCommonPrayDialogView / CItemView onHttpRequestCompleted) goes straight from the
+  recruit_list reply to the CPrayTenDialogView list; CDialogShowBox (the zoomed card) is only used for a single pull. Needs a libgame.so
+  patch or a client change; open.

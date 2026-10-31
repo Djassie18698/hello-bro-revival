@@ -875,6 +875,9 @@ const stageRow = (chap, stage) => table('roundinfo').rows.find((r) => r[4] === c
 function stageEnsure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS stage_clears (uid INTEGER, server_id INTEGER, chap INTEGER, stage INTEGER, clears INTEGER DEFAULT 0, boss_day TEXT, boss_used INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, chap, stage))');
 }
+// Boss stages: 3 free fights a day, a 4th and later cost BOSS_COST gold (the client shows a gold button when 0 are left).
+// Owner: "in the original you only got 3 per boss fight" (roundinfo [43] says 10-20, which the owner says is not what the game did).
+const BOSS_FREE = 3, BOSS_COST = 10;
 // clears so far (capped at what the stage needs, like the screen) and boss tries left today
 function stageState(db, pl, chap, stage) {
   stageEnsure(db);
@@ -884,14 +887,14 @@ function stageState(db, pl, chap, stage) {
   // stages opened before clears were counted are already done
   const done = !r && getStage(db, pl.uid, pl.server_id, chap) > stage ? (row[42] || 1) : 0;
   const used = r && r.boss_day === today ? r.boss_used : 0;
-  return { clears: Math.min(row[42] || 1, r ? r.clears : done), bossLeft: row[38] ? Math.max(0, (row[43] || 10) - used) : 0 };
+  return { clears: Math.min(row[42] || 1, r ? r.clears : done), bossLeft: row[38] ? Math.max(0, BOSS_FREE - used) : 0 };
 }
 function stageCleared(db, pl, chap, stage) {
   stageEnsure(db);
   const today = new Date().toISOString().slice(0, 10);
   const prev = stageState(db, pl, chap, stage);
   const row = stageRow(chap, stage) || [];
-  const used = row[38] ? (row[43] || 10) - prev.bossLeft + 1 : 0;
+  const used = row[38] ? BOSS_FREE - prev.bossLeft + 1 : 0;
   db.prepare(`INSERT INTO stage_clears(uid,server_id,chap,stage,clears,boss_day,boss_used) VALUES(?,?,?,?,?,?,?)
     ON CONFLICT DO UPDATE SET clears=excluded.clears, boss_day=excluded.boss_day, boss_used=excluded.boss_used`).run(pl.uid, pl.server_id, chap, stage, prev.clears + 1, today, used);
   return stageState(db, pl, chap, stage);
@@ -967,4 +970,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
