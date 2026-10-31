@@ -36,6 +36,8 @@ function ensure(db) {
     );
     CREATE INDEX IF NOT EXISTS cards_owner ON cards(uid, server_id);
   `);
+  try { db.exec('ALTER TABLE players ADD COLUMN sp INTEGER NOT NULL DEFAULT -1'); } catch {}
+  try { db.exec('ALTER TABLE players ADD COLUMN sp_t INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vip INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vipexp INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE cards ADD COLUMN newlife INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
@@ -192,6 +194,8 @@ const FREE_EVERY = { 1: 24 * 3600, 2: 8 * 3600 };
 const PITY = 20;
 function recruitEnsure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS recruit_state (uid INTEGER, server_id INTEGER, type INTEGER, last_free INTEGER DEFAULT 0, pity INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, type))');
+  try { db.exec("ALTER TABLE recruit_state ADD COLUMN day TEXT DEFAULT ''"); } catch (e) { /* already there */ }
+  try { db.exec('ALTER TABLE recruit_state ADD COLUMN used INTEGER DEFAULT 0'); } catch (e) { /* already there */ }
 }
 function recruitState(db, pl, type) {
   recruitEnsure(db);
@@ -199,7 +203,22 @@ function recruitState(db, pl, type) {
   const every = FREE_EVERY[type] || 0, now = Math.floor(Date.now() / 1000);
   return { every, last: r.last_free, left: every ? Math.max(0, r.last_free + every - now) : 0, pity: r.pity, toGo: Math.max(1, PITY - r.pity) };
 }
+// The "1 in 100" recruit (type 3) costs recruitment orders (prop 30), one per card, at most recruitinfo [5] = 5 cards a day.
+const ORDER_PROP = 30, ORDER_DAILY = 5;
+function orderUsedToday(db, pl) {
+  recruitEnsure(db);
+  const r = db.prepare('SELECT day, used FROM recruit_state WHERE uid=? AND server_id=? AND type=3').get(pl.uid, pl.server_id);
+  return r && r.day === today() ? r.used : 0;
+}
 function pull(db, pl, type, count, free) {
+  if (type === 3) {
+    if (orderUsedToday(db, pl) + count > ORDER_DAILY) return { error: 'no recruits left today' };
+    if ((propCounts(db, pl.uid, pl.server_id)[ORDER_PROP] || 0) < count) return { error: 'not enough recruitment orders' };
+    propAdd(db, pl.uid, pl.server_id, ORDER_PROP, -count);
+    db.prepare(`INSERT INTO recruit_state(uid,server_id,type,day,used) VALUES(?,?,3,?,?)
+      ON CONFLICT(uid,server_id,type) DO UPDATE SET day=excluded.day, used=excluded.used`).run(pl.uid, pl.server_id, today(), orderUsedToday(db, pl) + count);
+    free = false;
+  }
   const st = recruitState(db, pl, type);
   if (free && st.left > 0) return { error: 'free recruit not ready yet' };
   const cost = free ? 0 : count === 10 ? (TEN_COST[type] ?? 1400) : (COST[type] ?? 150) * count; // ten-pull prices are the ones the client shows
@@ -942,6 +961,24 @@ function arenaFight(db, pl, toRank) {
   return { win, xml, from, to, renown };
 }
 
+// Grudge (SP, the spar stamina shown "10/3" in the top bar): max = playerlevel column 3, one point back every 2 hours (the client's own
+// timer shows "next grudge 01:59:55" at pass time 0 -> 2 h; (ours) assumption), a spar costs 1. players.sp = -1 means full.
+const SP_EVERY = 2 * 3600;
+function spState(db, pl) {
+  ensure(db);
+  const row = table('playerlevel').rows.find((r) => r[1] === pl.level) || [];
+  const max = row[3] || 3, now = Math.floor(Date.now() / 1000);
+  const r = db.prepare('SELECT sp, sp_t FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || { sp: -1, sp_t: 0 };
+  let sp = r.sp < 0 ? max : Math.min(r.sp, max), t = r.sp_t || now;
+  if (sp < max) { const ticks = Math.floor((now - t) / SP_EVERY); if (ticks > 0) { sp = Math.min(max, sp + ticks); t = sp >= max ? now : t + ticks * SP_EVERY; } } else t = now;
+  return { sp, max, pass: sp >= max ? 0 : now - t, t };
+}
+function spUse(db, pl) {
+  const s = spState(db, pl);
+  if (s.sp <= 0) return false;
+  db.prepare('UPDATE players SET sp=?, sp_t=? WHERE uid=? AND server_id=?').run(s.sp - 1, s.sp >= s.max ? Math.floor(Date.now() / 1000) : s.t, pl.uid, pl.server_id);
+  return true;
+}
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -1049,4 +1086,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

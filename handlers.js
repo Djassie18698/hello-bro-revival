@@ -243,10 +243,10 @@ module.exports = {
     // Training chapters open one by one as the previous one is cleared (a new player is on chapter 1: the tutorial
     // breaks if the client is told about a later chapter).
     const cur = game.furthestChapter(db, acc.uid, pl.server_id);
-    const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: 10,
+    const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: game.spState(db, pl).sp,
       level: pl.level, country: pl.country, maxteammember: game.maxTeam(db, pl), activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
-      caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: 0,
+      caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: game.spState(db, pl).pass,
       score: 0, viplevel: vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
@@ -288,6 +288,7 @@ module.exports = {
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!game.spUse(db, pl)) return '<root code="5"><message>not enough grudge</message></root>';
     const r = game.sparFight(db, pl, Number(p.ToUid));
     game.addExp(db, pl, r.exp);
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(r.coin, pl.uid, pl.server_id);
@@ -297,7 +298,7 @@ module.exports = {
     const got = chip && seals.plunder(db, pl, chip, r.win);
     // The fragment is stored on the server; the seal list re-reads counts (rl_r_markchip) when it is shown again.
     const award = game.awardFull({ coin: r.coin, exp: r.exp });
-    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
+    return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
   },
 
   // Plunder / seal list (no seals yet) and country war status (no war running).
@@ -1050,7 +1051,7 @@ module.exports = {
       return { recruit_id: id, recruit_yuanbao: cost, recruit_time: s.every, last_recruit_time: s.last, first_yuanbao: 0, free_recruit_time_left: s.left, recruit_limit: 0, cur_recruit_count: 0 };
     };
     const recruits = [rec(1, 300), rec(2, 150),
-      { recruit_id: 3, recruit_yuanbao: 0, recruit_time: 86400, last_recruit_time: 0, first_yuanbao: 0, free_recruit_time_left: 0, recruit_limit: 0, cur_recruit_count: 0 }];
+      { recruit_id: 3, recruit_yuanbao: 0, recruit_time: 0, last_recruit_time: 0, first_yuanbao: 0, free_recruit_time_left: 0, recruit_limit: game.ORDER_DAILY, cur_recruit_count: rPl ? game.orderUsedToday(db, rPl) : 0 }];
     const rows = (tag, list) => list.map((o) => `<${tag}>` + Object.entries(o).map(([k, v]) => el(k, v)).join('') + `</${tag}>`).join('');
     const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const n = (v) => Math.round(Number(v) || 0);

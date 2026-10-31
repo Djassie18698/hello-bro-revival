@@ -303,3 +303,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   60 pts 10000 silver, 80 pts 50 gold, 100 pts 100 gold; the original list is lost) and the claim pays exactly those via grantDrop, only when the points are reached, once a day.
   Verified on the emulator (dialog shows "5000 Silver*1", chest opens, server +5000). The top bar silver refreshes on the next screen change (AddSoulAwardData does not add silver).
 - Boss stages need ONE win to open the next part (game.clearsNeeded; roundinfo [42] says 3 for all 165 boss rows, the owner says the original needed 1). Verified in game.
+
+## Profile grudge timers and the "1 in 100" recruit (GitHub #3, 2026-10-31)
+- Profile screen showed "10/3" grudge and negative timers ("Full grudge -12:00:-5"): cursp was a fixed 10 above the max (playerlevel column 3). Now grudge is real:
+  max = playerlevel[3], +1 every 2 h (ours; derived from the client's "01:59:55" at pass time 0), a spar (rl_w_pvp) costs 1 and is refused at 0. Mainpage sends cursp and
+  LastSPUpdatePastTime (seconds into the current 2 h tick). Verified on the emulator: Profile shows 3/3 and 00:00:00.
+- Shop > "1 in 100" (recruit type 3): "claim -1 times today" and "Free after 00:-54" came from recruit_limit 0 / recruit_time 86400. It is now the original "Use up recruitment
+  orders x 1": costs prop 30 per card, at most recruitinfo[5] = 5 cards a day, no free timer (it used to be unlimited and free). Shows "You have: N" in the game.
