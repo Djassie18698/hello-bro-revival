@@ -104,7 +104,9 @@ function slotXml(seq, slot, eq = {}, st = {}) {
     ninjintsu1seq: eq[5] || 0, ninjintsu2seq: eq[6] || 0, ninjintsu3seq: eq[7] || 0, ninjintsu4seq: eq[8] || 0,
     attacklow: st.al || 10, attackhigh: st.ah || 20, defenselow: st.dl || 5, defensehigh: st.dh || 10, chakralow: st.cl || 10, chakrahigh: st.ch || 20, skillsuit: 0 };
   return '<ninja>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') +
-    '<combinlist></combinlist><readycombinlist></readycombinlist></ninja>';
+    // the card detail screen paints a chain red when its id is in <combinlist> (CNinjaDetailView::SetCombin); readycombinlist = a partner is owned but not in the team
+    `<combinlist>${(st.active || []).map((id) => `<combin><combinid>${id}</combinid></combin>`).join('')}</combinlist>` +
+    `<readycombinlist>${(st.ready || []).map((id) => `<combin><combinid>${id}</combinid></combin>`).join('')}</readycombinlist></ninja>`;
 }
 
 // Equip (kind 1 weapon, 2 armor, 3 trinket, 4 seal, 5-8 ninjutsu slots) a card onto the ninja in team slot (1-based).
@@ -412,7 +414,7 @@ function sparFight(db, pl, toUid) {
   let theirs;
   if (rv.id < 9000000) { const o = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id); const t2 = o ? teamStats(db, o.uid, o.server_id) : null; theirs = t2 ? (t2.total.al + t2.total.ah) / 2 / Math.max(1, t2.slots.length) : botAtk(rv.level, 3); }
   else theirs = botAtk(rv.level, rv.star || 3);
-  const win = mine * (0.7 + Math.random() * 0.6) >= theirs;
+  const win = process.env.HB_SPAR ? process.env.HB_SPAR === 'win' : mine * (0.7 + Math.random() * 0.6) >= theirs; // HB_SPAR = test aid
   const xml = battleXml(db, pl, 0, 1, { enemyIds: [rv.ninja, rv.ninja, rv.ninja], enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, win });
   const coin = win ? 3 + rv.level : 0, exp = win ? 14 : 2;
   return { win, xml, coin, exp };
@@ -826,14 +828,17 @@ function teamStats(db, uid, sid) {
   // 15 ninjutsu id, 16-18 attack/defence/chakra ratio. Type 1 = the card's own stats grow when ANY partner is in the team, or the equipment / ninjutsu is worn
   // by it; type 0 = a leader effect: while the card is in the team every ninja gets the ratio. Each chain adds ratio x the slot's stats (after gear).
   const inTeam = new Set(slots.map((s) => s.ninja_id));
+  const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
   const chain = slots.map(() => ({}));
   const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };
   slots.forEach((s, i) => {
     const worn = eqRows.filter((x) => x.slot === i + 1).map((x) => x.ninja_id);
+    s.active = []; s.ready = [];
     for (const r of matchRows(s.ninja_id)) {
-      if (r[5] === 0) { slots.forEach((_, j) => add(j, r)); continue; }
+      if (r[5] === 0) { slots.forEach((_, j) => add(j, r)); s.active.push(r[0]); continue; }
       const partner = r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && inTeam.has(id));
-      if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) add(i, r);
+      if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) { add(i, r); s.active.push(r[0]); }
+      else if (r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && owned.has(id))) s.ready.push(r[0]); // a partner is owned but not in the team yet
     }
   });
   slots.forEach((s, i) => { Object.assign(s, addStats(s, chain[i])); s.chain = chain[i]; });

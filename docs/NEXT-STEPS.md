@@ -324,3 +324,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   The client already credits the stage's own exp/silver, so a doubled segment sends ONE extra copy in the award fields (client adds them) and the server pays the same.
   Verified on the emulator: gold segment (+3 gold, panel "EXP 8 / gold 3 / silver 20") and EXP x2 (client bar +16 = 8+8). Silver x2 uses the same path but was not run in game.
   Test aid: HB_WHEEL=<type> forces a segment. Fixed on the way: the doubled exp used a stale player row and overwrote the base exp.
+
+## Active chains turn red on the card detail screen (GitHub #3, 2026-10-31)
+- CNinjaDetailView::SetCombin paints a chain red when its ninjamatch id is in the team card's `<combinlist><combin><combinid>` (CTeamCard::firefly_InitFromXml; also `<readycombinlist>`).
+  slotXml now sends the active chain ids per slot (game.teamStats s.active, the same rule that adds the bonus) and, in readycombinlist, chains whose partner is owned but not in the team.
+  Verified on the emulator: Susa Indra + Sage of the Six Paths -> chains 1 ("Fight with Sage Six Path") and 5 ("All Shinobi") red, the others black.
+- Test aids added: HB_SPAR=win|lose (forces a spar result), HB_WHEEL, HB_STAGE_DROP.
