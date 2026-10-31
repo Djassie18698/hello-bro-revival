@@ -90,11 +90,16 @@ function trainingFight(db, pl, chap, part, pos, buy) {
 // dropinfo ids: 31 ramen*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
 function stageAward(db, pl, row, coin, exp) {
   const r = Math.random();
-  const dropId = row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 31 : r < 0.8 ? 19 : 16;
+  const dropId = Number(process.env.HB_STAGE_DROP) || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 31 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
   const xml = game.grantDrop(db, pl, dropId);
   if (!xml) return game.awardFull({ coin, exp });
   const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
-  return xml.replace(/ coin="\d+"/, ` coin="${had + coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${had + coin}</coin>`).replace('<exp>0</exp>', `<exp>${exp}</exp>`);
+  // <award type=N> is where the story-stage wheel stops (CDialogRunLevelTurnView::StartTurn, read from libgame.so): the client maps type
+  // 1,2,3,4,5 to wheel segment 4,3,1,0,2; segments run counter-clockwise from the top: 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards.
+  // So: a dropped card -> type 1 (cards), gold -> type 5 (gold), anything else -> type 4 (work harder). No doubling is paid.
+  const hasCard = /<card>/.test(xml), cash = Number((xml.match(/<cash>(\d+)<\/cash>/) || [0, 0])[1]);
+  const wheel = hasCard ? 1 : cash > 0 ? 5 : 4;
+  return xml.replace('<award ', `<award type="${wheel}" `).replace(/ coin="\d+"/, ` coin="${had + coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${had + coin}</coin>`).replace('<exp>0</exp>', `<exp>${exp}</exp>`);
 }
 
 const MT = { perday: 50, low: 1, top: 5, cost: 20, free: 5, start: 5000 };

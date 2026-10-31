@@ -247,3 +247,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 ## Monthly sign-in opens one slot a day (2026-10-31)
 - Before, every day up to today's date was claimable at once. Now (signin.js) slot N+1 opens after N slots are signed and only if nothing was signed
   today (monthsign.date). Verified on a temp DB. GitHub issue #2 ("Sign in rewards are all available").
+
+## Story-stage reward wheel lands on the dropped item (2026-10-31)
+- CDialogRunLevelTurnView::StartTurn (libgame.so) reads `<award type=N>`: types 1..5 stop the wheel on segment 4,3,1,0,2; any other value = 0.
+  Segments (counter-clockwise from the top): 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards. handlers.stageAward now sends type 1 when a
+  card/equipment dropped (wheel stops on the cards, then the "So lucky!" card reveal shows), type 5 for gold, type 4 (work harder) otherwise.
+  Verified on the Claude emulator with a forced drop (env HB_STAGE_DROP=<dropinfo id>, test aid). EXP x2 / silver x2 are never selected: no doubling is paid.
