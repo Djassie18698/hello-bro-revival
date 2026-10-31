@@ -291,3 +291,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (only the drop), so client and server agree (checked: bar 6/54 and silver 19995 on both).
 - The client never reads the player's exp from the server (UpdatePlayerDataFromXML has no 'exp'): its bar starts at 0 after every login. rl_w_login2 therefore
   sets players.exp = 0 so the server levels up at the same moment as the client.
+
+## Battles (tower) duel crash fixed (GitHub #3, 2026-10-31)
+- Crash ~8 s into a Battles duel, after the fight played to 0/3: the reply used game.awardFull (<award dropid="0">), and the result screen crashes on dropid 0
+  (same trap as the training "award needs dropid != 0"). rl_w_dup now answers with stageAward (a real low-tier drop, exp/silver not repeated because the
+  client credits them from its own table). Verified on the Claude emulator: duel plays, round advances (DEFEAT stamp), no crash.

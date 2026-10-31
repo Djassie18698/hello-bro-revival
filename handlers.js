@@ -1006,7 +1006,7 @@ module.exports = {
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
     game.setStage(db, pl.uid, sid, 1000 + chap, round + 1);
     game.bumpTask(db, pl.uid, sid, 1);
-    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { enemyLevel: 10 * chap }) + game.awardFull({ coin, exp }) + '</root>';
+    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { enemyLevel: 10 * chap }) + stageAward(db, pl, [], 0, 0) + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3); the client credits exp/silver itself
   },
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
