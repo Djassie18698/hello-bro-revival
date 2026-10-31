@@ -323,13 +323,13 @@ function masterPetXml(db, pl) {
 function battleXml(db, pl, chap, stage, opt = {}) {
   const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
-  const mine = team.map((t, i) => { const q = ts.slots[i] || {}; return { id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), level: t.level, star: t.starlevel }; });
+  const mine = team.map((t, i) => { const q = ts.slots[i] || {}; return { id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
   const mkFoes = (ratio) => (opt.enemyIds || [21, 22, 23]).map((id, i) => {
-    if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, level: opt.enemyLevel || 1, star: 0 };
+    if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0 };
     // enemy stats follow the player's own first ninja so the fight we describe can end the way the server decided (ratio = enemy / me)
     const me = mine[i % mine.length] || { low: 40, high: 60, end: 300 };
     const high = Math.max(1, Math.round(me.high * ratio)), low = Math.max(1, Math.round(me.low * ratio));
-    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), level: opt.enemyLevel || 1, star: 0 };
+    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), def: Math.max(1, Math.round(high * 0.5)), level: opt.enemyLevel || 1, star: 0 };
   });
   // Turn-based replay: my ninjas and the enemies hit in turn, each target is the first living ninja on the other side; a ninja
   // falls when the damage it took reaches its `end`. The winner is whoever still stands, so what the client shows is consistent.
@@ -349,7 +349,10 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     return { rounds: rolled, won: alive(foes).length === 0 };
   };
   let foes, fight;
-  if (opt.win === undefined) { foes = mkFoes(); fight = play(foes); }
+  if (opt.win === undefined) { // training / boss fights: enemies a bit weaker than the player's ninjas but with real numbers (the card shows their defense left)
+    const base = Math.min(0.55, 0.3 + stage * 0.004); // a little tougher on later stages (stage = row id inside the chapter)
+    for (const ratio of [base, base * 0.7, base * 0.5, base * 0.3, 0.1]) { foes = mkFoes(ratio); fight = play(foes); if (fight.won) break; }
+  }
   else { // the server already decided win/lose: pick enemy strength until the replay agrees
     for (const ratio of opt.win ? [0.5, 0.35, 0.25, 0.15, 0.08, 0.04, 0.02] : [1.2, 1.8, 2.8, 5, 10, 30]) {
       foes = mkFoes(ratio); fight = play(foes);

@@ -274,3 +274,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   instead of ramen. Other drops that award ramen (login/level packs, first-recharge) may still show the broken card.
 - The 2 filler cards beside the real drop come from the client's own fillDropData table, not from us.
 - Victory screen still shows silver 0 (the `<award coin>` is paid; the screen reads it from another field I have not found).
+
+## Enemy numbers in training fights (2026-10-31) - NOT solved
+- Training enemies now get real attack/hp scaled to the player's ninja (a bit weaker, still always a win; 50/50 checked on stages 1-72), instead of fixed 10-20 attack.
+- The number on an enemy's card during the fight (red-framed "0" under the portrait, GitHub #2 "enemies show no stats") did not change. Tried putting a real value in
+  <Defense> of each round: the game crashed (SIGSEGV, fault addr 0x18) in the fight twice; with Defense=0 again it runs fine. So <Defense> is not the field (or must be
+  paired with something else); left at 0. The player's own card shows its attack (263) correctly. Still open: find which fight field fills the enemy card number.
+- BlueStacks "Claude" keeps opening an ad page (Whiteout Survival) over the game during tests: `emu.sh back` + `emu.sh restart` brings the game back.
