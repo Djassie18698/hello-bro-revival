@@ -92,14 +92,16 @@ function stageAward(db, pl, row, coin, exp) {
   const r = Math.random();
   const dropId = Number(process.env.HB_STAGE_DROP) || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
   const xml = game.grantDrop(db, pl, dropId);
-  if (!xml) return game.awardFull({ coin, exp });
+  if (!xml) return game.awardFull({});
   const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
   // <award type=N> is where the story-stage wheel stops (CDialogRunLevelTurnView::StartTurn, read from libgame.so): the client maps type
   // 1,2,3,4,5 to wheel segment 4,3,1,0,2; segments run counter-clockwise from the top: 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards.
   // So: a dropped card -> type 1 (cards), gold -> type 5 (gold), anything else -> type 4 (work harder). No doubling is paid.
   const hasCard = /<card>/.test(xml), cash = Number((xml.match(/<cash>(\d+)<\/cash>/) || [0, 0])[1]);
   const wheel = hasCard ? 1 : cash > 0 ? 5 : 4;
-  return xml.replace('<award ', `<award type="${wheel}" `).replace(/ coin="\d+"/, ` coin="${had + coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${had + coin}</coin>`).replace('<exp>0</exp>', `<exp>${exp}</exp>`);
+  // The client already credits the stage's silver and exp from its own roundinfo table (CSectionCellView::CalcRoundReward), so the award must NOT repeat them:
+  // sending both made the exp bar and silver count twice (level desync 17 -> 16 -> 17, GitHub issue #3).
+  return xml.replace('<award ', `<award type="${wheel}" `);
 }
 
 const MT = { perday: 50, low: 1, top: 5, cost: 20, free: 5, start: 5000 };
@@ -200,6 +202,9 @@ module.exports = {
     const acc = accountBySession(db, p, true);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    // The client never reads the player's exp from the server: after every login its exp bar starts at 0 and it levels up on its own sums.
+    // Keep the server's number the same (otherwise the two disagree about when a level is reached and the level jumps 17 -> 16 -> 17).
+    if (pl) db.prepare('UPDATE players SET exp=0 WHERE uid=? AND server_id=?').run(acc.uid, Number(p.ServerID || 1));
     return (
       `<root code="0"><login_info>${el('hasreg', pl ? 1 : 0)}${el('userid', acc.uid)}${el('session', acc.session)}</login_info>` +
       `${el('first_login', 0)}</root>`

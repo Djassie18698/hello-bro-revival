@@ -284,3 +284,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Won fights now send exactly one hit per enemy (enemy `end` below any hit), enemy defence shown on the victory screen (DEF 326). Lost fights keep the
   turn-based replay (spar/arena/exam/war etc.): NOT verified in game.
 - BlueStacks "Claude" keeps opening an ad page (Whiteout Survival) over the game during tests: `emu.sh back` + `emu.sh restart` brings the game back.
+
+## Exp / silver counted twice -> level jumping back (GitHub #3, 2026-10-31)
+- The client credits a training win's exp and silver from its own roundinfo table (CSectionCellView::CalcRoundReward) AND again from <award><exp>/<coin>.
+  Verified on the emulator: server +6 exp showed +12 in the client bar, silver +15 too much. The award for training wins now carries 0 exp / 0 coin
+  (only the drop), so client and server agree (checked: bar 6/54 and silver 19995 on both).
+- The client never reads the player's exp from the server (UpdatePlayerDataFromXML has no 'exp'): its bar starts at 0 after every login. rl_w_login2 therefore
+  sets players.exp = 0 so the server levels up at the same moment as the client.
