@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in the game is broken, crashes, or does not match the original
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: input
+    id: screen
+    attributes:
+      label: Screen / feature
+      description: Where did it happen? For example "Team > Change card" or "Pets > Level up".
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What I did (exact taps, in order)
+      placeholder: |
+        1. Open Team
+        2. Tap a card
+        3. Tap Change
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: dropdown
+    id: crash
+    attributes:
+      label: Did the game crash or freeze?
+      options:
+        - No
+        - Yes, it closed
+        - Yes, it froze / black screen
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag and drop images here (screenshot of the whole screen, before and after if you can).
+  - type: input
+    id: account
+    attributes:
+      label: Account ID (UID) and time
+      description: Your UID and roughly when it happened, so the server log can be checked.
+      placeholder: "22078671, today around 18:30"
+  - type: dropdown
+    id: original
+    attributes:
+      label: Is this different from the original game?
+      options:
+        - Not sure
+        - Yes, the original did it differently
+        - No, it is just broken
