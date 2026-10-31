@@ -351,3 +351,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   a loss costs the energy and one boss try (game.stageTried) and opens nothing. Starter card: first boss won 60/60, chapter-1 last boss 0/30 (needs a team).
 - Lost replays: only the attacking side has rounds (CFightResultData::AddFightRoundData), so a loss is my ninjas each landing one weak hit; the client still greys the
   enemies out by itself but shows LOSE, no crash, no negative counter (verified, HB_PVE=lose). Won boss fight verified: real enemies (Moegi, Udon L5), Victory.
+
+## New admin page (1 Nov 2026)
+- The page is now admin.html (served by admin.js). Players sidebar, stats, Resources (quick buttons), Give (one catalog of shinobi/equipment/ninjutsu/seals/items/
+  fragments/pets with type + star filters and counts), Give everything (whole group, optional star, capped at 5000), Inventory (cards with Remove, items), Reset
+  (name must be typed). APIs: /admin/api/catalog, givething {cat,id,count}, bulk {cat,stars,count}, inventory, delcard; old give/givecard/reset kept.
+- "I give a weapon and nothing arrives": verified the server stores it and the game shows it (Sword of Kusanagi + Uchiha Shisui) after the game is CLOSED and opened;
+  the client reads cards only at login. The page now says that in a banner.

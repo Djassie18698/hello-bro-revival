@@ -29,7 +29,7 @@
 |---|---|---|
 | 🥷 **Cards & team** with chains that turn red when active | 🎰 **Recruit** with free timers and a pity counter | 🗺️ **Training** in parts, bosses, drops, reward wheel |
 | ⚔️ **Spar, Arena, Battles, War, Border war** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
-| 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page** (gold, items, cards, reset a player) |
+| 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
 
 Every number that came from the game's own data is kept as it was. Where the original value was lost on the dead server we picked one and marked it **(ours)** in the code and in the docs.
 
