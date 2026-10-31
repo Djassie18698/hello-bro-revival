@@ -53,5 +53,5 @@ rmdir /s /q "%TMPDIR%"
 echo.
 echo Done! You now have the newest version.
 echo  1. Start the server again: START-SERVER.bat (keep that window open).
-echo  2. In the game, tap Confirm when it asks "confirm update?".
+echo  2. Open the game. Only if it asks "confirm update?", tap Confirm (most updates are server-only and it will not ask).
 pause
