@@ -63,6 +63,9 @@ Or add a comment with a screenshot and one line to the running lists:
 
 - [Bugfix List 1](https://github.com/Djassie18698/hello-bro-revival/issues/2)
 - [Bugfix List 2](https://github.com/Djassie18698/hello-bro-revival/issues/3)
+- [Bugfix List 3](https://github.com/Djassie18698/hello-bro-revival/issues/4) · [Bugfix List 4](https://github.com/Djassie18698/hello-bro-revival/issues/5)
+
+What is still open is listed in [`docs/OPEN-ISSUES.md`](docs/OPEN-ISSUES.md).
 
 A good report says **where** it happened, the **taps**, what **should** happen, what **did** happen, and a **screenshot**.
 

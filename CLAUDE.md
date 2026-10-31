@@ -29,7 +29,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 7. **Every big milestone or change** also updates the GitHub front page `README.md` (the "What works" table and the "What changed recently"
    section) and gets a plain-words entry in a dated `docs/FIXES-<date>.md` (new file per big fix day, same layout as `docs/FIXES-2026-10-31.md`).
    Small fixes only need `docs/NEXT-STEPS.md`. The owner approved the README look on 31 Oct 2026: keep that style.
-8. Bug lists live in GitHub issues #2 (list 1) and #3 (list 2): after fixing something, post a short status comment there (write the text to a
+8. Bug lists live in GitHub issues #2 (list 1), #3 (list 2), #4 (list 3), #5 (list 4): after fixing something, post a short status comment there (write the text to a
    file in the scratchpad and use `gh issue comment N --body-file`; `/tmp` paths failed once).
 
 ## 2. First-time setup in a new session (5 minutes)
@@ -123,9 +123,7 @@ Current: **28.0.9** (top-up/VIP screen, 7-day goals in Event menu, tutorial off 
   write the text to a file first). Channels include #install-help, #guides, #how-to-play, #announcements, #patch-testing.
 
 ## 9. Open work (update this list)
-Still open from bug lists 1 and 2 (31 Oct 2026): opening scene cannot be skipped and the 10-pull orange-card zoom (both `libgame.so`, owner said skip the zoom);
-victory screen silver shows 0 (sending it double-credits, see NEXT-STEPS); the two filler cards beside a drop use the client's own table; the pity text
-("recruit N more times") and the chain "ready" list were never seen on screen; lost fights other than spar not played in game.
+Bug-list items that are not fixed are tracked in **`docs/OPEN-ISSUES.md`** (to do / not checked in game / cannot be fixed): keep that file current.
 Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
 Not built yet (Lua screens exist): scratch card `rl_w_guaguale`, lottery `rl_r_lottery`/`rl_w_lottery`, daily offers
 `rl_r_dailylimit`, `rl_w_dailycost`, `rl_r_multiple_task`, `rl_r_multiple_pay`, card split `rl_w_split_card`, cross-server

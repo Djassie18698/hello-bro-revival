@@ -59,6 +59,7 @@ function accountBySession(db, p, isLogin = false) {
 // Training stage: roundinfo row with [4] = chapter and [2] = stage number in it. [42] = clears needed before the next
 // stage opens (the "Progress 0/2" on screen), [38] = boss stage, [43] = boss tries per day ("Challenges left").
 function trainingFight(db, pl, chap, part, pos, buy) {
+  pl.energy = game.energyTick(db, pl).energy;
   const stage = game.globalStage(chap, part, pos); // the client sends the part number and the row inside it
   const row = game.stageRow(chap, stage) || [];
   // a chapter only opens once the previous one is cleared (a chapter without a progress row has never been opened)
@@ -224,9 +225,6 @@ module.exports = {
     const acc = accountBySession(db, p, true);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
-    // The client never reads the player's exp from the server: after every login its exp bar starts at 0 and it levels up on its own sums.
-    // Keep the server's number the same (otherwise the two disagree about when a level is reached and the level jumps 17 -> 16 -> 17).
-    if (pl) db.prepare('UPDATE players SET exp=0 WHERE uid=? AND server_id=?').run(acc.uid, Number(p.ServerID || 1));
     return (
       `<root code="0"><login_info>${el('hasreg', pl ? 1 : 0)}${el('userid', acc.uid)}${el('session', acc.session)}</login_info>` +
       `${el('first_login', 0)}</root>`
@@ -260,7 +258,7 @@ module.exports = {
     game.ensureStarterTeam(db, acc.uid, pl.server_id, 1);
     // Offline server: energy is refilled to the level's maximum on every login.
     const lvRow = game.table('playerlevel').rows.find((r) => r[1] === pl.level);
-    if (lvRow && pl.energy < lvRow[4]) { db.prepare('UPDATE players SET energy=? WHERE uid=? AND server_id=?').run(lvRow[4], pl.uid, pl.server_id); pl.energy = lvRow[4]; }
+    const en = game.energyTick(db, pl); pl.energy = en.energy; // energy grows 1 per 180 s (no free refill on the main page any more)
     const gs = game.stateXml(db, acc.uid, pl.server_id);
     // Training chapters open one by one as the previous one is cleared (a new player is on chapter 1: the tutorial
     // breaks if the client is told about a later chapter).
@@ -268,8 +266,9 @@ module.exports = {
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: game.spState(db, pl).sp,
       level: pl.level, country: pl.country, maxteammember: game.maxTeam(db, pl), activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
-      caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: 0, LastSPUpdatePastTime: game.spState(db, pl).pass,
-      score: 0, viplevel: vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
+      caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
+      score: pl.exp || 0, viplevel: // <score> is the client's EXP field (CPlayerDataMgr +0xd4); 0 here reset the exp bar on every main page visit
+        vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +

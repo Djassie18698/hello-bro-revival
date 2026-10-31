@@ -358,3 +358,12 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (name must be typed). APIs: /admin/api/catalog, givething {cat,id,count}, bulk {cat,stars,count}, inventory, delcard; old give/givecard/reset kept.
 - "I give a weapon and nothing arrives": verified the server stores it and the game shows it (Sword of Kusanagi + Uchiha Shisui) after the game is CLOSED and opened;
   the client reads cards only at login. The page now says that in a banner.
+
+## EXP bar and energy (GitHub #5, 1 Nov 2026)
+- `<score>` in rl_r_mainpage is the client's EXP field (CPlayerDataMgr::UpdatePlayerDataFromXML stores it at +0xd4, the same field AddExp uses). We sent 0, so every main-page
+  visit reset the exp bar: exp went "up and down" and the client and server levelled at different moments. Now score = players.exp, and the old "exp = 0 at login" hack is removed.
+- The main page refilled energy to the level maximum on every visit ("go back to the main menu and stamina is full"). Now game.energyTick: the original rule normalconfig row 9 =
+  1 energy per 180 s up to playerlevel col 4, and LastActionUpdatePastTime = seconds into the current tick (the client runs the same timer). normalconfig row 10 = 1 grudge per 7200 s
+  confirms the grudge value we already used. The client has no refill on level-up (CPlayerDataMgr::firefly_FullRecover has no callers).
+- Chains match partners by character name (variants and "(God)" count), because the table has only 8 partner places (Kaguya lists Susa Kakashi 5026 only, not 5027/5028).
+- Unsolved items of all bug lists now live in docs/OPEN-ISSUES.md.

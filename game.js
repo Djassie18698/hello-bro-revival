@@ -37,6 +37,7 @@ function ensure(db) {
     CREATE INDEX IF NOT EXISTS cards_owner ON cards(uid, server_id);
   `);
   try { db.exec('ALTER TABLE players ADD COLUMN sp INTEGER NOT NULL DEFAULT -1'); } catch {}
+  try { db.exec('ALTER TABLE players ADD COLUMN energy_t INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN sp_t INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vip INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vipexp INTEGER NOT NULL DEFAULT 0'); } catch {}
@@ -839,8 +840,13 @@ function teamStats(db, uid, sid) {
   // Chains (ninjamatch.json; a card's "Chains" list on its detail screen): cols 3 ninja it belongs to, 5 type, 6-13 partner ninja ids, 14 equipment id,
   // 15 ninjutsu id, 16-18 attack/defence/chakra ratio. Type 1 = the card's own stats grow when ANY partner is in the team, or the equipment / ninjutsu is worn
   // by it; type 0 = a leader effect: while the card is in the team every ninja gets the ratio. Each chain adds ratio x the slot's stats (after gear).
+  // Chain partners match by CHARACTER, not by card id: the table has 8 partner places and often lists only some variants
+  // (Kaguya "Fight with Susa Kakashi" lists 5026 but not 5027 or Susa Kakashi (God) 5028; GitHub #5).
+  const who = (id) => String((ninjas().get(id) || [])[2] || id).replace(/\(God\)/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const inTeam = new Set(slots.map((s) => s.ninja_id));
+  const teamWho = slots.map((s) => who(s.ninja_id));
   const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
+  const ownedWho = new Set([...owned].map((id) => String((ninjas().get(id) || [])[2] || id).replace(/\(God\)/gi, '').replace(/\s+/g, ' ').trim().toLowerCase()));
   const chain = slots.map(() => ({}));
   const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };
   slots.forEach((s, i) => {
@@ -848,9 +854,9 @@ function teamStats(db, uid, sid) {
     s.active = []; s.ready = [];
     for (const r of matchRows(s.ninja_id)) {
       if (r[5] === 0) { slots.forEach((_, j) => add(j, r)); s.active.push(r[0]); continue; }
-      const partner = r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && inTeam.has(id));
+      const partner = r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && (inTeam.has(id) || teamWho.some((w, j) => j !== i && w === who(id))));
       if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) { add(i, r); s.active.push(r[0]); }
-      else if (r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && owned.has(id))) s.ready.push(r[0]); // a partner is owned but not in the team yet
+      else if (r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && (owned.has(id) || ownedWho.has(who(id))))) s.ready.push(r[0]); // a partner is owned but not in the team yet
     }
   });
   slots.forEach((s, i) => { Object.assign(s, addStats(s, chain[i])); s.chain = chain[i]; });
@@ -1009,6 +1015,19 @@ function spState(db, pl) {
   let sp = r.sp < 0 ? max : Math.min(r.sp, max), t = r.sp_t || now;
   if (sp < max) { const ticks = Math.floor((now - t) / SP_EVERY); if (ticks > 0) { sp = Math.min(max, sp + ticks); t = sp >= max ? now : t + ticks * SP_EVERY; } } else t = now;
   return { sp, max, pass: sp >= max ? 0 : now - t, t };
+}
+// Energy (stamina for training): the original rule from normalconfig row 9 = one point every 180 s up to the level's maximum
+// (playerlevel col 4); the client counts the same timer from LastActionUpdatePastTime. Ramen etc. may push it above the maximum.
+const ENERGY_EVERY = 180;
+function energyTick(db, pl) {
+  ensure(db);
+  const row = table('playerlevel').rows.find((r) => r[1] === pl.level) || [];
+  const max = row[4] || 50, now = Math.floor(Date.now() / 1000);
+  const r = db.prepare('SELECT energy, energy_t FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || { energy: max, energy_t: 0 };
+  let e = r.energy, t = r.energy_t || now;
+  if (e < max) { const ticks = Math.floor((now - t) / ENERGY_EVERY); if (ticks > 0) { e = Math.min(max, e + ticks); t = e >= max ? now : t + ticks * ENERGY_EVERY; } } else t = now;
+  db.prepare('UPDATE players SET energy=?, energy_t=? WHERE uid=? AND server_id=?').run(e, t, pl.uid, pl.server_id);
+  return { energy: e, max, pass: e >= max ? 0 : now - t };
 }
 function spUse(db, pl) {
   const s = spState(db, pl);
@@ -1169,4 +1188,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
