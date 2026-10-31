@@ -318,3 +318,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Verified on the Claude emulator: Susa Indra next to Sage of the Six Paths shows 811-1112 attack (raw 525-720); the numbers also feed fights, rankings and spar strength.
 - The client's own detail screen lists chains but does not highlight active ones; nothing more is needed from the server for that. Not verified: stack rules of the original (we add them), chains that need a
   specific star/level (the table has no such column).
+
+## Reward wheel lands on every segment (GitHub #3, 2026-10-31)
+- handlers.stageAward: a dropped card -> cards segment (award type 1); otherwise luck (ours): 40% work harder (type 4), 20% EXP x2 (type 3), 20% silver x2 (type 2), 20% gold (type 5, 3 gold).
+  The client already credits the stage's own exp/silver, so a doubled segment sends ONE extra copy in the award fields (client adds them) and the server pays the same.
+  Verified on the emulator: gold segment (+3 gold, panel "EXP 8 / gold 3 / silver 20") and EXP x2 (client bar +16 = 8+8). Silver x2 uses the same path but was not run in game.
+  Test aid: HB_WHEEL=<type> forces a segment. Fixed on the way: the doubled exp used a stale player row and overwrote the base exp.

@@ -94,14 +94,18 @@ function stageAward(db, pl, row, coin, exp) {
   const xml = game.grantDrop(db, pl, dropId);
   if (!xml) return game.awardFull({});
   const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
-  // <award type=N> is where the story-stage wheel stops (CDialogRunLevelTurnView::StartTurn, read from libgame.so): the client maps type
-  // 1,2,3,4,5 to wheel segment 4,3,1,0,2; segments run counter-clockwise from the top: 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards.
-  // So: a dropped card -> type 1 (cards), gold -> type 5 (gold), anything else -> type 4 (work harder). No doubling is paid.
-  const hasCard = /<card>/.test(xml), cash = Number((xml.match(/<cash>(\d+)<\/cash>/) || [0, 0])[1]);
-  const wheel = hasCard ? 1 : cash > 0 ? 5 : 4;
-  // The client already credits the stage's silver and exp from its own roundinfo table (CSectionCellView::CalcRoundReward), so the award must NOT repeat them:
-  // sending both made the exp bar and silver count twice (level desync 17 -> 16 -> 17, GitHub issue #3).
-  return xml.replace('<award ', `<award type="${wheel}" `);
+  // <award type=N> is where the story-stage wheel stops (CDialogRunLevelTurnView::StartTurn, read from libgame.so): the client maps type 1,2,3,4,5 to wheel
+  // segment 4,3,1,0,2. Segments (counter-clockwise from the top): 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards. A dropped card always lands on the cards
+  // segment; otherwise the wheel is luck (ours): 40% work harder, 20% EXP x2, 20% silver x2, 20% gold (3 gold). The client already credits the stage's own exp and
+  // silver, so a doubled segment adds ONE more copy through the award fields (the client adds <exp>/<coin>/<cash> from the award itself) and the server pays the same.
+  const hasCard = /<card>/.test(xml);
+  const luck = Number(process.env.HB_WHEEL) || (hasCard ? 1 : [4, 4, 4, 4, 3, 3, 2, 2, 5, 5][Math.floor(Math.random() * 10)]);
+  const pick = hasCard && !process.env.HB_WHEEL ? 1 : luck === 1 && !hasCard ? 4 : luck;
+  let out = xml.replace('<award ', `<award type="${pick}" `);
+  if (pick === 3) { game.addExp(db, db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id), exp); out = out.replace('<exp>0</exp>', `<exp>${exp}</exp>`); } // EXP x2
+  else if (pick === 2) { db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); out = out.replace(/ coin="\d+"/, ` coin="${coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin}</coin>`); } // silver x2
+  else if (pick === 5) { db.prepare('UPDATE players SET gold=gold+3 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id); out = out.replace(/<cash>\d+<\/cash>/, '<cash>3</cash>'); } // gold
+  return out;
 }
 
 const MT = { perday: 50, low: 1, top: 5, cost: 20, free: 5, start: 5000 };
