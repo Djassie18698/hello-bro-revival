@@ -2,7 +2,7 @@
 
 # 🍥 Hello Bro: Revival
 
-**A private replacement server that brings the dead mobile game *Hello Bro / Ninja Online* back to life.**
+**A fan-made replacement server that brings the dead mobile game *Hello Bro / Ninja Online* back to life.**
 
 *Naruto-themed card RPG · 2015 · Cocos2d-x + Lua · v28.0*
 
@@ -12,6 +12,12 @@
 ![repo](https://img.shields.io/badge/repo-public-brightgreen?style=for-the-badge)
 
 **Goal: play exactly like the original, with friends, for free.**
+
+<br>
+
+<a href="https://discord.gg/Z7nCMgmcx"><img src="https://img.shields.io/badge/JOIN%20OUR%20DISCORD-Bugs%20%C2%B7%20Help%20%C2%B7%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord" height="56"></a>
+
+*Report bugs, get help installing, and play with the community.*
 
 </div>
 
@@ -49,6 +55,8 @@ Close the server window, double-click **`UPDATE.bat`** (first time it installs t
 ---
 
 ## 🐞 Found a bug?
+
+**Quickest:** post it in our [Discord](https://discord.gg/Z7nCMgmcx) with a screenshot.
 
 Open an issue with the **Bug report** template: [new issue](https://github.com/Djassie18698/hello-bro-revival/issues/new/choose).
 Or add a comment with a screenshot and one line to the running lists:
