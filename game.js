@@ -500,6 +500,37 @@ function actPackDrops(actid, subid) {
   }
   return (packLua[actid] || [])[subid - 1] || [];
 }
+// Cumulative top-up rewards (the "49$ gift" / pay history list): payhistorydropData.lua has month_dayback = dollars topped up in total and up to 4
+// dropinfo ids per step. The client wants <payheaplist><payheap><id/><state/></payheap>...</payheaplist>: state 0 = can claim, 250011 = not yet, 2 = claimed.
+let heapRows = null;
+function payHeapRows() {
+  if (!heapRows) {
+    heapRows = [];
+    let txt = '';
+    try { txt = fs.readFileSync(path.join(__dirname, 'reference', 'lua-scripts', 'payhistorydropData.lua'), 'utf8'); } catch (e) { /* none */ }
+    for (const m of txt.matchAll(/pay_history_drop\[(\d+)\]\s*=\s*\{([^}]*)\}/g)) {
+      const f = m[2], num = (k) => Number((f.match(new RegExp(k + '=(\\d+)')) || [0, 0])[1]);
+      heapRows[Number(m[1])] = { id: Number(m[1]), dollars: num('month_dayback'), drops: [1, 2, 3, 4].map((i) => num('drop' + i + 'id')).filter((x) => x > 0) };
+    }
+  }
+  return heapRows.filter(Boolean);
+}
+function payHeapState(db, pl, topped) {
+  actEnsure(db);
+  const done = new Set(db.prepare('SELECT subid FROM actclaim WHERE uid=? AND server_id=? AND actid=9028').all(pl.uid, pl.server_id).map((r) => r.subid));
+  return payHeapRows().map((r) => ({ id: r.id, state: done.has(r.id) ? 2 : topped >= r.dollars ? 0 : 250011 }));
+}
+function payHeapXml(db, pl, topped) {
+  return '<payheaplist>' + payHeapState(db, pl, topped).map((x) => `<payheap><id>${x.id}</id><state>${x.state}</state></payheap>`).join('') + '</payheaplist>';
+}
+function payHeapClaim(db, pl, topped, heapId) {
+  const st = payHeapState(db, pl, topped).find((x) => x.id === heapId);
+  if (!st) return { code: 5, msg: 'no such reward' };
+  if (st.state === 2) return { code: 250010, msg: 'already claimed' };
+  if (st.state !== 0) return { code: 250011, msg: 'not reached yet' };
+  db.prepare('INSERT OR IGNORE INTO actclaim(uid,server_id,actid,subid) VALUES(?,?,9028,?)').run(pl.uid, pl.server_id, heapId);
+  return { code: 0, xml: mergeAwards(payHeapRows().find((r) => r.id === heapId).drops.map((id) => grantDrop(db, pl, id)).filter(Boolean)) };
+}
 function actClaim(db, pl, actid, subid) {
   const c = actClaimable(db, pl);
   const ok = (actid === 1 ? c.login : actid === 2 ? c.up : []).includes(subid);
@@ -992,4 +1023,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

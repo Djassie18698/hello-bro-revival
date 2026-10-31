@@ -442,7 +442,11 @@ module.exports = {
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     // First-recharge gift (the Claim button on the top-up screen sends no HeapID): after the first top-up, once.
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
-    if (!pl || p.HeapID) return '<root code="0">' + game.awardFull({}) + '</root>';
+    if (pl && p.HeapID) {
+      const r = game.payHeapClaim(db, pl, Math.floor(vip.progress(db, pl.uid, pl.server_id).exp / 10), Number(p.HeapID));
+      return r.code ? `<root code="${r.code}"><message>${r.msg}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
+    if (!pl) return '<root code="0">' + game.awardFull({}) + '</root>';
     game.actEnsure(db);
     if (db.prepare('SELECT 1 FROM actclaim WHERE uid=? AND server_id=? AND actid=9027').get(pl.uid, pl.server_id)) return '<root code="250010"><message>already claimed</message></root>';
     if (vip.progress(db, pl.uid, pl.server_id).exp < 10) return '<root code="250011"><message>top up first</message></root>';
@@ -454,7 +458,9 @@ module.exports = {
   rl_r_paypack: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const vp = acc ? vip.progress(db, acc.uid, Number(p.ServerID || 1)) : { lv: 0, exp: 0, lvexp: 10 };
-    return `<root code="0"><payheaplist></payheaplist><maxlv>${vip.MAX_VIP}</maxlv><exp>${vp.exp}</exp><lvexp>${vp.lvexp}</lvexp>` +
+    const hp = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    const heap = hp ? game.payHeapXml(db, hp, Math.floor(vp.exp / 10)) : '<payheaplist></payheaplist>';
+    return `<root code="0">${heap}<maxlv>${vip.MAX_VIP}</maxlv><exp>${vp.exp}</exp><lvexp>${vp.lvexp}</lvexp>` +
       '<canget>1</canget><first_pay>1</first_pay><multiple>1</multiple><servertime>0</servertime><endtime>0</endtime></root>';
   },
   // Top-up packages. Buying is FREE here (the hot-updated ui_purchaseLayer.lua calls rl_x_free_topup instead of Google Play).

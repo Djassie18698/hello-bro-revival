@@ -253,3 +253,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Segments (counter-clockwise from the top): 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards. handlers.stageAward now sends type 1 when a
   card/equipment dropped (wheel stops on the cards, then the "So lucky!" card reveal shows), type 5 for gold, type 4 (work harder) otherwise.
   Verified on the Claude emulator with a forced drop (env HB_STAGE_DROP=<dropinfo id>, test aid). EXP x2 / silver x2 are never selected: no doubling is paid.
+
+## Cumulative top-up rewards ("pay history" / 49$ gift) (2026-10-31)
+- rl_r_paypack now sends `<payheaplist><payheap><id/><state/></payheap>..` (mainActivity.lua initPayHisData; state 0 = claim, 250011 = not reached, 2 = claimed) and
+  rl_w_paypack HeapID=n pays the step (game.payHeapXml / payHeapClaim). Steps and drops come from the client's payhistorydropData.lua
+  (month_dayback = total $ topped up, up to 4 dropinfo ids). Total $ = VIP exp / 10 (top-ups are free on this server but count). Claimed = actclaim 9028.
+  Verified on a temp DB; not yet seen in the game's top-up screen.
