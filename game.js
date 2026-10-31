@@ -329,32 +329,44 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     // enemy stats follow the player's own first ninja so the fight we describe can end the way the server decided (ratio = enemy / me)
     const me = mine[i % mine.length] || { low: 40, high: 60, end: 300 };
     const high = Math.max(1, Math.round(me.high * ratio)), low = Math.max(1, Math.round(me.low * ratio));
-    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), def: Math.max(1, Math.round(high * 0.5)), level: opt.enemyLevel || 1, star: 0 };
+    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), def: Math.max(1, Math.round(high * 0.3)), level: opt.enemyLevel || 1, star: 0 };
   });
   // Turn-based replay: my ninjas and the enemies hit in turn, each target is the first living ninja on the other side; a ninja
   // falls when the damage it took reaches its `end`. The winner is whoever still stands, so what the client shows is consistent.
-  const play = (foes) => {
-    const hp = new Map([...mine, ...foes].map((n) => [n.bagid, n.end]));
+  const play = (foes, sweep) => {
+    const hp = new Map([...mine, ...foes].map((n) => [n.bagid, sweep && foes.includes(n) ? 1 : n.end]));
     const rolled = [];
     const alive = (list) => list.filter((n) => hp.get(n.bagid) > 0);
+    const round = (att, def) => {
+      // FinalAttack / FinalDefense are what the two cards show (CNewFightCardView::SetFinalData: the attacker's card shows attack - defense when
+      // positive, the defender's card defense - attack when positive). The client subtracts as UNSIGNED numbers: an attack below the defence wraps
+      // to a huge damage ("2000K") and crashes, so FinalAttack must never be below FinalDefense (clamped to defence + 1).
+      const roll = Math.max((def.def || 0) + 1, Math.round(att.low + Math.random() * (att.high - att.low)));
+      hp.set(def.bagid, hp.get(def.bagid) - roll);
+      rolled.push({ AttackNinja: att.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: def.bagid, Defense: 0, DefenseAttri: 0,
+        CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: def.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
+        AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
+    };
+    if (sweep) { // won fight: each of my hits takes one enemy down, so the client's enemy counter ends at 0 (a longer replay made it go negative)
+      const weakest = Math.min(...mine.map((m) => m.low)); // the enemy card's end must be below any hit so one hit really kills
+      foes.forEach((f) => { f.end = Math.max(1, Math.min(f.end, Math.round(weakest * 0.8))); });
+      foes.forEach((f, i) => round(mine[i % mine.length], f));
+      return { rounds: rolled, won: true };
+    }
     for (let t = 0, turn = 0; t < 200 && alive(mine).length && alive(foes).length; t++, turn++) {
       const mineTurn = turn % 2 === 0, atkSide = alive(mineTurn ? mine : foes), defSide = alive(mineTurn ? foes : mine);
-      const att = atkSide[Math.floor(turn / 2) % atkSide.length], def = defSide[0];
-      const dmg = Math.max(1, Math.round(att.low + Math.random() * (att.high - att.low)));
-      hp.set(def.bagid, hp.get(def.bagid) - dmg);
-      rolled.push({ AttackNinja: att.bagid, Attack: att.high, AttackAttri: 0, DefenseNinja: def.bagid, Defense: 0, DefenseAttri: 0,
-        CauseLimit: 0, LimitVal: 0, FinalAttack: dmg, FinalDefense: 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
-        AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
+      round(atkSide[Math.floor(turn / 2) % atkSide.length], defSide[0]);
     }
     return { rounds: rolled, won: alive(foes).length === 0 };
   };
   let foes, fight;
   if (opt.win === undefined) { // training / boss fights: enemies a bit weaker than the player's ninjas but with real numbers (the card shows their defense left)
     const base = Math.min(0.55, 0.3 + stage * 0.004); // a little tougher on later stages (stage = row id inside the chapter)
-    for (const ratio of [base, base * 0.7, base * 0.5, base * 0.3, 0.1]) { foes = mkFoes(ratio); fight = play(foes); if (fight.won) break; }
+    foes = mkFoes(base); fight = play(foes, true);
   }
   else { // the server already decided win/lose: pick enemy strength until the replay agrees
-    for (const ratio of opt.win ? [0.5, 0.35, 0.25, 0.15, 0.08, 0.04, 0.02] : [1.2, 1.8, 2.8, 5, 10, 30]) {
+    if (opt.win) { foes = mkFoes(0.3); fight = play(foes, true); }
+    else for (const ratio of [1.2, 1.8, 2.8, 5, 10, 30]) {
       foes = mkFoes(ratio); fight = play(foes);
       if (fight.won === opt.win) break;
     }

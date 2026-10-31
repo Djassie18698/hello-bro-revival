@@ -275,9 +275,12 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - The 2 filler cards beside the real drop come from the client's own fillDropData table, not from us.
 - Victory screen still shows silver 0 (the `<award coin>` is paid; the screen reads it from another field I have not found).
 
-## Enemy numbers in training fights (2026-10-31) - NOT solved
-- Training enemies now get real attack/hp scaled to the player's ninja (a bit weaker, still always a win; 50/50 checked on stages 1-72), instead of fixed 10-20 attack.
-- The number on an enemy's card during the fight (red-framed "0" under the portrait, GitHub #2 "enemies show no stats") did not change. Tried putting a real value in
-  <Defense> of each round: the game crashed (SIGSEGV, fault addr 0x18) in the fight twice; with Defense=0 again it runs fine. So <Defense> is not the field (or must be
-  paired with something else); left at 0. The player's own card shows its attack (263) correctly. Still open: find which fight field fills the enemy card number.
+## Fight replay rules learned from the client (2026-10-31)
+- CNewFightCardView::SetFinalData: each round has FinalAttack (FA) and FinalDefense (FD). The attacker's card shows FA - FD, the defender's card (the shield
+  number under the enemy portrait) shows FD - FA when positive, else 0. So the enemy "0" under its portrait is the client's normal display when the hit gets through;
+  a number only shows when the defence beats the attack. FA < FD makes the client's UNSIGNED subtraction wrap ("2000K") and crash (fault addr 0xa4), so FA >= FD+1 always.
+- <Defense> (the non-Final field) with a real value crashed the fight: leave it 0.
+- A replay longer than the number of enemies (several hits per enemy, enemy attack rounds) made the client's "Enemy Team" counter go to -1/3, -2/3 with garbage cards.
+  Won fights now send exactly one hit per enemy (enemy `end` below any hit), enemy defence shown on the victory screen (DEF 326). Lost fights keep the
+  turn-based replay (spar/arena/exam/war etc.): NOT verified in game.
 - BlueStacks "Claude" keeps opening an ad page (Whiteout Survival) over the game during tests: `emu.sh back` + `emu.sh restart` brings the game back.
