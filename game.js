@@ -80,8 +80,9 @@ function giveEquip(db, uid, sid, equipId) {
   if (!e) return 0;
   return giveCard(db, uid, sid, equipId, SLOT_TYPE[e[3]] || 2);
 }
-function randomEquip(slot, minStar = 3) {
-  const pool = equipRows().filter((r) => r[3] === slot && r[5] === 1 && r[6] >= minStar);
+function randomEquip(slot, minStar = 3, maxStar = 5) {
+  let pool = equipRows().filter((r) => r[3] === slot && r[5] === 1 && r[6] >= minStar && r[6] <= maxStar);
+  if (!pool.length) pool = equipRows().filter((r) => r[5] === 1 && r[6] >= minStar && r[6] <= maxStar);
   return pool[Math.floor(Math.random() * pool.length)][0];
 }
 
@@ -206,7 +207,11 @@ function awardXml(c) {
 function rollPack(r) {
   const t = String(r[2]);
   const star = /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
-  if (/Equipment/.test(t)) return { equip: randomEquip(1 + Math.floor(Math.random() * 3), star) };
+  // "One, Two-Star ..." and "Three-Star ..." packs are exactly those stars (slot 0-2 = weapon / armor / trinket)
+  const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);
+  if (/Equipment/.test(t)) return low ? { equip: randomEquip(Math.floor(Math.random() * 3), 1, 2) } : three ? { equip: randomEquip(Math.floor(Math.random() * 3), 3, 3) } : { equip: randomEquip(Math.floor(Math.random() * 3), star) };
+  if (low && !/Ninjutsu/.test(t)) { const pool = pools()[1 + Math.floor(Math.random() * 2)]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
+  if (three && !/Ninjutsu/.test(t)) { const pool = pools()[3]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
   if (/Gold/.test(t) && Math.random() < 0.3) return { cash: Number((t.match(/(\d+) Gold/) || [0, 300])[1]) };
   if (/Ninjutsu/.test(t)) return { coin: 30000 };
   const pool = pools()[star] || pools()[4];

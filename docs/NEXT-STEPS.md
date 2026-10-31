@@ -209,3 +209,12 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   backpack never got the tickets/fragments listed on the button. The client's own tables (reference/lua-scripts loginActivityData.lua /
   upgradeActivityData.lua, 1-4 dropinfo ids per row) are now read and every drop is paid with game.grantDrop (merged into one <award>).
   Verified on a temp DB (login day 1 = 2 recruitment orders + 1500 silver). Reported in GitHub issue #2.
+
+## Training wins drop items (2026-10-31)
+- trainingFight now pays one dropinfo drop per win via game.grantDrop (handlers.stageAward). The original drop rule is lost: (ours) normal stage =
+  50% ramen*1 (drop 31) / 30% "One, Two-Star Equipment Card" (19) / 20% "One,Two-Star Shinobi Card" (16); boss stage = 50% "Three-Star Equipment
+  Card" (21) / 50% "Three-Star Shinobi Card" (17). Owner asked for "a low tier ninja or equipment".
+- rollPack: "One, Two-Star ..." and "Three-Star ..." packs are now exactly those stars. randomEquip crashed for slot 3 (slots are 0-2) and has a
+  maxStar argument now.
+- Verified: the card/prop arrives in the save (temp DB + the Claude emulator). NOT verified: how the client's 3-card victory screen and the
+  story-stage reward wheel (always lands on "work harder", FightReward+0x20 decides the segment) show the new drop. Open.

@@ -78,7 +78,19 @@ function trainingFight(db, pl, chap, part, pos) {
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
   const attrs = `curchapter="${chap}" curstage="${curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
   return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage) +
-    game.awardFull({ coin, exp }) + '</root>';
+    stageAward(db, pl, row, coin, exp) + '</root>';
+}
+
+// Every win drops something (the original drop rule lived on the dead server, so these are ours, as the owner asked for a
+// low-tier ninja or equipment): normal stage = ramen / 1-2 star equipment / 1-2 star shinobi; boss stage = 3-star equipment or shinobi.
+// dropinfo ids: 31 ramen*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
+function stageAward(db, pl, row, coin, exp) {
+  const r = Math.random();
+  const dropId = row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 31 : r < 0.8 ? 19 : 16;
+  const xml = game.grantDrop(db, pl, dropId);
+  if (!xml) return game.awardFull({ coin, exp });
+  const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
+  return xml.replace(/ coin="\d+"/, ` coin="${had + coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${had + coin}</coin>`).replace('<exp>0</exp>', `<exp>${exp}</exp>`);
 }
 
 const MT = { perday: 50, low: 1, top: 5, cost: 20, free: 5, start: 5000 };
