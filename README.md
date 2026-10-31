@@ -9,7 +9,7 @@
 ![server](https://img.shields.io/badge/server-Node.js-3c873a?style=for-the-badge)
 ![game](https://img.shields.io/badge/game-Android%20v28.0-blue?style=for-the-badge)
 ![status](https://img.shields.io/badge/status-playable%20%26%20testing-orange?style=for-the-badge)
-![repo](https://img.shields.io/badge/repo-private-red?style=for-the-badge)
+![repo](https://img.shields.io/badge/repo-public-brightgreen?style=for-the-badge)
 
 **Goal: play exactly like the original, with friends, for free.**
 
@@ -31,7 +31,7 @@ Every number that came from the game's own data is kept as it was. Where the ori
 
 ## 🚀 Play in 5 minutes
 
-> You need a Windows PC, **BlueStacks 5**, and an invitation to this repository.
+> You need a Windows PC and **BlueStacks 5**.
 
 1. **Get the files:** *Code → Download ZIP*, unzip to e.g. `Desktop\HelloBroServer`
    (or use the zip your host sent you).
@@ -84,7 +84,7 @@ The big fix day (training in parts, fights that don't crash, chains, rewards, re
 
 ## ⚠️ Good to know
 
-- This repository is **private**: it contains game files and the signing key. Do not share it or the game file publicly.
+- This repository is **public** and shared with friends. It also contains the game files and the signing key, so nothing personal or secret may ever be put in it.
 - `hellobro.db` is the save of **your** server; it is never uploaded.
 - Top-ups cost nothing, but they count for VIP and the top-up rewards.
 - Some things are still open (opening scene skip, 10-pull zoom, silver shown on the victory card). See the last chapter of the fix document.

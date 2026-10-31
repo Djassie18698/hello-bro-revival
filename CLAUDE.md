@@ -16,7 +16,8 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on; keeps its save) → tell the owner to restart
    their server (never stop or start it yourself while they may be playing; ask first). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
    "Internal Server Error": just push again.
-3. Repo `Djassie18698/hello-bro-revival` **must stay private** (it holds game files and the signing keystore).
+3. Repo `Djassie18698/hello-bro-revival` is **PUBLIC on purpose** (owner's decision on 31 Oct 2026: it is shared with several people and this is easier).
+   It still holds game files and the signing keystore, so never add anything secret to it: no tokens, passwords, personal data, `discord/.env`.
    `hellobro.db` (the save) and `re/` are never committed. A public code-only copy is built by `tools/make_public.py`.
 4. **Emulator:** only the BlueStacks instance named **"Claude"** (Android 11; "App Player 5" is gone). Its adb address is not fixed:
    the owner starts it, then run `HD-Adb.exe devices`, ask which entry is "Claude", and save it in `tools/dev/emu.device`
@@ -113,7 +114,7 @@ Current: **28.0.9** (top-up/VIP screen, 7-day goals in Event menu, tutorial off 
   VIP exp = $ topped up × 10, thresholds in `vip.js` (ours). Accounts made before 30 Oct 2026 kept VIP 18.
 
 ## 8. Releases and sharing
-- Release `tailscale-play` on the private repo: `HelloBro-Tailscale-100.111.115.0.xapk` (game + OBB, one file) + apks.
+- Release `tailscale-play` on the repo: `HelloBro-Tailscale-100.111.115.0.xapk` (game + OBB, one file) + apks.
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (used by friends who
   host their own; guide in `HOST-YOUR-OWN-SERVER.md`). Public code-only repo: `Djassie18698/hello-bro-revival-public`
   (local clone `C:\Users\dj199\hello-bro-public`), rebuilt with `python -I tools/make_public.py C:/Users/dj199/hello-bro-public`
