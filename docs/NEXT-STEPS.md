@@ -266,3 +266,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   gold. Now: needs $49 of top-ups in total (VIP exp / 10), pays drops 11 (5-star shinobi card), 15 (4-star ninjutsu card) and 374 (Madara) once - those are
   the three icons the button shows (props_015 / props_049 / props_073). The original reward list is lost (ours, from the icons).
 - Ninjutsu packs ("Four-Star Ninjutsu Card" etc.) now give a real ninjutsu card of that star (was 30000 silver placeholder).
+
+## Victory-screen items without image / with Chinese name (2026-10-31)
+- Cause (GitHub #2 "rewards without an image"): the ramen item (consumeinfo 4, dropinfo 31) renders on the 3-card victory screen with the ccbi default
+  swirl icon and the Chinese label "大拉面"; other props (recruitment order, Sage Stone III, Silver Key) show the correct icon and English name. Backpack/shop
+  show ramen fine, so it is only the victory/award card for ramen (client side; not found why). Workaround: stage drops give Sage Stone III (dropinfo 250)
+  instead of ramen. Other drops that award ramen (login/level packs, first-recharge) may still show the broken card.
+- The 2 filler cards beside the real drop come from the client's own fillDropData table, not from us.
+- Victory screen still shows silver 0 (the `<award coin>` is paid; the screen reads it from another field I have not found).

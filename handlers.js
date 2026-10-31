@@ -86,11 +86,11 @@ function trainingFight(db, pl, chap, part, pos, buy) {
 }
 
 // Every win drops something (the original drop rule lived on the dead server, so these are ours, as the owner asked for a
-// low-tier ninja or equipment): normal stage = ramen / 1-2 star equipment / 1-2 star shinobi; boss stage = 3-star equipment or shinobi.
-// dropinfo ids: 31 ramen*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
+// low-tier ninja or equipment): normal stage = Sage Stone III (not ramen: the victory card shows a Chinese name and no icon for ramen) / 1-2 star equipment / 1-2 star shinobi; boss stage = 3-star equipment or shinobi.
+// dropinfo ids: 250 Sage Stone III*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
 function stageAward(db, pl, row, coin, exp) {
   const r = Math.random();
-  const dropId = Number(process.env.HB_STAGE_DROP) || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 31 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
+  const dropId = Number(process.env.HB_STAGE_DROP) || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
   const xml = game.grantDrop(db, pl, dropId);
   if (!xml) return game.awardFull({ coin, exp });
   const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
