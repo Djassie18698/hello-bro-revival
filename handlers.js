@@ -362,7 +362,7 @@ module.exports = {
     }
     const r = game.actClaim(db, pl, Number(p.ActID), Number(p.SubID));
     if (!r) return '<root code="5"><message>not available</message></root>';
-    return '<root code="0">' + game.awardFull(r) + '</root>';
+    return '<root code="0">' + r.xml + '</root>';
   },
   // Small activities (month sign-in is Cmd 7/8; others not built yet -> empty OK reply).
   rl_x_small_activity: ({ db, params: p }) => {

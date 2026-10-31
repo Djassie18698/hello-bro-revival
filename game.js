@@ -429,15 +429,30 @@ function actXml(db, pl) {
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="-1"></item></activity><activity type="4"><item actid="4"></item></activity>` +
     '<conf><items>' + [[1, 1, 2], [2, 2, 2], [41, 3, 2], [20, 4, 1], [21, 5, 1], [12, 6, 2], [24, 7, 1], [47, 8, 2], [17, 9, 1]].map(([id, pos, type]) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') + `<item><id>31</id><pos>10</pos><status>1</status><onoff>0</onoff><type>1</type><timeleft>${db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
 }
+// What the pack screens show comes from the client's own Lua tables (loginPackData / upgradePackData, 1-4 dropinfo ids each):
+// pay exactly those drops, so the dialog and the backpack match the icons on the button.
+let packLua = null;
+function actPackDrops(actid, subid) {
+  if (!packLua) {
+    packLua = { 1: [], 2: [] };
+    const dir = require('path').join(__dirname, 'reference', 'lua-scripts');
+    for (const [a, file] of [[1, 'loginActivityData.lua'], [2, 'upgradeActivityData.lua']]) {
+      let txt = '';
+      try { txt = require('fs').readFileSync(require('path').join(dir, file), 'utf8'); } catch (e) { continue; }
+      for (const m of txt.matchAll(/PackData\[(\d+)\]\s*=\s*\{([^}]*)\}/g)) {
+        packLua[a][Number(m[1]) - 1] = [...m[2].matchAll(/_drop(\d)id=(\d+)/g)].map((x) => Number(x[2])).filter((id) => id > 0);
+      }
+    }
+  }
+  return (packLua[actid] || [])[subid - 1] || [];
+}
 function actClaim(db, pl, actid, subid) {
   const c = actClaimable(db, pl);
   const ok = (actid === 1 ? c.login : actid === 2 ? c.up : []).includes(subid);
   if (!ok) return null;
-  const P = table('activity_packs');
   db.prepare('INSERT OR IGNORE INTO actclaim(uid,server_id,actid,subid) VALUES(?,?,?,?)').run(pl.uid, pl.server_id, actid, subid);
-  const coin = (actid === 1 ? P.login_q : P.upgrade_q)[subid - 1] || 1000, cash = 20 + subid * 5;
-  db.prepare('UPDATE players SET coin=coin+?, gold=gold+? WHERE uid=? AND server_id=?').run(coin, cash, pl.uid, pl.server_id);
-  return { coin, cash };
+  const got = actPackDrops(actid, subid).map((id) => grantDrop(db, pl, id)).filter(Boolean);
+  return { xml: mergeAwards(got) };
 }
 
 // ---- Consumables / shop ---------------------------------------------------------------------
