@@ -336,3 +336,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   battleXml(win:false) now plays ONE enemy hit per ninja of mine (FinalAttack > my hp, no hits from me). Verified on the emulator (forced with HB_SPAR=lose): Fight banner -> LOSE screen with Compare, no crash.
 - Free recruit (rl_w_recruit Free=1) verified in game: the blue 1-in-1000 pull cost no gold, state saved, and the button then reads "Free after 0 days 7 hours". The pity counter text ("recruit N more times")
   was not seen on screen yet.
+
+## Victory-screen silver 0: why it stays (2026-10-31)
+- CNewResultWinView::InitUI shows exp and silver as reward.exp / reward.coin (+ the round table values for fight type 0). The exp label shows the table value (+6) but the silver label shows 0 while
+  the award carries coin 0. Putting the stage silver in `<award><coin>` fixes the label but the client then credits it a SECOND time (CSectionCellView::CalcRoundReward -> AddDataFromReward), which
+  would double the silver. Left at 0: a game-side display issue, not changeable from the server.
