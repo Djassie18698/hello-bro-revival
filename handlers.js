@@ -58,9 +58,12 @@ function accountBySession(db, p, isLogin = false) {
 // Training stage fight: always a win for now; rewards come from roundinfo (cols: 22 energy cost, 23 exp, 24 coins).
 // Training stage: roundinfo row with [4] = chapter and [2] = stage number in it. [42] = clears needed before the next
 // stage opens (the "Progress 0/2" on screen), [38] = boss stage, [43] = boss tries per day ("Challenges left").
-function trainingFight(db, pl, chap, stage) {
+function trainingFight(db, pl, chap, part, pos) {
+  const stage = game.globalStage(chap, part, pos); // the client sends the part number and the row inside it
   const row = game.stageRow(chap, stage) || [];
-  if (game.getStage(db, pl.uid, pl.server_id, chap) < stage) return '<root code="5"><message>stage not open yet</message></root>';
+  // a chapter only opens once the previous one is cleared (a chapter without a progress row has never been opened)
+  const opened = db.prepare('SELECT 1 FROM progress WHERE uid=? AND server_id=? AND chap=?').get(pl.uid, pl.server_id, chap);
+  if (!stage || (chap > 1 && !opened) || game.getStage(db, pl.uid, pl.server_id, chap) < stage) return '<root code="5"><message>stage not open yet</message></root>';
   const st = game.stageState(db, pl, chap, stage);
   if (row[38] && st.bossLeft <= 0) return '<root code="5"><message>no challenges left today</message></root>';
   const cost = row[22] || 3, exp = row[23] || 6, coin = row[24] || 15;
@@ -71,8 +74,9 @@ function trainingFight(db, pl, chap, stage) {
   if (stage >= game.chapterStages(chap) && now.clears >= (row[42] || 1) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   const energy = Math.max(0, pl.energy - cost);
-  const cur = game.getStage(db, pl.uid, pl.server_id, chap);
-  const attrs = `curchapter="${chap}" curstage="${cur}" pos="1" pos_time="${now.clears}" pk_boss_times="${now.bossLeft}" curaction="${energy}" LastActionUpdatePastTime="0"`;
+  const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
+  const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
+  const attrs = `curchapter="${chap}" curstage="${curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
   return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage) +
     game.awardFull({ coin, exp }) + '</root>';
 }
@@ -221,7 +225,7 @@ module.exports = {
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
-      `<chapinfo currentchap="${cur.chap}" currentstage="${cur.stage}"/></root>`;
+      `<chapinfo currentchap="${cur.chap}" currentstage="${game.stagePart(cur.chap, cur.stage).part}"/></root>`;
   },
 
   // Gacha status (free pulls / pity counters). Everything available, nothing to track yet.
@@ -974,12 +978,14 @@ module.exports = {
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const sid = Number(p.ServerID || 1);
     const pl0 = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
-    if (Number(p.Cmd) === 3) return trainingFight(db, pl0, Number(p.ChapID || 1), Number(p.StageID || 1));
-    const cur = game.getStage(db, acc.uid, sid, Number(p.ChapID || 1));
+    const chap = Number(p.ChapID || 1);
+    if (Number(p.Cmd) === 3) return trainingFight(db, pl0, chap, Number(p.StageID || 1), Number(p.Pos || 1));
+    // stagelist = one entry per PART reached: pos = open row inside it, pos_time = clears of that row, pk_boss_times = boss tries left
+    const cur = game.stagePart(chap, game.getStage(db, acc.uid, sid, chap)).part;
     let stages = '';
     for (let i = 1; i <= cur; i++) {
-      const st = game.stageState(db, pl0, Number(p.ChapID || 1), i);
-      stages += `<stage stageid="${i}" pos="1" pos_time="${st.clears}" pk_boss_times="${st.bossLeft}"/>`;
+      const e = game.partEntry(db, pl0, chap, i);
+      stages += `<stage stageid="${i}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}"/>`;
     }
     return `<root code="0"><preview currentstage="${cur}" laststage="${cur}"/><stagelist>${stages}</stagelist><expbuf addrate="0" exp_time="0"/></root>`;
   },

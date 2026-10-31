@@ -191,3 +191,15 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Millionaire/Monopoly (monopoly.js) verified in game: board, dice, ranking.
 - Admin page: "Reset a player" (keeps the login, deletes the character; backup first).
 - cdn/ (hot update zips) is now committed so a fresh clone serves the game fixes. PLAY-ON-TAILSCALE.md + release xapk.
+
+## Training progression by PARTS (2026-10-31)
+- The client counts PARTS, not single stages. roundinfo [3] restarts at 1 for every part and the last stage of each part is its boss
+  (165 parts over the 19 chapters, checked: every part ends in a boss). The fight request sends `StageID` = part number and `Pos` = row inside
+  the part; `<preview currentstage>` / `<stage stageid>` / `<pve curstage>` and mainpage `<chapinfo currentstage>` are PART numbers
+  (CSectionCellView::InitUI compares CurrentSection with the selected part; CChapterCellView::onHttpRequestCompleted fills the rest).
+- `<stagelist>` = one `<stage stageid=part pos pos_time pk_boss_times/>` per part reached: pos = open row inside the part, pos_time = clears of
+  that row, pk_boss_times = boss tries left. Beating the boss (needed clears) opens the next part; the last boss opens the next chapter.
+- Before, the server sent global stage numbers as part numbers, so parts opened far too early and rows did not open top to bottom.
+- game.chapterParts / stagePart / globalStage / partEntry; handlers.trainingFight(db, pl, chap, part, pos). A chapter without a progress row
+  (never opened) now refuses fights. Accounts that already have progress rows for later chapters keep them open.
+- Verified with a simulated player on a temp DB (not yet in the real game). Training fights are still always wins against fake enemies.

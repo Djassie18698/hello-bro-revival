@@ -849,6 +849,34 @@ function stageCleared(db, pl, chap, stage) {
     ON CONFLICT DO UPDATE SET clears=excluded.clears, boss_day=excluded.boss_day, boss_used=excluded.boss_used`).run(pl.uid, pl.server_id, chap, stage, prev.clears + 1, today, used);
   return stageState(db, pl, chap, stage);
 }
+// The client counts PARTS, not single stages: roundinfo [3] restarts at 1 for every part and the last stage of a part is its
+// boss. It sends StageID = part and Pos = row inside the part, and reads currentstage / stageid as part numbers.
+function chapterParts(chap) {
+  const parts = [];
+  for (const r of table('roundinfo').rows.filter((x) => x[4] === chap).sort((a, b) => a[2] - b[2])) {
+    if (!parts.length || r[3] === 1) parts.push({ first: r[2], count: 0 });
+    parts[parts.length - 1].count++;
+  }
+  return parts;
+}
+// global stage (progress.stage = next open stage, may be one past the chapter's end) -> { part, pos } (1-based)
+function stagePart(chap, g) {
+  const parts = chapterParts(chap);
+  const i = parts.findIndex((p) => g >= p.first && g < p.first + p.count);
+  if (i < 0) return { part: Math.max(1, parts.length), pos: parts.length ? parts[parts.length - 1].count : 1 };
+  return { part: i + 1, pos: g - parts[i].first + 1 };
+}
+function globalStage(chap, part, pos) {
+  const p = chapterParts(chap)[part - 1];
+  return p ? p.first + Math.min(Math.max(1, pos), p.count) - 1 : 0;
+}
+// What the client shows for one part: finished parts are fully open, the current part is open up to `pos`.
+function partEntry(db, pl, chap, part) {
+  const parts = chapterParts(chap), p = parts[part - 1], cur = stagePart(chap, getStage(db, pl.uid, pl.server_id, chap));
+  const pos = part < cur.part ? p.count : cur.pos;
+  const st = stageState(db, pl, chap, p.first + pos - 1);
+  return { pos, pos_time: st.clears, pk_boss_times: st.bossLeft };
+}
 function chapterStages(chap) { return table('roundinfo').rows.filter((r) => r[4] === chap).reduce((m, r) => Math.max(m, r[2]), 1); }
 function furthestChapter(db, uid, sid) {
   ensure(db);
@@ -892,4 +920,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
