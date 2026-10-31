@@ -330,3 +330,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   slotXml now sends the active chain ids per slot (game.teamStats s.active, the same rule that adds the bonus) and, in readycombinlist, chains whose partner is owned but not in the team.
   Verified on the emulator: Susa Indra + Sage of the Six Paths -> chains 1 ("Fight with Sage Six Path") and 5 ("All Shinobi") red, the others black.
 - Test aids added: HB_SPAR=win|lose (forces a spar result), HB_WHEEL, HB_STAGE_DROP.
+
+## Lost fights and free recruits checked in game (2026-10-31)
+- Lost fights (spar, arena, exam, border, war, country, tear) used the turn-by-turn replay and broke the client exactly like the old boss bug: enemy counter 0/3 -> -1/3 -> -2/3, "2000K" cards, then a crash.
+  battleXml(win:false) now plays ONE enemy hit per ninja of mine (FinalAttack > my hp, no hits from me). Verified on the emulator (forced with HB_SPAR=lose): Fight banner -> LOSE screen with Compare, no crash.
+- Free recruit (rl_w_recruit Free=1) verified in game: the blue 1-in-1000 pull cost no gold, state saved, and the button then reads "Free after 0 days 7 hours". The pity counter text ("recruit N more times")
+  was not seen on screen yet.

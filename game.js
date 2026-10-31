@@ -355,7 +355,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   // Turn-based replay: my ninjas and the enemies hit in turn, each target is the first living ninja on the other side; a ninja
   // falls when the damage it took reaches its `end`. The winner is whoever still stands, so what the client shows is consistent.
   const play = (foes, sweep) => {
-    const hp = new Map([...mine, ...foes].map((n) => [n.bagid, sweep && foes.includes(n) ? 1 : n.end]));
+    const hp = new Map([...mine, ...foes].map((n) => [n.bagid, sweep === true && foes.includes(n) ? 1 : n.end]));
     const rolled = [];
     const alive = (list) => list.filter((n) => hp.get(n.bagid) > 0);
     const round = (att, def) => {
@@ -368,11 +368,21 @@ function battleXml(db, pl, chap, stage, opt = {}) {
         CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: def.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
         AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
     };
-    if (sweep) { // won fight: each of my hits takes one enemy down, so the client's enemy counter ends at 0 (a longer replay made it go negative)
+    if (sweep === true) { // won fight: each of my hits takes one enemy down, so the client's enemy counter ends at 0 (a longer replay made it go negative)
       const weakest = Math.min(...mine.map((m) => m.low)); // the enemy card's end must be below any hit so one hit really kills
       foes.forEach((f) => { f.end = Math.max(1, Math.min(f.end, Math.round(weakest * 0.8))); });
       foes.forEach((f, i) => round(mine[i % mine.length], f));
       return { rounds: rolled, won: true };
+    }
+    if (sweep === 'lose') { // lost fight: the enemies take every one of my ninjas down with ONE hit each and I never land one (a longer replay breaks the client's counters)
+      mine.forEach((m, i) => {
+        const att = foes[i % foes.length], roll = Math.max(m.end + 1, (m.def || 0) + 1);
+        hp.set(m.bagid, 0);
+        rolled.push({ AttackNinja: att.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: m.bagid, Defense: 0, DefenseAttri: 0,
+          CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: m.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
+          AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
+      });
+      return { rounds: rolled, won: false };
     }
     for (let t = 0, turn = 0; t < 200 && alive(mine).length && alive(foes).length; t++, turn++) {
       const mineTurn = turn % 2 === 0, atkSide = alive(mineTurn ? mine : foes), defSide = alive(mineTurn ? foes : mine);
@@ -387,10 +397,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   }
   else { // the server already decided win/lose: pick enemy strength until the replay agrees
     if (opt.win) { foes = mkFoes(0.3); fight = play(foes, true); }
-    else for (const ratio of [1.2, 1.8, 2.8, 5, 10, 30]) {
-      foes = mkFoes(ratio); fight = play(foes);
-      if (fight.won === opt.win) break;
-    }
+    else { foes = mkFoes(1.5); fight = play(foes, 'lose'); }
   }
   const rounds = fight.rounds;
   const roundXml = rounds.map((r) => '<round>' + Object.entries(r).map(([k, v]) => el(k, v)).join('') + '<skills></skills><defense_skills></defense_skills></round>').join('');
