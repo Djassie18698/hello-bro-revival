@@ -804,6 +804,11 @@ function sealBonus(st, markId) {
   for (const k of keys) o[k] = Math.round(o[k] * (1 + pct));
   return o;
 }
+let matchIndex = null;
+function matchRows(ninjaId) {
+  if (!matchIndex) { matchIndex = new Map(); for (const r of table('ninjamatch').rows) { if (!matchIndex.has(r[3])) matchIndex.set(r[3], []); matchIndex.get(r[3]).push(r); } }
+  return matchIndex.get(ninjaId) || [];
+}
 function teamStats(db, uid, sid) {
   ensure(db);
   const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
@@ -817,6 +822,21 @@ function teamStats(db, uid, sid) {
     }
     return { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st };
   });
+  // Chains (ninjamatch.json; a card's "Chains" list on its detail screen): cols 3 ninja it belongs to, 5 type, 6-13 partner ninja ids, 14 equipment id,
+  // 15 ninjutsu id, 16-18 attack/defence/chakra ratio. Type 1 = the card's own stats grow when ANY partner is in the team, or the equipment / ninjutsu is worn
+  // by it; type 0 = a leader effect: while the card is in the team every ninja gets the ratio. Each chain adds ratio x the slot's stats (after gear).
+  const inTeam = new Set(slots.map((s) => s.ninja_id));
+  const chain = slots.map(() => ({}));
+  const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };
+  slots.forEach((s, i) => {
+    const worn = eqRows.filter((x) => x.slot === i + 1).map((x) => x.ninja_id);
+    for (const r of matchRows(s.ninja_id)) {
+      if (r[5] === 0) { slots.forEach((_, j) => add(j, r)); continue; }
+      const partner = r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && inTeam.has(id));
+      if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) add(i, r);
+    }
+  });
+  slots.forEach((s, i) => { Object.assign(s, addStats(s, chain[i])); s.chain = chain[i]; });
   let tot = slots.reduce((a, s) => addStats(a, s), {});
   const suits = activeSuits(db, uid, sid);
   let bonus = {};

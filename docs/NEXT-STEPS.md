@@ -310,3 +310,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   LastSPUpdatePastTime (seconds into the current 2 h tick). Verified on the emulator: Profile shows 3/3 and 00:00:00.
 - Shop > "1 in 100" (recruit type 3): "claim -1 times today" and "Free after 00:-54" came from recruit_limit 0 / recruit_time 86400. It is now the original "Use up recruitment
   orders x 1": costs prop 30 per card, at most recruitinfo[5] = 5 cards a day, no free timer (it used to be unlimited and free). Shows "You have: N" in the game.
+
+## Chains (ninjamatch) now count (GitHub #3, 2026-10-31)
+- The "Chains" list on a card's detail screen is data/ninjamatch.json (1910 rows; col 3 = the card, 5 = type, 6-13 = partner ninja ids, 14 = equipment id, 15 = ninjutsu id,
+  16/17/18 = attack/defence/chakra ratio). Nothing used it, so no chain ever worked. game.teamStats now adds, per slot after gear: type 1 chain = ratio x that slot's stats when ANY partner is in
+  the team or the listed equipment / ninjutsu is worn by it; type 0 (leader) = the ratio goes to every slot while that card is in the team. Several chains stack additively.
+- Verified on the Claude emulator: Susa Indra next to Sage of the Six Paths shows 811-1112 attack (raw 525-720); the numbers also feed fights, rankings and spar strength.
+- The client's own detail screen lists chains but does not highlight active ones; nothing more is needed from the server for that. Not verified: stack rules of the original (we add them), chains that need a
+  specific star/level (the table has no such column).
