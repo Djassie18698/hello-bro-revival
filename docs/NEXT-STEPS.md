@@ -580,3 +580,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     Checked in game.
   * Shop: Reincarnation Pill 120 gold and Development Dan 120 gold like the original shop photos (consumeinfo says 180 / 200);
     game.SHOP_GOLD overrides both the list (rl_r_shoplist prop_yuanbao) and the price paid.
+  * Change country (switchCountry.lua): rl_r_migrate_price -> <price>300</price> (photo 3270); rl_w_propuse Cmd 1802 with ToCountry
+    takes 1 Immigration Card (prop 18) + 300 gold and sets players.country. Not checked in game yet.

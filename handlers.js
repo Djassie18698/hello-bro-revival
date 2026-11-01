@@ -170,6 +170,7 @@ const TOPUPS = [ // the original Google Play packages (rmb = price in cents)
   { id: 6, rmb: 1999, gold: 1050, give: 80 }, { id: 7, rmb: 4999, gold: 2700, give: 300 }, { id: 8, rmb: 9999, gold: 5500, give: 800 },
 ];
 
+const MIGRATE_PRICE = 300; // change country, gold (photo 3270)
 // Tower sweep counter: one progress row per day (stage = uses + 1; setStage keeps the max).
 const SWEEP_DAILY = 5;
 const sweepKey = () => 100000 + Math.floor(Date.now() / 86400000);
@@ -653,10 +654,24 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    // Immigration Card (prop 18) from switchCountry.lua: Cmd 1802 + ToCountry; costs the card and MIGRATE_PRICE gold.
+    if (p.ToCountry !== undefined) {
+      const to = Number(p.ToCountry);
+      if (!(to >= 1 && to <= 4) || to === pl.country) return '<root code="5"><message>choose another country</message></root>';
+      if ((game.propCounts(db, pl.uid, pl.server_id)[18] || 0) < 1) return '<root code="5"><message>no Immigration Card</message></root>';
+      if (pl.gold < MIGRATE_PRICE) return '<root code="5"><message>not enough gold</message></root>';
+      game.propAdd(db, pl.uid, pl.server_id, 18, -1);
+      db.prepare('UPDATE players SET country=?, gold=gold-? WHERE uid=? AND server_id=?').run(to, MIGRATE_PRICE, pl.uid, pl.server_id);
+      return '<root code="0"></root>';
+    }
     const r = game.propUse(db, pl, Number(p.Goodsid));
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
     return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="99" max="99"/></root>`;
   },
+
+  // Change-country price (switchCountry.lua reads <price>). The original said "related to population of target country"; the
+  // Facebook photo 3270 shows 300 gold, used for every country (ours: no population rule).
+  rl_r_migrate_price: () => `<root code="0"><price>${MIGRATE_PRICE}</price></root>`,
 
   rl_w_strengthen: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
