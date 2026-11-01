@@ -253,6 +253,8 @@ html.embed .wrap{padding-top:18px}
             <p class="hint" style="margin:0">Pick every ninja and every piece of gear, set levels, then press <b>Apply team</b> once. Type in a box to search:
               <b>★ owned</b> cards come first, <b>＋ New</b> ones are created for the player. Leave a box empty for nothing.</p></div>
           <div class="row"><span class="tag" id="tpower">⚔️ -</span><button class="btn purple sm" onclick="completeChains()">🔗 Complete chains</button>
+            <button class="btn purple sm" onclick="bestGear('owned')" title="Best gear from what this player owns">⚔️ Best gear (owned)</button>
+            <button class="btn purple sm" onclick="bestGear('best')" title="Best gear in the game, new cards are made where needed">💎 Best gear (all)</button>
             <button class="btn ghost sm" onclick="maxAll()">Everything max</button>
             <button class="btn ghost sm" onclick="loadTeam()">Reload</button><button class="btn" onclick="applyTeam()">✅ Apply team</button></div>
         </div>
@@ -455,6 +457,17 @@ async function applyTeam() {
   const r = await api('setteam', { uid: sel, slots });
   if (!r.ok) return toast(esc(r.error), false);
   toast('Team applied!<br><small>⚔️ ' + r.power.attack + ' · 🛡️ ' + r.power.defense + '<br>Close the game completely and open it again to see it.</small>');
+  loadTeam(); loadPlayers();
+}
+async function bestGear(mode) {
+  if (!sel) return;
+  const r = await api('gearplan', { uid: sel, mode });
+  if (!r.ok) return toast(esc(r.error || 'failed'), false);
+  if (!r.changes.length) return toast('This team already wears the best gear ' + (mode === 'owned' ? 'the player owns' : 'there is') + ' 👌');
+  if (!confirm('Change the gear? This will:\n\n' + r.changes.join('\n') + (mode === 'best' ? '\n\nNew gear arrives at level 50 (equipment rebirth 3).' : ''))) return;
+  const a = await api('setteam', { uid: sel, slots: r.plan });
+  if (!a.ok) return toast(esc(a.error), false);
+  toast('Gear updated!<br><small>⚔️ ' + a.power.attack + ' · 🛡️ ' + a.power.defense + '<br>Close the game completely and open it again.</small>');
   loadTeam(); loadPlayers();
 }
 async function completeChains() {

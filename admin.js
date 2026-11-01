@@ -237,6 +237,80 @@ function chainPlan(db, pl) {
   return { plan, changes };
 }
 
+// ---- Gear calculator: the strongest weapon / armor / trinket / seal / 4 ninjutsu for every ninja in the team ----------------------
+// mode 'owned' = only cards the player has and nobody else in the team wears; 'best' = also new cards (level 50, rebirth 3 for equipment).
+// A piece a chain of that ninja asks for ("Equip X") is kept or chosen first; otherwise the score is the slot's total stats
+// (attack + defence + chakra, low and high) with the same gear math as the team screen (game.teamStats).
+const STATK = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
+function slotScore(ninjaCard, gear) {
+  let st = game.ninjaStats(ninjaCard);
+  for (const g of gear) {
+    if (!g) continue;
+    if (g.type === 5) st = game.sealBonus(st, g.ninja_id);
+    else if (g.type === 6) st = game.ninjutsuBonus(st, g.ninja_id);
+    else st = game.addStats(st, game.equipStats(g));
+  }
+  return st;
+}
+const sum = (st) => STATK.reduce((t, k) => t + (st[k] || 0), 0);
+function gearPlan(db, pl, mode) {
+  const view = teamView(db, pl);
+  const cards = new Map(db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=?').all(pl.uid, pl.server_id).map((c) => [c.seq, c]));
+  const inUse = new Set(view.slots.flatMap((s) => [s.ninja.seq, ...Object.values(s.equip).filter(Boolean).map((e) => e.seq)]));
+  const freed = new Set(); // gear taken off a ninja here may go to another
+  const taken = new Set();
+  const equipRows = game.table('equipmentinfo').rows;
+  const KTYPE = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 6, 8: 6 };
+  const catalog = (type) => {
+    if (type <= 4) return equipRows.filter((r) => r[5] === 1 && ({ 0: 2, 1: 3, 2: 4 }[r[3]]) === type).map((r) => r[0]);
+    if (type === 5) return game.table('markinfo').rows.map((r) => r[0]);
+    return game.table('ninjutsuinfo').rows.map((r) => r[0]);
+  };
+  const nameOf = (type, id) => (type === 1 ? (game.ninjas().get(id) || [])[2] : type <= 4 ? (equipRows.find((r) => r[0] === id) || [])[2]
+    : type === 5 ? (game.table('markinfo').rows.find((r) => r[0] === id) || [])[2] : (game.table('ninjutsuinfo').rows.find((r) => r[0] === id) || [])[2]) || '#' + id;
+  const changes = [], plan = [];
+  for (const s of view.slots) {
+    const ninja = cards.get(s.ninja.seq);
+    const chainWants = new Set(game.matchRows(ninja.ninja_id).flatMap((r) => [r[14], r[15]]).filter((x) => x > 0));
+    const cur = {};
+    for (const [k, e] of Object.entries(s.equip)) if (e) cur[k] = cards.get(e.seq);
+    const before = sum(slotScore(ninja, Object.values(cur)));
+    const pick = { ...cur };
+    const candidates = (type, exclude) => {
+      const own = [...cards.values()].filter((c) => c.type === type && !taken.has(c.seq) && (!inUse.has(c.seq) || freed.has(c.seq) || Object.values(cur).some((x) => x && x.seq === c.seq)) && !exclude.has(c.ninja_id));
+      const list = own.map((c) => ({ card: c, own: true }));
+      if (mode === 'best') for (const id of catalog(type)) if (!exclude.has(id)) list.push({ card: { seq: 0, type, ninja_id: id, level: 50, newlife: type <= 4 ? 3 : 0 }, own: false });
+      return list;
+    };
+    // ninjutsu all give the same stat boost here: the one with the higher power (ninjutsuinfo col 10, e.g. Six Paths Rinnegan 150, Shuriken 31) wins
+    const jPower = (id) => (game.table('ninjutsuinfo').rows.find((r) => r[0] === id) || [])[10] || 0;
+    const score = (k, c) => { if (c.type === 6) return (chainWants.has(c.ninja_id) ? 1e9 : 0) + jPower(c.ninja_id); const g = { ...pick, [k]: c }; return sum(slotScore(ninja, Object.values(g))) + (chainWants.has(c.ninja_id) ? 1e9 : 0) + (c.type === 6 ? jPower(c.ninja_id) : 0); };
+    const choose = (k, exclude) => {
+      const type = KTYPE[k], now = pick[k];
+      if (now && chainWants.has(now.ninja_id)) return; // keep chain gear
+      let best = now ? { card: now, own: true, v: score(k, now) } : null;
+      for (const c of candidates(type, exclude)) { const v = score(k, c.card); if (!best || v > best.v + (c.own ? 0 : 0.5)) best = { ...c, v }; }
+      if (best && (!now || best.card !== now)) pick[k] = best.card;
+    };
+    for (const k of [1, 2, 3, 4]) choose(k, new Set());
+    for (const k of [5, 6, 7, 8]) choose(k, new Set([5, 6, 7, 8].filter((x) => x !== k && pick[x]).map((x) => pick[x].ninja_id))); // 4 different ninjutsu
+    for (const k of Object.keys(pick)) {
+      const c = pick[k], was = cur[k];
+      if (c.seq) taken.add(c.seq);
+      if (was && was !== c) freed.add(was.seq);
+      if (!was || was.ninja_id !== c.ninja_id || was.seq !== c.seq) {
+        const label = ['', 'weapon', 'armor', 'trinket', 'seal', 'ninjutsu', 'ninjutsu', 'ninjutsu', 'ninjutsu'][k];
+        changes.push(`${nameOf(1, ninja.ninja_id)}: ${label} ${was ? nameOf(was.type, was.ninja_id) + ' -> ' : ''}${c.seq ? 'your' : 'a new'} ${nameOf(c.type, c.ninja_id)}`);
+      }
+    }
+    const after = sum(slotScore(ninja, Object.values(pick)));
+    if (after > before) changes.push(`   = ${nameOf(1, ninja.ninja_id)} total stats ${before.toLocaleString('en-US')} -> ${after.toLocaleString('en-US')} (+${Math.round((after / Math.max(1, before) - 1) * 100)}%)`);
+    plan.push({ ninja: { seq: ninja.seq }, level: ninja.level, newlife: ninja.newlife || 0, growth: ninja.starlevel || 0,
+      equip: Object.fromEntries(Object.entries(pick).map(([k, c]) => [k, c.seq ? { seq: c.seq, level: c.level, newlife: c.newlife || 0 } : { give: c.ninja_id, level: c.level, newlife: c.newlife }])) });
+  }
+  return { plan, changes };
+}
+
 module.exports = async function admin(req, res, u, db, readBody) {
   if (!authorized(req)) {
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
@@ -318,6 +392,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       return json(res, { ok: true, level: c.lv, newlife: c.nl, growth: c.gr });
     }
     if (u.pathname === '/admin/api/unlockall') return json(res, { ok: true, ...game.unlockAll(db, pl) });
+    if (u.pathname === '/admin/api/gearplan') return json(res, { ok: true, ...gearPlan(db, pl, b.mode === 'best' ? 'best' : 'owned') });
     if (u.pathname === '/admin/api/chainplan') return json(res, { ok: true, ...chainPlan(db, pl) });
     if (u.pathname === '/admin/api/setteam') return json(res, applyTeam(db, pl, b.slots));
     if (u.pathname === '/admin/api/setprop') { // set the exact amount of one item / fragment / souls

@@ -491,3 +491,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Admin team builder "Complete chains" (/admin/api/chainplan -> plan + list, then setteam): for the ninjas already in the team, missing partners
   join free slots (own card first, else the highest-star card with that name, new at level 50) and "Equip X" gear/ninjutsu is put on the ninja.
   Added partners do not pull in their own partners (press again for that). Panel iframes load with ?v=<time> (no stale cached page).
+- Team builder gear calculator (/admin/api/gearplan mode owned|best -> plan + list, then setteam): per team ninja the weapon/armor/trinket/seal
+  with the highest total stats (same math as teamStats; best = level 50, equipment rebirth 3), 4 different ninjutsu by power (ninjutsuinfo col 10,
+  our stat model gives every ninjutsu the same boost). Gear a chain of that ninja asks for is kept/chosen first. Owned mode only uses free cards.
