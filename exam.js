@@ -64,7 +64,7 @@ function guards(grade, level) {
   return Array.from({ length: 5 }, (_, i) => {
     const n = pool[(grade * 7 + i * 13) % pool.length];
     // bosses at stages 5/10/15 +30% (ours)
-    return { id: n[0], name: n[2], attr: n[5] || 1, val: Math.round((guardBase(grade, level) + i * 5) * (grade % 5 === 0 ? 1.3 : 1)) };
+    return { id: n[0], name: n[2], attr: game.foeAttri(n[0]), val: Math.round((guardBase(grade, level) + i * 5) * (grade % 5 === 0 ? 1.3 : 1)) };
   });
 }
 // My card's value as the client shows it: average attack (or defense when the guards attack).

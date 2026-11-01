@@ -69,7 +69,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
   - the **test server** the owner plays on: `C:\Users\dj199\Desktop\HelloBro-Fresh-Test\HelloBroServer` (its own `hellobro.db`).
     Restart it after a sync (PowerShell): stop the process listening on 18080 and its parent cmd, then
     `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
-  - the dev server in the main repo: `bash tools/dev/restart.sh` (logs `%TEMP%\hb\server.log`). The main repo's
+  - the dev server in the main repo: `bash tools/dev/restart.sh` (port **18081**, so the owner can play on 18080 at the same time; logs `%TEMP%\hb\server.log`). The Claude emulator runs `release/HelloBro-for-127.0.0.1-18081.apk` and reaches it through `adb reverse` (`emu.sh restart` sets it up). Test login: `tools/dev/emu.account` (git-ignored), account 55501235. `node tools/dev/dev.js` sets level / VIP / gold / items / SQL on the test account and `relog` restarts the game. The main repo's
     `hellobro.db` holds the owner's main account `22079117` (Ninja78277, level 80, VIP 18) and a friend `22078671`.
 - Tests without the game: `node tools/dev/smoke.js` (calls every handler on a temp DB), `node tools/dev/probe.js <endpoint> <Cmd> k=v`,
   or a small node script with `new DatabaseSync(':memory:')` + `require('./schema')(db)` + `handlers.rl_w_login2/rl_w_reg2`.
@@ -130,7 +130,7 @@ Current: **28.0.21** (28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goal
 
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
-Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
+Checked in game on 1 Nov 2026 (dev server): team slot unlocks, VIP refresh after top-up, Ninja Test boss chests.
 Not built yet (Lua screens exist): cross-server battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`
 (owner on 2 Nov: "forget cross server battle right now"; ask before starting it).
 Smaller open items (see NEXT-STEPS 2 Nov evening): 300-gold recruit gold prizes coded but OFF (single-recruit reveal shows a blank card);

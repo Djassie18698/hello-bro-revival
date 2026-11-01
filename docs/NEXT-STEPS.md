@@ -710,3 +710,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Dev setup: dev server on PORT 18081 (tools/dev/restart.sh), Claude emulator runs release/HelloBro-for-127.0.0.1-18081.apk and reaches
     it through `adb reverse tcp:18081 tcp:18081` (emu.sh restart sets it; the firewall only lets 18080 in). Test login in tools/dev/emu.account
     (git-ignored), dev account 55501235.
+  * Checked in game (dev server): team slots open at level 1/2/6/15, level 30 stops at 4 with "Lv. 30 and customs clearance 1 Round 12";
+    a $4.99 top-up shows VIP1 at once (top bar + top-up screen 50/100, $49 bar 5/49); Ninja Test stage 5 chests free / 160 / 250 gold
+    (gold 725 -> 315), then Challenge sends Cmd 7 and stage 6 opens.
+  * exam.js guard element came from ninjainfo [5], which is an index, not an element (values 0-163, so the screen showed Water): now
+    game.foeAttri like the fights. tools/dev/dev.js: admin-API shortcuts + `sql` on the dev save + `relog`.

@@ -102,7 +102,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Ramen window when out of energy in training |
 | 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold |
 | 🧪 | Levelling up refills grudge too, like the original pop-up |
-| 🧪 | Ninja Test boss chests cost 160 and 250 gold like the original (first one free) |
+| ✅ | Ninja Test boss chests cost 160 and 250 gold like the original (first one free); after the chests Challenge moves on to the next stage. Guards now show their element (they all showed Water) |
 | ✅ | Limited group purchase (discount packs with stock shared by the whole server, original prices; switch in the Server Manager) |
 | ✅ | Treasure chests (gold / silver / bronze, with keys from story fights) like the original |
 | ✅ | Scratch card ("Lottery" in the Event menu) like the original: 20 gold a card, 1 free a day, 3 matching faces win 5-800 gold |
