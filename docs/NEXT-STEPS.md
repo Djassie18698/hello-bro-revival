@@ -573,3 +573,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Arena daily rank reward = the photos: 26 000 - 1000 x rank (ranks 1-10), then -60 a rank (ours) to a 2000 floor; reputation = silver / 5
     (photos 0211, 1901, 2119, 0389, 2719). Was 6000 - 100 x rank in the list and 50 000 - 1000 x rank when claimed (two different rules);
     now one function game.arenaReward used by both.
+  * Ninja Treasure (sudoku.js) = photos 0018, 0150, 1070-1073, 2816, 2819, 2833: refresh 100 gold, auto reroll every 2 h, explore
+    35 / 70 / 300 / 320 / 1000 by prizes taken (0-4), 1000 after (ours). Was 20 gold, 4 h, 10 + 10 x taken.
