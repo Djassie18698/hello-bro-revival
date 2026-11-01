@@ -195,10 +195,10 @@ def patch(data, changes):
     """changes: {member name: {property: new value}} -> new file bytes (values as dump shows them; FloatScale = (size, type))."""
     root, edits = parse(data), []
     for n, _ in walk(root):
-        for prop, v in changes.get(n.get('name'), {}).items():
+        for prop, v in {**changes.get(n['class'], {}), **changes.get(n.get('name'), {})}.items():  # key = member name or class
             t, a, b = n['spans'][prop]
             edits.append((a, b, encode(t, v)))
-    assert len(edits) == sum(len(c) for c in changes.values()), 'a node or property was not found'
+    assert len(edits) >= sum(len(c) for c in changes.values()), 'a node or property was not found'
     for a, b, new in sorted(edits, reverse=True):
         data = data[:a] + new + data[b:]
     parse(data)  # must still read back

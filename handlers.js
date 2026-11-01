@@ -826,22 +826,28 @@ module.exports = {
     return '<root code="0"></root>';
   },
 
-  // "Save time": trade ramen (prop 3) for exp + silver based on the current training chapter. Cmd 1 = info, Cmd 2 = exchange one.
+  // "Save time": trade one Big Ramen (BIG_ENERGY_ITEM_ID = 4, from libgame.so) for the exp + silver its 200 energy would earn by fighting
+  // the player's current training stage (roundinfo [22] energy, [23] exp, [24] silver). The original amount lived on the dead server (ours).
+  // Cmd 1 = info, Cmd 2 = exchange one.
   rl_r_savetime: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const sid = Number(p.ServerID || 1);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
     if (!pl) return '<root code="3"><message>session expired</message></root>';
-    const RAMEN = 3, chap = game.getStage(db, pl.uid, sid, 1000), exp = 500 * Math.max(1, pl.level), coin = 500 * Math.max(1, pl.level);
-    let have = game.propCounts(db, pl.uid, sid)[RAMEN];
-    if (have === undefined) { game.propAdd(db, pl.uid, sid, RAMEN, 99); have = 99; }
+    const RAMEN = 4;
+    const top = db.prepare('SELECT MAX(chap) c FROM progress WHERE uid=? AND server_id=? AND chap BETWEEN 1 AND 19').get(pl.uid, sid).c || 1;
+    const chap = top, round = Math.min(game.getStage(db, pl.uid, sid, chap), game.chapterStages(chap));
+    const row = game.table('roundinfo').rows.find((r) => r[4] === chap && r[2] === round) || [];
+    const fights = Math.floor(200 / Math.max(1, row[22] || 1));
+    const exp = fights * (row[23] || 0), coin = fights * (row[24] || 0);
+    const have = game.propCounts(db, pl.uid, sid)[RAMEN] || 0;
     if (Number(p.Cmd) === 2) {
       if (have < 1) return '<root code="5"><message>no ramen</message></root>';
       game.propAdd(db, pl.uid, sid, RAMEN, -1); game.addExp(db, pl, exp);
       db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
       return `<root code="0"><basic><ratio>1</ratio><exp>${exp}</exp><coin>${coin}</coin><remain>${have - 1}</remain></basic></root>`;
     }
-    return `<root code="0"><basic><chapter>${chap}</chapter><round>1</round><prop_num>${have}</prop_num><total_trans>99</total_trans><used_trans>0</used_trans><cost_cash>10</cost_cash><vip_add>99</vip_add><exp>${exp}</exp><coin>${coin}</coin><vip_limit>1</vip_limit><level_limit>1</level_limit></basic></root>`;
+    return `<root code="0"><basic><chapter>${chap}</chapter><round>${round}</round><prop_num>${have}</prop_num><total_trans>99</total_trans><used_trans>0</used_trans><cost_cash>10</cost_cash><vip_add>99</vip_add><exp>${exp}</exp><coin>${coin}</coin><vip_limit>1</vip_limit><level_limit>1</level_limit></basic></root>`;
   },
 
   // Mail actions (read / delete / accept): nothing to change on this server, acknowledge.

@@ -543,3 +543,12 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Team screen name overflow: names are a CCLabelTTF in sub_ui/TeamNinjaView.ccbi (Arial-BoldMT 24, no width). 28.0.17 patches it
   (font 18, width 28% = name bar, centred): 21-letter names fit on one line, longer (up to 29 owned) wrap to 2 lines. Checked in game.
   Backpack list (another ccbi) still overlaps the element icon for long names: not changed yet.
+- "So lucky !" pop-up (CDialogShowBox, dlg_ui/RunLevelDrop.ccbi, shown on a random lucky roll after a normal story stage): button picture
+  said "Fold" and the game drew its own title ("Proceed", Helvetica 12, white) on top. 28.0.18 repaints the picture to "Proceed" and sets
+  the title size to 1 (tools/patch_runlevel_drop.py). Sprite sheets *.pvr.ccz are 'CCZp' = cocos2d-x encrypted CCZ; key
+  0xf013c6ef 0x5ca560ce 0x01471215 0xca9bada1 (ccSetPvrEncryptionKey call at 0x265b96); tools/pvrccz.py topng/frompng. Not seen in game
+  after the change (the lucky roll didn't come up in 7 tries); file checks pass.
+- Save time (rl_r_savetime) paid 500 x player level exp AND silver (level 60 = 30 000 each, even in chapter 1), used ramen id 3 and gave 99
+  free ramen. The screen's item is BIG_ENERGY_ITEM_ID = 4 (Lua constant set in libgame.so at 0x3e4964, 4.0) = Large ramen, 200 energy.
+  Now: one Large ramen = what 200 energy earns fighting the player's current story stage (roundinfo [22] cost, [23] exp, [24] silver)
+  (ours); chapter 1-1 = 396 exp / 990 silver, chapter 19 end = 4 860 / 5 760. No free ramen. Chapter/round = furthest story stage.

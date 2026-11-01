@@ -1,11 +1,11 @@
 {
- "val": "28.0.17",
+ "val": "28.0.18",
  "files": [
   {
-   "name": "28.0.17_update.zip",
-   "val": "28.0.17",
-   "md5": "c7da36adaf59c38cb56398489b13a712",
-   "size": 34777
+   "name": "28.0.18_update.zip",
+   "val": "28.0.18",
+   "md5": "df4499a2d0ada7dbce4b884a8c5ed95e",
+   "size": 121350
   }
  ]
 }
