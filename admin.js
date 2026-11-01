@@ -368,8 +368,8 @@ module.exports = async function admin(req, res, u, db, readBody) {
       if (!col) return json(res, { ok: false, error: 'bad field' });
       const amt = Math.trunc(Number(b.amount));
       if (!Number.isFinite(amt)) return json(res, { ok: false, error: 'bad amount' });
-      const sql = col === 'level' ? 'UPDATE players SET level=? WHERE uid=?' : `UPDATE players SET ${col}=MAX(0,${col}+?) WHERE uid=?`;
-      db.prepare(sql).run(amt, b.uid);
+      const sql = col === 'level' ? 'UPDATE players SET level=? WHERE uid=? AND server_id=?' : `UPDATE players SET ${col}=MAX(0,${col}+?) WHERE uid=? AND server_id=?`;
+      db.prepare(sql).run(amt, pl.uid, pl.server_id);
       return json(res, { ok: true });
     }
     if (u.pathname === '/admin/api/givething') { // one catalog entry
