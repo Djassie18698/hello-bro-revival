@@ -412,3 +412,4 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   growth went up far too fast (owner: 0 to 15 quickly). game.sageGrow now uses the table; max level 15. star_list sends 2 rows per level
   (stone_level = stone id 7/8, stone_added_percent per extra stone, max_percent cap): those numbers are (ours), +1%/+2%, cap = 4x Stone III chance.
 - Shinobi rebirth back to max 8: v28 GetTopInlayFrame draws outlines 1-8 only (>8 returns nothing); 9 is from a later game version.
+- Admin: sage growth (cards.starlevel, 0-15, shinobi only) can be set when giving cards and edited in Inventory.

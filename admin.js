@@ -61,17 +61,22 @@ function catalog() {
 }
 
 // Card level / rebirth limits: level 1-50 for every card kind (ninjaupgrade/equipupgrade/... have 50 rows), rebirth 0-8 for shinobi
-// (game.NEWLIFE_MAX), 0-3 for equipment (equipnewlifeprop), none for ninjutsu and seals.
-const LIMITS = { ninja: { lv: 50, nl: 8 }, equip: { lv: 50, nl: 3 }, ninjutsu: { lv: 50, nl: 0 }, seal: { lv: 50, nl: 0 } };
-const clampCard = (cat, lv, nl) => {
-  const L = LIMITS[cat] || { lv: 1, nl: 0 };
-  return { lv: Math.min(Math.max(Math.trunc(lv) || 1, 1), L.lv), nl: Math.min(Math.max(Math.trunc(nl) || 0, 0), L.nl) };
+// (game.NEWLIFE_MAX), 0-3 for equipment (equipnewlifeprop), none for ninjutsu and seals. Sage growth 0-15 for shinobi only (game.GROW_MAX).
+const LIMITS = { ninja: { lv: 50, nl: 8, gr: game.GROW_MAX }, equip: { lv: 50, nl: 3, gr: 0 }, ninjutsu: { lv: 50, nl: 0, gr: 0 }, seal: { lv: 50, nl: 0, gr: 0 } };
+const clamp = (v, lo, hi) => Math.min(Math.max(Math.trunc(v) || lo, lo), hi);
+const clampCard = (cat, lv, nl, gr) => {
+  const L = LIMITS[cat] || { lv: 1, nl: 0, gr: 0 };
+  return { lv: clamp(lv, 1, L.lv), nl: clamp(nl, 0, L.nl), gr: L.gr ? clamp(gr, 0, L.gr) : null };
 };
-const setCard = (db, seq, c) => { if (seq) db.prepare('UPDATE cards SET level=?, newlife=? WHERE seq=?').run(c.lv, c.nl, seq); return seq; };
+// gr null = leave the card's growth as it is (only shinobi have sage growth)
+const setCard = (db, seq, c) => {
+  if (seq) db.prepare('UPDATE cards SET level=?, newlife=?, starlevel=COALESCE(?, starlevel) WHERE seq=?').run(c.lv, c.nl, c.gr, seq);
+  return seq;
+};
 
 // Give one catalog entry n times (cards at the chosen level / rebirth). Returns how many really arrived.
 function giveOne(db, pl, cat, id, n, opt = {}) {
-  const uid = pl.uid, sid = pl.server_id, c = clampCard(cat, opt.level, opt.newlife);
+  const uid = pl.uid, sid = pl.server_id, c = clampCard(cat, opt.level, opt.newlife, opt.growth);
   if (cat === 'ninja') { for (let i = 0; i < n; i++) setCard(db, game.giveCard(db, uid, sid, id), c); return n; }
   if (cat === 'equip') { let k = 0; for (let i = 0; i < n; i++) if (setCard(db, game.giveEquip(db, uid, sid, id), c)) k++; return k; }
   if (cat === 'ninjutsu') { for (let i = 0; i < n; i++) setCard(db, game.giveCard(db, uid, sid, id, 6), c); return n; }
@@ -116,8 +121,8 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (u.pathname === '/admin/api/inventory') {
     const pl = db.prepare('SELECT * FROM players WHERE uid=?').get(Number(u.query.uid));
     if (!pl) return json(res, { cards: [], props: [] });
-    const cards = db.prepare('SELECT seq, type, ninja_id, level, newlife FROM cards WHERE uid=? AND server_id=? ORDER BY type, seq DESC').all(pl.uid, pl.server_id)
-      .map((c) => ({ seq: c.seq, kind: CARD_TYPES[c.type] || '?', name: cardName(c.type, c.ninja_id), level: c.level, newlife: c.newlife || 0, cat: c.type === 1 ? 'ninja' : c.type <= 4 ? 'equip' : c.type === 5 ? 'seal' : 'ninjutsu' }));
+    const cards = db.prepare('SELECT seq, type, ninja_id, level, newlife, starlevel FROM cards WHERE uid=? AND server_id=? ORDER BY type, seq DESC').all(pl.uid, pl.server_id)
+      .map((c) => ({ seq: c.seq, kind: CARD_TYPES[c.type] || '?', name: cardName(c.type, c.ninja_id), level: c.level, newlife: c.newlife || 0, growth: c.starlevel || 0, cat: c.type === 1 ? 'ninja' : c.type <= 4 ? 'equip' : c.type === 5 ? 'seal' : 'ninjutsu' }));
     const items = new Map(game.table('consumeinfo').rows.map((r) => [r[1], r[2]]));
     const props = Object.entries(game.propCounts(db, pl.uid, pl.server_id)).filter(([, n]) => n > 0).map(([id, n]) => {
       id = Number(id);
@@ -147,7 +152,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       const n = Math.min(Math.max(Math.trunc(b.count) || 1, 1), 999);
       const entry = catalog().find((x) => x.cat === b.cat && x.id === Number(b.id));
       if (!entry) return json(res, { ok: false, error: 'unknown thing' });
-      const got = giveOne(db, pl, entry.cat, entry.id, n, { level: b.level, newlife: b.newlife });
+      const got = giveOne(db, pl, entry.cat, entry.id, n, { level: b.level, newlife: b.newlife, growth: b.growth });
       return json(res, { ok: got > 0, given: got, name: entry.name, error: got ? '' : 'nothing could be given' });
     }
     if (u.pathname === '/admin/api/bulk') { // every entry of a category (optionally one star level), count each
@@ -156,16 +161,16 @@ module.exports = async function admin(req, res, u, db, readBody) {
       if (!list.length) return json(res, { ok: false, error: 'nothing in that group' });
       if (list.length * n > 5000) return json(res, { ok: false, error: `that is ${list.length * n} things; pick a star level or a smaller count` });
       let got = 0;
-      for (const x of list) got += giveOne(db, pl, x.cat, x.id, n, { level: b.level, newlife: b.newlife });
+      for (const x of list) got += giveOne(db, pl, x.cat, x.id, n, { level: b.level, newlife: b.newlife, growth: b.growth });
       return json(res, { ok: true, given: got, kinds: list.length });
     }
     if (u.pathname === '/admin/api/setcard') { // change level / rebirth of a card the player already owns
       const card = db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=? AND seq=?').get(pl.uid, pl.server_id, b.seq);
       if (!card) return json(res, { ok: false, error: 'no such card' });
       const cat = card.type === 1 ? 'ninja' : card.type <= 4 ? 'equip' : card.type === 5 ? 'seal' : 'ninjutsu';
-      const c = clampCard(cat, b.level, b.newlife);
+      const c = clampCard(cat, b.level, b.newlife, b.growth);
       setCard(db, card.seq, c);
-      return json(res, { ok: true, level: c.lv, newlife: c.nl });
+      return json(res, { ok: true, level: c.lv, newlife: c.nl, growth: c.gr });
     }
     if (u.pathname === '/admin/api/setprop') { // set the exact amount of one item / fragment / souls
       const id = Math.trunc(Number(b.id)), n = Math.max(0, Math.min(Math.trunc(Number(b.count)) || 0, 999999999));

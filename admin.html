@@ -193,9 +193,10 @@ tr:hover td{background:rgba(255,255,255,.03)}
           <span class="hint" style="margin:0">Cards arrive at</span>
           <label class="hint" style="margin:0">Level <input type="number" id="glv" value="1" min="1" max="50" style="width:80px"></label>
           <label class="hint" style="margin:0">Rebirth <input type="number" id="gnl" value="0" min="0" max="8" style="width:70px"></label>
-          <button class="btn ghost sm" onclick="$('glv').value=50;$('gnl').value=8">Max</button>
-          <button class="btn ghost sm" onclick="$('glv').value=1;$('gnl').value=0">Reset</button>
-          <span class="hint" style="margin:0">(shinobi rebirth 0-8, equipment 0-3, ninjutsu and seals level only)</span>
+          <label class="hint" style="margin:0">Growth <input type="number" id="ggr" value="0" min="0" max="15" style="width:70px"></label>
+          <button class="btn ghost sm" onclick="$('glv').value=50;$('gnl').value=8;$('ggr').value=15">Max</button>
+          <button class="btn ghost sm" onclick="$('glv').value=1;$('gnl').value=0;$('ggr').value=0">Reset</button>
+          <span class="hint" style="margin:0">(shinobi rebirth 0-8 and growth 0-15, equipment rebirth 0-3, ninjutsu and seals level only)</span>
         </div>
         <div class="count" id="ccount"></div>
         <div class="items" id="items"></div>
@@ -207,7 +208,8 @@ tr:hover td{background:rgba(255,255,255,.03)}
         <div class="row" style="margin-bottom:14px"><span class="hint" style="margin:0">Cards arrive at</span>
           <label class="hint" style="margin:0">Level <input type="number" id="blv" value="1" min="1" max="50" style="width:80px"></label>
           <label class="hint" style="margin:0">Rebirth <input type="number" id="bnl" value="0" min="0" max="8" style="width:70px"></label>
-          <button class="btn ghost sm" onclick="$('blv').value=50;$('bnl').value=8">Max</button></div>
+          <label class="hint" style="margin:0">Growth <input type="number" id="bgr" value="0" min="0" max="15" style="width:70px"></label>
+          <button class="btn ghost sm" onclick="$('blv').value=50;$('bnl').value=8;$('bgr').value=15">Max</button></div>
         <div class="bulk" id="bulk"></div>
       </section>
 
@@ -298,7 +300,7 @@ async function search() {
 async function giveThing(c, id) {
   if (!sel) return toast('Pick a player first', false);
   const n = +$('n-' + c + '-' + id).value || 1;
-  const r = await api('givething', { uid: sel, cat: c, id, count: n, level: +$('glv').value || 1, newlife: +$('gnl').value || 0 });
+  const r = await api('givething', { uid: sel, cat: c, id, count: n, level: +$('glv').value || 1, newlife: +$('gnl').value || 0, growth: +$('ggr').value || 0 });
   toast(r.ok ? 'Gave <b>' + r.given + '× ' + esc(r.name) + '</b> to ' + esc(current().nick) + (['ninja', 'equip', 'ninjutsu', 'seal', 'pet'].includes(c) ? '<br><small>Restart the game to see it.</small>' : '') : r.error, r.ok);
   loadPlayers();
 }
@@ -314,7 +316,7 @@ async function bulk(c) {
   if (!sel) return toast('Pick a player first', false);
   const st = +$('bs-' + c).value, n = +$('bn-' + c).value || 1;
   if (!confirm('Give ' + n + '× of every ' + (st ? st + '-star ' : '') + (CATNAME[c] || c).replace(/^\S+ /, '') + ' to ' + current().nick + '?')) return;
-  const r = await api('bulk', { uid: sel, cat: c, stars: st, count: n, level: +$('blv').value || 1, newlife: +$('bnl').value || 0 });
+  const r = await api('bulk', { uid: sel, cat: c, stars: st, count: n, level: +$('blv').value || 1, newlife: +$('bnl').value || 0, growth: +$('bgr').value || 0 });
   toast(r.ok ? 'Gave <b>' + fmt(r.given) + '</b> things (' + r.kinds + ' different) to ' + esc(current().nick) + '<br><small>Restart the game to see cards.</small>' : r.error, r.ok);
   loadPlayers();
 }
@@ -324,9 +326,10 @@ function renderInv() {
   const q = $('iq').value.toLowerCase();
   const cards = inv.cards.filter((c) => !q || (c.name + ' ' + c.kind).toLowerCase().includes(q));
   $('ccards').textContent = 'Cards (' + inv.cards.length + ')';
-  $('tcards').innerHTML = '<tr><th>Type</th><th>Name</th><th>Lv</th><th>Rebirth</th><th></th></tr>' + cards.map((c) => '<tr><td><span class="tag">' + c.kind + '</span></td><td>' + esc(c.name) + '</td>' +
+  $('tcards').innerHTML = '<tr><th>Type</th><th>Name</th><th>Lv</th><th>Rebirth</th><th>Growth</th><th></th></tr>' + cards.map((c) => '<tr><td><span class="tag">' + c.kind + '</span></td><td>' + esc(c.name) + '</td>' +
     '<td><input type="number" id="lv-' + c.seq + '" value="' + c.level + '" min="1" max="50" style="width:64px;padding:6px"></td>' +
     '<td><input type="number" id="nl-' + c.seq + '" value="' + c.newlife + '" min="0" max="8" style="width:56px;padding:6px"' + (c.cat === 'ninja' || c.cat === 'equip' ? '' : ' disabled') + '></td>' +
+    '<td><input type="number" id="gr-' + c.seq + '" value="' + c.growth + '" min="0" max="15" style="width:56px;padding:6px"' + (c.cat === 'ninja' ? '' : ' disabled') + '></td>' +
     '<td style="text-align:right;white-space:nowrap"><button class="btn sm" onclick="saveCard(' + c.seq + ')">Save</button> <button class="btn ghost sm" onclick="delCard(' + c.seq + ')">Remove</button></td></tr>').join('');
   $('tprops').innerHTML = '<tr><th>Item</th><th>Count</th><th></th></tr>' + inv.props.map((p) => '<tr><td>' + esc(p.name) + '</td>' +
     '<td><input type="number" min="0" id="pc-' + p.id + '" value="' + p.count + '" style="width:110px;padding:6px"></td>' +
@@ -338,8 +341,8 @@ async function saveProp(id) {
   toast(r.ok ? 'Amount set to <b>' + fmt(r.count) + '</b><br><small>Reopen the screen in game to see it.</small>' : r.error, r.ok); loadInv();
 }
 async function saveCard(seq) {
-  const r = await api('setcard', { uid: sel, seq, level: +$('lv-' + seq).value, newlife: +$('nl-' + seq).value });
-  toast(r.ok ? 'Saved: level ' + r.level + ', rebirth ' + r.newlife + '<br><small>Restart the game to see it.</small>' : r.error, r.ok); loadInv();
+  const r = await api('setcard', { uid: sel, seq, level: +$('lv-' + seq).value, newlife: +$('nl-' + seq).value, growth: +$('gr-' + seq).value });
+  toast(r.ok ? 'Saved: level ' + r.level + ', rebirth ' + r.newlife + (r.growth != null ? ', growth ' + r.growth : '') + '<br><small>Restart the game to see it.</small>' : r.error, r.ok); loadInv();
 }
 async function delCard(seq) {
   if (!confirm('Remove this card from ' + current().nick + '?')) return;
