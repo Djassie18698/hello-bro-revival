@@ -633,7 +633,7 @@ module.exports = {
   rl_w_ky_payorder: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const t = TOPUPS.find((x) => x.id === Number(p.ItemId));
-    if (acc && t) {
+    if (acc && t && !(require('./settings').eventOn(db, 'paylimit') && limited.topupsToday(db, acc.uid, Number(p.ServerID || 1)) >= 1)) {
       const sid = Number(p.ServerID || 1), gold = topupGold(db, acc.uid, sid, t);
       db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(gold, acc.uid, sid);
       vip.addExp(db, acc.uid, sid, t.rmb / 10); // cents / 10 = dollars x 10
@@ -647,6 +647,8 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const t = TOPUPS.find((x) => x.id === Number(p.RechargeId));
     if (!t) return '<root code="5"><message>bad package</message></root>';
+    // owner's switch (control panel > events): one top-up a day per player
+    if (require('./settings').eventOn(db, 'paylimit') && limited.topupsToday(db, pl.uid, pl.server_id) >= 1) return '<root code="8000"><message>You can top up once a day. Come back tomorrow!</message></root>';
     const gold = topupGold(db, pl.uid, pl.server_id, t);
     db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(gold, pl.uid, pl.server_id);
     game.bumpTask(db, pl.uid, pl.server_id, 13); // daily task: recharge

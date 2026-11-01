@@ -798,3 +798,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * docs/GEAR-REPORT.md: where 5-star gear comes from (report only).
   * Betting tab of the cross-server battle: ui_multiServerLayer only shows "Betting event isn't open" (no Lua screen behind it; the
     multiBattleBingo.ccbi layouts exist without code). Not buildable without writing a new Lua screen.
+## 1 Nov 2026 (night): one top-up a day (owner)
+  * settings EVENTS "paylimit" (on by default; control panel > Server > events: switch off = unlimited). rl_x_free_topup and
+    rl_w_ky_payorder refuse a 2nd top-up the same day (limited.topupsToday, local midnight) with code 8000 + message.
+  * 28.0.25 ui_purchaseLayer.lua shows the refusal message (it did nothing on a non-0 code). Checked in game: 1st top-up VIP0 -> VIP1,
+    2nd shows "You can top up once a day. Come back tomorrow!", gold unchanged. Switch seen in the control panel.

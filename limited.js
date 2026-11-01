@@ -68,6 +68,8 @@ function diligenceClaim(db, pl, id) {
 const DISCOUNT = { mincash: 19, maxval: 60, hours: 70, items: [ // [shown drop, icon, name, dropinfo ids paid]
   [1800, 'props_015', '5s Shinobi(God)', [1800]], [1433, 'props_129', '5', [1433]],
   [15, 'props_028', '4S Ninjutsu', [15]], [1502, 'props_209', '3', [1502, 1502, 1502]]] };
+// top-ups since local midnight (the 'paylimit' switch allows one a day)
+function topupsToday(db, uid, sid) { ensure(db); const d = new Date(); d.setHours(0, 0, 0, 0); return db.prepare('SELECT COUNT(*) n FROM topup_log WHERE uid=? AND server_id=? AND at>=?').get(uid, sid, Math.floor(d / 1000)).n; }
 function logTopup(db, uid, sid, gold, cents = 0) { ensure(db); db.prepare('INSERT INTO topup_log(uid, server_id, at, gold, cents) VALUES(?,?,?,?,?)').run(uid, sid, now(), gold, cents); }
 const discountRun = (db) => settings.switchedOnAt(db, 'discount') || 0;
 const discountLeft = (db) => Math.max(0, (settings.switchedOnAt(db, 'discount') || now()) + DISCOUNT.hours * 3600 - now());
@@ -166,4 +168,4 @@ function lotteryClaim(db, pl) {
   return { xml: game.grantDrop(db, pl, LOTTO.prizes[best - 1]) || game.awardFull({}) };
 }
 
-module.exports = { ensure, diligenceXml, diligenceClaim, logTopup, discountXml, discountClaim, lotteryXml, lotteryBuy, lotteryClaim, prizeOf, phaseAt };
+module.exports = { topupsToday, ensure, diligenceXml, diligenceClaim, logTopup, discountXml, discountClaim, lotteryXml, lotteryBuy, lotteryClaim, prizeOf, phaseAt };

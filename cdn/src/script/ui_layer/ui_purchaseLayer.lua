@@ -576,6 +576,10 @@ function initHandle(self)
 							pcall(function() GetMainMenu():GetCurrentSubMenu():InitNormalHeader() end)
 						end
 						refreshChargeUI()
+					elseif item ~= nil then
+						-- revival server: say why (e.g. the one-top-up-a-day limit) instead of doing nothing
+						local msg = item:find("message")
+						if msg and msg[1] then GetMainMenu():ShowTextTip(tostring(msg[1]), -1) end
 					end
 				end)
 			else

@@ -130,6 +130,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Spar pays exactly what the game's own preview shows (EXP, W.A., silver from its duel table) |
 | ✅ | Element Change works (it did nothing before): 12 Element Change Pills + 2000 silver for a God card, random new element |
 | ✅ | God evolve costs 100 Development Dan like the original (it was free); the new card keeps rebirth and growth |
+| ✅ | Top-ups: one package a day per player (owner); a switch in the control panel (Server tab) unlocks unlimited top-ups. A second top-up says "You can top up once a day" (update 28.0.25) |
 | ✅ | World Boss shows the right name for each boss (always said "Deidara"); bosses rotate and you fight the boss itself (update 28.0.24 not needed, server side) |
 | ✅ | 7-day Goals: the Claim button stays grey until the goals are done (a screen error made it look ready; update 28.0.24) |
 | ✅ | Wheel of Fortune countdown shows the time to Monday (said "3649 hours") |

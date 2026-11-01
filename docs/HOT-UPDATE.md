@@ -28,3 +28,4 @@ Note: mainActivity.lua is run by C++ straight from the OBB, so patching it does 
 28.0.22 = util/common.lua: the cross-server battle (MULTI_BATTLE_CGI_IP) talks to the game's own server (CServerListMgr server url) instead of the dead 23.91.96.227:8080.
 28.0.23 = ui_layer/multi_battle/ui_multiBattleScoreDlg.lua: the cross-server Score Ranking pop-up starts with an empty list (it asked the size of a nil list before the server answered: Lua error).
 28.0.24 = ui_layer/ui_sevenDayView.lua: the 7-day goals screen no longer stops with a Lua error (its layout has no label_get_award_day_left), so the Claim button is grey until the goals are done.
+28.0.25 = ui_layer/ui_purchaseLayer.lua: a refused top-up shows the server's reason (the one-top-up-a-day limit).

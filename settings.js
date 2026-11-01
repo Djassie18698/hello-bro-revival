@@ -30,6 +30,7 @@ const EVENTS = [
   { id: 'totalgift', screen: 11, pos: 22, type: 2, limited: true, icon: '💵', name: 'Great gift for total recharge', desc: 'Top up $240 / $420 / $750 in 48 h (free here) for the original gifts: Minato + Shakujo, a 2nd-rebirth Hokage Kakashi (God), a 7th-rebirth Kaguya (God) and pills.' },
   { id: 'dailycost', screen: 25, pos: 23, type: 2, limited: true, icon: '🪙', name: 'Daily spending gift', desc: 'Spend 100 / 500 / 1000 / 2000 gold in a day for pills, Souls Dan and keys; resets every day. Runs 7 days. Rewards are ours (no photo).' },
   { id: 'keeppay', screen: 26, pos: 25, type: 2, limited: true, icon: '📆', name: 'Recharge streak', desc: 'Top up (free here) on 7 different days for 7 daily gifts and a bonus (300 Reincarnation Pills + 200 Souls Dan). Rewards are ours.' },
+  { id: 'paylimit', noconf: true, icon: '🔒', name: 'Top-up limit: one package a day', desc: 'Each player can top up (free here) only once a day, so gold and gear stay earned. Switch off to allow unlimited top-ups. Resets at midnight (server time).' },
   { id: 'bench', noconf: true, limited: true, icon: '📏', name: 'Benchmark rivals in Spar', desc: 'Six computer rivals at the top of Spar with 100K, 500K, 1M, 2M, 4M and 8M defence. Free, no rewards: to test a team.' },
 ];
 const DISCORD = 'https://discord.gg/2Cbp4UDHrU';

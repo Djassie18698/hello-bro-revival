@@ -42,4 +42,4 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • Check the **Event** menu and the **Daily Task** list every day for free rewards.
 • **World Boss** (Event menu): an Akatsuki member invades every day. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
 • **Lottery** and **Wheel of Fortune** open at level 10.
-• Top-ups are free on this server and raise your VIP level. VIP gives extra daily chances (Save time, gold chests and more).
+• Top-ups are free (one package a day) and raise your VIP level. VIP gives extra daily chances (Save time, gold chests and more).
