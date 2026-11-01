@@ -131,6 +131,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | 🧪 | Element Change works (it did nothing before): 12 Element Change Pills + 2000 silver for a God card, random new element |
 | 🧪 | God evolve costs 100 Development Dan like the original (it was free) |
 | 🧪 | Equipment advance costs 50 000 silver like the original; small EXP-card bags 2000 silver; gold chest opens a day from the VIP table (VIP1 25 ... VIP11 75) |
+| ✅ | Real login on our own server: the account window remembers the phone, sign up with a name + password to move phones; public servers only let logged-in players in (new game file) |
 | ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |
 
 ## Still to build
@@ -138,7 +139,6 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | | What |
 |---|---|
 | ⏳ | Cross-server battle (the game has the screens, the server doesn't answer yet) |
-| ⏳ | Real login with a password (now any device just logs in) |
 
 ## Known, harmless
 

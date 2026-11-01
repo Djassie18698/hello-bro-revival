@@ -51,6 +51,27 @@ Every number that came from the game's own data is kept as it was. Where the ori
 
 Details and troubleshooting: [`HOST-YOUR-OWN-SERVER.md`](HOST-YOUR-OWN-SERVER.md) · playing on someone else's server: [`PLAY-ON-TAILSCALE.md`](PLAY-ON-TAILSCALE.md)
 
+### 🥷 Your own playthrough (just you, on your own PC)
+
+Want a world of your own? The server and the game run on the same PC, nothing to forward, no Tailscale.
+
+1. *Code → Download ZIP* and unzip it, e.g. to `Desktop\HelloBroServer`.
+2. From the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases) download `HelloBro-Tailscale-….xapk` into that folder.
+3. Double-click **`HOST-MY-SERVER.bat`**. When it asks for an address, **just press Enter** (it uses your own PC's address). It makes `HelloBro-for-<your address>.xapk`.
+4. Double-click **`START-SERVER.bat`** and leave the window open.
+5. Install **BlueStacks 5**, drag your `HelloBro-for-….xapk` onto it, open the game. The account window picks **Play** by itself (it remembers you), then press **START** and create your ninja.
+
+Your save is `hellobro.db` in the folder: yours alone, kept safe by backups in `backups\`. The admin page (http://localhost:18080/admin) can give gold or reset your character.
+Friends on the same Wi-Fi can join with the same `.xapk`.
+
+### 🌍 Public server (people over the internet)
+
+Forward **TCP port 18080** in your router to your PC, get a free name at [duckdns.org](https://www.duckdns.org), build the game file with `HOST-MY-SERVER.bat` and that name (e.g. `yourname.duckdns.org`), and start **`START-PUBLIC-SERVER.bat`** instead of `START-SERVER.bat`.
+The public server has its **own save** (`public.db`), players **must log in** (the game's account window: Play as guest, or sign up with a name and password to use the account on another phone), and the admin page asks for a password.
+Your private save is not touched: close one server and start the other to switch (both use port 18080, so one at a time).
+
+The official public server: download `HelloBro-ninjaonline.xapk` from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases).
+
 ### 🔄 Getting the newest fixes
 
 Close the server window, double-click **`UPDATE.bat`** (first time it installs the GitHub tool and asks you to log in), start the server again and tap **Confirm** in the game. Your save is never touched.
@@ -78,6 +99,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
+- **2 Nov 2026 (later):** **real login**: the game's account window now logs in on our own server (no more Gumptech), remembers your phone (Play as guest) and can sign up a name + password to move to another phone; new **`START-PUBLIC-SERVER.bat`** for an internet server with its own save, and a guide for solo playthroughs. Needs the new game file from the Releases page.
 - **2 Nov 2026:** all ~3 580 photos of the original game read; Save time, Ninja Test, arena rewards, Ninja Treasure, secret shop refresh and shop prices now use the original numbers, new **Growth Fund**, **change country**, **Great gift for total recharge** and **Time limited GiftPack** with the original rewards, daily spending gift and recharge streak; monthly sign-in, top-up packages, Akatsuki, country war, spar and Element Change balanced to the original photos:
   [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
 - **1 Nov 2026:** holiday and limited events (**Christmas** with the original trades, New Year, God Recruit, Hot Treasure, Gold spending, Diligence gift, Limited discount, Lottery), card stats exactly like the game, a **team builder**, everything in one **control panel**, the ramen window when out of energy, new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,

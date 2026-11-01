@@ -23,7 +23,9 @@ base = os.path.join(rel, '_base.apk')
 apk = os.path.join(rel, f'HelloBro-for-{safe}.apk')  # the keystore next to it (release/revival.keystore) signs it
 with zipfile.ZipFile(src) as z:
     open(base, 'wb').write(z.read('com.hello.bro.yo.apk'))
-subprocess.check_call([sys.executable, '-I', os.path.join(root, 'tools', 'patch_apk.py'), base, apk, addr])
+# release/classes-revival.dex = the game's Java code with the account window pointed at our server (tools/patch_login_smali.py)
+dex = os.path.join(rel, 'classes-revival.dex')
+subprocess.check_call([sys.executable, '-I', os.path.join(root, 'tools', 'patch_apk.py'), base, apk, addr] + ([dex] if os.path.exists(dex) else []))
 os.remove(base)
 
 out = os.path.join(root, f'HelloBro-for-{safe}.xapk')

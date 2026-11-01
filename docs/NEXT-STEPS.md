@@ -645,3 +645,16 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Checked in game: top-up screen + $49 gift claim, monthly sign-in (VIP x2 paid 20 000). Not yet in game: Akatsuki, war, spar, element, evolve.
   * Open: recruit gold prizes (Gold*210 / 500 / 1000 / 2000 from the 300-gold recruit) need the recruit result screen researched;
     border war daily rewards; five-element camp bonus panel.
+
+## 2 Nov 2026 (later): real login
+  * The Uin/Session came from the Gumptech SDK in classes.dex (com.gumptech.sdk), which talked to http://api.gumptech.com (still online):
+    POST /quick/login.do (deviceId, appId 10015, passwd = phone-kept secret), /quick/reg.do, /gump/login.do + /gump/reg.do (email, passwd).
+    Answer JSON read by com.gumptech.sdk.d.a: code 100000 OK, nick, userId (= game Uin), sessionKey (= game Session); 100010 bad
+    password, 100011 name taken, 100012 no such user. The game then sends Uin/Session to rl_w_login2.
+  * release/classes-revival.dex: com/gumptech/sdk/c/a/b.smali now takes its base address from assets/baseconfig.json server.url
+    (tools/patch_login_smali.py, built with apktool 2.10.0). make_game_for.py puts it in every game file.
+  * gumplogin.js answers those .do paths (server.js routes *.do); table logins (guest by deviceId, named by email; scrypt hashes).
+    A phone the server does not know yet is asked at api.gumptech.com once, so players keep their old account number.
+  * LOGIN_LOCK=1 (START-PUBLIC-SERVER.bat): rl_w_login2 and every request need the session the login handed out; unknown uids are not
+    auto-created. Checked in game: guest login keeps 22080033, relaunch logs in by itself, Signup names the same account, fake session refused.
+  * START-PUBLIC-SERVER.bat: DB=public.db, HB_BACKUPS=backups-public, LOGIN_LOCK, STRICT_SESSIONS, ADMIN_PASSWORD from admin-password.txt.

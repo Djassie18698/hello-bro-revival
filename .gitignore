@@ -12,3 +12,8 @@ hellobro.db
 *.db
 re/
 tools/dev/emu.device
+
+# admin password of the public server (START-PUBLIC-SERVER.bat asks for it once)
+admin-password.txt
+backups-public/
+release/HelloBro-for-*.apk
