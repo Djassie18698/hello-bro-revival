@@ -130,7 +130,9 @@ Current: **28.0.23** (28.0.23 Score Ranking pop-up fix; 28.0.22 cross-server bat
   START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcements (every update) · #faq.
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
   #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
-  Keep it updated: new feature -> #announcements + edit #how-to-play; install/update change -> edit #install-help / #faq. Never reply in chat channels.
+  Guides (#welcome, #install-help, #how-to-play, #faq) are built from `discord/guides/<channel>.md` ("## " = one chapter, contents with jump links on top):
+  edit the file, then `node --env-file=.env guides.js <channel> apply` (replaces only the bot's own posts there).
+  Keep it updated: new feature -> #announcements + how-to-play.md; install/update change -> install-help.md / faq.md. Never reply in chat channels.
 
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
