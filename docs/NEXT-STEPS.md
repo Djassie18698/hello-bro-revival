@@ -811,3 +811,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     first too). Checked in game: Compete and Rank tabs open, 4 pictures per row.
   * Re-checked in game (dev server): Ninja Test stage 5 chests free / 160 / 250 gold (gold 2170 -> 1760), team slot 5 opens
     after stage 1-12 at level 30+.
+  * Screen tour in game (level 45 test account, fresh start before each screen): Plunder, Akatsuki, War, Battles, No.1 list,
+    Daily Task, Event menu + all 8 sub-pages, Wheel, Mora, Treasure, Millionaire, Award Center, login gifts, Save time, Top-up,
+    Growth Plan, all 8 bottom-row icons, Team, Backpack, Training, Shop, Advance, Breakthrough: no crash, no Lua error.
+    Ninjabook first page all grey is correct (sorted by ninjabookrank; this account's ninjas are at places 49-111).
