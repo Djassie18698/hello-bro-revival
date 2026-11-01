@@ -2,6 +2,7 @@
 
 python -I tools/pvrccz.py topng <file.pvr.ccz> <out.png>
 python -I tools/pvrccz.py frompng <in.png> <original.pvr.ccz> <out.pvr.ccz>   (keeps the original's pixel format)
+WARNING: frompng output broke the pop-up in game (28.0.18 showed a dark purple box), so only topng (reading) is trusted.
 Key = the four numbers libgame.so passes to ZipUtils::ccSetPvrEncryptionKey at 0x265b96.
 """
 import struct, sys, zlib

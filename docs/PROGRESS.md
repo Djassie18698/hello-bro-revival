@@ -101,7 +101,6 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Discord link on GitHub, in the top banner and in Settings |
 | ✅ | Ramen window when out of energy in training |
 | 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now pays what a Big Ramen's energy earns on your current stage, no free ramen |
-| 🧪 | "So lucky" pop-up button said "Fold" with a tiny "Proceed" on top: now just "Proceed" (update 28.0.18) |
 | ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
 | ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
 

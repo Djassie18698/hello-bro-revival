@@ -552,3 +552,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   free ramen. The screen's item is BIG_ENERGY_ITEM_ID = 4 (Lua constant set in libgame.so at 0x3e4964, 4.0) = Large ramen, 200 energy.
   Now: one Large ramen = what 200 energy earns fighting the player's current story stage (roundinfo [22] cost, [23] exp, [24] silver)
   (ours); chapter 1-1 = 396 exp / 990 silver, chapter 19 end = 4 860 / 5 760. No free ramen. Chapter/round = furthest story stage.
+- 28.0.18 broke the "So lucky" pop-up: every drop showed a dark purple box (I mistook that for a different pop-up while testing). The
+  re-encoded .pvr.ccz is wrong somewhere (decoding is right: the original decodes to a clean picture). 28.0.19 ships the original files
+  back; owner chose to keep "Fold". Verified in game: So lucky + Fold show again.
