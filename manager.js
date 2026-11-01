@@ -54,9 +54,10 @@ module.exports = async function manager(req, res, u, db, readBody) {
     return res.end('password required');
   }
   const port = req.socket.localPort;
+  if ((u.pathname === '/manager' || u.pathname === '/manager/') && !u.query.embed) return require('./admin').panel(res, 'server');
   if (u.pathname === '/manager' || u.pathname === '/manager/') {
     if (!pageCache || process.env.HB_DEBUG) pageCache = fs.readFileSync(path.join(__dirname, 'manager.html'), 'utf8');
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     return res.end(pageCache);
   }
   if (u.pathname === '/manager/api/status') return json(res, status(db, port));

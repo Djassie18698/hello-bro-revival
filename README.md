@@ -30,7 +30,7 @@
 | 🥷 **Cards & team** with chains that turn red when active | 🎰 **Recruit** with free timers and a pity counter | 🗺️ **Training** in parts, bosses, drops, reward wheel |
 | ⚔️ **Spar, Arena, Battles, War, Border war** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
 | 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
-| 🖥️ **Server Manager**: who is online, events on/off, top banner, announcement, backups, restart | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** 1x / 10x |
+| 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** 1x / 10x |
 
 Every number that came from the game's own data is kept as it was. Where the original value was lost on the dead server we picked one and marked it **(ours)** in the code and in the docs.
 
@@ -75,7 +75,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
-- **1 Nov 2026:** new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,
+- **1 Nov 2026:** holiday and limited events (**Christmas** with the original trades, New Year, God Recruit, Hot Treasure, Gold spending), a **team builder**, everything in one **control panel**, the ramen window when out of energy, new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,
   chapters open after the last boss, a **Join Discord** button in the game's Settings and the Discord link in the top banner, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts:
   [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md).
 - **31 Oct 2026:** the big fix day (training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more):

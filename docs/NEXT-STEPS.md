@@ -452,3 +452,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   the client only knew items after opening the shop: rl_r_shoplist Cmd 1600 (login) is ALSO parsed for <goods> (CTradeMgr: LoadGiftPackInfo then
   LoadConsumInfo), so 1600 now carries the goods list. The server also refuses a training fight without energy with code 40004 (= the client opens
   its ramen window). Verified in game: GO with 2 energy -> ramen window -> Use -> energy 203.
+
+## Control panel + team editor (1 Nov 2026)
+- panel.html at / /admin /manager (admin.panel(res, start)); pages embedded with ?embed=1 (html.embed hides their header/backdrop); tabs via postMessage.
+  Pages are sent with Cache-Control no-store (an old cached admin.html was served inside the panel once).
+- Team editor: GET /admin/api/team?uid (slots, owned cards by type, power), POST /admin/api/setteam {uid, slots:[{ninja:{seq}|{give}, level, newlife,
+  growth, equip:{kind:{seq}|{give}, level, newlife}}]} in one transaction (rolls back on a duplicate or a gear piece of the wrong slot). Capped at maxTeam.

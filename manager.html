@@ -116,6 +116,16 @@ textarea:focus{border-color:var(--orange)}
 .modal .panel{max-width:420px;text-align:center}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
 </style>
+<script>
+// Inside the control panel (panel.html) this page runs embedded: no own header or backdrop, the panel's tabs are at the top.
+if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');
+</script>
+<style>
+html.embed body{background:transparent}
+html.embed .bg{display:none}
+html.embed .wrap{padding-top:18px}
+</style>
+<style>html.embed header>.logo,html.embed header>div:not(.actions),html.embed #adminLink{display:none}html.embed header{margin-bottom:14px}</style>
 </head>
 <body>
 <div class="bg"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
@@ -124,7 +134,7 @@ textarea:focus{border-color:var(--orange)}
     <div class="logo">🍥</div>
     <div><h1>HELLO BRO · SERVER</h1><div class="sub">Server Manager: status, events, announcement, backups</div></div>
     <div class="actions">
-      <a class="btn purple" href="/admin" target="_blank">🎁 Admin page</a>
+      <a class="btn purple" id="adminLink" href="/admin">🎁 Admin page</a>
       <button class="btn ghost" onclick="backup()">💾 Backup now</button>
       <button class="btn" id="brestart" onclick="ask('restart')">🔄 Restart</button>
       <button class="btn danger" onclick="ask('stop')">⏻ Stop</button>
@@ -312,6 +322,7 @@ async function pollLog() {
     if (add.length) { lines.push(...add); since = add[add.length - 1].t; if (lines.length > 1500) lines.splice(0, lines.length - 1500); renderLog(); }
   } catch {}
 }
+$('adminLink').onclick = (e) => { if (window.parent !== window) { e.preventDefault(); window.parent.postMessage({ goto: 'admin' }, location.origin); } };
 refresh(); pollLog(); renderLog();
 setInterval(refresh, 3000); setInterval(pollLog, 1500);
 </script>
