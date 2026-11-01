@@ -38,6 +38,15 @@ const run = (name, cmd, extra = {}) => {
 };
 run('rl_w_login2', 0); run('rl_w_reg2', 0, { Nick: 'Smoke', Card: 1 });
 for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[name] || [])])) run(name, c);
+// The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
+{
+  const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });
+  const cards = home.match(/<card>.*?<\/card>/g) || [];
+  for (const f of ['type', 'id', 'seq', 'level', 'attri', 'starlevel', 'newlife']) {
+    const miss = cards.filter((c) => !c.includes(`<${f}>`)).length;
+    if (!cards.length || miss) { bad++; console.log('LOGIN DATA', cards.length ? `${miss} card(s) without <${f}>` : 'no cards'); break; }
+  }
+}
 try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
 console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
 process.exit(bad ? 1 : 0);
