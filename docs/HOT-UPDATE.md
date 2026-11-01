@@ -19,3 +19,4 @@ Note: mainActivity.lua is run by C++ straight from the OBB, so patching it does 
 28.0.10 = adds ui_layer/ui_sevenDayCell.lua with English texts for the 7-day goals (the game's own table is Thai).
 28.0.11-13 = ui_layer/ui_gameSettingLayer.lua: the hidden "switch account" row in Settings is now a "Join Discord" button (openHyperlink to https://discord.gg/2Cbp4UDHrU). Lua button titles: setTitleForState with a Lua string does nothing and with CCString errors here; set getTitleLabel() (CCLabelTTF) instead.
 28.0.14-15 = ui_layer/ui_festivalLayer.lua: the festival item icons load their own sprite sheet (props/<icon>.plist) inside pcall (spriteFrameByName on an unloaded frame and GetConsumeIcon both failed and stopped the trade list).
+28.0.16 = config/activity_config.lua: event 27 (limited discount) opens business_proxy/limitDiscount_business in the Event menu (its name was a home-button script call -> empty page).

@@ -27,7 +27,8 @@ activityConfig[23] =  {id=23, type=0, name="business_proxy/evaluateApp_business"
 activityConfig[24] =  {id=24, type=1, name="GetMainMenu():ChangeToActivitySubMenu(\"ShowNinjaTreasureView\")", icon="ccbResources/activity_icon_9.png"}
 activityConfig[25] =  {id=25, type=0, name="business_proxy/dailyPay_business", icon="activity23"}
 activityConfig[26] =  {id=26, type=0, name="business_proxy/keepPay_business", icon="activity24"}
-activityConfig[27] =  {id=27, type=1, name="GetMainMenu():ChangeToActivity(\"business_proxy/limitDiscount_business\")", icon="activity25"}
+-- revival server: in the Event menu the name must be the business_proxy file itself (the old home-button script call made an empty page)
+activityConfig[27] =  {id=27, type=0, name="business_proxy/limitDiscount_business", icon="activity25"}
 activityConfig[28] =  {id=28, type=0, name="business_proxy/webpurchase_business", icon="activity27"}         --用于泰国IOS网页支付
 activityConfig[29] =  {id=29, type=0, name="business_proxy/webTshirt_business", icon="activity28"}			--用于泰国Tshirt 活动
 activityConfig[30] =  {id=30, type=1, name="business_proxy/dailyRestriction_business", icon="activity30"}

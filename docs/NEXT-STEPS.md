@@ -464,3 +464,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (newlifeprop row with m_newlife_times = rebirth grade: basis col 4, grow col 5), growth bonus = (min+max)/2 * ninjastrengthconfig[growth] added to min
   and max, + training points. Old guess was +5%/growth level and +10%/rebirth (far too low at high levels). Checked on Susa Indra lv50 R8 G15:
   detail screen 6663-8336 +12092 = server 18755-20428 exactly. equipStats: equipnewlifeprop matched by col 3 (grade), rounded down like the client.
+
+## Diligence gift, limited discount, lottery (1 Nov 2026)
+- limited.js. Diligence (id 33): rl_r_multiple_task 1/2 (<tasks><task id desc done current_recv total_recv can_recv><item id icon name/></task></tasks><remain>),
+  counters = dailytask. Discount (id 27): rl_r_activity 9004 (<preview mincash resttime maxval/><award state><item drop icon name/></award>), claim rl_w_activity
+  9100 ActType 10; gold topped up is logged in topup_log (rl_x_free_topup, rl_w_ky_payorder). Its activity_config entry was a home-button script call
+  ("Get data from file(GetMainMenu():ChangeToActivity(...).lua) failed" = empty page): fixed in 28.0.16. Lottery (id 22): rl_r_lottery 1/2/3, rl_w_lottery
+  1 No / 2 claim; draw 20:30 server time, prize = digits in place (3+/2/1), from the game texts. All numbers (ours). Verified in game: all 3 screens.
