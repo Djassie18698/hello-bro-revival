@@ -578,3 +578,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Secret shop Refresh (rl_x_mystery_shop Cmd 2) did nothing before. Now: Refresh Order (prop 31) or 20 gold, 75 + 5 x VIP a day
     (code 325006 when used up), goods change every 2 h by themselves; table secret_state (day, used, seed); bought rows per board.
     Checked in game.
+  * Shop: Reincarnation Pill 120 gold and Development Dan 120 gold like the original shop photos (consumeinfo says 180 / 200);
+    game.SHOP_GOLD overrides both the list (rl_r_shoplist prop_yuanbao) and the price paid.

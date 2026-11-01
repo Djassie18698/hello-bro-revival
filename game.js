@@ -647,10 +647,14 @@ function propAdd(db, uid, sid, id, n) {
   db.prepare('INSERT INTO props(uid,server_id,prop_id,count) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,prop_id) DO UPDATE SET count=MAX(0,count+excluded.count)').run(uid, sid, id, n);
 }
 // Buy: kind 'good' (consumeinfo) or 'pack' (giftinfo, opened immediately for coins/gold).
+// Gold prices the original shop showed that differ from consumeinfo (Facebook photos 0080, 0082, 1011, 1757, 2964): Reincarnation Pill 120
+// (table 180), Development Dan 120 (table 200).
+const SHOP_GOLD = { 11: 120, 34: 120 };
+const shopGold = (row) => SHOP_GOLD[row[1]] ?? row[4];
 function shopBuy(db, pl, goodsId, count) {
   const row = table('consumeinfo').rows.find((r) => r[1] === goodsId);
   if (!row) return { error: 'no such item' };
-  const costG = row[4] * count, costS = row[5] * count;
+  const costG = shopGold(row) * count, costS = row[5] * count;
   if (pl.gold < costG || pl.coin < costS) return { error: 'not enough gold' };
   db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
   propAdd(db, pl.uid, pl.server_id, goodsId, count);
@@ -1398,4 +1402,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

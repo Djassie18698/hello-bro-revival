@@ -1205,7 +1205,7 @@ module.exports = {
     const owned = shopOwned(p);
     // unpriced items the player owns (pet grain/nostrum...) are listed too: this list is where the client learns its bag counts
     const goods = game.table('consumeinfo').rows.filter((r) => r[4] > 0 || r[5] > 0 || (owned[r[1]] || 0) > 0).map((r, k) => ({
-      propid: r[0], prop_name: esc(r[2]), prop_icon: r[3], prop_yuanbao: r[4], prop_yinzi: r[5], prop_show: 1, prop_function: r[7],
+      propid: r[0], prop_name: esc(r[2]), prop_icon: r[3], prop_yuanbao: game.shopGold(r), prop_yinzi: r[5], prop_show: 1, prop_function: r[7],
       prop_function_value1: n(r[8]), prop_function_value2: n(r[9]), prop_function_value3: n(r[10]), prop_function_value4: n(r[11]), bagnum: owned[r[1]] || 0, prop_order: k + 1,
     }));
     // Cmd 1600 (sent at login) is ALSO read for the goods list (CTradeMgr::onHttpRequestCompleted: LoadGiftPackInfo, then LoadConsumInfo, then
