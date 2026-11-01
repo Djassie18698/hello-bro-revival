@@ -767,3 +767,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Checked in game: ticket (535 -> 35 gold, "You have entered already"), battle list like photo 3238, challenge 41 -> win -> position 41
     +5 points a second, list moves to 35-40, Score Ranking, Merit tabs (present / server / nation / history), shop exchange 24 000 points ->
     4-star Gamabunta with the card reveal. The rank screen's client-side check uses the points from its last Present load.
+## 1 Nov 2026 (evening): first boss stays hard; replay = skip
+  * Owner: keep the first boss hard (~23 % for an un-upgraded starter). Decision unchanged (rl_w_pve average attack x 0.85-1.15).
+  * Checked in game: lost 1-2 watched (LOSE, 1 enemy left) and skipped (LOSE), won 1-2 skipped (Victory): the result screen always
+    follows the server's decision. But the replay used to scale the enemy defence to reach that result (same boss showed DEF 215 / 285 / 385).
+    battleXml now keeps the real enemy stats and re-rolls only my luck (attack inside my card range, ninjutsu chances) up to 400 times until
+    the replay ends as decided; defence nudging is only a last resort. 400 test fights at 1-2: 0 mismatches, enemy defence 285 every time.

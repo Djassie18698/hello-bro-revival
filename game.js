@@ -431,18 +431,14 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   // used up = win; all my attack used up first = loss. Each round: Attack/Defense = what the two cards show before the hit, FinalAttack /
   // FinalDefense the values that meet (CNewFightCardView: the attacker keeps Final - FinalDefense, the defender FinalDefense - FinalAttack).
   const play = (foes, want) => {
-    const atk = mine.map((m) => Math.max(1, Math.round(m.low + Math.random() * (m.high - m.low))));
+    const rollAtk = () => mine.map((m) => Math.max(1, Math.round(m.low + Math.random() * (m.high - m.low))));
+    let atk = rollAtk();
     const def = foes.map((f) => Math.max(1, f.def || 1));
-    const sumA = atk.reduce((t, x) => t + x, 0), sumD = def.reduce((t, x) => t + x, 0);
-    // the server decided the result already: scale the enemy defence so the replay ends that way (a win needs my attack > their defence)
-    if (want === 'real') { /* benchmark: the replay decides */ }
-    else if (want === true && sumD >= sumA) { const k = (sumA * 0.85) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.max(1, Math.floor(def[j] * k)); }
-    if (want === false && sumD <= sumA) { const k = (sumA * 1.25) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.ceil(def[j] * k); }
     // Ninjutsu (owner's video: "Shadow technique, Skill damage increase: 72 (Chakra increase: 32)" = its attack value 40 + 32): when a ninja
     // starts attacking, each worn ninjutsu fires with its own chance (ninjutsuinfo m_rate, 15%); the damage (m_attackvalue + m_attackvalue_up per
     // card level above 1 + a chakra bonus) is added to that ninja's attack for the rest of its chain. At most 2 per hit (the client reads 2).
     // Chakra bonus = 20% of the ninja's average chakra (ours: the original formula is lost; the video fits it roughly).
-    const skillsOf = mine.map((m) => {
+    const rollSkills = () => mine.map((m) => {
       const skills = [];
       if (want === false && !process.env.HB_SKILLS) return skills;
       for (const r of m.jutsu) {
@@ -454,6 +450,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       }
       return skills;
     });
+    let skillsOf = rollSkills();
     foes.forEach((f) => { if (!f.attri) f.attri = foeAttri(f.id); });
     const rt = restrainTable();
     // Restrain (CFightResultData::firefly_CalcAttackVal: CauseLimit -1 adds LimitVal to "my restrain", 1 to "enemy restrain"): my element beats
@@ -478,8 +475,11 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       }
       return { rounds: rolled, won: j >= foes.length };
     };
-    // the restrain bonus can flip a close replay: nudge the enemy defence until it ends the way the server decided
+    // The server decided the result already. Keep the enemy's real stats and re-roll only my luck (attack inside my real range, ninjutsu
+    // chances) until the replay ends that way, so watching and skipping show the same fight with true numbers. Only if no roll fits
+    // (the decision's luck range is wider than the cards' range) the enemy defence is nudged as a last resort.
     let out = sim(def);
+    for (let k = 0; k < 400 && typeof want === 'boolean' && out.won !== want; k++) { atk = rollAtk(); skillsOf = rollSkills(); out = sim(def); }
     for (let k = 0; k < 30 && typeof want === 'boolean' && out.won !== want; k++) {
       for (let j = 0; j < def.length; j++) def[j] = want ? Math.max(1, Math.floor(def[j] * 0.9)) : Math.ceil(def[j] * 1.15);
       out = sim(def);
