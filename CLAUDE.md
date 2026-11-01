@@ -136,8 +136,9 @@ Not built yet (Lua screens exist): cross-server battle `rl_r_cross_war`/`rl_w_cr
 Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), element restrain (built), real rivals, arena teammates.
 Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 spar win screen shows silver 0 (silver is given; not found which object the screen reads);
-five-element panel (photo 2666) not
-found; check the first boss 1-2 with a brand-new account; Shop Tool tab count only refreshes at login. Balance: owner keeps it as is
+five-element panel (photo 2666, per-element atk/def/chakra/ninjutsu %) not found in any v28 layout;
+first boss 1-2: a brand-new account wins only ~23 % (avg attack 263 vs 285): asked the owner whether the replay should decide (55 %);
+Shop Tool tab count only refreshes at login (C++ cell redraw). Balance: owner keeps it as is
 (docs/BALANCE-SIMULATIONS.md); don't change rates without asking.
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
 (never opened), rebate wheel `rl_r_multiple_pay`. Login: gumplogin.js + release/classes-revival.dex (see NEXT-STEPS 2 Nov); the owner's public server ninjaonline.duckdns.org runs START-PUBLIC-SERVER.bat (LOGIN_LOCK, public.db; NOT in git, owner-only by request: GitHub only offers solo/private hosting + joining ninjaonline). Find more with: compare `reference/client-endpoints.txt` to `Object.keys(require('./handlers'))`.
