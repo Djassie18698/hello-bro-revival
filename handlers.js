@@ -359,7 +359,7 @@ module.exports = {
     const chip = Number(p.Chip) || 0;
     const got = chip && seals.plunder(db, pl, chip, r.win);
     // The fragment is stored on the server; the seal list re-reads counts (rl_r_markchip) when it is shown again.
-    const award = game.awardFull({ coin: r.coin, exp: r.exp });
+    const award = game.awardFull({ coin: r.coin, exp: r.exp, merit: r.merit });
     return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
   },
 

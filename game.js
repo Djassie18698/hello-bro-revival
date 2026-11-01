@@ -453,11 +453,16 @@ function sparFight(db, pl, toUid) {
   else theirs = botAtk(rv.level, rv.star || 3);
   const win = process.env.HB_SPAR ? process.env.HB_SPAR === 'win' : mine * (0.7 + Math.random() * 0.6) >= theirs; // HB_SPAR = test aid
   const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, rv.id, pl.server_id, rv.ninja), enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, win });
-  // ORIGINAL (Facebook photo 0078, spar preview at level 224): win EXP 228 + 15 W.A., lose EXP 76 + 5 W.A. (ours): EXP = level + 4 for a win,
-  // a third of it for a loss (fits that one photo); the silver stays ours (the photo's silver could not be worked out).
-  const coin = win ? 3 + rv.level : 0, exp = win ? pl.level + 4 : Math.round((pl.level + 4) / 3);
-  propAdd(db, pl.uid, pl.server_id, 9994, win ? 15 : 5); // W.A. (war achievements)
-  return { win, xml, coin, exp };
+  // ORIGINAL: the game's own duelinfo table, the same one its Spar Preview (CFightPreView) shows, picked by the RIVAL's level:
+  // [5] win EXP, [6] lose EXP, [7] / [8] W.A. for a win / loss, [3] share of the rival's silver won, [4] share of your silver lost
+  // (photo 0078: a level-224 player vs a level-340 rival = 228 / 76 EXP, 15 / 5 W.A., -542 silver). The bot's silver is the list's coin.
+  const rows = table('duelinfo').rows.filter((r) => r[0] === r[2]);
+  const d = rows.find((r) => r[0] === rv.level) || rows[rows.length - 1];
+  const theirCoin = rv.id < 9000000 ? ((db.prepare('SELECT coin FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id) || {}).coin || 0) : 100 + rv.level * 20;
+  const coin = win ? Math.round(theirCoin * d[3]) : -Math.round((pl.coin || 0) * d[4]), exp = win ? d[5] : d[6];
+  const merit = win ? d[7] : d[8];
+  propAdd(db, pl.uid, pl.server_id, 9994, merit); // W.A. (war achievements)
+  return { win, xml, coin, exp, merit };
 }
 
 // Player exp -> level (playerlevel.dbf col 2 = exp needed to leave that level).
@@ -524,8 +529,8 @@ function dailyClaim(db, pl, awardId) {
   return { xml: mergeAwards(a.drops.map((id) => grantDrop(db, pl, id)).filter(Boolean)) };
 }
 // Complete <award> element (Lua requires every child to exist).
-function awardFull({ coin = 0, cash = 0, exp = 0 } = {}) {
-  return `<award dropid="0" coin="${coin}"><coin>${coin}</coin><cash>${cash}</cash><exp>${exp}</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>`;
+function awardFull({ coin = 0, cash = 0, exp = 0, merit = 0 } = {}) {
+  return `<award dropid="0" coin="${coin}"><coin>${coin}</coin><cash>${cash}</cash><exp>${exp}</exp><chip>0</chip><action>0</action><merit>${merit}</merit><pk_action>0</pk_action><soul>0</soul></award>`;
 }
 
 // ---- Spar / rivals --------------------------------------------------------------------------

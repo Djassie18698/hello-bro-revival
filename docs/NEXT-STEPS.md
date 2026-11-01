@@ -658,3 +658,17 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * LOGIN_LOCK=1 (START-PUBLIC-SERVER.bat): rl_w_login2 and every request need the session the login handed out; unknown uids are not
     auto-created. Checked in game: guest login keeps 22080033, relaunch logs in by itself, Signup names the same account, fake session refused.
   * START-PUBLIC-SERVER.bat: DB=public.db, HB_BACKUPS=backups-public, LOGIN_LOCK, STRICT_SESSIONS, ADMIN_PASSWORD from admin-password.txt.
+
+## 2 Nov 2026 (evening): checked in game while the owner was away
+  * Akatsuki: mall (needed item_index per item), buildings upgrade (costs, Lv shown on the map from the real levels), worship incl.
+    card donations (Cmd 4 must answer <item_list> again, else ui_orgDonateEquipLayer.lua:257 errors), Hall shows the Hall bonus.
+  * errcodes.js: the client shows Struct_String_Menu text for the reply code; code 5 = "Your energy level is full". Code-5 replies
+    are re-coded by their message (10006 gold, 10008 silver, 170007 claimed, 312000 event over, 277 materials, 166 not open, 8000 other).
+  * Fights: game.foeTeam gives 3 different enemy ninjas (a real player's own team; bots seeded by id). War guard gets random ninjas.
+  * War win checked: EXP +36, silver +36, W.A. 10 shown like photo 2315.
+  * Element Change checked (12 pills + 2000 silver, Water -> Fire). Cards with attri 0 are sent as 1 (the screen showed "nil").
+    Element Change Pill is not for sale (photos); shopBuy refuses items without a price.
+  * God evolve checked (100 Development Dan); the new card keeps the best rebirth / growth (the screen says so).
+  * Spar now uses the game's duelinfo table by RIVAL level (exactly what CFightPreView shows): win/lose EXP [5]/[6], W.A. [7]/[8],
+    silver = rival silver x [3] on a win, your silver x [4] lost on a loss. Result screen shows W.A.; it shows silver 0 although the
+    silver is given (+568 seen in the save) - not found yet which field that label reads.
