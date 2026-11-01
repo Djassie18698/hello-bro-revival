@@ -497,3 +497,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Set bonuses (suit_info, "Shinobi colour card" / "Shinobi Growth Cards"): type 2 counted card LEVEL (every lv 50 card counted) instead of growth
   (cards.starlevel); per type the set with the most cards won, so 21 four-star beat 21 five-star/six-star. Now the biggest bonus wins.
   Owner save: 21 Six-Star Cards + 21 Twelve-Level Cards. Not checked on screen.
+
+## Fights = the original rule (owner video youtu.be/8AFcM2mFGMs 1:42, 1 Nov 2026)
+- Only my side attacks. My ninja hits the first standing enemy; the enemy defence is taken off its attack; attack left -> same ninja hits the next
+  enemy; defence left -> next ninja of mine continues against that enemy. Win = all enemy defence used up. Video: 291(+72 skill)=363 vs 140(+20)=160
+  -> 203 left, vs 125 -> 78; victory screen "total attack 671 vs total defence 285". game.battleXml play(): one roll per my ninja; enemy defence
+  scaled so the replay ends the way the server decided. Verified in game: a lost spar (attack < defence rounds) plays out and shows Lose, no crash.
+  Not built yet: ninjutsu "skill damage increase" pop-ups (FinalAttack > Attack with <skills>).

@@ -361,57 +361,35 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     const high = Math.max(1, Math.round(me.high * ratio)), low = Math.max(1, Math.round(me.low * ratio));
     return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), def: Math.max(1, Math.round(high * 0.3)), level: opt.enemyLevel || 1, star: 0 };
   });
-  // Turn-based replay: my ninjas and the enemies hit in turn, each target is the first living ninja on the other side; a ninja
-  // falls when the damage it took reaches its `end`. The winner is whoever still stands, so what the client shows is consistent.
-  const play = (foes, sweep) => {
-    const hp = new Map([...mine, ...foes].map((n) => [n.bagid, sweep === true && foes.includes(n) ? 1 : n.end]));
+  // The original fight (owner's video of v28, Mizuki 1-2): only my side attacks. My first ninja hits the first standing enemy with its attack;
+  // the enemy's defence is taken off that attack. Attack left over -> the SAME ninja hits the next enemy (291+72 vs 140+20 -> 203 left, then
+  // vs 125 -> 78 left, both enemies down). Defence left over -> that enemy keeps the rest and my next ninja carries on. All enemy defence
+  // used up = win; all my attack used up first = loss. Each round: Attack/Defense = what the two cards show before the hit, FinalAttack /
+  // FinalDefense the values that meet (CNewFightCardView: the attacker keeps Final - FinalDefense, the defender FinalDefense - FinalAttack).
+  const play = (foes, want) => {
+    const atk = mine.map((m) => Math.max(1, Math.round(m.low + Math.random() * (m.high - m.low))));
+    const def = foes.map((f) => Math.max(1, f.def || 1));
+    const sumA = atk.reduce((t, x) => t + x, 0), sumD = def.reduce((t, x) => t + x, 0);
+    // the server decided the result already: scale the enemy defence so the replay ends that way (a win needs my attack > their defence)
+    if (want === true && sumD >= sumA) { const k = (sumA * 0.85) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.max(1, Math.floor(def[j] * k)); }
+    if (want === false && sumD <= sumA) { const k = (sumA * 1.25) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.ceil(def[j] * k); }
+    foes.forEach((f, j) => { f.def = def[j]; });
     const rolled = [];
-    const alive = (list) => list.filter((n) => hp.get(n.bagid) > 0);
-    const round = (att, def) => {
-      // FinalAttack / FinalDefense are what the two cards show (CNewFightCardView::SetFinalData: the attacker's card shows attack - defense when
-      // positive, the defender's card defense - attack when positive). The client subtracts as UNSIGNED numbers: an attack below the defence wraps
-      // to a huge damage ("2000K") and crashes, so FinalAttack must never be below FinalDefense (clamped to defence + 1).
-      const roll = Math.max((def.def || 0) + 1, Math.round(att.low + Math.random() * (att.high - att.low)));
-      hp.set(def.bagid, hp.get(def.bagid) - roll);
-      rolled.push({ AttackNinja: att.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: def.bagid, Defense: def.def || 0, DefenseAttri: 0,
-        CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: def.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
+    let i = 0, j = 0;
+    while (i < mine.length && j < foes.length && rolled.length < 60) {
+      const a = atk[i], d = def[j];
+      rolled.push({ AttackNinja: mine[i].bagid, Attack: a, AttackAttri: 0, DefenseNinja: foes[j].bagid, Defense: d, DefenseAttri: 0,
+        CauseLimit: 0, LimitVal: 0, FinalAttack: a, FinalDefense: d, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
         AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
-    };
-    if (sweep === true) { // won fight: each of my hits takes one enemy down, so the client's enemy counter ends at 0 (a longer replay made it go negative)
-      const weakest = Math.min(...mine.map((m) => m.low)); // the enemy card's end must be below any hit so one hit really kills
-      foes.forEach((f) => { f.end = Math.max(1, Math.min(f.end, Math.round(weakest * 0.8))); });
-      foes.forEach((f, i) => round(mine[i % mine.length], f)); // only my side hits: one kill per round
-      return { rounds: rolled, won: true };
+      if (a > d) { atk[i] = a - d; def[j] = 0; j++; }
+      else if (a < d) { def[j] = d - a; atk[i] = 0; i++; }
+      else { atk[i] = 0; def[j] = 0; i++; j++; }
     }
-    if (sweep === 'lose') {
-      // Lost fight. In this game only the attacking team hits (CFightResultData::AddFightRoundData reads every round from the attacker's
-      // side): a loss is the attackers' hits failing to take every defender down. Each of my ninjas lands one weak hit (just above the
-      // enemy's defence, far below its life), the enemies stay standing and the result is "lose".
-      foes.forEach((f) => { f.end = Math.max(f.end, ((f.def || 0) + 2) * (mine.length + 2)); });
-      mine.forEach((m, i) => {
-        const f = foes[i % foes.length], roll = (f.def || 0) + 1;
-        hp.set(f.bagid, hp.get(f.bagid) - roll);
-        rolled.push({ AttackNinja: m.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: f.bagid, Defense: f.def || 0, DefenseAttri: 0,
-          CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: f.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
-          AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
-      });
-      return { rounds: rolled, won: false };
-    }
-    for (let t = 0, turn = 0; t < 200 && alive(mine).length && alive(foes).length; t++, turn++) {
-      const mineTurn = turn % 2 === 0, atkSide = alive(mineTurn ? mine : foes), defSide = alive(mineTurn ? foes : mine);
-      round(atkSide[Math.floor(turn / 2) % atkSide.length], defSide[0]);
-    }
-    return { rounds: rolled, won: alive(foes).length === 0 };
+    return { rounds: rolled, won: j >= foes.length };
   };
   let foes, fight;
-  if (opt.win === undefined) { // training / boss fights: enemies a bit weaker than the player's ninjas but with real numbers (the card shows their defense left)
-    const base = Math.min(0.55, 0.3 + stage * 0.004); // a little tougher on later stages (stage = row id inside the chapter)
-    foes = mkFoes(base); fight = play(foes, true);
-  }
-  else { // the server already decided win/lose: pick enemy strength until the replay agrees
-    if (opt.win) { foes = mkFoes(0.3); fight = play(foes, true); }
-    else { foes = mkFoes(1.5); fight = play(foes, 'lose'); }
-  }
+  if (opt.win === undefined) { foes = mkFoes(Math.min(0.55, 0.3 + stage * 0.004)); fight = play(foes, true); } // no decision given: a win
+  else { foes = mkFoes(opt.win ? 0.3 : 1.5); fight = play(foes, !!opt.win); }
   const rounds = fight.rounds;
   const roundXml = rounds.map((r) => '<round>' + Object.entries(r).map(([k, v]) => el(k, v)).join('') + '<skills></skills><defense_skills></defense_skills></round>').join('');
   const win = fight.won ? 1 : 0;
