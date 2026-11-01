@@ -531,3 +531,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   battleXml, the benchmark, the training and Battles win checks use it / the total. Owner save: slots 6.0M-6.3M -> fight 7.67M-8.09M = Team screen.
 - Spar Benchmark rivals (settings switch "bench", off by default, noconf so it is not an event button): ids 8000001-6, 100K..8M defence over
   5 enemies (spreadFoes), free (no grudge), no reward, battleXml opt.real = no outcome scaling, the replay decides. Verified in game (100K).
+- Victory/Lose screen "ATK / DEF" = sum of <ninja><end> of each side (video 671 / 285). end was an old HP model (enemies def x4, mine (dl+dh)x2+300)
+  -> Benchmark 4M showed DEF 16M. Now mine.end = avg attack, foes end = final defence. Verified in game: Benchmark 1M shows DEF 1,000,002.

@@ -356,7 +356,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   // ninjutsu worn (equipped kinds 5-8) by each team ninja: they can fire when that ninja starts attacking
   const jRows = db.prepare('SELECT e.slot, c.seq, c.ninja_id, c.level FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=? AND e.kind BETWEEN 5 AND 8')
     .all(pl.uid, pl.server_id);
-  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
+  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
   const given = opt.foes ? opt.foes.map((f, i) => ({ ...f, bagid: 1000 + i })) : null; // real stage enemies (game.stageFoes)
   const mkFoes = (ratio) => given ? given.map((f) => ({ ...f })) : (opt.enemyIds || [21, 22, 23]).map((id, i) => {
     if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0 };
@@ -412,6 +412,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   if (opt.real) { foes = mkFoes(); fight = play(foes, 'real'); }
   else if (opt.win === undefined) { foes = mkFoes(Math.min(0.55, 0.3 + stage * 0.004)); fight = play(foes, true); } // no decision given: a win
   else { foes = mkFoes(opt.win ? 0.3 : 1.5); fight = play(foes, !!opt.win); }
+  foes.forEach((f) => { f.end = f.def; }); // the victory screen adds up <end>: enemies = their defence (video: "total defence 285"), mine = attack
   const rounds = fight.rounds;
   const roundXml = rounds.map((r) => '<round>' + Object.entries(r).filter(([k]) => k !== '_skills').map(([k, v]) => el(k, v)).join('') +
     '<skills>' + (r._skills || []).map((s) => `<skill>${el('cardid', s.cardid)}${el('chakraattack', s.chakraattack)}${el('chakra', s.chakra)}</skill>`).join('') + '</skills><defense_skills></defense_skills></round>').join('');
@@ -1207,7 +1208,7 @@ function spreadFoes(ids, total, level) { // split a total defence over the enemi
   const w = ids.map((_, i) => (i === 0 ? 1.12 : 1)), sw = w.reduce((t, x) => t + x, 0);
   return ids.map((id, i) => {
     const n = ninjas().get(id) || [], def = Math.max(1, Math.round((total * w[i]) / sw));
-    return { id, low: Math.round(def * 1.3), high: Math.round(def * 1.6), def, end: def * 4, level, star: n[11] || 2, power: def };
+    return { id, low: Math.round(def * 1.3), high: Math.round(def * 1.6), def, end: def, level, star: n[11] || 2, power: def };
   });
 }
 function stageFoes(chap, stage) {
