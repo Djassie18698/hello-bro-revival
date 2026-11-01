@@ -95,6 +95,8 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
+- **1 Nov 2026 (later):** **elements in fights** (Water > Fire > Wind > Thunder > Earth > Water, +15 %, "Restrain" on the result screen), real players fight with their **real team** in spar / arena / war, and every fix that was only tested on a save is now **checked in the game**:
+  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 10).
 - **2 Nov 2026 (evening):** a **Player log** tab in the control panel (levels, team attack over time, chapters reached per player); Akatsuki, war, spar, Element Change, evolve and border war checked in the game; balance simulations (`docs/BALANCE-SIMULATIONS.md`).
 - **2 Nov 2026 (later):** **real login**: the game's account window now logs in on our own server (no more Gumptech), remembers your phone (Play as guest) and can sign up a name + password to move to another phone; the official public server **ninjaonline** (game file on the Releases page), and a guide for solo playthroughs. Needs the new game file from the Releases page.
 - **2 Nov 2026:** all ~3 580 photos of the original game read; Save time, Ninja Test, arena rewards, Ninja Treasure, secret shop refresh and shop prices now use the original numbers, new **Growth Fund**, **change country**, **Great gift for total recharge** and **Time limited GiftPack** with the original rewards, daily spending gift and recharge streak; monthly sign-in, top-up packages, Akatsuki, country war, spar and Element Change balanced to the original photos:
