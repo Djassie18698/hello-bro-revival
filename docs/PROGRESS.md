@@ -13,7 +13,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 1 | 15 | 0 | 0 | 4 |
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
-| Bug list 4 | 13 | 1 | 0 | 0 |
+| Bug list 4 | 14 | 0 | 0 | 0 |
 
 ## Bug list 1
 
@@ -76,7 +76,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Same rewards every fight | Drops vary |
 | ✅ | Next storyline doesn't open after the last boss | Opens |
 | ✅ | Chains broken for all cards (Ten Tails etc.) | All 1,223 chains checked |
-| 🧪 | Ramen prompt while stamina is full | Should be gone with the energy fix; please confirm |
+| ✅ | Ramen prompt while stamina is full | Gone (checked: a story stage at 70/70 energy runs straight away, no ramen window) |
 | ✅ | Soul disenchant gives 0 souls | Gives souls |
 | ✅ | Akatsuki upgrades don't work | Work |
 | ✅ | Shinobi train menu crashes | Fixed |
