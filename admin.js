@@ -169,6 +169,74 @@ function panel(res, start) {
   res.end(page);
 }
 
+// ---- Complete chains: read every chain of every ninja in the team and add what is missing ----------------------------------
+// Partners join free team slots (the player's own card when they have one, else a new card: the highest-star version with that name);
+// "Equip X" chains put that weapon / armor / trinket / ninjutsu on the ninja. Returns a setteam plan + a list of what changes.
+function chainPlan(db, pl) {
+  const view = teamView(db, pl);
+  const slots = view.slots.map((s) => ({ ninja: { seq: s.ninja.seq }, id: s.ninja.id, level: s.ninja.level, newlife: s.ninja.newlife, growth: s.ninja.growth,
+    equip: Object.fromEntries(Object.entries(s.equip).filter(([, e]) => e).map(([k, e]) => [k, { seq: e.seq, id: e.id, level: e.level, newlife: e.newlife }])) }));
+  const owned = db.prepare('SELECT seq, type, ninja_id, level FROM cards WHERE uid=? AND server_id=? ORDER BY level DESC, seq').all(pl.uid, pl.server_id);
+  const used = new Set(slots.flatMap((s) => [s.ninja.seq, ...Object.values(s.equip).map((e) => e.seq)]));
+  const ownedFree = (type, id) => owned.find((c) => c.type === type && c.ninja_id === id && !used.has(c.seq));
+  const cards = [...game.ninjas().values()].filter((n) => n[4] === 1 && n[19] > 0);
+  const nameOf = (id) => (game.ninjas().get(id) || [])[2] || '#' + id;
+  const changes = [];
+  const teamIds = () => new Set(slots.map((s) => s.id));
+  const pickFor = (part, listed) => { // the card to add for one partner name
+    const fits = cards.filter((n) => (game.chainKnown(part) ? game.chainFits(part, n[0]) : listed.includes(n[0])));
+    const mine = owned.find((c) => c.type === 1 && !used.has(c.seq) && fits.some((n) => n[0] === c.ninja_id));
+    if (mine) return { pick: { seq: mine.seq }, id: mine.ninja_id, how: 'your own' };
+    const best = fits.sort((x, y) => (y[11] || 0) - (x[11] || 0) || (/god/i.test(y[2]) ? 1 : 0) - (/god/i.test(x[2]) ? 1 : 0))[0];
+    return best ? { pick: { give: best[0] }, id: best[0], how: 'new' } : null;
+  };
+  const satisfied = (part, listed) => [...teamIds()].some((id) => (game.chainKnown(part) ? game.chainFits(part, id) : listed.includes(id)));
+  const first = slots.length; // only the ninjas that were in the team (partners added here do not pull in partners of their own)
+  for (let i = 0; i < first; i++) {
+    const s = slots[i];
+    for (const r of game.matchRows(s.id)) {
+      if (r[5] === 0) continue; // leader effect: always on
+      const text = String(r[4]).trim();
+      // equipment / ninjutsu chains
+      for (const [col, isJutsu] of [[14, false], [15, true]]) {
+        const want = r[col];
+        if (!(want > 0)) continue;
+        if (Object.values(s.equip).some((e) => e.id === want && (isJutsu ? e.type === 6 || true : true))) continue;
+        let kind;
+        if (isJutsu) kind = [5, 6, 7, 8].find((k) => !s.equip[k]);
+        else { const er = game.table('equipmentinfo').rows.find((x) => x[0] === want); kind = er ? ({ 0: 1, 1: 2, 2: 3 }[er[3]]) : 0; }
+        if (!kind) continue;
+        const type = isJutsu ? 6 : { 1: 2, 2: 3, 3: 4 }[kind];
+        const mine = ownedFree(type, want);
+        const old = s.equip[kind];
+        s.equip[kind] = mine ? { seq: mine.seq, id: want, level: mine.level } : { give: want, id: want, level: 50 };
+        if (mine) used.add(mine.seq);
+        const nm = isJutsu ? ((game.table('ninjutsuinfo').rows.find((x) => x[0] === want) || [])[2]) : ((game.table('equipmentinfo').rows.find((x) => x[0] === want) || [])[2]);
+        changes.push(`${nameOf(s.id)}: equip ${mine ? 'your' : 'a new'} ${nm || '#' + want}${old ? ' (replaces what was there)' : ''}  [${text}]`);
+      }
+      // partner chains
+      const p = game.chainPartsOf(r);
+      const listed = r.slice(6, 14).filter((x) => x > 0);
+      if (!p && !listed.length) continue;
+      const parts = p ? p.parts : [null];
+      const missing = parts.filter((part) => !(part ? satisfied(part, listed) : [...teamIds()].some((id) => listed.includes(id))));
+      if (!missing.length || (p && p.any && missing.length < parts.length)) continue;
+      const need = p && p.any ? missing.slice(0, 1) : missing;
+      if (slots.length + need.length > view.max) { changes.push(`${nameOf(s.id)}: no free team slot for [${text}]`); continue; }
+      for (const part of need) {
+        const c = part ? pickFor(part, listed) : (() => { const mine = owned.find((o) => o.type === 1 && !used.has(o.seq) && listed.includes(o.ninja_id)); return mine ? { pick: { seq: mine.seq }, id: mine.ninja_id, how: 'your own' } : { pick: { give: listed[0] }, id: listed[0], how: 'new' }; })();
+        if (!c) continue;
+        if (c.pick.seq) used.add(c.pick.seq);
+        slots.push({ ninja: c.pick, id: c.id, level: 50, newlife: 0, growth: 0, equip: {} });
+        changes.push(`add ${c.how === 'new' ? 'a new' : 'your'} ${nameOf(c.id)} for ${nameOf(s.id)}  [${text}]`);
+      }
+    }
+  }
+  const plan = slots.map((s) => ({ ninja: s.ninja, level: s.level, newlife: s.newlife, growth: s.growth,
+    equip: Object.fromEntries(Object.entries(s.equip).map(([k, e]) => [k, e.seq ? { seq: e.seq, level: e.level, newlife: e.newlife || 0 } : { give: e.give, level: e.level || 50, newlife: 0 }])) }));
+  return { plan, changes };
+}
+
 module.exports = async function admin(req, res, u, db, readBody) {
   if (!authorized(req)) {
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
@@ -250,6 +318,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       return json(res, { ok: true, level: c.lv, newlife: c.nl, growth: c.gr });
     }
     if (u.pathname === '/admin/api/unlockall') return json(res, { ok: true, ...game.unlockAll(db, pl) });
+    if (u.pathname === '/admin/api/chainplan') return json(res, { ok: true, ...chainPlan(db, pl) });
     if (u.pathname === '/admin/api/setteam') return json(res, applyTeam(db, pl, b.slots));
     if (u.pathname === '/admin/api/setprop') { // set the exact amount of one item / fragment / souls
       const id = Math.trunc(Number(b.id)), n = Math.max(0, Math.min(Math.trunc(Number(b.count)) || 0, 999999999));

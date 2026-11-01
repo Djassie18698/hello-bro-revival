@@ -252,7 +252,8 @@ html.embed .wrap{padding-top:18px}
           <div><h3>Team editor</h3>
             <p class="hint" style="margin:0">Pick every ninja and every piece of gear, set levels, then press <b>Apply team</b> once. Type in a box to search:
               <b>★ owned</b> cards come first, <b>＋ New</b> ones are created for the player. Leave a box empty for nothing.</p></div>
-          <div class="row"><span class="tag" id="tpower">⚔️ -</span><button class="btn ghost sm" onclick="maxAll()">Everything max</button>
+          <div class="row"><span class="tag" id="tpower">⚔️ -</span><button class="btn purple sm" onclick="completeChains()">🔗 Complete chains</button>
+            <button class="btn ghost sm" onclick="maxAll()">Everything max</button>
             <button class="btn ghost sm" onclick="loadTeam()">Reload</button><button class="btn" onclick="applyTeam()">✅ Apply team</button></div>
         </div>
         <p class="hint" id="tinfo"></p>
@@ -454,6 +455,17 @@ async function applyTeam() {
   const r = await api('setteam', { uid: sel, slots });
   if (!r.ok) return toast(esc(r.error), false);
   toast('Team applied!<br><small>⚔️ ' + r.power.attack + ' · 🛡️ ' + r.power.defense + '<br>Close the game completely and open it again to see it.</small>');
+  loadTeam(); loadPlayers();
+}
+async function completeChains() {
+  if (!sel) return;
+  const r = await api('chainplan', { uid: sel });
+  if (!r.ok) return toast(esc(r.error || 'failed'), false);
+  if (!r.changes.length) return toast('Every chain of this team is already active 👌');
+  if (!confirm('Complete the chains? This will:\n\n' + r.changes.join('\n') + '\n\nNew cards arrive at level 50.')) return;
+  const a = await api('setteam', { uid: sel, slots: r.plan });
+  if (!a.ok) return toast(esc(a.error), false);
+  toast('Chains completed!<br><small>⚔️ ' + a.power.attack + ' · 🛡️ ' + a.power.defense + '<br>Close the game completely and open it again.</small>');
   loadTeam(); loadPlayers();
 }
 function maxAll() {

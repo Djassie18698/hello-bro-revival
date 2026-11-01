@@ -58,7 +58,8 @@ iframe.on{display:block}
 // One site, three tabs. The Server Manager and the admin page load once (embedded, without their own headers) and stay loaded,
 // so switching tabs keeps your place. "Team builder" is the admin page's Team editor tab.
 const frames = { server: document.getElementById('f-server'), admin: document.getElementById('f-admin') };
-const src = { server: '/manager?embed=1', admin: '/admin?embed=1' };
+const v = Date.now(); // never reuse an old cached copy after an update
+const src = { server: '/manager?embed=1&v=' + v, admin: '/admin?embed=1&v=' + v };
 function show(t) {
   if (!['server', 'admin', 'team'].includes(t)) t = 'server';
   const f = t === 'server' ? 'server' : 'admin';

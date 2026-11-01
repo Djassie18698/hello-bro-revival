@@ -486,3 +486,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Battles 3x6 cleared, energy full; team slots follow (newcardinfo has 26 rows, the last at level 350). Verified in game: slots open.
 - Battles (rl_w_dup) enemies + reward from towerfloor ([2] chapter, 7 rows per chapter in id order, [4..8] the 5 enemies, [20] exp, [21] silver);
   before it was always the same 3 placeholder enemies (owner screenshot). npc level = 10 x chapter + round (ours). Verified in game (Kidomaru + 4 Amegakure).
+- Chain text also reads "Fight X +" and "Fight together with X to raise" (50 rows never matched: Six Paths Sasuke (God) etc.). Helpers at module level
+  (game.chainPartsOf/chainFits/chainKnown) for the admin.
+- Admin team builder "Complete chains" (/admin/api/chainplan -> plan + list, then setteam): for the ninjas already in the team, missing partners
+  join free slots (own card first, else the highest-star card with that name, new at level 50) and "Equip X" gear/ninjutsu is put on the ninja.
+  Added partners do not pull in their own partners (press again for that). Panel iframes load with ?v=<time> (no stale cached page).

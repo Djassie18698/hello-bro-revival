@@ -857,6 +857,31 @@ function matchRows(ninjaId) {
   if (!matchIndex) { matchIndex = new Map(); for (const r of table('ninjamatch').rows) { if (!matchIndex.has(r[3])) matchIndex.set(r[3], []); matchIndex.get(r[3]).push(r); } }
   return matchIndex.get(ninjaId) || [];
 }
+// ---- chain text helpers (also used by the admin team builder) ----
+const words = (s) => String(s).toLowerCase().replace(/[（(][^)）]*[)）]/g, ' ').split(/[^a-z]+/).filter((w) => w && !['of', 'the', 'and'].includes(w)).map((w) => (w.length > 3 ? w.replace(/s$/, '') : w));
+const cardWords = (id) => new Set(words((ninjas().get(id) || [])[2] || ''));
+const ALIAS = [[/raikagand/gi, 'Raikage and'], [/itachiand/gi, 'Itachi and'], [/fukasakun/gi, 'Fukasaku'], [/\bforth\b/gi, 'Fourth'], [/sasu sasuke/gi, 'Susa Sasuke'],
+  [/\bkyubi\b/gi, 'Kurama'], [/eight tails/gi, 'Gyūki'], [/mei tsunade onoki/gi, 'Mei, Tsunade, Onoki'], [/fourth sage minato/gi, 'Fourth Sage, Minato']];
+const chainParts = new Map(); // row id -> { any, parts: [[words]...] } | null
+const partsOf = (r) => {
+  if (chainParts.has(r[0])) return chainParts.get(r[0]);
+  const m = /fight\s+(?:together\s+)?(?:with\s+)?(.+?)(?:\s*\+|\s+to\s+raise)/i.exec(String(r[4] || '')); // "Fight with X +", "Fight X +", "Fight together with X to raise"
+  let v = null;
+  if (m) {
+    let t = m[1];
+    for (const [re, to] of ALIAS) t = t.replace(re, to);
+    const any = /\bor\b/i.test(t);
+    const parts = t.split(/[,，]|\band\b|\bor\b/i).map(words).filter((w) => w.length);
+    v = parts.length ? { any, parts } : null;
+  }
+  chainParts.set(r[0], v);
+  return v;
+};
+const allCards = () => [...ninjas().values()].filter((n) => n[4] === 1 && n[19] > 0).map((n) => n[0]);
+const fits = (part, id) => { const c = cardWords(id); return part.every((w) => c.has(w)); };
+const knownPart = new Map(); // part text -> does any card have that name
+const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) knownPart.set(k, allCards().some((id) => fits(part, id))); return knownPart.get(k); };
+
 function teamStats(db, uid, sid) {
   ensure(db);
   const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
@@ -881,29 +906,6 @@ function teamStats(db, uid, sid) {
   // the card's name ("Madara" = every Madara, "Six Paths Obito" = every Six Paths Obito, "Sage Six Path" = Sage of the Six Paths).
   // Chains with several partners: "X and Y" / "X, Y" need ALL of them in the team, "X or Y" needs one. A name that matches no card at all
   // (a typo in the table) falls back to the listed partner ids.
-  const words = (s) => String(s).toLowerCase().replace(/[（(][^)）]*[)）]/g, ' ').split(/[^a-z]+/).filter((w) => w && !['of', 'the', 'and'].includes(w)).map((w) => (w.length > 3 ? w.replace(/s$/, '') : w));
-  const cardWords = (id) => new Set(words((ninjas().get(id) || [])[2] || ''));
-  const ALIAS = [[/raikagand/gi, 'Raikage and'], [/itachiand/gi, 'Itachi and'], [/fukasakun/gi, 'Fukasaku'], [/\bforth\b/gi, 'Fourth'], [/sasu sasuke/gi, 'Susa Sasuke'],
-    [/\bkyubi\b/gi, 'Kurama'], [/eight tails/gi, 'Gyūki'], [/mei tsunade onoki/gi, 'Mei, Tsunade, Onoki'], [/fourth sage minato/gi, 'Fourth Sage, Minato']];
-  const chainParts = new Map(); // row id -> { any, parts: [[words]...] } | null
-  const partsOf = (r) => {
-    if (chainParts.has(r[0])) return chainParts.get(r[0]);
-    const m = /fight with (.+?)\s*\+/i.exec(String(r[4] || ''));
-    let v = null;
-    if (m) {
-      let t = m[1];
-      for (const [re, to] of ALIAS) t = t.replace(re, to);
-      const any = /\bor\b/i.test(t);
-      const parts = t.split(/[,，]|\band\b|\bor\b/i).map(words).filter((w) => w.length);
-      v = parts.length ? { any, parts } : null;
-    }
-    chainParts.set(r[0], v);
-    return v;
-  };
-  const allCards = () => [...ninjas().values()].filter((n) => n[4] === 1 && n[19] > 0).map((n) => n[0]);
-  const fits = (part, id) => { const c = cardWords(id); return part.every((w) => c.has(w)); };
-  const knownPart = new Map(); // part text -> does any card have that name
-  const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) knownPart.set(k, allCards().some((id) => fits(part, id))); return knownPart.get(k); };
   // is the chain's partner condition met by these card ids (the card itself excluded by the caller)?
   const partnersIn = (r, ids, whoSet) => {
     const listed = r.slice(6, 14).filter((id) => id > 0);
@@ -1313,4 +1315,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
