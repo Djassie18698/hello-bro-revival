@@ -139,6 +139,8 @@ tr:hover td{background:rgba(255,255,255,.03)}
 .tline input{padding:7px 6px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font-size:12px;min-width:0;width:100%}
 .tline input:focus{border-color:var(--orange);outline:none}
 .thead{display:grid;grid-template-columns:58px 1fr 46px 40px 40px;gap:6px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.bench{border:1px solid var(--line);border-radius:16px;padding:14px;margin:6px 0 16px;background:rgba(0,0,0,.18)}
+.bbar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.bbar i{display:block;height:100%;background:linear-gradient(90deg,#f87171,#fbbf24,#34d399)}
 .danger-box{border:1px solid rgba(225,29,72,.45);background:linear-gradient(135deg,rgba(225,29,72,.14),rgba(225,29,72,.03));border-radius:16px;padding:20px}
 
 #toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:9}
@@ -259,6 +261,13 @@ html.embed .wrap{padding-top:18px}
             <button class="btn ghost sm" onclick="loadTeam()">Reload</button><button class="btn" onclick="applyTeam()">✅ Apply team</button></div>
         </div>
         <p class="hint" id="tinfo"></p>
+        <div class="bench">
+          <div class="row" style="justify-content:space-between;margin-bottom:8px"><b>⚔️ Benchmark</b>
+            <div class="row"><input class="in" id="btargets" value="100k, 500k, 1m, 2m, 4m, 8m" style="width:260px" title="enemy team defence, comma separated (k = thousand, m = million)">
+            <button class="btn sm" onclick="runBench()">Run</button></div></div>
+          <p class="hint" style="margin:0 0 8px">This team against enemy teams with that total defence, each fought 300 times with the server's fight rules (luck and ninjutsu included). Apply team first.</p>
+          <div id="bres"></div>
+        </div>
         <div class="tgrid" id="tgrid"></div>
         <div id="tlists"></div>
       </section>
@@ -458,6 +467,18 @@ async function applyTeam() {
   if (!r.ok) return toast(esc(r.error), false);
   toast('Team applied!<br><small>⚔️ ' + r.power.attack + ' · 🛡️ ' + r.power.defense + '<br>Close the game completely and open it again to see it.</small>');
   loadTeam(); loadPlayers();
+}
+const num = (s) => { const m = /^\s*([\d.]+)\s*([km]?)\s*$/i.exec(s); return m ? Number(m[1]) * ({ k: 1e3, m: 1e6 }[m[2].toLowerCase()] || 1) : 0; };
+const short = (n) => n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(Math.round(n));
+async function runBench() {
+  if (!sel) return;
+  const targets = $('btargets').value.split(',').map(num).filter((x) => x > 0);
+  const r = await api('bench', { uid: sel, targets });
+  if (!r.ok) return toast(esc(r.error || 'failed'), false);
+  $('bres').innerHTML = '<p class="hint" style="margin:0 0 8px">Team attack: <b>' + short(r.minAtk) + ' – ' + short(r.maxAtk) + '</b> (' + r.team.length + ' ninjas, ' +
+    r.team.reduce((t, m) => t + m.jutsu, 0) + ' ninjutsu)</p><table><tr><th>Enemy defence</th><th>Win chance</th><th></th><th>Ninjas used</th><th>In the story</th></tr>' +
+    r.results.map((x) => '<tr><td><b>' + short(x.def) + '</b></td><td>' + x.win + '%</td><td style="width:30%"><div class="bbar"><i style="width:' + x.win + '%"></i></div></td><td>' +
+      (x.win ? x.ninjas : '-') + '</td><td>' + esc(x.where) + '</td></tr>').join('') + '</table>';
 }
 async function bestGear(mode) {
   if (!sel) return;

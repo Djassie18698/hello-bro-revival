@@ -316,6 +316,35 @@ function gearPlan(db, pl, mode) {
   return { plan, changes };
 }
 
+// ---- Fight benchmark: the player's real team against enemy teams with a fixed total defence, played many times with the
+// server's fight rule (each ninja rolls its attack low..high, worn ninjutsu fire with their chance and add damage, attack is spent on
+// enemy defence in order: game.battleXml). Shows the win chance, how many ninjas a win needs and where that defence sits in the story.
+function benchmark(db, pl, targets, runs = 300) {
+  const ts = game.teamStats(db, pl.uid, pl.server_id);
+  const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
+  const jRows = db.prepare('SELECT e.slot, c.ninja_id, c.level FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=? AND e.kind BETWEEN 5 AND 8').all(pl.uid, pl.server_id);
+  const jt = game.table('ninjutsuinfo').rows;
+  const mine = team.map((t, i) => {
+    const q = ts.slots[i] || {}, chakra = Math.round(((q.cl || 0) + (q.ch || 0)) / 2);
+    const jutsu = jRows.filter((r) => r.slot === i + 1).map((r) => { const n = jt.find((x) => x[0] === r.ninja_id) || []; return { rate: Number(n[4]) || 0, dmg: (n[10] || 0) + (n[18] || 0) * Math.max(0, (r.level || 1) - 1) + Math.round(chakra * 0.2) }; });
+    return { name: cardName(1, t.ninja_id), low: q.al || 0, high: q.ah || 0, jutsu };
+  });
+  const roll = (m) => { let a = m.low + Math.random() * (m.high - m.low); let n = 0; for (const j of m.jutsu) if (n < 2 && Math.random() < j.rate) { a += j.dmg; n++; } return a; };
+  const minAtk = mine.reduce((t, m) => t + m.low, 0), maxAtk = mine.reduce((t, m) => t + m.high, 0);
+  const results = targets.map((def) => {
+    let wins = 0, used = 0;
+    for (let r = 0; r < runs; r++) {
+      let left = def, k = 0;
+      while (k < mine.length && left > 0) { left -= roll(mine[k]); k++; }
+      if (left < 0) { wins++; used += k; }
+    }
+    const st = game.stageForDefence(def);
+    return { def, win: Math.round((wins / runs) * 100), ninjas: wins ? Math.round((used / wins) * 10) / 10 : 0,
+      where: st ? `story ${st.chap}-${st.stage}` : 'stronger than the last story boss' };
+  });
+  return { team: mine.map((m) => ({ name: m.name, low: m.low, high: m.high, jutsu: m.jutsu.length })), minAtk, maxAtk, results };
+}
+
 module.exports = async function admin(req, res, u, db, readBody) {
   if (!authorized(req)) {
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
@@ -397,6 +426,10 @@ module.exports = async function admin(req, res, u, db, readBody) {
       return json(res, { ok: true, level: c.lv, newlife: c.nl, growth: c.gr });
     }
     if (u.pathname === '/admin/api/unlockall') return json(res, { ok: true, ...game.unlockAll(db, pl) });
+    if (u.pathname === '/admin/api/bench') {
+      const t = (Array.isArray(b.targets) ? b.targets : []).map(Number).filter((x) => x > 0).slice(0, 12);
+      return json(res, { ok: true, ...benchmark(db, pl, t.length ? t : [100000, 500000, 1000000, 2000000, 4000000, 8000000]) });
+    }
     if (u.pathname === '/admin/api/gearplan') return json(res, { ok: true, ...gearPlan(db, pl, b.mode === 'best' ? 'best' : 'owned') });
     if (u.pathname === '/admin/api/chainplan') return json(res, { ok: true, ...chainPlan(db, pl) });
     if (u.pathname === '/admin/api/setteam') return json(res, applyTeam(db, pl, b.slots));

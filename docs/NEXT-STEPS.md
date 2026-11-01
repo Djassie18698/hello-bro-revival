@@ -525,3 +525,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   showed another name). Damage = m_attackvalue (col 10) + m_attackvalue_up (col 18) x (level-1) + 20% of avg chakra (ours; video: 40 + 32 = 72).
   Fires per worn ninjutsu with m_rate (col 4, 15%) when a ninja starts attacking; not in fights the server decided to lose. HB_SKILLS=1 forces it.
   Verified in game: Chibaku Tensei pop-up "Skill damage increase 2086 (Chakra 1306)", Skill bonus, animation. Enemy defense skills not sent.
+- Team builder Benchmark (/admin/api/bench {uid, targets}): 300 simulated fights per enemy team defence with the battleXml rule (attack rolled
+  low..high per ninja, worn ninjutsu by m_rate, attack spent in team order); win %, ninjas used, story stage with that defence (game.stageForDefence).
