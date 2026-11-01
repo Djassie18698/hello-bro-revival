@@ -446,3 +446,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - consumption.js, Event menu id 37 ("Consume"): rl_r_comm Cmd 13 (<basic><cash><remain></basic><award><item id cash status drop1-4 name1-4 icon1-4/></award>),
   rl_w_comm Cmd 18 ID claim. Tiers/rewards ORIGINAL from photo 0347; lowest tier gold 3000 (ours). Gold spent = trigger gold_spent_log on players.gold
   (every decrease is logged; the event counts from its switch-on time). Verified in game: tiers, icons, claim buttons.
+
+## No-energy pop-up (1 Nov 2026)
+- The client checks energy itself and opens a ramen "Purchase item" window (CommonBuyItemDialog, items 3/4). It crashed (line 88, nil item) because
+  the client only knew items after opening the shop: rl_r_shoplist Cmd 1600 (login) is ALSO parsed for <goods> (CTradeMgr: LoadGiftPackInfo then
+  LoadConsumInfo), so 1600 now carries the goods list. The server also refuses a training fight without energy with code 40004 (= the client opens
+  its ramen window). Verified in game: GO with 2 energy -> ramen window -> Use -> energy 203.

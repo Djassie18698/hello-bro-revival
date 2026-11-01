@@ -76,6 +76,8 @@ function trainingFight(db, pl, chap, part, pos, buy) {
     db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(game.BOSS_COST, pl.uid, pl.server_id);
   }
   const cost = row[22] || 3, exp = row[23] || 6, coin = row[24] || 15;
+  // Not enough energy: code 40004 makes the client open its ramen window (CSectionCellView::onHttpRequestCompleted) so the player can refill.
+  if (pl.energy < cost) return '<root code="40004"><message>not enough energy</message></root>';
   // Real enemies for this stage and a real result: my team's power against theirs, with some luck (ours: 0.85-1.15). A lost fight costs the
   // energy (and a boss try) but gives nothing and opens nothing.
   const foes = game.stageFoes(chap, stage);
@@ -1124,19 +1126,21 @@ module.exports = {
     const rows = (tag, list) => list.map((o) => `<${tag}>` + Object.entries(o).map(([k, v]) => el(k, v)).join('') + `</${tag}>`).join('');
     const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const n = (v) => Math.round(Number(v) || 0);
-    if (Number(p.Cmd) === 1600) {
-      const packs = game.table('giftinfo').rows.map((r, k) => ({
-        package_id: r[0], package_name: esc(r[2]), package_icon: r[3], package_yuanbao: r[4], package_yinzi: r[5], package_show: 1,
-        package_function: r[7], package_function_value1: n(r[8]), package_function_value2: n(r[9]), package_function_value3: n(r[10]), package_function_value4: n(r[11]),
-      }));
-      return '<root code="0"><shoplist>' + rows('packages', packs) + rows('recruit', recruits) + '</shoplist></root>';
-    }
     const owned = shopOwned(p);
     // unpriced items the player owns (pet grain/nostrum...) are listed too: this list is where the client learns its bag counts
     const goods = game.table('consumeinfo').rows.filter((r) => r[4] > 0 || r[5] > 0 || (owned[r[1]] || 0) > 0).map((r, k) => ({
       propid: r[0], prop_name: esc(r[2]), prop_icon: r[3], prop_yuanbao: r[4], prop_yinzi: r[5], prop_show: 1, prop_function: r[7],
       prop_function_value1: n(r[8]), prop_function_value2: n(r[9]), prop_function_value3: n(r[10]), prop_function_value4: n(r[11]), bagnum: owned[r[1]] || 0, prop_order: k + 1,
     }));
+    // Cmd 1600 (sent at login) is ALSO read for the goods list (CTradeMgr::onHttpRequestCompleted: LoadGiftPackInfo, then LoadConsumInfo, then
+    // the recruit info). Without goods there the client knew no items until the shop was opened, and the ramen buy window crashed (nil item).
+    if (Number(p.Cmd) === 1600) {
+      const packs = game.table('giftinfo').rows.map((r, k) => ({
+        package_id: r[0], package_name: esc(r[2]), package_icon: r[3], package_yuanbao: r[4], package_yinzi: r[5], package_show: 1,
+        package_function: r[7], package_function_value1: n(r[8]), package_function_value2: n(r[9]), package_function_value3: n(r[10]), package_function_value4: n(r[11]),
+      }));
+      return '<root code="0"><shoplist>' + rows('packages', packs) + rows('goods', goods) + rows('recruit', recruits) + '</shoplist></root>';
+    }
     return '<root code="0"><shoplist>' + rows('goods', goods) + rows('recruit', recruits) + '<limit><actiongoods><total>0</total><rest>0</rest></actiongoods><bingliangwan><total>0</total><rest>0</rest></bingliangwan></limit></shoplist></root>';
   },
 };
