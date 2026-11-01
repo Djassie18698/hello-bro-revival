@@ -692,7 +692,7 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
 }
 
 // ---- Reincarnation / equipment advance (rl_w_newlife Cmd 7): ReadyCard gains +1 grade, EatCard (same item id) is consumed.
-const NEWLIFE_MAX = (type) => (type === 1 ? 9 : table('equipnewlifeprop').rows.length); // shinobi: 9 (newlifeconfig has grades 1-9; the game's rebirth screen shows "Shinobi 9 Reincarnation", 1230 pills)
+const NEWLIFE_MAX = (type) => (type === 1 ? 8 : table('equipnewlifeprop').rows.length); // shinobi: 8 (v28 draws rebirth outlines 1-8 only, GetTopInlayFrame; the card lists 8 bonuses)
 const NEWLIFE_COST = (grade) => 5000 * grade;
 function newlife(db, pl, readySeq, eatSeq, grade) {
   ensure(db);
@@ -898,24 +898,47 @@ function teamStats(db, uid, sid) {
 }
 
 // Sage growth (rl_w_star Cmd 1): spend sage stones on a card for a chance at +1 sage level (stored in cards.starlevel).
-function sageGrow(db, pl, seq, stoneId, stoneNum) {
+// Sage growth (CStrengthView, rl_w_star). The original chances are the game's own ninjastrength table:
+// [id, id, level now, chance with 1/2/3/4 stones, chance to keep the level on a failure, lowest level a failure can drop to, silver].
+// Rows 1-15 are for Sage Stone I (prop 7), rows 16-30 for Sage Stone III (prop 8). Max growth level 15.
+// Extra stones (StarStoneExtID/Num) add stone_added_percent each, up to max_percent: both numbers lived on the dead server, so
+// (ours) +1% per Sage Stone I, +2% per Sage Stone III, capped at what 4 Sage Stone III give at that level.
+const GROW_MAX = 15;
+const growRow = (lv, stoneId) => table('ninjastrength').rows.find((r) => r[2] === lv && (stoneId === 8 ? r[0] > 15 : r[0] <= 15));
+const GROW_EXTRA = { 7: 1, 8: 2 };
+const growMaxPercent = (lv) => (growRow(lv, 8) || [])[6] || 0;
+function growStarList() {
+  let items = '';
+  for (let i = 0; i < GROW_MAX; i++) for (const s of [7, 8]) items += `<item star_now="${i}" max_percent="${growMaxPercent(i)}" stone_level="${s}" stone_added_percent="${GROW_EXTRA[s]}"/>`;
+  return items;
+}
+function sageGrow(db, pl, seq, stoneId, stoneNum, extId = 0, extNum = 0) {
   const card = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(seq, pl.uid, pl.server_id);
   if (!card) return { error: 'card not found' };
-  const have = propCounts(db, pl.uid, pl.server_id)[stoneId] || 0;
-  stoneNum = Math.max(1, stoneNum);
-  if (have < stoneNum) return { error: 'not enough stones' };
-  const cost = 50 * (card.starlevel + 1);
+  const lv0 = card.starlevel || 0;
+  if (lv0 >= GROW_MAX) return { error: 'growth is at the maximum' };
+  const row = growRow(lv0, stoneId);
+  if (!row) return { error: 'bad stone' };
+  stoneNum = Math.min(4, Math.max(1, stoneNum || 1));
+  extNum = GROW_EXTRA[extId] ? Math.max(0, extNum || 0) : 0;
+  const counts = propCounts(db, pl.uid, pl.server_id);
+  const need = { [stoneId]: stoneNum };
+  if (extNum) need[extId] = (need[extId] || 0) + extNum;
+  for (const [id, n] of Object.entries(need)) if ((counts[id] || 0) < n) return { error: 'not enough stones' };
+  const cost = row[9];
   if (pl.coin < cost) return { error: 'not enough silver' };
-  propAdd(db, pl.uid, pl.server_id, stoneId, -stoneNum);
+  for (const [id, n] of Object.entries(need)) propAdd(db, pl.uid, pl.server_id, Number(id), -n);
   db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
-  const chance = Math.min(100, Math.max(30, 100 - card.starlevel * 4) + (stoneId === 8 ? 10 : 0) + (stoneNum - 1) * 5);
+  const base = row[2 + stoneNum];
+  const chance = extNum ? Math.max(base, Math.min(growMaxPercent(lv0), base + extNum * GROW_EXTRA[extId])) : base;
   const win = Math.random() * 100 < chance;
-  let lv = card.starlevel, drop = 0;
+  let lv = lv0, drop = 0;
   if (win) lv++;
-  else if (lv > 0) { const floor = Math.floor(lv / 3) * 3; if (lv > floor) { lv = Math.max(floor, lv - 1); drop = 1; } }
+  else if (lv > row[8] && Math.random() * 100 >= row[7]) { lv = Math.max(row[8], lv - 1); drop = 1; } // (ours) a failure drops one level
   db.prepare('UPDATE cards SET starlevel=? WHERE seq=?').run(lv, seq);
   bumpTask(db, pl.uid, pl.server_id, 5);
-  return { win, drop, lv, left: have - stoneNum };
+  const left = propCounts(db, pl.uid, pl.server_id);
+  return { win, drop, lv, left: left[stoneId] || 0, extLeft: extNum ? left[extId] || 0 : 0, chance };
 }
 
 // Friends: on this offline server every other registered player is automatically your friend.
@@ -1209,4 +1232,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

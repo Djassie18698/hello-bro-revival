@@ -405,3 +405,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - In game (Claude emulator): switching the lucky wheel off removed its home button; the announcement shows in News > System.
 - TRAP: rl_r_bulletin must keep <id>1</id>. A new bulletin id crashed the client a minute after login (CSystemADMgr::SaveLocalNotice on its
   ADMsg.xml cache, 'this is no node:bulletin', SIGSEGV 0x28). So the announcement does not use the bulletin.
+
+## Sage growth uses the original table (1 Nov 2026)
+- The screen shows chances from ninjastrength (rows 1-15 Sage Stone I = prop 7, 16-30 Sage Stone III = prop 8; cols 3-6 = chance with 1-4 stones,
+  col 7 = chance to keep the level on a failure, col 8 = lowest level a failure drops to, col 9 = silver). The server used its own 30-100%, so
+  growth went up far too fast (owner: 0 to 15 quickly). game.sageGrow now uses the table; max level 15. star_list sends 2 rows per level
+  (stone_level = stone id 7/8, stone_added_percent per extra stone, max_percent cap): those numbers are (ours), +1%/+2%, cap = 4x Stone III chance.
+- Shinobi rebirth back to max 8: v28 GetTopInlayFrame draws outlines 1-8 only (>8 returns nothing); 9 is from a later game version.

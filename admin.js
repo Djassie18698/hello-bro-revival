@@ -60,9 +60,9 @@ function catalog() {
   return out;
 }
 
-// Card level / rebirth limits: level 1-50 for every card kind (ninjaupgrade/equipupgrade/... have 50 rows), rebirth 0-9 for shinobi
+// Card level / rebirth limits: level 1-50 for every card kind (ninjaupgrade/equipupgrade/... have 50 rows), rebirth 0-8 for shinobi
 // (game.NEWLIFE_MAX), 0-3 for equipment (equipnewlifeprop), none for ninjutsu and seals.
-const LIMITS = { ninja: { lv: 50, nl: 9 }, equip: { lv: 50, nl: 3 }, ninjutsu: { lv: 50, nl: 0 }, seal: { lv: 50, nl: 0 } };
+const LIMITS = { ninja: { lv: 50, nl: 8 }, equip: { lv: 50, nl: 3 }, ninjutsu: { lv: 50, nl: 0 }, seal: { lv: 50, nl: 0 } };
 const clampCard = (cat, lv, nl) => {
   const L = LIMITS[cat] || { lv: 1, nl: 0 };
   return { lv: Math.min(Math.max(Math.trunc(lv) || 1, 1), L.lv), nl: Math.min(Math.max(Math.trunc(nl) || 0, 0), L.nl) };
