@@ -794,6 +794,34 @@ function potentialSave(db, pl, seq) {
   return true;
 }
 
+// ---- Succession (inherit) -------------------------------------------------------------------
+// ui_ninjaInheritLayer (Backpack card > Succession). ORIGINAL rule (the screen's own text, photo 2016): "Succession card level,
+// reincarnation, and growth points will be completely transferred to the inheritance card"; only cards of the same quality; "after
+// succession is complete, succession card will become a level 0 foundation card". Price (ours): 50 gold per rebirth and per 3 growth
+// levels + 50 (cost_cash; the client adds add_attack + add_defense, sent as 0).
+const inheritCost = (c) => 50 + 50 * (c.newlife || 0) + 50 * Math.floor((c.starlevel || 0) / 3);
+function inheritInfoXml(c) {
+  return `<basic>${el('cost_cash', c ? inheritCost(c) : 0)}${el('level', c ? c.level : 1)}${el('star', c ? c.starlevel || 0 : 0)}${el('newlife', c ? c.newlife || 0 : 0)}<add_attack>0</add_attack><add_defense>0</add_defense></basic>`;
+}
+function inheritCardAward(c) {
+  return `<award dropid="1" coin="0"><cardlist><card>${el('id', c.ninja_id)}${el('type', 1)}${el('num', 1)}${el('attri', c.attri || 0)}${el('bagIndex', c.seq)}${el('level', c.level)}${el('newlife', c.newlife || 0)}${el('starlevel', c.starlevel || 0)}</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>`;
+}
+function inherit(db, pl, srcSeq, dstSeq) {
+  const get = (s) => db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(s, pl.uid, pl.server_id);
+  const a = get(srcSeq), b = get(dstSeq);
+  if (!a || !b || a.seq === b.seq) return { error: 'choose two cards' };
+  const qa = (ninjas().get(a.ninja_id) || [])[11], qb = (ninjas().get(b.ninja_id) || [])[11];
+  if (qa !== qb) return { error: 'the cards must have the same quality' };
+  const cost = inheritCost(a);
+  if (pl.gold < cost) return { code: 329018 };
+  db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
+  db.prepare('UPDATE cards SET level=?, exp=?, starlevel=?, newlife=?, pot_att=?, pot_def=?, pot_ckr=? WHERE seq=?')
+    .run(a.level, a.exp, a.starlevel, a.newlife, a.pot_att, a.pot_def, a.pot_ckr, b.seq);
+  db.prepare('UPDATE cards SET level=1, exp=0, starlevel=0, newlife=0, pot_att=0, pot_def=0, pot_ckr=0, pend_att=0, pend_def=0, pend_ckr=0 WHERE seq=?').run(a.seq);
+  const na = get(a.seq), nb = get(b.seq);
+  return { xml: inheritInfoXml(na) + `<src_card>${inheritCardAward(na)}</src_card><dst_card>${inheritCardAward(nb)}</dst_card>` };
+}
+
 // ---- Secret (soul) shop ----------------------------------------------------------------------
 const SOUL = 9999; // props id used for ninja souls
 function soulOf(db, pl) {
@@ -1428,4 +1456,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

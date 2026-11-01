@@ -609,3 +609,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     <origincost/><restnum/><awardlist><award><name/><icon/><dropid/><newlife/></award></awardlist></item>; rl_w_comm Cmd 8 LimitPackID buy
     -> <preview restnum/><award>). Stock shared per server, 50 a pack a run of 72 h (Server Manager switch "Limited group purchase", off by
     default). Packs/prices from the photos; pet packs left out (icon is always loaded from props/<icon>.plist). Checked in game.
+  * Succession (ui_ninjaInheritLayer: rl_r_comm Cmd 9 SrcCardIndex info, rl_w_comm Cmd 13 Src/DstCardIndex) answered on the server
+    (game.inherit: level, exp, growth, rebirth, training points move to the other card of the same quality; source back to level 1;
+    price 50 + 50 a rebirth + 50 per 3 growth (ours)). NOT checked in game: the v28 Backpack card screen shows no Succession button
+    (CMyBackpackCardView::ninjaInheritClick exists but its button is not on the card view we see).

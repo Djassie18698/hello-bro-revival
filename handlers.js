@@ -847,7 +847,8 @@ module.exports = {
     if (cmd === 13) return '<root code="0"><basic><cash>0</cash><remain>86400</remain></basic><award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award></root>';
     if (cmd === 15) return '<root code="0">' + slot.info(db, pl) + '</root>';
     if (cmd === 18) return '<root code="0">' + slot.listXml(db, pl) + '</root>';
-    if (cmd === 9) return '<root code="0"><basic><cost_cash>0</cost_cash><level>1</level><star>0</star><newlife>0</newlife><add_attack>0</add_attack><add_defense>0</add_defense></basic></root>';
+    if (cmd === 9) return '<root code="0">' + game.inheritInfoXml(db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(Number(p.SrcCardIndex), pl.uid, pl.server_id)) + '</root>'; // succession
+
     return '<root code="0"></root>';
   },
   rl_w_comm: ({ db, params: p }) => {
@@ -856,6 +857,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
     if (wc === 18) { const r = consumption.claim(db, pl, Number(p.ID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
+    if (wc === 13) { const r = game.inherit(db, pl, Number(p.SrcCardIndex), Number(p.DstCardIndex)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // succession
     if (wc === 8) { const r = require('./groupbuy').buy(db, pl, Number(p.LimitPackID)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 10) { const r = game.mergeChips(db, pl, Number(p.ChipBagID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 24) return '<root code="0">' + slot.bet(db, pl) + '</root>';
