@@ -562,3 +562,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * A level-up now also refills grudge (sp = -1 = full), like the original "LEVEL UP!" pop-up "Energy ↑ Grudge ↑" (photo 2156).
   * Checked as already right: reincarnation pill costs (newlifeconfig, photo note "God 100/180/350/510/720/850/1030/1130"),
     ninjutsu values at lv1/lv50 (ninjutsuinfo), secret shop 75 + 5 x VIP refreshes, arena rank rewards to rank 10.
+  * Ninja Test guards now follow the photos: value = 0.00705 x stage^1.1 x player level^2 (min 50). Fits level 61 / stage 14 = 480,
+    level 281 / stage 14 = 10 062, level 302 / stage 4 = 2979 (photos 2553, 2448, 1811) within 1%. Old rule (1150 + 800 a stage) was the same
+    for every level, too hard for low levels. Bosses at 5/10/15 +30% stays (ours).

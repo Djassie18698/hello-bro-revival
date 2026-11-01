@@ -75,4 +75,4 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - The 3-chest boss stages of the Ninja Test (5, 10, 15) have not been played in game yet.
 
 - **Save time (2 Nov 2026):** one Big Ramen = ceil(200 / stage energy) fights of the furthest story stage, rounded down to hundreds (fits the original photo exactly); VIP1 and level 80 (original); 2 chances a day per VIP level **(ours)**, then 10 gold (original).
-- **Enemy strength (ours, 1 Nov 2026):** enemy team defence 285 at stage 1-2 (from the owner's video of the original) growing evenly to 2 500 000 at the last story stage; Battles use the same range over their 175 rounds; Ninja Test guards 1150 / 1950 at stages 1 / 2 (photos), +800 a stage.
+- **Enemy strength (ours, 1 Nov 2026):** enemy team defence 285 at stage 1-2 (from the owner's video of the original) growing evenly to 2 500 000 at the last story stage; Battles use the same range over their 175 rounds; Ninja Test guards = 0.00705 x stage^1.1 x player level^2 (fitted to 3 photos within 1%; 2 Nov 2026), bosses +30% (ours).

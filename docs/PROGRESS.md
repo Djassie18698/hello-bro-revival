@@ -102,6 +102,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Ramen window when out of energy in training |
 | 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold |
 | 🧪 | Levelling up refills grudge too, like the original pop-up |
+| 🧪 | Ninja Test guards grow with the stage and your level, matching the original photos (low levels were far too hard) |
 | ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
 | ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
 
