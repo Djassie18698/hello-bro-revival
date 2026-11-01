@@ -13,7 +13,7 @@ safe = addr.replace(':18080', '').replace(':', '-')
 cands = glob.glob(os.path.join(root, '*.xapk')) + glob.glob(os.path.join(os.path.expanduser('~'), 'Downloads', '*.xapk'))
 cands = [c for c in cands if 'hellobro' in os.path.basename(c).lower() and not os.path.basename(c).startswith('HelloBro-for-')]
 if not cands:
-    sys.exit('No Hello Bro .xapk found. Download HelloBro-Tailscale-....xapk from the Releases page into this folder or Downloads.')
+    sys.exit('No Hello Bro .xapk found. Download HelloBro-base-host-your-own.xapk from the Releases page into this folder or Downloads.')
 src = max(cands, key=os.path.getmtime)
 print('using', src)
 

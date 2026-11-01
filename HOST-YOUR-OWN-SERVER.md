@@ -8,7 +8,7 @@ Windows PC and play on it with friends. It takes about 15 minutes.
 2. Green **Code** button, then **Download ZIP**. Unzip it somewhere easy, for example `Desktop\HelloBroServer`.
 3. Open the **Releases** page (right side of the repo page, or
    https://github.com/Djassie18698/hello-bro-revival/releases/tag/tailscale-play) and download
-   **HelloBro-Tailscale-100.111.115.0.xapk**. Put it in the unzipped folder (leaving it in Downloads works too).
+   **HelloBro-base-host-your-own.xapk**. Put it in the unzipped folder (leaving it in Downloads works too).
 
 ## 2. Pick how players reach you
 - **Tailscale (easiest, private):** install https://tailscale.com/download, log in, and invite your friends to your

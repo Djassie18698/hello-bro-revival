@@ -43,7 +43,7 @@ Every number that came from the game's own data is kept as it was. Where the ori
 
 1. **Get the files:** *Code → Download ZIP*, unzip to e.g. `Desktop\HelloBroServer`
    (or use the zip your host sent you).
-2. **Get the game file:** from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases) download `HelloBro-Tailscale-….xapk`.
+2. **Get the game file:** from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases) download `HelloBro-base-host-your-own.xapk` (the base game; `HOST-MY-SERVER.bat` makes your own copy from it).
 3. **Set up once:** double-click `HOST-MY-SERVER.bat`.
 4. **Start the server:** double-click `START-SERVER.bat` and keep the window open. The **Server Manager** opens in your browser
    (events, who is online, restart).
@@ -56,7 +56,7 @@ Details and troubleshooting: [`HOST-YOUR-OWN-SERVER.md`](HOST-YOUR-OWN-SERVER.md
 Want a world of your own? The server and the game run on the same PC, nothing to forward, no Tailscale.
 
 1. *Code → Download ZIP* and unzip it, e.g. to `Desktop\HelloBroServer`.
-2. From the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases) download `HelloBro-Tailscale-….xapk` into that folder.
+2. From the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases) download `HelloBro-base-host-your-own.xapk` (the base game; `HOST-MY-SERVER.bat` makes your own copy from it) into that folder.
 3. Double-click **`HOST-MY-SERVER.bat`**. When it asks for an address, **just press Enter** (it uses your own PC's address). It makes `HelloBro-for-<your address>.xapk`.
 4. Double-click **`START-SERVER.bat`** and leave the window open.
 5. Install **BlueStacks 5**, drag your `HelloBro-for-….xapk` onto it, open the game. The account window picks **Play** by itself (it remembers you), then press **START** and create your ninja.

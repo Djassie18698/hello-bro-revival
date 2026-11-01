@@ -2,7 +2,7 @@
 
 Everything you need is in this private repository:
 - **The server**: this folder.
-- **The game for you and your friend**: `HelloBro-Tailscale-100.111.115.0.xapk`. It's under **Releases** on the GitHub page of this repo (tag `tailscale-play`) because it's too big for the code view. That one file holds both the game and its data. It connects to `100.111.115.0:18080`, the Tailscale address of the PC that runs the server.
+- **The game for you and your friend**: `HelloBro-for-YOUR-TAILSCALE-IP.xapk (made by HOST-MY-SERVER.bat)`. It's under **Releases** on the GitHub page of this repo (tag `tailscale-play`) because it's too big for the code view. That one file holds both the game and its data. It connects to `100.111.115.0:18080`, the Tailscale address of the PC that runs the server.
 
 ## On the server PC (yours)
 1. Tailscale is on and logged in. Check that its address is still `100.111.115.0`. If it changed, run `MAKE-FRIEND-APK.bat` with the new address.
@@ -11,11 +11,11 @@ Everything you need is in this private repository:
 4. Admin page: http://localhost:18080/admin (give items, set levels, **reset a player**).
 
 ## Your friend
-0. Get the game: either send them `HelloBro-Tailscale-100.111.115.0.xapk` yourself, or add them to this private repo
+0. Get the game: either send them `HelloBro-for-YOUR-TAILSCALE-IP.xapk (made by HOST-MY-SERVER.bat)` yourself, or add them to this private repo
    (GitHub > Settings > Collaborators > Add people) so they can download it from
    https://github.com/Djassie18698/hello-bro-revival/releases/tag/tailscale-play
 1. Install Tailscale, log in, and accept your invite to your tailnet (Tailscale admin console → Share or Invite users).
-2. Install BlueStacks 5 and drag `HelloBro-Tailscale-100.111.115.0.xapk` onto it.
+2. Install BlueStacks 5 and drag `HelloBro-for-YOUR-TAILSCALE-IP.xapk (made by HOST-MY-SERVER.bat)` onto it.
 3. Open Hello Bro and press START. When it says "confirm update?", tap Confirm. Those are the server's game fixes.
 
 ## Starting over

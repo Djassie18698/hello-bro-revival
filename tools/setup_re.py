@@ -13,7 +13,7 @@ cands = [c for d in (os.path.join(home, 'Desktop'), os.path.join(home, 'Download
 if not cands:
     print('no xapk found, downloading it from the release ...')
     subprocess.check_call(['gh', 'release', 'download', 'tailscale-play', '-R', 'Djassie18698/hello-bro-revival',
-                           '-p', 'HelloBro-Tailscale-100.111.115.0.xapk', '-D', re_dir, '--clobber'])
+                           '-p', 'HelloBro-base-host-your-own.xapk', '-D', re_dir, '--clobber'])
     cands = glob.glob(os.path.join(re_dir, '*.xapk'))
 src = max(cands, key=os.path.getmtime)
 print('using', src)

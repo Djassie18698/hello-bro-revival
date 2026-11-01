@@ -37,7 +37,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
   (Windows programs fail from very long working directories). Don't put backslashes in Python heredocs; write a script file.
 - `pip install pyelftools capstone` (once), then `python -I tools/setup_re.py`: makes `re/libgame.so`, `re/obb/` (the
   original game files: Lua, ccbi, xml, images) and `re/all.txt` (44 MB disassembly of every C++ function with string and
-  symbol hints, ~1 minute). It needs a Hello Bro `.xapk` (Desktop has `HelloBro-Tailscale-100.111.115.0.xapk`; otherwise it
+  symbol hints, ~1 minute). It needs a Hello Bro `.xapk` (Desktop has `HelloBro-Tailscale-100.111.115.0.xapk`, the release has `HelloBro-base-host-your-own.xapk`; otherwise it
   downloads it from the `tailscale-play` release with `gh`).
 - Tools on this PC: Node 24 (`node:sqlite`), Python 3.12, JDK 21 (jarsigner), `gh` (logged in), BlueStacks adb at
   `C:\Program Files\BlueStacks_nxt\HD-Adb.exe`.
@@ -118,7 +118,7 @@ Current: **28.0.21** (28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goal
   VIP exp = $ topped up × 10, thresholds in `vip.js` (ours). Accounts made before 30 Oct 2026 kept VIP 18.
 
 ## 8. Releases and sharing
-- Release `tailscale-play` on the repo: `HelloBro-Tailscale-100.111.115.0.xapk` (game + OBB, one file) + apks.
+- Release `tailscale-play` on the repo: `HelloBro-base-host-your-own.xapk` (base game + OBB; HOST-MY-SERVER.bat patches it for any address) and `HelloBro-ninjaonline.xapk` (the owner's public server ninjaonline.duckdns.org:18080).
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (used by friends who
   host their own; guide in `HOST-YOUR-OWN-SERVER.md`). Public code-only repo: `Djassie18698/hello-bro-revival-public`
   (local clone `C:\Users\dj199\hello-bro-public`), rebuilt with `python -I tools/make_public.py C:/Users/dj199/hello-bro-public`
