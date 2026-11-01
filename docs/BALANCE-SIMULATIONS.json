@@ -1,0 +1,642 @@
+{
+ "story": {
+  "stages": 1234,
+  "bosses": 165,
+  "energyToClear": 51777,
+  "fightsToClear": 3167,
+  "expFromClearing": 916485,
+  "perChapter": [
+   {
+    "chap": 1,
+    "stages": 72,
+    "energy": 1349,
+    "expPerEnergy": 5,
+    "lastBossDefence": 476
+   },
+   {
+    "chap": 2,
+    "stages": 77,
+    "energy": 1299,
+    "expPerEnergy": 7,
+    "lastBossDefence": 840
+   },
+   {
+    "chap": 3,
+    "stages": 75,
+    "energy": 1471,
+    "expPerEnergy": 8,
+    "lastBossDefence": 1464
+   },
+   {
+    "chap": 4,
+    "stages": 71,
+    "energy": 1454,
+    "expPerEnergy": 9,
+    "lastBossDefence": 2468
+   },
+   {
+    "chap": 5,
+    "stages": 74,
+    "energy": 1480,
+    "expPerEnergy": 10,
+    "lastBossDefence": 4260
+   },
+   {
+    "chap": 6,
+    "stages": 70,
+    "energy": 1490,
+    "expPerEnergy": 11,
+    "lastBossDefence": 7137
+   },
+   {
+    "chap": 7,
+    "stages": 86,
+    "energy": 2330,
+    "expPerEnergy": 12,
+    "lastBossDefence": 13450
+   },
+   {
+    "chap": 8,
+    "stages": 71,
+    "energy": 3043,
+    "expPerEnergy": 14,
+    "lastBossDefence": 22697
+   },
+   {
+    "chap": 9,
+    "stages": 70,
+    "energy": 3117,
+    "expPerEnergy": 15,
+    "lastBossDefence": 38021
+   },
+   {
+    "chap": 10,
+    "stages": 50,
+    "energy": 2242,
+    "expPerEnergy": 15,
+    "lastBossDefence": 54959
+   },
+   {
+    "chap": 11,
+    "stages": 65,
+    "energy": 3092,
+    "expPerEnergy": 16,
+    "lastBossDefence": 88734
+   },
+   {
+    "chap": 12,
+    "stages": 49,
+    "energy": 2514,
+    "expPerEnergy": 17,
+    "lastBossDefence": 127324
+   },
+   {
+    "chap": 13,
+    "stages": 65,
+    "energy": 3372,
+    "expPerEnergy": 19,
+    "lastBossDefence": 205563
+   },
+   {
+    "chap": 14,
+    "stages": 45,
+    "energy": 2708,
+    "expPerEnergy": 20,
+    "lastBossDefence": 286402
+   },
+   {
+    "chap": 15,
+    "stages": 72,
+    "energy": 4702,
+    "expPerEnergy": 22,
+    "lastBossDefence": 486871
+   },
+   {
+    "chap": 16,
+    "stages": 65,
+    "energy": 4554,
+    "expPerEnergy": 24,
+    "lastBossDefence": 786053
+   },
+   {
+    "chap": 17,
+    "stages": 30,
+    "energy": 2172,
+    "expPerEnergy": 25,
+    "lastBossDefence": 980547
+   },
+   {
+    "chap": 18,
+    "stages": 40,
+    "energy": 2812,
+    "expPerEnergy": 30,
+    "lastBossDefence": 1316711
+   },
+   {
+    "chap": 19,
+    "stages": 87,
+    "energy": 6576,
+    "expPerEnergy": 27,
+    "lastBossDefence": 2499999
+   }
+  ]
+ },
+ "power": [
+  {
+   "team": "3 x 3-star cards, card level 10",
+   "attack": 943,
+   "storyChapterReached": 3
+  },
+  {
+   "team": "6 x 3-star cards, card level 10",
+   "attack": 1779,
+   "storyChapterReached": 4
+  },
+  {
+   "team": "3 x 3-star cards, card level 30",
+   "attack": 1773,
+   "storyChapterReached": 4
+  },
+  {
+   "team": "6 x 3-star cards, card level 30",
+   "attack": 3339,
+   "storyChapterReached": 5
+  },
+  {
+   "team": "3 x 3-star cards, card level 50",
+   "attack": 2603,
+   "storyChapterReached": 5
+  },
+  {
+   "team": "6 x 3-star cards, card level 50",
+   "attack": 4899,
+   "storyChapterReached": 6
+  },
+  {
+   "team": "3 x 4-star cards, card level 10",
+   "attack": 1296,
+   "storyChapterReached": 4
+  },
+  {
+   "team": "6 x 4-star cards, card level 10",
+   "attack": 3720,
+   "storyChapterReached": 6
+  },
+  {
+   "team": "3 x 4-star cards, card level 30",
+   "attack": 2416,
+   "storyChapterReached": 5
+  },
+  {
+   "team": "6 x 4-star cards, card level 30",
+   "attack": 5913,
+   "storyChapterReached": 6
+  },
+  {
+   "team": "3 x 4-star cards, card level 50",
+   "attack": 3536,
+   "storyChapterReached": 5
+  },
+  {
+   "team": "6 x 4-star cards, card level 50",
+   "attack": 8106,
+   "storyChapterReached": 7
+  },
+  {
+   "team": "3 x 5-star cards, card level 10",
+   "attack": 3349,
+   "storyChapterReached": 5
+  },
+  {
+   "team": "6 x 5-star cards, card level 10",
+   "attack": 9736,
+   "storyChapterReached": 7
+  },
+  {
+   "team": "3 x 5-star cards, card level 30",
+   "attack": 6225,
+   "storyChapterReached": 7
+  },
+  {
+   "team": "6 x 5-star cards, card level 30",
+   "attack": 15349,
+   "storyChapterReached": 8
+  },
+  {
+   "team": "3 x 5-star cards, card level 50",
+   "attack": 9101,
+   "storyChapterReached": 7
+  },
+  {
+   "team": "6 x 5-star cards, card level 50",
+   "attack": 20963,
+   "storyChapterReached": 9
+  },
+  {
+   "team": "3 x God cards, card level 10",
+   "attack": 3099,
+   "storyChapterReached": 5
+  },
+  {
+   "team": "6 x God cards, card level 10",
+   "attack": 11921,
+   "storyChapterReached": 8
+  },
+  {
+   "team": "3 x God cards, card level 30",
+   "attack": 5770,
+   "storyChapterReached": 6
+  },
+  {
+   "team": "6 x God cards, card level 30",
+   "attack": 17540,
+   "storyChapterReached": 8
+  },
+  {
+   "team": "3 x God cards, card level 50",
+   "attack": 8439,
+   "storyChapterReached": 7
+  },
+  {
+   "team": "6 x God cards, card level 50",
+   "attack": 23154,
+   "storyChapterReached": 9
+  },
+  {
+   "team": "3 x God cards, rebirth 8, card level 10",
+   "attack": 8830,
+   "storyChapterReached": 7
+  },
+  {
+   "team": "6 x God cards, rebirth 8, card level 10",
+   "attack": 23987,
+   "storyChapterReached": 9
+  },
+  {
+   "team": "3 x God cards, rebirth 8, card level 30",
+   "attack": 16440,
+   "storyChapterReached": 8
+  },
+  {
+   "team": "6 x God cards, rebirth 8, card level 30",
+   "attack": 39984,
+   "storyChapterReached": 10
+  },
+  {
+   "team": "3 x God cards, rebirth 8, card level 50",
+   "attack": 24047,
+   "storyChapterReached": 9
+  },
+  {
+   "team": "6 x God cards, rebirth 8, card level 50",
+   "attack": 55984,
+   "storyChapterReached": 11
+  }
+ ],
+ "lastBossDefence": 2499999,
+ "f2pTeam": [
+  {
+   "level": 10,
+   "star": 3,
+   "cardLevel": 10,
+   "slots": 3,
+   "gear": 3,
+   "growth": 0,
+   "rebirth": 0,
+   "attack": 1333,
+   "storyChapterReached": 4
+  },
+  {
+   "level": 30,
+   "star": 4,
+   "cardLevel": 30,
+   "slots": 5,
+   "gear": 4,
+   "growth": 5,
+   "rebirth": 0,
+   "attack": 7896,
+   "storyChapterReached": 7
+  },
+  {
+   "level": 50,
+   "star": 4,
+   "cardLevel": 50,
+   "slots": 6,
+   "gear": 4,
+   "growth": 5,
+   "rebirth": 0,
+   "attack": 13186,
+   "storyChapterReached": 8
+  },
+  {
+   "level": 80,
+   "star": 5,
+   "cardLevel": 50,
+   "slots": 7,
+   "gear": 5,
+   "growth": 10,
+   "rebirth": 2,
+   "attack": 65481,
+   "storyChapterReached": 11
+  },
+  {
+   "level": 100,
+   "star": 5,
+   "cardLevel": 50,
+   "slots": 8,
+   "gear": 5,
+   "growth": 10,
+   "rebirth": 2,
+   "attack": 77875,
+   "storyChapterReached": 12
+  },
+  {
+   "level": 150,
+   "star": 6,
+   "cardLevel": 50,
+   "slots": 10,
+   "gear": 5,
+   "growth": 15,
+   "rebirth": 6,
+   "attack": 344196,
+   "storyChapterReached": 15
+  },
+  {
+   "level": 200,
+   "star": 6,
+   "cardLevel": 50,
+   "slots": 12,
+   "gear": 5,
+   "growth": 15,
+   "rebirth": 6,
+   "attack": 513645,
+   "storyChapterReached": 16
+  },
+  {
+   "level": 250,
+   "star": 6,
+   "cardLevel": 50,
+   "slots": 16,
+   "gear": 5,
+   "growth": 15,
+   "rebirth": 6,
+   "attack": 784775,
+   "storyChapterReached": 17
+  },
+  {
+   "level": 300,
+   "star": 6,
+   "cardLevel": 50,
+   "slots": 21,
+   "gear": 5,
+   "growth": 15,
+   "rebirth": 6,
+   "attack": 1261939,
+   "storyChapterReached": 19
+  },
+  {
+   "level": 350,
+   "star": 6,
+   "cardLevel": 50,
+   "slots": 26,
+   "gear": 5,
+   "growth": 15,
+   "rebirth": 6,
+   "attack": 1932166,
+   "storyChapterReached": 19
+  }
+ ],
+ "levelling": {
+  "casualTrainingOnly": {
+   "reachedLevel": 226,
+   "daysToLevel": {
+    "30": 3.3,
+    "50": 7.8,
+    "80": 15.3,
+    "100": 20.3,
+    "150": 42.9,
+    "200": 138.3
+   },
+   "timeline": [
+    {
+     "day": 1,
+     "level": 18,
+     "storyAt": "1-2",
+     "teamAttack": 2567
+    },
+    {
+     "day": 7,
+     "level": 47,
+     "storyAt": "2-42",
+     "teamAttack": 13186
+    },
+    {
+     "day": 14,
+     "level": 75,
+     "storyAt": "5-2",
+     "teamAttack": 65481
+    },
+    {
+     "day": 30,
+     "level": 124,
+     "storyAt": "9-56",
+     "teamAttack": 77875
+    },
+    {
+     "day": 60,
+     "level": 167,
+     "storyAt": "15-63",
+     "teamAttack": 419684
+    },
+    {
+     "day": 90,
+     "level": 183,
+     "storyAt": "15-72",
+     "teamAttack": 419684
+    },
+    {
+     "day": 180,
+     "level": 209,
+     "storyAt": "16-41",
+     "teamAttack": 559417
+    },
+    {
+     "day": 365,
+     "level": 226,
+     "storyAt": "16-61",
+     "teamAttack": 663037
+    }
+   ]
+  },
+  "casualWithSparBorderWar": {
+   "reachedLevel": 240,
+   "daysToLevel": {
+    "30": 2.5,
+    "50": 5.9,
+    "80": 8.9,
+    "100": 11.9,
+    "150": 27.9,
+    "200": 85.9
+   },
+   "timeline": [
+    {
+     "day": 1,
+     "level": 22,
+     "storyAt": "1-2",
+     "teamAttack": 2567
+    },
+    {
+     "day": 7,
+     "level": 69,
+     "storyAt": "2-54",
+     "teamAttack": 15363
+    },
+    {
+     "day": 14,
+     "level": 110,
+     "storyAt": "5-17",
+     "teamAttack": 77875
+    },
+    {
+     "day": 30,
+     "level": 154,
+     "storyAt": "9-69",
+     "teamAttack": 344196
+    },
+    {
+     "day": 60,
+     "level": 185,
+     "storyAt": "15-63",
+     "teamAttack": 513645
+    },
+    {
+     "day": 90,
+     "level": 201,
+     "storyAt": "16-26",
+     "teamAttack": 513645
+    },
+    {
+     "day": 180,
+     "level": 223,
+     "storyAt": "16-41",
+     "teamAttack": 559417
+    },
+    {
+     "day": 365,
+     "level": 240,
+     "storyAt": "17-20",
+     "teamAttack": 737609
+    }
+   ]
+  },
+  "activeWithSparBorderWar": {
+   "reachedLevel": 240,
+   "daysToLevel": {
+    "30": 1.8,
+    "50": 3.7,
+    "80": 6,
+    "100": 9,
+    "150": 23,
+    "200": 79
+   },
+   "timeline": [
+    {
+     "day": 1,
+     "level": 26,
+     "storyAt": "1-2",
+     "teamAttack": 7896
+    },
+    {
+     "day": 7,
+     "level": 87,
+     "storyAt": "4-9",
+     "teamAttack": 65481
+    },
+    {
+     "day": 14,
+     "level": 122,
+     "storyAt": "7-18",
+     "teamAttack": 77875
+    },
+    {
+     "day": 30,
+     "level": 162,
+     "storyAt": "11-65",
+     "teamAttack": 344196
+    },
+    {
+     "day": 60,
+     "level": 189,
+     "storyAt": "16-26",
+     "teamAttack": 513645
+    },
+    {
+     "day": 90,
+     "level": 205,
+     "storyAt": "16-26",
+     "teamAttack": 559417
+    },
+    {
+     "day": 180,
+     "level": 224,
+     "storyAt": "16-41",
+     "teamAttack": 559417
+    },
+    {
+     "day": 365,
+     "level": 240,
+     "storyAt": "17-20",
+     "teamAttack": 737609
+    }
+   ]
+  },
+  "expNeeded": {
+   "50": 11246,
+   "100": 82860,
+   "150": 325907,
+   "200": 1512278,
+   "250": 10278985,
+   "300": 53896978,
+   "350": 164469116
+  },
+  "energyPerDay": 480
+ },
+ "recruits": {
+  "fiveStarChance": {
+   "purple300": 0.13006,
+   "blue150": 0.07149,
+   "orders": 0.00927
+  },
+  "freePerMonth": {
+   "purpleFree": 30,
+   "blueFree": 90,
+   "ordersMax": 150
+  },
+  "fiveStarsPerMonthFree": 10.3
+ },
+ "gold": {
+  "start": 50,
+  "dailyTaskChests": 70,
+  "monthlySignIn": 120,
+  "scratchCardFreeDaily": 21.5,
+  "loginGiftsTotal": 330,
+  "levelGiftsTotal": 7310,
+  "stageWheelPerNormalWin": 0.6000000000000001,
+  "perDayFree": 95.5
+ },
+ "drops": {
+  "keyPerWin": 0.08,
+  "normalStage": {
+   "sageStoneIII": 0.46,
+   "oneTwoStarEquipment": 0.276,
+   "oneTwoStarShinobi": 0.184,
+   "bronzeKey": 0.08
+  },
+  "bossStage": {
+   "threeStarEquipment": 0.46,
+   "threeStarShinobi": 0.46,
+   "silverKey": 0.08
+  },
+  "fragmentsPerGodCard": 50
+ }
+}

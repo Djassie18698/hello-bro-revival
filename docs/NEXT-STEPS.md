@@ -682,3 +682,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Five-element panel (photo 2666, "Shinobi attack increase: %.2f%%" = Struct_String_Menu 300-303): no server data found; not built.
   * Fight "Restrain: 0": the element restrain table (ninjafiveprop, +15% vs the weak element) is not used in our fights yet.
 
+
+## 2 Nov 2026 (night): balance simulations
+  * tools/dev/sim_balance.js -> docs/BALANCE-SIMULATIONS.md (+ .json). Nothing applied; the report lists what I would change (owner decides).
