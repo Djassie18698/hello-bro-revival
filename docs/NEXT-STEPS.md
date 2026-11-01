@@ -475,3 +475,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Uchiha Obito 4/156; Hokage Naruto "Fight with Madara" misses Six Paths Madara). teamStats now ALSO matches the name in the chain text: every word
   of "Fight with X" (minus of/the/and, plural s, bracket tags) must be in the card name. Verified: 7 reported/control pairs, and in game the
   Six Paths Madara (God) + Six Paths Obito (God) team now counts the chain (G 3/6).
+- Chains, all of them: audited every "Fight with" row (1223 rows, 238 partner names). Names are split into parts: "X and Y" / "X, Y" need all
+  parts in the team, "X or Y" one. Typos/other names aliased (Kyubi = Kurama, Eight Tails = Gyuki, Forth, Fukasakun, Sasu Sasuke, Raikagand,
+  Itachiand, "Mei Tsunade Onoki", "Fourth Sage Minato"). Every part now matches at least one card by name; a part that would match none falls back
+  to the listed ids. NOTE: "and" chains were "any partner" before; now all partners are needed (as the text says).

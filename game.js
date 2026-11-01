@@ -877,12 +877,43 @@ function teamStats(db, uid, sid) {
   // (Kaguya "Fight with Susa Kakashi" lists 5026 but not 5027 or Susa Kakashi (God) 5028; GitHub #5).
   const who = (id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, '');
   // The partner lists also miss whole variants (Six Paths Madara (God) "Fight with Six Paths Obito" lists only plain Obito; Hokage Naruto
-  // "Fight with Madara" misses Six Paths Madara; GitHub #5), so the name written in the chain text counts too: every word of it must be in the
-  // card's name ("Madara" = every Madara, "Six Paths Obito" = every Six Paths Obito, "Sage Six Path" = Sage of the Six Paths).
+  // "Fight with Madara" misses Six Paths Madara; GitHub #5), so the names written in the chain text count too: every word of a name must be in
+  // the card's name ("Madara" = every Madara, "Six Paths Obito" = every Six Paths Obito, "Sage Six Path" = Sage of the Six Paths).
+  // Chains with several partners: "X and Y" / "X, Y" need ALL of them in the team, "X or Y" needs one. A name that matches no card at all
+  // (a typo in the table) falls back to the listed partner ids.
   const words = (s) => String(s).toLowerCase().replace(/[（(][^)）]*[)）]/g, ' ').split(/[^a-z]+/).filter((w) => w && !['of', 'the', 'and'].includes(w)).map((w) => (w.length > 3 ? w.replace(/s$/, '') : w));
   const cardWords = (id) => new Set(words((ninjas().get(id) || [])[2] || ''));
-  const target = (r) => { const m = /fight with (.+?)\s*\+/i.exec(String(r[4] || '')); return m ? words(m[1]) : null; };
-  const named = (r, id) => { const t = target(r); if (!t || !t.length) return false; const c = cardWords(id); return t.every((w) => c.has(w)); };
+  const ALIAS = [[/raikagand/gi, 'Raikage and'], [/itachiand/gi, 'Itachi and'], [/fukasakun/gi, 'Fukasaku'], [/\bforth\b/gi, 'Fourth'], [/sasu sasuke/gi, 'Susa Sasuke'],
+    [/\bkyubi\b/gi, 'Kurama'], [/eight tails/gi, 'Gyūki'], [/mei tsunade onoki/gi, 'Mei, Tsunade, Onoki'], [/fourth sage minato/gi, 'Fourth Sage, Minato']];
+  const chainParts = new Map(); // row id -> { any, parts: [[words]...] } | null
+  const partsOf = (r) => {
+    if (chainParts.has(r[0])) return chainParts.get(r[0]);
+    const m = /fight with (.+?)\s*\+/i.exec(String(r[4] || ''));
+    let v = null;
+    if (m) {
+      let t = m[1];
+      for (const [re, to] of ALIAS) t = t.replace(re, to);
+      const any = /\bor\b/i.test(t);
+      const parts = t.split(/[,，]|\band\b|\bor\b/i).map(words).filter((w) => w.length);
+      v = parts.length ? { any, parts } : null;
+    }
+    chainParts.set(r[0], v);
+    return v;
+  };
+  const allCards = () => [...ninjas().values()].filter((n) => n[4] === 1 && n[19] > 0).map((n) => n[0]);
+  const fits = (part, id) => { const c = cardWords(id); return part.every((w) => c.has(w)); };
+  const knownPart = new Map(); // part text -> does any card have that name
+  const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) knownPart.set(k, allCards().some((id) => fits(part, id))); return knownPart.get(k); };
+  // is the chain's partner condition met by these card ids (the card itself excluded by the caller)?
+  const partnersIn = (r, ids, whoSet) => {
+    const listed = r.slice(6, 14).filter((id) => id > 0);
+    const listedHit = listed.some((id) => ids.has(id) || whoSet.has(who(id)));
+    const p = partsOf(r);
+    if (!p) return listedHit;
+    const ok = (part) => (isKnown(part) ? [...ids].some((id) => fits(part, id)) : listedHit);
+    if (p.parts.length === 1) return listedHit || ok(p.parts[0]);
+    return p.any ? p.parts.some(ok) || listedHit : p.parts.every(ok);
+  };
   const inTeam = new Set(slots.map((s) => s.ninja_id));
   const teamWho = slots.map((s) => who(s.ninja_id));
   const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
@@ -894,10 +925,10 @@ function teamStats(db, uid, sid) {
     s.active = []; s.ready = [];
     for (const r of matchRows(s.ninja_id)) {
       if (r[5] === 0) { slots.forEach((_, j) => add(j, r)); s.active.push(r[0]); continue; }
-      const partner = r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && (inTeam.has(id) || teamWho.some((w, j) => j !== i && w === who(id))))
-        || slots.some((o, j) => j !== i && named(r, o.ninja_id));
+      const others = slots.filter((_, j) => j !== i).map((o) => o.ninja_id);
+      const partner = partnersIn(r, new Set(others), new Set(others.map(who)));
       if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) { add(i, r); s.active.push(r[0]); }
-      else if (r.slice(6, 14).some((id) => id > 0 && id !== s.ninja_id && (owned.has(id) || ownedWho.has(who(id)))) || [...owned].some((id) => id !== s.ninja_id && named(r, id))) s.ready.push(r[0]); // a partner is owned but not in the team yet
+      else if (partnersIn(r, new Set([...owned].filter((id) => id !== s.ninja_id)), ownedWho)) s.ready.push(r[0]); // the partners are owned but not all in the team yet
     }
   });
   slots.forEach((s, i) => { Object.assign(s, addStats(s, chain[i])); s.chain = chain[i]; });
