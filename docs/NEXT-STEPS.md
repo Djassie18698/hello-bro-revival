@@ -815,3 +815,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     Daily Task, Event menu + all 8 sub-pages, Wheel, Mora, Treasure, Millionaire, Award Center, login gifts, Save time, Top-up,
     Growth Plan, all 8 bottom-row icons, Team, Backpack, Training, Shop, Advance, Breakthrough: no crash, no Lua error.
     Ninjabook first page all grey is correct (sorted by ninjabookrank; this account's ninjas are at places 49-111).
+  * War countdown shows negative times ("00:-59:-30"). Cause: CWarInfoView::UpdateUI sets the clock to normalconfig row 8 (war END,
+    73800 s = 20:30) minus the phone's local time of day; row 7 = start 70200 (19:30). The original war ran 19:30-20:30 every
+    evening; our war is open all day, so outside that hour the clock is negative. Tried: preview resttime>0 = "War has not started
+    yet!" (closes the war); fightlefttime = the attack cooldown ("attack-CD"). Neither fixes it; both reverted. Real fixes: run the
+    war 19:30-20:30 like the original (owner decision), or patch normalconfig in the client (table not found in the OBB yet).
+  * Fights checked in game: Spar (win, reward draw), Arena (loss screen), no crash.

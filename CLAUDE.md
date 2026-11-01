@@ -142,7 +142,8 @@ Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), eleme
 Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 spar win screen shows silver 0 (silver is given; not found which object the screen reads);
 five-element panel (photo 2666, per-element atk/def/chakra/ninjutsu %) not found in any v28 layout;
-first boss 1-2: a brand-new account wins only ~23 % (avg attack 263 vs 285): asked the owner whether the replay should decide (55 %);
+first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter; replay and Skip give the same result);
+War countdown shows negative times outside 19:30-20:30 (original war hours, normalconfig rows 7/8, read by the client): asked the owner whether to bring back those hours;
 Balance: owner keeps it as is
 (docs/BALANCE-SIMULATIONS.md); don't change rates without asking.
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
