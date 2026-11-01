@@ -13,7 +13,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 1 | 15 | 0 | 0 | 4 |
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
-| Bug list 4 | 11 | 3 | 0 | 0 |
+| Bug list 4 | 13 | 1 | 0 | 0 |
 
 ## Bug list 1
 
@@ -71,8 +71,8 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | | Problem | What happened |
 |---|---|---|
 | ✅ | Kaguya + Susa Kakashi chain | Fixed |
-| 🧪 | Stamina refills when going back to the main menu | Removed; 1 point every 3 minutes like the original |
-| 🧪 | EXP goes up and down before a level-up | Fixed |
+| ✅ | Stamina refills when going back to the main menu | Removed; 1 point every 3 minutes like the original (checked: 50/62 shows next 1:19, full 34:19) |
+| ✅ | EXP goes up and down before a level-up | Fixed (checked: 505/506 + 16 -> level up with 15/506) |
 | ✅ | Same rewards every fight | Drops vary |
 | ✅ | Next storyline doesn't open after the last boss | Opens |
 | ✅ | Chains broken for all cards (Ten Tails etc.) | All 1,223 chains checked |
@@ -101,7 +101,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Discord link on GitHub, in the top banner and in Settings |
 | ✅ | Ramen window when out of energy in training |
 | 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold |
-| 🧪 | Levelling up refills grudge too, like the original pop-up |
+| ✅ | Levelling up refills grudge too, like the original pop-up (checked: 1/3 -> 3/3, energy full) |
 | ✅ | Ninja Test boss chests cost 160 and 250 gold like the original (first one free); after the chests Challenge moves on to the next stage. Guards now show their element (they all showed Water) |
 | ✅ | Limited group purchase (discount packs with stock shared by the whole server, original prices; switch in the Server Manager) |
 | ✅ | Treasure chests (gold / silver / bronze, with keys from story fights) like the original |
