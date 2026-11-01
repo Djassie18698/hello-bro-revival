@@ -393,4 +393,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Soul refinery (rl_x_mystery_shop Cmd 5 preview, Cmd 3 refine): cards become souls (prop 9999) by refinery_info quality (6=2000, 5=1000, 4=150).
 - Akatsuki buildings (rl_w_group_admin Cmd 8 list, Cmd 9 upgrade): (ours) max level 10, cost 100 x next level from group score, Hall first.
 - Admin: rebirth up to 8, item amounts editable in Inventory (/admin/api/setprop).
-- Not reproduced yet: "game crashes in the shinobi train menu".
+- Shinobi training crash (dropdown): CPotentialView keeps the cost rows in one list (even = pill, odd = gold) and onClickMode jumps 2 rows
+  (1 time <-> 10 times); we sent only 2 rows, so the dropdown read past the list. rl_x_develop Cmd 1 now sends 4 rows (cost_id 3/4 = 10 times,
+  rolled 10x in potentialRoll). Verified on the emulator. Training stays free (ours; the 2015 costs are lost, a later version used 1 Super Ninja Pill + 4000 silver).

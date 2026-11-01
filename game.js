@@ -722,13 +722,17 @@ function potentialXml(db, pl, seq) {
   if (!c) return null;
   const lim = potLimit(c);
   return `<attack limit_att="${lim}" add_att="${c.pot_att}"/><defense limit_def="${lim}" add_def="${c.pot_def}"/><chakra limit_ckr="${lim}" add_ckr="${c.pot_ckr}"/>` +
-    '<cost_list><cost cost_id="1" name="Training pill" type="1" need_miyao="0" need_golden="0"/><cost cost_id="2" name="Gold training" type="2" need_miyao="0" need_golden="0"/></cost_list>';
+    // CPotentialView keeps these rows in one list: even index = pill row, odd = gold row; the dropdown (onClickMode) jumps 2 rows, so it
+    // needs the "10 times" pair too (with only 2 rows it read past the list and crashed). Costs (ours): free, as before.
+    '<cost_list><cost cost_id="1" name="1 time" type="1" need_miyao="0" need_golden="0"/><cost cost_id="2" name="1 time" type="2" need_miyao="0" need_golden="0"/>' +
+    '<cost cost_id="3" name="10 times" type="1" need_miyao="0" need_golden="0"/><cost cost_id="4" name="10 times" type="2" need_miyao="0" need_golden="0"/></cost_list>';
 }
 function potentialRoll(db, pl, seq, costId) {
   const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);
   if (!c) return { error: 'no such card' };
-  const lim = potLimit(c), hi = costId === 2 ? 14 : 8, lo = costId === 2 ? 3 : -2;
-  const roll = () => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+  const gold = costId % 2 === 0, times = costId > 2 ? 10 : 1;
+  const lim = potLimit(c), hi = gold ? 14 : 8, lo = gold ? 3 : -2;
+  const roll = () => { let s = 0; for (let i = 0; i < times; i++) s += Math.floor(Math.random() * (hi - lo + 1)) + lo; return s; };
   const d = { att: roll(), def: roll(), ckr: roll() };
   // never push a stat outside 0..limit
   d.att = Math.max(-c.pot_att, Math.min(lim - c.pot_att, d.att)); d.def = Math.max(-c.pot_def, Math.min(lim - c.pot_def, d.def)); d.ckr = Math.max(-c.pot_ckr, Math.min(lim - c.pot_ckr, d.ckr));
