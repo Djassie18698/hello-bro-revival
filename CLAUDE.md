@@ -120,7 +120,7 @@ Current: **28.0.21** (28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goal
 ## 8. Releases and sharing
 - Release `tailscale-play` on the repo: `HelloBro-base-host-your-own.xapk` (base game + OBB; HOST-MY-SERVER.bat patches it for any address) and `HelloBro-ninjaonline.xapk` (the owner's public server ninjaonline.duckdns.org:18080).
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (used by friends who
-  host their own; guide in `HOST-YOUR-OWN-SERVER.md`). Public code-only repo: `Djassie18698/hello-bro-revival-public`
+  host their own; guide in `HOST-YOUR-OWN-SERVER.md`). Public code-only repo (ARCHIVED by the owner on 2 Nov 2026, read-only: do not rebuild or push it): `Djassie18698/hello-bro-revival-public`
   (local clone `C:\Users\dj199\hello-bro-public`), rebuilt with `python -I tools/make_public.py C:/Users/dj199/hello-bro-public`
   (it refuses game files, keystores, the owner's IPs/uids) and pushed after features change.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU** — use this link everywhere (README badge, issue template, repo homepage).
