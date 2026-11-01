@@ -383,3 +383,14 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - A level-up fills the energy to the new level's maximum (game.addExp); training pays its energy BEFORE the exp so the refill stays, and the pve reply sends the real energy.
 - Ramen (BuyRemenDlg -> rl_w_propuse): the client SETS its energy to <propuse ap>, so ap is now the new total (was the +200 delta); rest/max (daily ramen limit) 99.
   rl_w_ramen fills to the level maximum (was a fixed 106). The 180 s regen (normalconfig row 9) stays.
+
+## List 4 + admin (1 Nov 2026)
+- Reincarnation (game.newlife): shinobi go to rebirth 8 (cards show 8 stars; NEWLIFE_MAX). The invented silver cost (5000 x grade) is gone: the
+  original screen asks ONE copy of the same card OR newlifeconfig[grade][star] reincarnation pills (prop 11), e.g. grade 7 star 6 = 1030.
+  The rebirth-7 "Your energy level is full" tip was our code-5 'not enough silver' (the client shows its own text for code 5).
+- Training: after the last boss of a chapter the reply's <pve curchapter> points at the next chapter so its map opens.
+- Chains: partner names are compared without "(God)", spaces and dashes ("Ten-Tails (God)" = "Ten Tails").
+- Soul refinery (rl_x_mystery_shop Cmd 5 preview, Cmd 3 refine): cards become souls (prop 9999) by refinery_info quality (6=2000, 5=1000, 4=150).
+- Akatsuki buildings (rl_w_group_admin Cmd 8 list, Cmd 9 upgrade): (ours) max level 10, cost 100 x next level from group score, Hall first.
+- Admin: rebirth up to 8, item amounts editable in Inventory (/admin/api/setprop).
+- Not reproduced yet: "game crashes in the shinobi train menu".

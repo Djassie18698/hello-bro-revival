@@ -689,7 +689,7 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
 }
 
 // ---- Reincarnation / equipment advance (rl_w_newlife Cmd 7): ReadyCard gains +1 grade, EatCard (same item id) is consumed.
-const NEWLIFE_MAX = (type) => (type === 1 ? 6 : table('equipnewlifeprop').rows.length);
+const NEWLIFE_MAX = (type) => (type === 1 ? 8 : table('equipnewlifeprop').rows.length); // shinobi: 8 (the card screen says x/8)
 const NEWLIFE_COST = (grade) => 5000 * grade;
 function newlife(db, pl, readySeq, eatSeq, grade) {
   ensure(db);
@@ -701,13 +701,16 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
     if (a.seq === b.seq || a.type !== b.type || a.ninja_id !== b.ninja_id) return { error: 'cards must match' };
     if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
   }
-  const next = Math.min(NEWLIFE_MAX(a.type), (a.newlife || 0) + 1);
-  const cost = NEWLIFE_COST(next);
-  if (pl.coin < cost) return { error: 'not enough silver' };
-  db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
+  if ((a.newlife || 0) >= NEWLIFE_MAX(a.type)) return { error: 'already at the highest rebirth' };
+  const next = (a.newlife || 0) + 1;
+  // The original cost (the screen): ONE copy of the same card, OR newlifeconfig[grade][star] reincarnation pills (prop 11). No silver.
+  const star = (ninjas().get(a.ninja_id) || [])[11] || 5;
+  const pills = (table('newlifeconfig').rows.find((r) => r[2] === next && r[3] === star) || [])[4] || 0;
+  if (!b && (propCounts(db, pl.uid, pl.server_id)[11] || 0) < pills) return { error: 'not enough reincarnation pills' };
+  const cost = 0;
   db.prepare('UPDATE cards SET newlife=?, level=1, exp=0 WHERE seq=?').run(next, a.seq);
   if (b) db.prepare('DELETE FROM cards WHERE seq=?').run(b.seq);
-  else if (propCounts(db, pl.uid, pl.server_id)[11] > 0) propAdd(db, pl.uid, pl.server_id, 11, -Math.min(80, propCounts(db, pl.uid, pl.server_id)[11]));
+  else propAdd(db, pl.uid, pl.server_id, 11, -pills);
   const gain = Math.round(((ninjaStats({ ...a, newlife: next }).ah) - ninjaStats(a).ah) / 2) || 0;
   return { grade: next, cost, gain };
 }
@@ -853,11 +856,11 @@ function teamStats(db, uid, sid) {
   // by it; type 0 = a leader effect: while the card is in the team every ninja gets the ratio. Each chain adds ratio x the slot's stats (after gear).
   // Chain partners match by CHARACTER, not by card id: the table has 8 partner places and often lists only some variants
   // (Kaguya "Fight with Susa Kakashi" lists 5026 but not 5027 or Susa Kakashi (God) 5028; GitHub #5).
-  const who = (id) => String((ninjas().get(id) || [])[2] || id).replace(/\(God\)/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const who = (id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, '');
   const inTeam = new Set(slots.map((s) => s.ninja_id));
   const teamWho = slots.map((s) => who(s.ninja_id));
   const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
-  const ownedWho = new Set([...owned].map((id) => String((ninjas().get(id) || [])[2] || id).replace(/\(God\)/gi, '').replace(/\s+/g, ' ').trim().toLowerCase()));
+  const ownedWho = new Set([...owned].map((id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, '')));
   const chain = slots.map(() => ({}));
   const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };
   slots.forEach((s, i) => {

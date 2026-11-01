@@ -60,9 +60,9 @@ function catalog() {
   return out;
 }
 
-// Card level / rebirth limits: level 1-50 for every card kind (ninjaupgrade/equipupgrade/... have 50 rows), rebirth 0-6 for shinobi
+// Card level / rebirth limits: level 1-50 for every card kind (ninjaupgrade/equipupgrade/... have 50 rows), rebirth 0-8 for shinobi
 // (game.NEWLIFE_MAX), 0-3 for equipment (equipnewlifeprop), none for ninjutsu and seals.
-const LIMITS = { ninja: { lv: 50, nl: 6 }, equip: { lv: 50, nl: 3 }, ninjutsu: { lv: 50, nl: 0 }, seal: { lv: 50, nl: 0 } };
+const LIMITS = { ninja: { lv: 50, nl: 8 }, equip: { lv: 50, nl: 3 }, ninjutsu: { lv: 50, nl: 0 }, seal: { lv: 50, nl: 0 } };
 const clampCard = (cat, lv, nl) => {
   const L = LIMITS[cat] || { lv: 1, nl: 0 };
   return { lv: Math.min(Math.max(Math.trunc(lv) || 1, 1), L.lv), nl: Math.min(Math.max(Math.trunc(nl) || 0, 0), L.nl) };
@@ -166,6 +166,13 @@ module.exports = async function admin(req, res, u, db, readBody) {
       const c = clampCard(cat, b.level, b.newlife);
       setCard(db, card.seq, c);
       return json(res, { ok: true, level: c.lv, newlife: c.nl });
+    }
+    if (u.pathname === '/admin/api/setprop') { // set the exact amount of one item / fragment / souls
+      const id = Math.trunc(Number(b.id)), n = Math.max(0, Math.min(Math.trunc(Number(b.count)) || 0, 999999999));
+      if (!id) return json(res, { ok: false, error: 'bad item' });
+      const have = game.propCounts(db, pl.uid, pl.server_id)[id] || 0;
+      game.propAdd(db, pl.uid, pl.server_id, id, n - have);
+      return json(res, { ok: true, count: n });
     }
     if (u.pathname === '/admin/api/delcard') {
       const inTeam = db.prepare('SELECT 1 FROM team WHERE uid=? AND server_id=? AND seq=?').get(pl.uid, pl.server_id, b.seq);

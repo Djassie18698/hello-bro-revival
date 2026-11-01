@@ -99,7 +99,10 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   const energy = db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).energy;
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
-  const attrs = `curchapter="${chap}" curstage="${curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
+  // The client unlocks the chapter map from <pve curchapter>: after the last boss of a chapter, point it at the next chapter's first part
+  // (otherwise the next chapter stays grey until the next login; GitHub #5).
+  const nextOpen = chap < 19 && db.prepare('SELECT 1 FROM progress WHERE uid=? AND server_id=? AND chap=?').get(pl.uid, pl.server_id, chap + 1);
+  const attrs = `curchapter="${nextOpen ? chap + 1 : chap}" curstage="${nextOpen ? 1 : curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
   return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage, { foes, win: true, enemyLevel: foeLevel, enemyName: 'Enemy' }) +
     stageAward(db, pl, row, coin, exp) + '</root>';
 }
@@ -268,7 +271,7 @@ module.exports = {
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
       score: pl.exp || 0, viplevel: // <score> is the client's EXP field (CPlayerDataMgr +0xd4); 0 here reset the exp bar on every main page visit
-        vip.level(db, acc.uid, pl.server_id), soul: 0, totalm: 0 };
+        vip.level(db, acc.uid, pl.server_id), soul: game.propCounts(db, acc.uid, pl.server_id)[9999] || 0, totalm: 0 };
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
       gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
@@ -616,7 +619,21 @@ module.exports = {
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
       return '<root code="0">' + r.xml + '</root>';
     }
-    if (cmd === 5) return '<root code="0"><total_val>0</total_val><card_list></card_list></root>';
+    // Refine shinobi into souls (ui_trainSoulLayer): BagId = 'seq|seq|..'. Soul per card = refinery_info (quality = ninjainfo last column:
+    // 6 star 2000, 5 star 1000, 4 star 150, 3 star 0). Cmd 5 = preview, Cmd 3 = refine (cards are removed, souls added).
+    if (cmd === 5 || cmd === 3) {
+      const seqs = String(p.BagId || '').split('|').map(Number).filter((n) => n > 0);
+      const per = Object.fromEntries(game.table('refinery_info').rows.map((r) => [r[3], r[4]]));
+      const cards = seqs.map((s) => db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=? AND seq=? AND type=1').get(pl.uid, pl.server_id, s)).filter(Boolean);
+      const val = (c) => { const n = game.ninjas().get(c.ninja_id) || []; return per[n[n.length - 1]] || 0; };
+      const total = cards.reduce((t, c) => t + val(c), 0);
+      if (cmd === 5) return `<root code="0"><total_val>${total}</total_val><card_list>${cards.map((c) => `<card><bagid>${c.seq}</bagid><lianhun_val>${val(c)}</lianhun_val></card>`).join('')}</card_list></root>`;
+      if (!cards.length) return '<root code="5"><message>choose cards first</message></root>';
+      if (cards.some((c) => db.prepare('SELECT 1 FROM team WHERE uid=? AND server_id=? AND seq=?').get(pl.uid, pl.server_id, c.seq))) return '<root code="5"><message>take the card out of the team first</message></root>';
+      for (const c of cards) { db.prepare('DELETE FROM equipped WHERE uid=? AND server_id=? AND seq=?').run(pl.uid, pl.server_id, c.seq); db.prepare('DELETE FROM cards WHERE seq=?').run(c.seq); }
+      game.propAdd(db, pl.uid, pl.server_id, 9999, total);
+      return `<root code="0"><award dropid="1" coin="0"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>${total}</soul></award></root>`;
+    }
     return '<root code="0">' + game.secretXml(db, pl) + '</root>';
   },
 
@@ -640,6 +657,8 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     if (Number(p.Cmd) === 1) { const x = guild.adminXml(db, pl); return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>'; }
+    if (Number(p.Cmd) === 8) { const grp = guild.myGroup(db, pl.uid, pl.server_id); return grp ? `<root code="0">${guild.constructXml(db, grp)}</root>` : '<root code="5"><message>no group</message></root>'; }
+    if (Number(p.Cmd) === 9) { const r = guild.constructUp(db, pl, Number(p.ConstructID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0">${r.xml}</root>`; }
     return '<root code="0"></root>';
   },
 
