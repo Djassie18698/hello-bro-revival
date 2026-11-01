@@ -150,7 +150,7 @@ from the game at all; those are skipped. Most screenshots are from the English H
 ### Batch 5 (`batch-05`, photos 1196-1252)
 | Topic | Original (picture) | Server now |
 |---|---|---|
-| "Great gift for total recharge" (timed top-up event, 48 h countdown) | top up **$240**: Kyuubi Minato(A) + Shakujo + 160 Reincarnation Pills + 100 Souls Dan; **$420**: 2nd-Rebirth(G) card + 250 red pots + 200 Development Dan + 200 Reinc Pills; **$750**: 7th-Rebirth(G) card + 500 purple crystals + 400 Reinc Pills + 300 Souls Dan (`1238`) | check `rl_r_multiple_pay` (not built) |
+| "Great gift for total recharge" (timed top-up event, 48 h countdown) | top up **$240**: Kyuubi Minato(A) + Shakujo + 160 Reincarnation Pills + 100 Souls Dan; **$420**: 2nd-Rebirth(G) card + 250 red pots + 200 Development Dan + 200 Reinc Pills; **$750**: 7th-Rebirth(G) card + 500 purple crystals + 400 Reinc Pills + 300 Souls Dan (`1238`) | built 2 Nov: `totalgift.js` (Timed Gift) |
 | Wheel of Fortune (New Year look) | 12 prizes around a **Super award pool 600 000 gold**; prizes seen: 5 scrolls, purple orb, card, 5 cards, ghost card, **210 gold**, Souls Dan, 15 crystals, 2 Reinc Pills, 5 gold piles, 5 bags, Orochimaru card; "Turning once 10 points (1st try is free daily)" (`1213`); ranking: minimum for 1st prize **580** points, points rewards at **30 / 250 / 600 / 1000** score (`1214`) | `wheel.js` |
 | Akatsuki max levels | Group **Lv9**, Mall **Lv5**, Donate **Lv5**, Hall **Lv5** all show "level max", fund 559 (`1198`) | check `guild.js` max levels |
 | Flower Worship (Mei Terumi) | "Given 40 flowers", favorability 0/1, refresh with roses, event countdown (`1240`) | not built? |
@@ -177,7 +177,7 @@ from the game at all; those are skipped. Most screenshots are from the English H
 | Arena exchange (reputation) | The second: Development Dan 15 000 rep; third: Double Exp Pill 8000; four: Element Change Pill 15 000; five: Seal of Kyubi; eight: Naruto Uzumaki (attack card) **480 000** rep (total 1), nine at 120 000 (`1426`, `1488`); rank 1 daily reward 25 000 silver + 5000 rep again (`1421`, `1523`) | check arena exchange |
 | Country war | win = **10 points + 10 exploit**; rival who attacks you and fails gives you **2 points + 2 exploit** (log) (`1307`); exploit shop: Shinobi Pack I **1000**, 5x five-star purple fragments **3000**, Equipment Pack III **3000**, Ninjutsu Pack III (`1489`) | check `war.js` |
 | Cumulative gold (Consume) event, small version | **400** gold: 1-in-10000 ticket + 20 + 30 + 10; **1300**: 5-star Equip + 20 + 50 + 30; **2500**: Ultimate + 40 + 100 + 50 (`1401`, `1416`) | gold-spend event built 1 Nov: compare |
-| "Great gift for total recharge" (other version) | **$290**: Susa Shisui(G) + Rinnegan + 160 Reinc Pills + 100 Souls Dan; **$480**: 2nd-Rebirth(G) + **10K gold** + 200 Dev Dan + 250 red pots; **$800**: 7th-Rebirth(G) + 400 crystals + 300 Reinc + 300 Souls Dan (`1363`) | not built |
+| "Great gift for total recharge" (other version) | **$290**: Susa Shisui(G) + Rinnegan + 160 Reinc Pills + 100 Souls Dan; **$480**: 2nd-Rebirth(G) + **10K gold** + 200 Dev Dan + 250 red pots; **$800**: 7th-Rebirth(G) + 400 crystals + 300 Reinc + 300 Souls Dan (`1363`) | `totalgift.js` uses the `1238` version |
 | Listing of Rich (Millionaire) | first prize needs 140; achievements 20 / 60 / 100 / 200 (`1259`), 20 / 60 / 120 / 250 (`1322`, `1379`), 25 / 85 / 160 / 390 (`1497`), 20 / 80 / 130 / 200 (`1540`) | `monopoly.js` |
 | Wheel of Fortune ranking | first prize 580; points rewards 30 / 250 / 600 / **1400** or **1600** / 1200 score (`1397`, `1411`, `1415`, `1439`, `1440`); 780 / 1200 score in another (`1500`) | |
 | S-shinobi draw | Hokage Naruto(A) / Susa Kakashi(D) / Hashirama(A) / Kaguya(D) / Kazekage(A) headliners; **20 points a draw** (some 30); "Recruit N more" N = 0-4, 7; first prize 240 (`1306`, `1430`, `1445`, `1471`, `1522`) | |
@@ -399,7 +399,7 @@ from the game at all; those are skipped. Most screenshots are from the English H
 | Topic | Original (picture) | Server now |
 |---|---|---|
 | World boss Obito | Lv **10**, HP **145 800 W** (=1.458 billion), Power +80%; top damage 615 million; "The reputation will be clean at 14:00 next day"; reputation shop 30 000 / 15 000 / 12 000 / 400 / 350 (`2751`, `2752`) | `boss.js` |
-| Time limited GiftPack ("Preferential" tab) | "lowest **$19** recharge, claim **$60** price giftpack": 5-star Shinobi (God) chest + 5 keys + 4-star Ninjutsu + 3 EXP; event 70 h (`2755`) | not built |
+| Time limited GiftPack ("Preferential" tab) | "lowest **$19** recharge, claim **$60** price giftpack": 5-star Shinobi (God) chest + 5 keys + 4-star Ninjutsu + 3 EXP; event 70 h (`2755`) | built 2 Nov: Preferential (`limited.js`) |
 
 ## Holiday events
 (Second pass, 2 Nov: all batches 01-84, about 3 580 photos, checked for holiday screens. **No** Valentine, Goddess Tsunade, Halloween or
@@ -507,8 +507,8 @@ Still different, or still to build, ordered by how much a player notices:
 5. **First top-up is x3** ($0.99 = 135 gold). The later Google Play table is $19.99 = 2850, $49.99 = 7200, $99.99 = 14 400 (`batch-84/3478`), which differs from the earlier $0.99 = 45 / $19.99 = 950 table. Two price eras existed.
 6. **Ninja Test boss chests:** first free, then 160 and 250 gold ("spend gold 250 to open?" `batch-82/2954`). The server uses 30 / 80.
 7. **W.A. ranks 8-14** are also confirmed by `batch-84/3382`: 30 000 / 45 000 / 60 000 / 90 000 / 120 000 / 160 000 W.A. = +550 ... +1100, the same as `data/playemedal.json`.
-8. **Not built:** Treasure (key) chests, limited group purchase, cross-server battle, scratch card (prizes 5-800 gold), Time limited GiftPack ($19 -> $60 pack), "Great gift for total recharge".
+8. **Not built:** Treasure (key) chests, limited group purchase, cross-server battle, scratch card (prizes 5-800 gold), ~~Time limited GiftPack, "Great gift for total recharge"~~ (built 2 Nov).
 
 **Never shown on any photo:** normal recruit pity number, VIP 6-18 thresholds, VIP benefit list, Christmas cap/tree drop per fight and Buy price, Valentine and Goddess Tsunade events.
 
-**Built since (2 Nov 2026, later):** Treasure (key) chests, limited group purchase, scratch card, Growth Fund, Ninja Test boss chests 160 / 250 gold, Eight Gates levels, daily task 250-point chests, shinobi training with pills.
+**Built since (2 Nov 2026, later):** Treasure (key) chests, limited group purchase, scratch card, Growth Fund, Great gift for total recharge, Time limited GiftPack, Ninja Test boss chests 160 / 250 gold, Eight Gates levels, daily task 250-point chests, shinobi training with pills.

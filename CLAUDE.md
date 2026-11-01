@@ -48,7 +48,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 | `server.js` | HTTP server on :18080 (rewrites `<root` to `<RENLONG`, %20-encodes raw spaces, rate limit, `/admin`, `/cdn/`) |
 | `handlers.js` | one function per client endpoint (`rl_r_*` read, `rl_w_*` write, `rl_x_*` mixed, `xk_*` login/directory) |
 | `game.js` | core: cards, team/stats, gear, sets, drops (`grantDrop`), gacha, training, fights (`battleXml`), shop, props |
-| feature modules | `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` · `mora` · `slot` · `signin` · `rankings` · `stagegift` · `drops` |
+| feature modules | `totalgift` total-recharge gifts · `dailyevents` daily spending + recharge streak · `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` · `mora` · `slot` · `signin` · `rankings` · `stagegift` · `drops` |
 | `admin.js` | admin page (players keyed "uid:server_id", server 1 = main, 2-4 = starter slots from the login region list): give gold/items/cards, set level/VIP, inventory edits, **team editor** (`/admin/api/team`, `setteam`: whole team + 8 gear slots in one transaction), **reset a player** |
 | `panel.html` | the control panel at `/`, `/admin`, `/manager`: tabs Server / Players & items / Team builder; it embeds `/manager?embed=1` and `/admin?embed=1` (iframes, postMessage {tab}/{goto}) |
 | `manager.js`/`manager.html`/`settings.js` | Server Manager `/manager`: status, online players, live log, events on/off (`server_settings.events_off`, used by `game.actXml`), announcement (`rl_r_bulletin`), backup, restart (exit code 3, `START-SERVER.bat` loops; `HB_MANAGED=1`) |
@@ -129,8 +129,6 @@ Current: **28.0.19** (28.0.18 "Proceed" button reverted: re-encoded sprite sheet
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
 Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
-Not built yet (Lua screens exist): lottery `rl_r_lottery`/`rl_w_lottery`, daily offers
-`rl_r_dailylimit`, `rl_w_dailycost`, `rl_r_multiple_task`, `rl_r_multiple_pay`, card split `rl_w_split_card`, cross-server
-battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`, `rl_r_marquee`, `rl_r_migrate_price`.
-Other: several "small activities" (`rl_x_small_activity` besides month sign-in) reply empty; 7-day goal texts are Thai in the
-data; real login auth (Gumptech SDK) not done. Find more with: compare `reference/client-endpoints.txt` to `Object.keys(require('./handlers'))`.
+Not built yet (Lua screens exist): cross-server battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`.
+Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
+(never opened), rebate wheel `rl_r_multiple_pay`. Other: real login auth (Gumptech SDK) not done. Find more with: compare `reference/client-endpoints.txt` to `Object.keys(require('./handlers'))`.

@@ -613,3 +613,18 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     (game.inherit: level, exp, growth, rebirth, training points move to the other card of the same quality; source back to level 1;
     price 50 + 50 a rebirth + 50 per 3 growth (ours)). NOT checked in game: the v28 Backpack card screen shows no Succession button
     (CMyBackpackCardView::ninjaInheritClick exists but its button is not on the card view we see).
+
+## 2 Nov 2026 (later): small events
+  * Great gift for total recharge (Event menu id 11, rl_r_pay_cumula + rl_w_activity ActType 6): totalgift.js. Checked in game: list, Claimed
+    stamp, rewards (rebirth 2 / 7 cards). Card icons in this cell come from props/<icon>.plist, which has no ninja icons, but sending the
+    icon/ frame name (icon_npc42_6, small_weapon_033) works because rl_get_iconsprite has just loaded that sheet into the frame cache.
+  * topup_log has a new `cents` column (price of the package) so events can count dollars like the original.
+  * Time limited GiftPack (id 27): switched to the photo's $19 / $60 / 70 h and rewards. Checked in game.
+  * Daily spending gift (id 25, rl_w_dailycost) and recharge streak (id 26, rl_r_activity 9003 / rl_w_activity ActType 9): dailyevents.js,
+    checked in game. Long item names overlap in these cells, so only the amount is shown under each icon.
+  * NOT possible in v28: limited daily gift (id 30, rl_r_dailylimit): activity/DailyRestrictionCell.ccbi lacks label_item_name*, node_icon_*,
+    label_remain_amount, label_price, btn_buy, so ui_dailyRestrictionCell.lua:47 crashes (seen in game). Card split (rl_w_split_card):
+    ShowSplitDlg is never called. Recharge rebate wheel (id 31/32, rl_r_multiple_pay): only multiplies real-money top-ups.
+  * rl_r_marquee answers an empty <marquee/> (ui_borderWarTip reads its children). Every rl_x_small_activity Cmd a Lua screen sends is handled.
+  * mergeAwards now sums <soul> (it always sent 0, so souls vanished from combined reward pop-ups; the souls were still given).
+

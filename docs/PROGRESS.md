@@ -119,18 +119,24 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | 🧪 | Ninja Test guards grow with the stage and your level, matching the original photos (low levels were far too hard) |
 | ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
 | ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
+| 🧪 | "Great gift for total recharge" (Timed Gift) like the original photo: top up $240 / $420 / $750 in 48 h for The Fourth Sage + Shakujo, a 2nd-rebirth Hokage Kakashi (God), a 7th-rebirth Kaguya (God) and pills |
+| 🧪 | "Time limited GiftPack" (Preferential) like the original photo: top up $19 in 70 h, claim a $60 pack (5-star God shinobi, 5 Gold Keys, 4-star ninjutsu, 3 EXP cards) |
+| 🧪 | Daily spending gift ("Consumption") and 7-day recharge streak ("charging") in the Event menu (rewards are ours: no photo) |
+| ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |
 
 ## Still to build
 
 | | What |
 |---|---|
-| ⏳ | Daily limited offers, card split, cross-server battle (the game has the screens, the server doesn't answer yet) |
-| ⏳ | Some small events in the event menu still answer empty |
+| ⏳ | Cross-server battle (the game has the screens, the server doesn't answer yet) |
 | ⏳ | Real login with a password (now any device just logs in) |
 
 ## Known, harmless
 
 | | What |
 |---|---|
+| 🚫 | "Limited daily gift" packs: the game's own layout for that screen is missing its price, buy button and item labels, so it crashes whatever the server sends |
+| 🚫 | Card split ("tear a card to fragments"): no button in this game version opens it |
+| 🚫 | Recharge rebate wheel: it only multiplies real-money top-ups, which are free here |
 | 🚫 | The "Loading for you, Master" wait on Training and Team: the server isn't asked anything there, it's the phone loading the screen's pictures |
 | 🚫 | "INTERSTITIAL 'Leaderboard' REQUEST FAILED - NETWORK_FAILURE" after login: the game app's old ad service (Chartboost) can't load an ad. Harmless; removing it needs a new game app (left for a later app update) |
