@@ -93,7 +93,7 @@ function randomEquip(slot, minStar = 3, maxStar = 5) {
 const el = (n, v) => `<${n}>${v}</${n}>`;
 function cardXml(c) {
   const f = {
-    type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: c.attri || 0, starlevel: c.starlevel,
+    type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: c.attri || 1, // 0 (never changed) = water; the client names only 1-5 (Change Element showed "nil") starlevel: c.starlevel,
     newlife: c.newlife || 0, tupo_level: c.breaklvl || 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
     attack_add: c.pot_att || 0, defence_add: c.pot_def || 0, cha_add: c.pot_ckr || 0, status: 0,
   };
@@ -672,12 +672,13 @@ function propAdd(db, uid, sid, id, n) {
 }
 // Buy: kind 'good' (consumeinfo) or 'pack' (giftinfo, opened immediately for coins/gold).
 // Gold prices the original shop showed that differ from consumeinfo (Facebook photos 0080, 0082, 1011, 1757, 2964): Reincarnation Pill 120
-// (table 180), Development Dan 120 (table 200).
-const SHOP_GOLD = { 11: 120, 34: 120 };
+// (table 180), Development Dan 120 (table 200); Element Change Pill "Currently not for sale" (photos 1425, 1494; table 200): 0 = not sold.
+const SHOP_GOLD = { 11: 120, 34: 120, 33: 0 };
 const shopGold = (row) => SHOP_GOLD[row[1]] ?? row[4];
 function shopBuy(db, pl, goodsId, count) {
   const row = table('consumeinfo').rows.find((r) => r[1] === goodsId);
   if (!row) return { error: 'no such item' };
+  if (!shopGold(row) && !row[5]) return { error: 'not available' }; // "Currently not for sale"
   const costG = shopGold(row) * count, costS = row[5] * count;
   if (pl.gold < costG || pl.coin < costS) return { error: 'not enough gold' };
   db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
@@ -850,7 +851,7 @@ function inheritInfoXml(c) {
   return `<basic>${el('cost_cash', c ? inheritCost(c) : 0)}${el('level', c ? c.level : 1)}${el('star', c ? c.starlevel || 0 : 0)}${el('newlife', c ? c.newlife || 0 : 0)}<add_attack>0</add_attack><add_defense>0</add_defense></basic>`;
 }
 function inheritCardAward(c) {
-  return `<award dropid="1" coin="0"><cardlist><card>${el('id', c.ninja_id)}${el('type', 1)}${el('num', 1)}${el('attri', c.attri || 0)}${el('bagIndex', c.seq)}${el('level', c.level)}${el('newlife', c.newlife || 0)}${el('starlevel', c.starlevel || 0)}</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>`;
+  return `<award dropid="1" coin="0"><cardlist><card>${el('id', c.ninja_id)}${el('type', 1)}${el('num', 1)}${el('attri', c.attri || 1)}${el('bagIndex', c.seq)}${el('level', c.level)}${el('newlife', c.newlife || 0)}${el('starlevel', c.starlevel || 0)}</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>`;
 }
 function inherit(db, pl, srcSeq, dstSeq) {
   const get = (s) => db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(s, pl.uid, pl.server_id);
