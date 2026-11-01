@@ -413,3 +413,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (stone_level = stone id 7/8, stone_added_percent per extra stone, max_percent cap): those numbers are (ours), +1%/+2%, cap = 4x Stone III chance.
 - Shinobi rebirth back to max 8: v28 GetTopInlayFrame draws outlines 1-8 only (>8 returns nothing); 9 is from a later game version.
 - Admin: sage growth (cards.starlevel, 0-15, shinobi only) can be set when giving cards and edited in Inventory.
+- In-game Discord link (hot update 28.0.13): Settings (home icon row > Settings) shows "Join our Discord!", the invite text and a "Join Discord" button (the
+  hidden switch-account row) that calls openHyperlink (C++ global) and opens the browser. Verified on the emulator (Chrome opened discord.gg).

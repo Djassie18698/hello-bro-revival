@@ -76,7 +76,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 ## 📜 What changed recently
 
 - **1 Nov 2026:** new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,
-  chapters open after the last boss, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts:
+  chapters open after the last boss, a **Join Discord** button in the game's Settings, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts:
   [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md).
 - **31 Oct 2026:** the big fix day (training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more):
   [**`docs/FIXES-2026-10-31.md`**](docs/FIXES-2026-10-31.md).
