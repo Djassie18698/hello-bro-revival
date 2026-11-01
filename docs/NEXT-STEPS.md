@@ -688,3 +688,18 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Owner decided: keep the balance as is (last boss 2.5M, recruit rates, EXP) - let it play out.
   * Player log (playerlog.js): table player_log; hooks in game.addExp (level), game.setStage (stage + chapter, chap<1000), vip.addExp,
     rl_r_mainpage (login day + team attack when it moved 2 %+). Page /admin/playerlog, panel tab "Player log". Also: addExp no longer goes past 350.
+
+## 1 Nov 2026: element restrain in fights
+  * game.battleXml: every round sends AttackAttri / DefenseAttri (my card attri, 0 = water) and CauseLimit / LimitVal. CFightResultData::
+    firefly_CalcAttackVal sums round LimitVal (+0x44) into "my restrain" (field 0xd4) when CauseLimit (+0x40) = -1 and into "enemy restrain"
+    (0xd8) when it is 1; CNewResultWinView/FailView show them as label_myRestrain / label_enemyRestrain.
+  * ninjafiveprop: my element beats theirs -> CauseLimit -1, FinalAttack = attack + 15 %; theirs beats mine -> CauseLimit 1, FinalDefense + 15 %.
+    NPC enemies get a fixed element from their id (ours: no element in the data). ninjaXml now sends the real attri in <guard>/<killer>.
+  * The win/lose decision is unchanged (owner keeps the balance): if restrain would flip the replay, enemy defence is nudged until it ends
+    the decided way (300 test fights: 0 mismatches). Skills are rolled once per ninja now (same chances). NOT checked in game yet.
+  * Cross-server battle researched, parked by the owner: it opens from CDefaultSLGMenu::ClickNinja (Base); util/common.lua sends it to a
+    fixed MULTI_BATTLE_CGI_IP 23.91.96.227:8080 (patch to CServerListMgr:instance():GetServerConfig().m_url). Endpoints: rl_r_cross_war
+    (warlefttime/curwarid/status 1 ticket, 2 fighting, 3 over; <user> + <positionlist> of 20 posts; leftTime must be > 0 or the screen
+    reopens itself in a loop), rl_w_cwar Cmd 1 ticket 500 / 2 inspire 200 (+10 %, 300 s) / 3 exchange ExchId (myscore_left + award) / 4 top-10
+    award, rl_w_cwar_war Cmd 1 Pos (ShowArenaView fight + <newlist><user/><positionlist/>), rl_r_crosswar_rank Cmd 1-4 (<player> first,
+    rank_list rows col0-col4 attributes, score_package id/icon/cost/desc, topten_award id/rank/desc). rl_w_cross_war Cmd 2 is unused.

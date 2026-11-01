@@ -358,7 +358,7 @@ function pullXml(res, count, type = 0) {
 // ---- Training battles -----------------------------------------------------------------------
 // The client replays whatever fight we describe: <fight><preview/><guard>(enemies)<killer>(my team)<roundlist>.
 function ninjaXml(n) {
-  const f = { id: n.id, bagid: n.bagid, low: n.low, high: n.high, end: n.end, level: n.level, attri: 0, starlevel: n.star, newlife: 0 };
+  const f = { id: n.id, bagid: n.bagid, low: n.low, high: n.high, end: n.end, level: n.level, attri: n.attri || 0, starlevel: n.star, newlife: 0 };
   return '<ninja>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</ninja>';
 }
 // <master_pet> in a fight: CFightResultData::AddMyNinja reads BOTH <id> and <pet_id> (a missing one = SIGSEGV),
@@ -381,13 +381,20 @@ function foeTeam(db, uid, sid, first) {
   for (let k = 0; out.length < 3 && k < pool.length; k++) { const id = pool[(seed * 7919 + k * 104729) % pool.length]; if (!out.includes(id)) out.push(id); }
   return out;
 }
+// Element restrain (ninjafiveprop: [1] element beats [3], [6] = +15%): water > fire > wind > thunder > earth > water.
+function restrainTable() {
+  if (!restrainTable.m) { restrainTable.m = new Map(); for (const r of table('ninjafiveprop').rows) restrainTable.m.set(r[1], { beats: r[3], rate: Number(r[6]) || 0 }); }
+  return restrainTable.m;
+}
+// Enemy NPCs have no element in the game data: a fixed one from the ninja id, so a stage always shows the same elements (ours).
+const foeAttri = (id) => ((Math.abs(Number(id) || 0) * 7) % 5) + 1;
 function battleXml(db, pl, chap, stage, opt = {}) {
-  const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
+  const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel, c.attri FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
   // ninjutsu worn (equipped kinds 5-8) by each team ninja: they can fire when that ninja starts attacking
   const jRows = db.prepare('SELECT e.slot, c.seq, c.ninja_id, c.level FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=? AND e.kind BETWEEN 5 AND 8')
     .all(pl.uid, pl.server_id);
-  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
+  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel, attri: t.attri || 1 }; });
   const given = opt.foes ? opt.foes.map((f, i) => ({ ...f, bagid: 1000 + i })) : null; // real stage enemies (game.stageFoes)
   const mkFoes = (ratio) => given ? given.map((f) => ({ ...f })) : (opt.enemyIds || [21, 22, 23]).map((id, i) => {
     if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0 };
@@ -409,35 +416,54 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     if (want === 'real') { /* benchmark: the replay decides */ }
     else if (want === true && sumD >= sumA) { const k = (sumA * 0.85) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.max(1, Math.floor(def[j] * k)); }
     if (want === false && sumD <= sumA) { const k = (sumA * 1.25) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.ceil(def[j] * k); }
-    foes.forEach((f, j) => { f.def = def[j]; });
-    const rolled = [];
-    let i = 0, j = 0, started = -1;
-    while (i < mine.length && j < foes.length && rolled.length < 60) {
-      // Ninjutsu (owner's video: "Shadow technique, Skill damage increase: 72 (Chakra increase: 32)" = its attack value 40 + 32): when a ninja
-      // starts attacking, each worn ninjutsu fires with its own chance (ninjutsuinfo m_rate, 15%); the damage (m_attackvalue + m_attackvalue_up per
-      // card level above 1 + a chakra bonus) is added to that ninja's attack for the rest of its chain. At most 2 per hit (the client reads 2).
-      // Chakra bonus = 20% of the ninja's average chakra (ours: the original formula is lost; the video fits it roughly).
+    // Ninjutsu (owner's video: "Shadow technique, Skill damage increase: 72 (Chakra increase: 32)" = its attack value 40 + 32): when a ninja
+    // starts attacking, each worn ninjutsu fires with its own chance (ninjutsuinfo m_rate, 15%); the damage (m_attackvalue + m_attackvalue_up per
+    // card level above 1 + a chakra bonus) is added to that ninja's attack for the rest of its chain. At most 2 per hit (the client reads 2).
+    // Chakra bonus = 20% of the ninja's average chakra (ours: the original formula is lost; the video fits it roughly).
+    const skillsOf = mine.map((m) => {
       const skills = [];
-      if (started !== i && (want !== false || process.env.HB_SKILLS)) {
-        started = i;
-        for (const r of mine[i].jutsu) {
-          if (skills.length >= 2) break;
-          const n = table('ninjutsuinfo').rows.find((x) => x[0] === r.ninja_id);
-          if (!n || !(process.env.HB_SKILLS || Math.random() < (Number(n[4]) || 0))) continue;
-          const chakra = Math.round(mine[i].chakra * 0.2), dmg = (n[10] || 0) + (n[18] || 0) * Math.max(0, (r.level || 1) - 1) + chakra;
-          skills.push({ cardid: r.ninja_id, chakraattack: dmg, chakra }); // cardid = the ninjutsu's id (the client shows that ninjutsu's name)
-          atk[i] += dmg;
-        }
+      if (want === false && !process.env.HB_SKILLS) return skills;
+      for (const r of m.jutsu) {
+        if (skills.length >= 2) break;
+        const n = table('ninjutsuinfo').rows.find((x) => x[0] === r.ninja_id);
+        if (!n || !(process.env.HB_SKILLS || Math.random() < (Number(n[4]) || 0))) continue;
+        const chakra = Math.round(m.chakra * 0.2), dmg = (n[10] || 0) + (n[18] || 0) * Math.max(0, (r.level || 1) - 1) + chakra;
+        skills.push({ cardid: r.ninja_id, chakraattack: dmg, chakra }); // cardid = the ninjutsu's id (the client shows that ninjutsu's name)
       }
-      const a = atk[i], d = def[j], base = a - skills.reduce((t, s) => t + s.chakraattack, 0);
-      rolled.push({ AttackNinja: mine[i].bagid, Attack: base, AttackAttri: 0, DefenseNinja: foes[j].bagid, Defense: d, DefenseAttri: 0,
-        CauseLimit: 0, LimitVal: 0, FinalAttack: a, FinalDefense: d, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
-        AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0, _skills: skills });
-      if (a > d) { atk[i] = a - d; def[j] = 0; j++; }
-      else if (a < d) { def[j] = d - a; atk[i] = 0; i++; }
-      else { atk[i] = 0; def[j] = 0; i++; j++; }
+      return skills;
+    });
+    foes.forEach((f) => { if (!f.attri) f.attri = foeAttri(f.id); });
+    const rt = restrainTable();
+    // Restrain (CFightResultData::firefly_CalcAttackVal: CauseLimit -1 adds LimitVal to "my restrain", 1 to "enemy restrain"): my element beats
+    // theirs -> my hit +15% of its attack; theirs beats mine -> their defence +15% for that hit.
+    const sim = (def0) => {
+      const at = atk.slice(), df = def0.slice(), rolled = [];
+      let i = 0, j = 0, started = -1;
+      while (i < mine.length && j < foes.length && rolled.length < 60) {
+        let skills = [];
+        if (started !== i) { started = i; skills = skillsOf[i]; at[i] += skills.reduce((t, s) => t + s.chakraattack, 0); }
+        const a = at[i], d = df[j], base = a - skills.reduce((t, s) => t + s.chakraattack, 0);
+        const ma = mine[i].attri || 1, fa = foes[j].attri || 1, mr = rt.get(ma), fr = rt.get(fa);
+        let cause = 0, limit = 0, finA = a, finD = d;
+        if (mr && mr.beats === fa) { cause = -1; limit = Math.floor(a * mr.rate); finA = a + limit; }
+        else if (fr && fr.beats === ma) { cause = 1; limit = Math.floor(d * fr.rate); finD = d + limit; }
+        rolled.push({ AttackNinja: mine[i].bagid, Attack: base, AttackAttri: ma, DefenseNinja: foes[j].bagid, Defense: d, DefenseAttri: fa,
+          CauseLimit: cause, LimitVal: limit, FinalAttack: finA, FinalDefense: finD, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
+          AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0, _skills: skills });
+        if (finA > finD) { at[i] = finA - finD; df[j] = 0; j++; }
+        else if (finA < finD) { df[j] = finD - finA; at[i] = 0; i++; }
+        else { at[i] = 0; df[j] = 0; i++; j++; }
+      }
+      return { rounds: rolled, won: j >= foes.length };
+    };
+    // the restrain bonus can flip a close replay: nudge the enemy defence until it ends the way the server decided
+    let out = sim(def);
+    for (let k = 0; k < 30 && typeof want === 'boolean' && out.won !== want; k++) {
+      for (let j = 0; j < def.length; j++) def[j] = want ? Math.max(1, Math.floor(def[j] * 0.9)) : Math.ceil(def[j] * 1.15);
+      out = sim(def);
     }
-    return { rounds: rolled, won: j >= foes.length };
+    foes.forEach((f, j) => { f.def = def[j]; });
+    return out;
   };
   let foes, fight;
   if (opt.real) { foes = mkFoes(); fight = play(foes, 'real'); }
