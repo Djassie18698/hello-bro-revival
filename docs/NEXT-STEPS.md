@@ -378,3 +378,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - 0 defence in training: the friend's screenshot shows the attacked enemies' defence (blue shield) = 0 at that moment, i.e. broken; the boss scaling now gives real defence
   (shown on the victory screen). The number on the card itself follows the client's SetFinalData rule.
 - 7-day goals: hot update 28.0.10 adds ui_sevenDayCell.lua with English goal texts (SEVEN_DAY_EN). Verified in game ("Reach player level 70"); Go opens the right screen.
+
+## Energy: level-up refill, ramen (1 Nov 2026, owner request)
+- A level-up fills the energy to the new level's maximum (game.addExp); training pays its energy BEFORE the exp so the refill stays, and the pve reply sends the real energy.
+- Ramen (BuyRemenDlg -> rl_w_propuse): the client SETS its energy to <propuse ap>, so ap is now the new total (was the +200 delta); rest/max (daily ramen limit) 99.
+  rl_w_ramen fills to the level maximum (was a fixed 106). The 180 s regen (normalconfig row 9) stays.

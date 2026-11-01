@@ -449,6 +449,10 @@ function addExp(db, pl, exp) {
     cur -= r[2]; level++;
   }
   db.prepare('UPDATE players SET level=?, exp=? WHERE uid=? AND server_id=?').run(level, cur, pl.uid, pl.server_id);
+  if (level > pl.level) { // a level-up fills the energy to the new level's maximum (owner: "leveling should refill")
+    const max = (rows.find((x) => x[1] === level) || [])[4] || 0;
+    db.prepare('UPDATE players SET energy=MAX(energy,?), energy_t=? WHERE uid=? AND server_id=?').run(max, Math.floor(Date.now() / 1000), pl.uid, pl.server_id);
+  }
   return level;
 }
 
@@ -636,9 +640,10 @@ function propUse(db, pl, goodsId) {
   propAdd(db, pl.uid, pl.server_id, goodsId, -1);
   let coin = 0, ap = 0;
   if (row[7] === 3) { coin = Math.round(row[8]); db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); }
-  if (row[7] === 1) { ap = Math.round(row[8]); db.prepare('UPDATE players SET energy=energy+? WHERE uid=? AND server_id=?').run(ap, pl.uid, pl.server_id); }
+  if (row[7] === 1) { energyTick(db, pl); db.prepare('UPDATE players SET energy=energy+? WHERE uid=? AND server_id=?').run(Math.round(row[8]), pl.uid, pl.server_id); }
   const now = db.prepare('SELECT energy, coin FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
-  return { ap, coin, left: have - 1 }; // deltas: the client adds them to its own totals
+  if (row[7] === 1) ap = now.energy; // the ramen dialog SETS the energy to <propuse ap> (BuyRemenDlg: SetBodyValue(ap)): send the new total
+  return { ap, coin, left: have - 1 };
 }
 
 // Gift packs: only packs whose drop row gives ninja cards work (equipment/ninjutsu cards are not implemented yet).

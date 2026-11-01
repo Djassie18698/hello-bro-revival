@@ -90,13 +90,13 @@ function trainingFight(db, pl, chap, part, pos, buy) {
     return `<root code="0"><pve ${a0}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` +
       game.battleXml(db, pl, chap, stage, { foes, win: false, enemyLevel: foeLevel, enemyName: 'Enemy' }) + game.awardFull({}) + '</root>';
   }
-  const lv = game.addExp(db, pl, exp);
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
+  const lv = game.addExp(db, pl, exp); // after paying, so a level-up refill stays
   const now = game.stageCleared(db, pl, chap, stage);
   if (now.clears >= game.clearsNeeded(row)) game.setStage(db, pl.uid, pl.server_id, chap, stage + 1); // enough clears: next stage opens
   if (stage >= game.chapterStages(chap) && now.clears >= game.clearsNeeded(row) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
-  const energy = Math.max(0, pl.energy - cost);
+  const energy = db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).energy;
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
   const attrs = `curchapter="${chap}" curstage="${curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
@@ -576,7 +576,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const r = game.propUse(db, pl, Number(p.Goodsid));
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-    return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="0" max="0"/></root>`;
+    return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="99" max="99"/></root>`;
   },
 
   rl_w_strengthen: ({ db, params: p }) => {
@@ -778,7 +778,8 @@ module.exports = {
   rl_w_ramen: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
-    db.prepare('UPDATE players SET energy=MAX(energy,106) WHERE uid=? AND server_id=?').run(acc.uid, Number(p.ServerID || 1));
+    const rp = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (rp) { const max = (game.table('playerlevel').rows.find((r) => r[1] === rp.level) || [])[4] || 50; db.prepare('UPDATE players SET energy=MAX(energy,?) WHERE uid=? AND server_id=?').run(max, rp.uid, rp.server_id); }
     return '<root code="0"></root>';
   },
 
