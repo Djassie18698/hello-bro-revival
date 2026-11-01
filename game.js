@@ -1351,6 +1351,8 @@ function teammateXml(db, uid, sid, first, withFirst, level) { // withFirst: the 
     ids = db.prepare('SELECT c.ninja_id FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid).map((r) => r.ninja_id).slice(withFirst ? 0 : 1);
   }
   if (!ids || !ids.length) ids = foeTeam(db, uid, sid, first, level).slice(withFirst ? 0 : 1);
+  // both cell layouts have only node_icon1-4; Battle puts mate i in node_icon(i+2), so more than 3 mates (4 with the first) crash
+  ids = ids.slice(0, withFirst ? 4 : 3);
   return '<teammate>' + ids.map((id) => `<mate>${el('ninja', id)}${el('firstninjastar', (ninjas().get(id) || [])[11] || 1)}</mate>`).join('') + '</teammate>';
 }
 function arenaListXml(db, pl) {

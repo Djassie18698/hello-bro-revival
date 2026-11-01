@@ -803,3 +803,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     rl_w_ky_payorder refuse a 2nd top-up the same day (limited.topupsToday, local midnight) with code 8000 + message.
   * 28.0.25 ui_purchaseLayer.lua shows the refusal message (it did nothing on a non-0 code). Checked in game: 1st top-up VIP0 -> VIP1,
     2nd shows "You can top up once a day. Come back tomorrow!", gold unchanged. Switch seen in the control panel.
+
+## 1 Nov 2026 (late): Arena crash fixed
+  * Opening the Arena crashed the game (signal 11). Since enemy teams scale with level, rl_r_sport sent up to 6 <mate> per rival,
+    but ArenaCellViewNew/ArenaRankCellView.ccbi have only node_icon1-4 and CArenaListView puts mate i in node_icon(i+2)
+    (COpponentCardView::initArena, `adds r2, #2`). teammateXml now sends at most 3 mates (4 on the Rank tab, which lists the
+    first too). Checked in game: Compete and Rank tabs open, 4 pictures per row.
+  * Re-checked in game (dev server): Ninja Test stage 5 chests free / 160 / 250 gold (gold 2170 -> 1760), team slot 5 opens
+    after stage 1-12 at level 30+.
