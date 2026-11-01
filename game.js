@@ -594,14 +594,12 @@ function addExp(db, pl, exp) {
 
 // ---- Daily tasks -----------------------------------------------------------------------------
 const today = () => new Date().toISOString().slice(0, 10);
-// Daily task chests. ORIGINAL (Facebook photos 0175 and 1328): a 250-point bar with chests at 120 / 160 / 210 / 250 (the list scrolls, so
-// there were more before 120); the 250 chest = 30 000 silver + 100 gold + 10 Reincarnation Pills + 1 Killer B fragment. The chests at
-// 30 / 60 / 90 and the contents of all but the 250 chest are (ours). dropinfo ids.
+// Daily task chests. ORIGINAL (Facebook photos 0175, 1328, 4107, 4211): a 250-point bar with exactly 6 chests at 30 / 80 / 120 / 160 / 210 / 250;
+// the 250 chest = 30 000 silver + 100 gold + 10 Reincarnation Pills + 1 Killer B fragment. The contents of the other chests are (ours). dropinfo ids.
 const DAILY_TOTAL = 250;
 const DAILY_AWARDS = [
-  { id: 1, cost: 30, drops: [46] }, { id: 2, cost: 60, drops: [97] }, { id: 3, cost: 90, drops: [56] },
-  { id: 4, cost: 120, drops: [100] }, { id: 5, cost: 160, drops: [56, 97] }, { id: 6, cost: 210, drops: [260] },
-  { id: 7, cost: 250, drops: [226, 260, 108, 1166] },
+  { id: 1, cost: 30, drops: [46] }, { id: 2, cost: 80, drops: [97] }, { id: 3, cost: 120, drops: [100] },
+  { id: 4, cost: 160, drops: [56, 97] }, { id: 5, cost: 210, drops: [260] }, { id: 6, cost: 250, drops: [226, 260, 108, 1166] },
 ];
 function dailyEnsure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS dailytask (uid INTEGER, server_id INTEGER, day TEXT, task_id INTEGER, process INTEGER DEFAULT 0, PRIMARY KEY(uid,server_id,day,task_id));

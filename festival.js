@@ -41,16 +41,17 @@ const THEMES = {
   },
 };
 const DROP = { chance: 0.6, max: 2 }; // (ours) per won fight: 60% chance of 1-2 items
-const SHOP_PER_DAY = 10;              // (ours) each item can be bought 10 times a day, at the consumeinfo price (gold)
+// ORIGINAL (photo 3627, Christmas Buy): Christmas Cap 80 gold / Christmas Tree 100 gold (= consumeinfo price), at most 700 caps and
+// 600 trees per event. The New Year run uses the same limits (ours).
+const SHOP_LIMIT = { [CAP]: 700, [TREE]: 600 };
 
-const day = () => new Date().toISOString().slice(0, 10);
 const ensure = (db) => db.exec(`CREATE TABLE IF NOT EXISTS festival_use (uid INTEGER, server_id INTEGER, kind TEXT, id INTEGER, day TEXT, n INTEGER,
   PRIMARY KEY(uid, server_id, kind, id, day))`);
-// trades count per event run (key = when the owner switched it on), shop buys per day
-const period = (db, kind) => (kind === 'buy' ? day() : 'run' + (theme(db) ? settings.switchedOnAt(db, theme(db).event) : 0));
-const used = (db, pl, kind, id) => (db.prepare('SELECT n FROM festival_use WHERE uid=? AND server_id=? AND kind=? AND id=? AND day=?').get(pl.uid, pl.server_id, kind, id, period(db, kind)) || { n: 0 }).n;
+// trades and shop buys count per event run (key = when the owner switched it on)
+const period = (db) => 'run' + (theme(db) ? settings.switchedOnAt(db, theme(db).event) : 0);
+const used = (db, pl, kind, id) => (db.prepare('SELECT n FROM festival_use WHERE uid=? AND server_id=? AND kind=? AND id=? AND day=?').get(pl.uid, pl.server_id, kind, id, period(db)) || { n: 0 }).n;
 const use = (db, pl, kind, id) => db.prepare(`INSERT INTO festival_use VALUES(?,?,?,?,?,1)
-  ON CONFLICT(uid, server_id, kind, id, day) DO UPDATE SET n=n+1`).run(pl.uid, pl.server_id, kind, id, period(db, kind));
+  ON CONFLICT(uid, server_id, kind, id, day) DO UPDATE SET n=n+1`).run(pl.uid, pl.server_id, kind, id, period(db));
 
 // The running theme, or null (only one festival at a time: both use the same screen and items).
 function theme(db) {
@@ -122,13 +123,13 @@ function trade(db, pl, exId) {
 function shopXml(db, pl) {
   ensure(db);
   return '<prop_info>' + [CAP, TREE].map((id) => `<prop prop_id="${id}" prop_yuanbao="${item(id)[4] || 0}" prop_yinzi="0" prop_icon="${item(id)[3]}"` +
-    ` total_times="${SHOP_PER_DAY}" remain_times="${Math.max(0, SHOP_PER_DAY - used(db, pl, 'buy', id))}"/>`).join('') + '</prop_info>';
+    ` total_times="${SHOP_LIMIT[id]}" remain_times="${Math.max(0, SHOP_LIMIT[id] - used(db, pl, 'buy', id))}"/>`).join('') + '</prop_info>';
 }
 const isItem = (id) => id === CAP || id === TREE;
 function buy(db, pl, id) {
   if (!theme(db)) return { error: 'the festival is over' };
   ensure(db);
-  if (used(db, pl, 'buy', id) >= SHOP_PER_DAY) return { error: 'no buys left today' };
+  if (used(db, pl, 'buy', id) >= SHOP_LIMIT[id]) return { error: 'no buys left for this event' };
   const price = item(id)[4] || 0;
   if (pl.gold < price) return { error: 'not enough gold' };
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(price, pl.uid, pl.server_id);

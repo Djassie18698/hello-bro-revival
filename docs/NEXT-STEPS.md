@@ -838,3 +838,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - War open all day SHIPPED (owner: "All day open", 1 Nov 2026): hot update 28.0.27 = patched tables.bin (normalconfig 7/8 = 0/86400).
   Checked in game: War clock 00:04:33 at 23:55, no Lua errors. Note war.js day() is the UTC date, so lives/scores reset at 01:00 Dutch
   time while the clock counts to the phone's midnight (small mismatch, left as is).
+
+## From photo batches 90-96 (2 Nov 2026)
+- Daily task chests now the ORIGINAL 6 at 30 / 80 / 120 / 160 / 210 / 250 points (photos 4107, 4211; was 7 with 60/90 ours). Task points already
+  matched dailytask_info (gold chest 3x 15, Money Tree 3x 15, Reincarnation 30).
+- Festival shop: ORIGINAL limit per event, 700 Christmas Caps / 600 Christmas Trees (photo 3627); was 10 a day (ours).
+- Not changed (needs more info or owner): recruit pity (photo 4435 shows "Recruit 2 more" only; server PITY 20 stays), second-year Christmas
+  exchange list and Anniversary event (12.16-12.20, Fireworks/Balloon) not built, world boss time (later 12:30 vs earlier 14:00).
