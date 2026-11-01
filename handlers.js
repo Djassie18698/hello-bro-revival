@@ -671,6 +671,16 @@ module.exports = {
     return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="99" max="99"/></root>`;
   },
 
+  // Scratch card (scratch.js): Cmd 1700 info, 1701 scratch one card. The reply is the whole document (attributes on the root).
+  rl_w_guaguale: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const sc = require('./scratch');
+    if (Number(p.Cmd) === 1701) { const r = sc.play(db, pl); return r.error ? `<root code="5"><message>${r.error}</message></root>` : r.xml; }
+    return sc.infoXml(db, pl);
+  },
+
   // Change-country price (switchCountry.lua reads <price>). The original said "related to population of target country"; the
   // Facebook photo 3270 shows 300 gold, used for every country (ours: no population rule).
   rl_r_migrate_price: () => `<root code="0"><price>${MIGRATE_PRICE}</price></root>`,

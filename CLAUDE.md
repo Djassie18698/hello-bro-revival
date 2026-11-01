@@ -129,7 +129,7 @@ Current: **28.0.19** (28.0.18 "Proceed" button reverted: re-encoded sprite sheet
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
 Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
-Not built yet (Lua screens exist): scratch card `rl_w_guaguale`, lottery `rl_r_lottery`/`rl_w_lottery`, daily offers
+Not built yet (Lua screens exist): lottery `rl_r_lottery`/`rl_w_lottery`, daily offers
 `rl_r_dailylimit`, `rl_w_dailycost`, `rl_r_multiple_task`, `rl_r_multiple_pay`, card split `rl_w_split_card`, cross-server
 battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`, `rl_r_marquee`, `rl_r_migrate_price`.
 Other: several "small activities" (`rl_x_small_activity` besides month sign-in) reply empty; 7-day goal texts are Thai in the

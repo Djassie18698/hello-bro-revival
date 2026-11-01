@@ -13,6 +13,7 @@ const EVENTS = [
   { id: 21, pos: 5, type: 1, icon: '✊', name: 'Rock paper scissors', desc: 'Play mora against the house (home screen button).' },
   { id: 24, pos: 7, type: 1, icon: '💎', name: 'Ninja treasure', desc: 'Number puzzle treasure hunt (home screen button).' },
   { id: 17, pos: 9, type: 1, icon: '🎲', name: 'Millionaire', desc: 'Board game with dice (home screen button).' },
+  { id: 7, pos: 19, type: 2, icon: '🎫', name: 'Scratch card', desc: '20 gold a card (1 free a day): scratch 3 matching faces to win 5 to 800 gold (original prizes).' },
   { id: 19, pos: 18, type: 2, icon: '📈', name: 'Growth Fund', desc: 'VIP3+: pay 500 gold once, get 2500 gold back in steps at levels 50, 70, 90 ... (original).' },
   { id: 31, pos: 10, type: 1, icon: '🏁', name: 'Stage gift', desc: 'One-time gift for new players (home screen button).' },
   // Limited-time events: off until the owner switches them on. `screen` = the game's event id they show under (several may share one).

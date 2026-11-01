@@ -598,3 +598,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     (photo 2171 LV1 = 80 + 1200 exact). Bonus after n points (x = n/8): flat 340 x^1.5, percent 0.006 x^2 + 0.2 x (fits LV10-LV100
     photo totals within ~5%). Old saves keep their 0-8 points (now LV1-2 with a smaller bonus than the old flat 120/2% a point).
     Checked in game (LV:1 -> LV:2, costs, totals).
+  * Scratch card built (scratch.js, rl_w_guaguale Cmd 1700 <root free usercash>, 1701 <root usercash><win cash/><cards><card><id/><cash/>
+    <icon/></card>x9</cards>; Event menu id 7 "Lottery", Server Manager switch). Prizes 5-800 gold from the photos; odds (ours) average
+    20 gold back per 20-gold card; 1 free card a day (ours); faces = icon_<ninjainfo[3]>. Counts daily task 9. Checked in game.
