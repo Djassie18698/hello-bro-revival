@@ -1280,6 +1280,18 @@ function arenaInfo(db, uid) {
 // the 2000 floor it drops 60 a rank (ours, fits rank 23-26).
 const arenaCoin = (rank) => (rank <= 10 ? 26000 - rank * 1000 : Math.max(2000, 16000 - (rank - 10) * 60));
 const arenaReward = (rank) => ({ coin: arenaCoin(rank), renown: arenaCoin(rank) / 5 });
+// Arena rival's teammates next to the first ninja (CArenaListView::AddOpponentData: <teammate><mate><ninja/><firstninjastar/></mate>...):
+// the same cards the fight shows (foeTeam), so a real player's team slots 2-4 and a bot's 2 picked partners (was empty = purple slots).
+function teammateXml(db, uid, sid, first, withFirst) { // withFirst: the Rank tab fills ALL its slots from this list
+  let ids;
+  const p = db.prepare('SELECT server_id FROM players WHERE uid=?' + (sid ? ' AND server_id=?' : '')).get(...(sid ? [uid, sid] : [uid]));
+  if (p) {
+    sid = p.server_id;
+    ids = db.prepare('SELECT c.ninja_id FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot LIMIT 4').all(uid, sid).map((r) => r.ninja_id).slice(withFirst ? 0 : 1);
+  }
+  if (!ids || !ids.length) ids = foeTeam(db, uid, sid, first).slice(withFirst ? 0 : 1);
+  return '<teammate>' + ids.map((id) => `<mate>${el('ninja', id)}${el('firstninjastar', (ninjas().get(id) || [])[11] || 1)}</mate>`).join('') + '</teammate>';
+}
 function arenaListXml(db, pl) {
   const my = arenaJoin(db, pl);
   const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank').all();
@@ -1288,14 +1300,14 @@ function arenaListXml(db, pl) {
   const esc = (t) => String(t).replace(/[<>&"]/g, '');
   const opp = targets.map((r) => {
     const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank);
-    return `<user>${el('id', r.uid)}${el('rank', r.rank)}${el('nick', esc(o.nick))}${el('level', o.level)}${el('ninja', o.ninja)}${el('country', o.country)}${el('firstninjastar', o.star)}${el('newlife', 0)}${el('winexp', 20)}${el('wincoin', 300)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('failexp', 5)}${el('failcoin', 50)}${el('host', 0)}<teammate></teammate></user>`;
+    return `<user>${el('id', r.uid)}${el('rank', r.rank)}${el('nick', esc(o.nick))}${el('level', o.level)}${el('ninja', o.ninja)}${el('country', o.country)}${el('firstninjastar', o.star)}${el('newlife', 0)}${el('winexp', 20)}${el('wincoin', 300)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('failexp', 5)}${el('failcoin', 50)}${el('host', 0)}${teammateXml(db, r.uid, pl.server_id, o.ninja)}</user>`;
   }).join('');
   const renown = propCounts(db, pl.uid, pl.server_id)[9996] || 0;
   return `<sport><my>${el('rank', my)}${el('renown', renown)}${el('rewardtimeleft', 3600)}${el('timeleft', 3600)}${el('dayrewardstat', 0)}${el('todayresttime', 99)}${el('todayall', 99)}${el('resttime', 0)}${el('restbatter', 99)}${el('restpack', 0)}</my></sport><oppe>${opp}</oppe>`;
 }
 function arenaRankXml(db) {
   const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank LIMIT 50').all();
-  const items = rows.map((r) => { const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank); return `<item>${el('nick', String(o.nick).replace(/[<>&"]/g, ''))}${el('rank', r.rank)}${el('level', o.level)}${el('host', 0)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('firstninjastar', o.star)}<teammate></teammate></item>`; }).join('');
+  const items = rows.map((r) => { const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank); return `<item>${el('nick', String(o.nick).replace(/[<>&"]/g, ''))}${el('rank', r.rank)}${el('level', o.level)}${el('host', 0)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('ninja', o.ninja)}${el('firstninjastar', o.star)}${teammateXml(db, r.uid, 0, o.ninja, true)}</item>`; }).join('');
   return `<sportrank>${items}</sportrank>`;
 }
 function arenaFight(db, pl, toRank) {

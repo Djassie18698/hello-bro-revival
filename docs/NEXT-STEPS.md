@@ -729,3 +729,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Checked in game (dev server): Save time 1-1 = 400 EXP / 1000 silver (one Big Ramen, chances 2 -> 1); arena reward amounts (rank 1
     25 000 / 5000, rank 16 15 640 / 3128); level-up refills grudge 1/3 -> 3/3; a story stage at full energy shows no ramen window; equipment
     advance (ui_equipListLayer only lists 5-star, level 50, grade < 3, not in a team) 50 000 silver, Blood Kunai 125 -> 187.
+  * Arena teammates: CArenaListView::AddOpponentData reads <teammate><mate><ninja/><firstninjastar/></mate>... (was empty -> purple slots).
+    game.teammateXml sends the same cards the fight shows (foeTeam: real team slots / bot partners). Compete list = mates after <ninja>;
+    the Rank tab (<sportrank><item>) fills all slots from the list, so it gets the first ninja too (withFirst). Checked in game.
