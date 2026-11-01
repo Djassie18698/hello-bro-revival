@@ -845,7 +845,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     if (Number(p.Cmd) === 2) { const r = guild.donate(db, pl, p.Cash); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>'; }
     if (Number(p.Cmd) === 3) return '<root code="0">' + guild.cardListXml(db, pl, Number(p.ContriType)) + '</root>';
-    if (Number(p.Cmd) === 4) { const r = guild.donateCards(db, pl, Number(p.ContriType), p.BagIndex); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>'; }
+    if (Number(p.Cmd) === 4) { const r = guild.donateCards(db, pl, Number(p.ContriType), p.BagIndex); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + guild.cardListXml(db, pl, Number(p.ContriType)) + '</root>'; } // the screen re-reads <item_list>
     const x = guild.contriXml(db, pl);
     return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>';
   },

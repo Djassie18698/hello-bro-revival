@@ -351,6 +351,20 @@ function masterPetXml(db, pl) {
   const p = require('./pet').masterPet(db, pl.uid, pl.server_id);
   return p ? `<master_pet>${el('id', p.id)}${el('pet_id', p.pet_id)}</master_pet>` : '';
 }
+// The 3 enemy cards shown in a spar / arena / war fight: a real player's own team (first 3 slots); a bot shows its own ninja plus
+// 2 other base ninjas of the same stars, picked by its id so the same rival always shows the same team (was 3 copies of one ninja).
+function foeTeam(db, uid, sid, first) {
+  if (uid && uid < 9000000) {
+    const t = db.prepare('SELECT c.ninja_id FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot LIMIT 3').all(uid, sid).map((r) => r.ninja_id);
+    if (t.length) return t;
+  }
+  const star = (ninjas().get(first) || [])[11] || 4;
+  const pool = Array.from(ninjas().values()).filter((r) => r[4] === 1 && r[11] === star && r[0] !== first).map((r) => r[0]);
+  const seed = Math.abs(Number(uid) || first || 1);
+  const out = [first || pool[0]];
+  for (let k = 0; out.length < 3 && k < pool.length; k++) { const id = pool[(seed * 7919 + k * 104729) % pool.length]; if (!out.includes(id)) out.push(id); }
+  return out;
+}
 function battleXml(db, pl, chap, stage, opt = {}) {
   const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
@@ -438,7 +452,7 @@ function sparFight(db, pl, toUid) {
   if (rv.id < 9000000) { const o = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id); const t2 = o ? teamStats(db, o.uid, o.server_id) : null; theirs = t2 ? (t2.total.al + t2.total.ah) / 2 / Math.max(1, t2.slots.length) : botAtk(rv.level, 3); }
   else theirs = botAtk(rv.level, rv.star || 3);
   const win = process.env.HB_SPAR ? process.env.HB_SPAR === 'win' : mine * (0.7 + Math.random() * 0.6) >= theirs; // HB_SPAR = test aid
-  const xml = battleXml(db, pl, 0, 1, { enemyIds: [rv.ninja, rv.ninja, rv.ninja], enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, win });
+  const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, rv.id, pl.server_id, rv.ninja), enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, win });
   // ORIGINAL (Facebook photo 0078, spar preview at level 224): win EXP 228 + 15 W.A., lose EXP 76 + 5 W.A. (ours): EXP = level + 4 for a win,
   // a third of it for a loss (fits that one photo); the silver stays ours (the photo's silver could not be worked out).
   const coin = win ? 3 + rv.level : 0, exp = win ? pl.level + 4 : Math.round((pl.level + 4) / 3);
@@ -1238,7 +1252,7 @@ function arenaFight(db, pl, toRank) {
   const ts = teamStats(db, pl.uid, pl.server_id);
   const mine = (ts.total.al + ts.total.ah) / 2 / Math.max(1, ts.slots.length);
   const win = mine * (0.75 + Math.random() * 0.5) >= o.power;
-  const xml = battleXml(db, pl, 0, 1, { enemyIds: [o.ninja, o.ninja, o.ninja], enemyName: o.nick, enemyUid: o.uid, enemyLevel: o.level, win });
+  const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, o.uid, pl.server_id, o.ninja), enemyName: o.nick, enemyUid: o.uid, enemyLevel: o.level, win });
   let from = my, to = my, renown = 0;
   if (win) {
     if (toRank < my) { db.prepare('UPDATE arena SET uid=-1 WHERE rank=?').run(my); db.prepare('UPDATE arena SET uid=? WHERE rank=?').run(my === 0 ? 0 : pl.uid, toRank); db.prepare('UPDATE arena SET uid=? WHERE rank=?').run(t.uid, my); to = toRank; }
@@ -1492,4 +1506,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { foeTeam, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
