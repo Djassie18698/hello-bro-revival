@@ -732,3 +732,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Arena teammates: CArenaListView::AddOpponentData reads <teammate><mate><ninja/><firstninjastar/></mate>... (was empty -> purple slots).
     game.teammateXml sends the same cards the fight shows (foeTeam: real team slots / bot partners). Compete list = mates after <ninja>;
     the Rank tab (<sportrank><item>) fills all slots from the list, so it gets the first ninja too (withFirst). Checked in game.
+  * Fresh install picked "Starter slot 3": CServerListMgr::GetRecommendServer takes the first cached (recently played) server, else the
+    server whose para1 (ServerInfoData +0x14) equals baseconfig.json "Recommend" (1000 in every game file), else the highest id. Konoha
+    now sends para1 1000 (others 1062; the server never reads Pt). Checked: pm clear on the emulator -> the start screen shows Konoha (main).

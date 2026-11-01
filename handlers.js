@@ -36,7 +36,9 @@ const publicHost = (ctx) => process.env.HOST || ctx.host || 'localhost:18080';
 // Account picker (owner request): every save is per server id, so the game's own server list doubles as a character list.
 // Server 1 = the main character; 2-4 are extra slots for trying a fresh starter account (same login, separate character and world).
 const servers = (ctx) => [
-  { id: 1, name: 'Konoha (main)', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 1 },
+  // para1 1000 = the app's baseconfig "Recommend": CServerListMgr::GetRecommendServer picks the server whose para1 matches it on a
+  // fresh install (otherwise the highest id = an empty starter slot)
+  { id: 1, name: 'Konoha (main)', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1000, para2: 2, payzoneid: 1 },
   { id: 2, name: 'Starter slot 1', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 2 },
   { id: 3, name: 'Starter slot 2', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 3 },
   { id: 4, name: 'Starter slot 3', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 4 },

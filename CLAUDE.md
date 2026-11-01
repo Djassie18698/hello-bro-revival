@@ -133,9 +133,10 @@ Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ 
 Checked in game on 1 Nov 2026 (dev server): team slot unlocks, VIP refresh after top-up, Ninja Test boss chests.
 Not built yet (Lua screens exist): cross-server battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`
 (owner on 2 Nov: "forget cross server battle right now"; ask before starting it).
-Smaller open items (see NEXT-STEPS 2 Nov evening): 300-gold recruit gold prizes coded but OFF (single-recruit reveal shows a blank card);
-spar result screen shows silver 0 (silver is given); fights ignore the element restrain table (ninjafiveprop, "Restrain: 0");
-after a fresh install the region list starts on "Starter slot 3" (empty) instead of Konoha (main); five-element panel (photo 2666) not
+Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), element restrain (built), real rivals, arena teammates.
+Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
+spar win screen shows silver 0 (silver is given; not found which object the screen reads);
+five-element panel (photo 2666) not
 found; check the first boss 1-2 with a brand-new account; Shop Tool tab count only refreshes at login. Balance: owner keeps it as is
 (docs/BALANCE-SIMULATIONS.md); don't change rates without asking.
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
