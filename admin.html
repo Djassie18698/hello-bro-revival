@@ -189,6 +189,14 @@ tr:hover td{background:rgba(255,255,255,.03)}
         <div class="chips" id="cats"></div>
         <div class="chips" id="starchips"></div>
         <div class="row" style="margin-bottom:6px"><input class="in" id="q" placeholder="Search… (Naruto, Sword, Ramen, Shukaku…)" style="flex:1;min-width:220px" oninput="debounceSearch()"></div>
+        <div class="row" style="margin:6px 0 2px">
+          <span class="hint" style="margin:0">Cards arrive at</span>
+          <label class="hint" style="margin:0">Level <input type="number" id="glv" value="1" min="1" max="50" style="width:80px"></label>
+          <label class="hint" style="margin:0">Rebirth <input type="number" id="gnl" value="0" min="0" max="6" style="width:70px"></label>
+          <button class="btn ghost sm" onclick="$('glv').value=50;$('gnl').value=6">Max</button>
+          <button class="btn ghost sm" onclick="$('glv').value=1;$('gnl').value=0">Reset</button>
+          <span class="hint" style="margin:0">(shinobi rebirth 0-6, equipment 0-3, ninjutsu and seals level only)</span>
+        </div>
         <div class="count" id="ccount"></div>
         <div class="items" id="items"></div>
       </section>
@@ -196,6 +204,10 @@ tr:hover td{background:rgba(255,255,255,.03)}
       <section class="panel view" id="v-bulk">
         <h3>Give everything</h3>
         <p class="hint">Gives one (or more) of every thing in a group. Narrow it with a star level if the group is big.</p>
+        <div class="row" style="margin-bottom:14px"><span class="hint" style="margin:0">Cards arrive at</span>
+          <label class="hint" style="margin:0">Level <input type="number" id="blv" value="1" min="1" max="50" style="width:80px"></label>
+          <label class="hint" style="margin:0">Rebirth <input type="number" id="bnl" value="0" min="0" max="6" style="width:70px"></label>
+          <button class="btn ghost sm" onclick="$('blv').value=50;$('bnl').value=6">Max</button></div>
         <div class="bulk" id="bulk"></div>
       </section>
 
@@ -286,7 +298,7 @@ async function search() {
 async function giveThing(c, id) {
   if (!sel) return toast('Pick a player first', false);
   const n = +$('n-' + c + '-' + id).value || 1;
-  const r = await api('givething', { uid: sel, cat: c, id, count: n });
+  const r = await api('givething', { uid: sel, cat: c, id, count: n, level: +$('glv').value || 1, newlife: +$('gnl').value || 0 });
   toast(r.ok ? 'Gave <b>' + r.given + '× ' + esc(r.name) + '</b> to ' + esc(current().nick) + (['ninja', 'equip', 'ninjutsu', 'seal', 'pet'].includes(c) ? '<br><small>Restart the game to see it.</small>' : '') : r.error, r.ok);
   loadPlayers();
 }
@@ -302,7 +314,7 @@ async function bulk(c) {
   if (!sel) return toast('Pick a player first', false);
   const st = +$('bs-' + c).value, n = +$('bn-' + c).value || 1;
   if (!confirm('Give ' + n + '× of every ' + (st ? st + '-star ' : '') + (CATNAME[c] || c).replace(/^\S+ /, '') + ' to ' + current().nick + '?')) return;
-  const r = await api('bulk', { uid: sel, cat: c, stars: st, count: n });
+  const r = await api('bulk', { uid: sel, cat: c, stars: st, count: n, level: +$('blv').value || 1, newlife: +$('bnl').value || 0 });
   toast(r.ok ? 'Gave <b>' + fmt(r.given) + '</b> things (' + r.kinds + ' different) to ' + esc(current().nick) + '<br><small>Restart the game to see cards.</small>' : r.error, r.ok);
   loadPlayers();
 }
@@ -312,9 +324,15 @@ function renderInv() {
   const q = $('iq').value.toLowerCase();
   const cards = inv.cards.filter((c) => !q || (c.name + ' ' + c.kind).toLowerCase().includes(q));
   $('ccards').textContent = 'Cards (' + inv.cards.length + ')';
-  $('tcards').innerHTML = '<tr><th>Type</th><th>Name</th><th>Lv</th><th></th></tr>' + cards.map((c) => '<tr><td><span class="tag">' + c.kind + '</span></td><td>' + esc(c.name) + '</td><td>' + c.level +
-    '</td><td style="text-align:right"><button class="btn ghost sm" onclick="delCard(' + c.seq + ')">Remove</button></td></tr>').join('');
+  $('tcards').innerHTML = '<tr><th>Type</th><th>Name</th><th>Lv</th><th>Rebirth</th><th></th></tr>' + cards.map((c) => '<tr><td><span class="tag">' + c.kind + '</span></td><td>' + esc(c.name) + '</td>' +
+    '<td><input type="number" id="lv-' + c.seq + '" value="' + c.level + '" min="1" max="50" style="width:64px;padding:6px"></td>' +
+    '<td><input type="number" id="nl-' + c.seq + '" value="' + c.newlife + '" min="0" max="6" style="width:56px;padding:6px"' + (c.cat === 'ninja' || c.cat === 'equip' ? '' : ' disabled') + '></td>' +
+    '<td style="text-align:right;white-space:nowrap"><button class="btn sm" onclick="saveCard(' + c.seq + ')">Save</button> <button class="btn ghost sm" onclick="delCard(' + c.seq + ')">Remove</button></td></tr>').join('');
   $('tprops').innerHTML = '<tr><th>Item</th><th>Count</th></tr>' + inv.props.map((p) => '<tr><td>' + esc(p.name) + '</td><td>' + fmt(p.count) + '</td></tr>').join('');
+}
+async function saveCard(seq) {
+  const r = await api('setcard', { uid: sel, seq, level: +$('lv-' + seq).value, newlife: +$('nl-' + seq).value });
+  toast(r.ok ? 'Saved: level ' + r.level + ', rebirth ' + r.newlife + '<br><small>Restart the game to see it.</small>' : r.error, r.ok); loadInv();
 }
 async function delCard(seq) {
   if (!confirm('Remove this card from ' + current().nick + '?')) return;
