@@ -100,7 +100,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Sage growth with the original chances; rebirth up to 8 |
 | ✅ | Discord link on GitHub, in the top banner and in Settings |
 | ✅ | Ramen window when out of energy in training |
-| 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold |
+| ✅ | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold (checked: chapter 1-1 = 400 EXP / 1000 silver, one Big Ramen used, chances 2 -> 1) |
 | ✅ | Levelling up refills grudge too, like the original pop-up (checked: 1/3 -> 3/3, energy full) |
 | ✅ | Ninja Test boss chests cost 160 and 250 gold like the original (first one free); after the chests Challenge moves on to the next stage. Guards now show their element (they all showed Water) |
 | ✅ | Limited group purchase (discount packs with stock shared by the whole server, original prices; switch in the Server Manager) |
@@ -114,7 +114,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Shop: Reincarnation Pill and Development Dan cost 120 gold, like the original shop photos |
 | ✅ | Secret shop Refresh works like the original (Refresh Order or 20 gold, 75 + 5 x VIP a day, new goods every 2 h) |
 | ✅ | Ninja Treasure prices like the original (refresh 100 gold, new board every 2 h, explore 35 / 70 / 300 / 320 / 1000) |
-| 🧪 | Arena daily rewards like the original (rank 1: 25 000 silver + 5000 reputation, at least 2000 + 400) |
+| ✅ | Arena daily rewards like the original (rank 1: 25 000 silver + 5000 reputation, at least 2000 + 400). Amounts checked on the arena screens (rank 1 25 000 / 5000, rank 16 15 640 / 3128); the payout itself happens at the daily reset |
 | ✅ | Growth Fund in the Event menu, like the original (VIP3, 500 gold, 2500 back) |
 | 🧪 | Ninja Test guards grow with the stage and your level, matching the original photos (low levels were far too hard) |
 | ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
