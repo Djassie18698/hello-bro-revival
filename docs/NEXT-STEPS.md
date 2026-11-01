@@ -568,3 +568,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Growth Fund built (growthfund.js, Event menu id 19, rl_x_small_activity Cmd 1 info / 2 buy / 3 Id claim; preview attrs buycash multiple
     totalcash buystate needvip [cash], fundlist items id level cash state 0/1/2). Original numbers from photo 2627 (500 gold, x5 = 2500, VIP3,
     Lv50 150 / Lv70 150 / Lv90 200); Lv110-230 steps (ours) add up to 2500. Server Manager switch "Growth Fund". Checked in game (buy, collect).
+  * Ninja Test refit with a 5th photo (2678: level 272, stage 1 = ~1175, which the level^2 formula got wrong): guard = stage value
+    (1160 / 1950 / 2980 / 10 065 at stages 1 / 2 / 4 / 14, lines between, +708 after) x min(1, (level/280)^2). All 5 photos within 7%.

@@ -47,10 +47,18 @@ const list = (s) => (s ? s.split('_').map(Number).filter((n) => n > 0) : []);
 
 // Odd stages: the guards defend (you attack). Even stages: the guards attack (your defense counts).
 const guardsAttack = (grade) => (grade % 2 === 0 ? 1 : 0);
-// Guard value, fitted to four Facebook photos of the original (FINDINGS.md): it grows with the stage AND the player's level:
-// 0.00705 x stage^1.1 x level^2 gives level 61 / stage 14 = 477 (photo 480), level 281 / stage 14 = 10 060 (photo 10 062),
-// level 302 / stage 4 = 2980 (photo 2979). Minimum 50 (ours) so the first stages are never empty.
-const guardBase = (grade, level) => Math.max(50, 0.00705 * Math.pow(grade, 1.1) * level * level);
+// Guard value from five Facebook photos of the original (FINDINGS.md). Players of level 270-300 meet stage 1 ~1160, stage 2 ~1950,
+// stage 4 ~2980, stage 14 ~10 065 (straight lines between, +708 a stage after 14); a level 61 player met only ~480 at stage 14, so
+// lower levels get (level / 280)^2 of that (10 065 x 0.047 = 480). Minimum 50 (ours).
+const GUARD_SEEN = [[1, 1160], [2, 1950], [4, 2980], [14, 10065]];
+function guardBase(grade, level) {
+  const k = GUARD_SEEN.findIndex(([g]) => g >= grade);
+  let v;
+  if (k === 0) v = GUARD_SEEN[0][1];
+  else if (k < 0) { const [g, x] = GUARD_SEEN[GUARD_SEEN.length - 1]; v = x + (grade - g) * 708; }
+  else { const [g0, v0] = GUARD_SEEN[k - 1], [g1, v1] = GUARD_SEEN[k]; v = v0 + ((v1 - v0) * (grade - g0)) / (g1 - g0); }
+  return Math.max(50, v * Math.min(1, (level / 280) ** 2));
+}
 function guards(grade, level) {
   const pool = [...game.ninjas().values()].filter((n) => n[11] >= 4 && n[11] <= 5).sort((a, b) => a[0] - b[0]);
   return Array.from({ length: 5 }, (_, i) => {
