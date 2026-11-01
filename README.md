@@ -31,7 +31,7 @@
 | ⚔️ **Spar, Arena, Battles, War, Border war** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
 | 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
 | 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** with Super Ninja Pills like the original |
-| 🚪 **Eight Gates** with levels (LV1-150) | 🎫 **Scratch card, treasure chests, Growth Fund, group purchase, total-recharge gifts, Time limited GiftPack** | 📷 Numbers checked against **~3 580 photos** of the original game |
+| 🚪 **Eight Gates** with levels (LV1-150) | 🎫 **Scratch card, treasure chests, Growth Fund, group purchase, total-recharge gifts, Time limited GiftPack, Akatsuki mall** | 📷 Numbers checked against **~3 580 photos** of the original game |
 
 Every number that came from the game's own data is kept as it was. Where the original value was lost on the dead server we picked one and marked it **(ours)** in the code and in the docs.
 
@@ -78,7 +78,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
-- **2 Nov 2026:** all ~3 580 photos of the original game read; Save time, Ninja Test, arena rewards, Ninja Treasure, secret shop refresh and shop prices now use the original numbers, new **Growth Fund**, **change country**, **Great gift for total recharge** and **Time limited GiftPack** with the original rewards, daily spending gift and recharge streak:
+- **2 Nov 2026:** all ~3 580 photos of the original game read; Save time, Ninja Test, arena rewards, Ninja Treasure, secret shop refresh and shop prices now use the original numbers, new **Growth Fund**, **change country**, **Great gift for total recharge** and **Time limited GiftPack** with the original rewards, daily spending gift and recharge streak; monthly sign-in, top-up packages, Akatsuki, country war, spar and Element Change balanced to the original photos:
   [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
 - **1 Nov 2026:** holiday and limited events (**Christmas** with the original trades, New Year, God Recruit, Hot Treasure, Gold spending, Diligence gift, Limited discount, Lottery), card stats exactly like the game, a **team builder**, everything in one **control panel**, the ramen window when out of energy, new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,
   chapters open after the last boss, a **Join Discord** button in the game's Settings and the Discord link in the top banner, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts, quicker return to Home, long ninja names fit their box:

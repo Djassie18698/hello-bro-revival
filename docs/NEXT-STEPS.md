@@ -634,3 +634,14 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Shop quirk (not fixed): after rl_w_shopbuy the Tool tab keeps the old count and USE stays grey until the next login, although
     CItemView::onHttpRequestCompleted adds <retobj count> to CTradeMgr's ConsumeInfo bagnum (retobj layout type/costyb/costyz/id/count
     matches) and the tab re-requests rl_r_shoplist 1601 (which sends the new bagnum). Using an item updates the count at once.
+
+## 2 Nov 2026 (later): photo rows compared
+  * All "check / compare" rows of FINDINGS-PHOTOS.md now say what was done (both copies). Changed: war.js rewards, guild.js (levels, costs,
+    members 6 + level, donations incl. rl_r_group_contri Cmd 3 card list / Cmd 4 card donation, mall rl_r_group_store Cmd 1 / 2), signin.js
+    (original table, status 2 = sign again after VIP-up, monthsign.copies), top-up packages + first top-up x3 (rl_r_paypack first_pay),
+    $49 gift drops 1312 / 122 / 558 (28.0.21 lets ui_purchaseLayer load icon/ pictures), spar EXP / W.A., Element Change
+    (rl_w_newlife Cmd 5 price / Cmd 6 change; reply needs attack_tupo / defence_tupo / cha_tupo), god evolve 100 Development Dan
+    (rl_r_comm Cmd 20 / 8 report the real count), equipment advance 50 000 silver, small bags 2000 silver, gold chest opens from vipinfo[24].
+  * Checked in game: top-up screen + $49 gift claim, monthly sign-in (VIP x2 paid 20 000). Not yet in game: Akatsuki, war, spar, element, evolve.
+  * Open: recruit gold prizes (Gold*210 / 500 / 1000 / 2000 from the 300-gold recruit) need the recruit result screen researched;
+    border war daily rewards; five-element camp bonus panel.

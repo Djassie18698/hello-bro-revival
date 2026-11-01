@@ -600,9 +600,15 @@ end
 
 function initAward2(self)
 	for i = 1, 3 do
-		local iconPath = "props/" .. self.awards['icon' .. i] .. '.plist'
-		CCSpriteFrameCache:sharedSpriteFrameCache():addSpriteFramesWithFile(iconPath)
-		local sprite_icon = CCSprite:createWithSpriteFrameName(self.awards['icon' .. i])
+		local iconName = self.awards['icon' .. i]
+		local cache = CCSpriteFrameCache:sharedSpriteFrameCache()
+		-- revival server: card pictures (icon_npc..) live in icon/, items in props/
+		if string.sub(iconName, 1, 5) == "icon_" then
+			cache:addSpriteFramesWithFile("icon/" .. iconName .. '.plist')
+		else
+			cache:addSpriteFramesWithFile("props/" .. iconName .. '.plist')
+		end
+		local sprite_icon = CCSprite:createWithSpriteFrameName(iconName)
 		local contentSize = self['spr_award' .. i]:getContentSize()
 		sprite_icon:setPosition(contentSize.width / 2, contentSize.height / 2)
 		sprite_icon:setAnchorPoint(ccp(0.5, 0.5))

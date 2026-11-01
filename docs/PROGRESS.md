@@ -122,6 +122,15 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | "Great gift for total recharge" (Timed Gift) like the original photo: top up $240 / $420 / $750 in 48 h for The Fourth Sage + Shakujo, a 2nd-rebirth Hokage Kakashi (God), a 7th-rebirth Kaguya (God) and pills |
 | ✅ | "Time limited GiftPack" (Preferential) like the original photo: top up $19 in 70 h, claim a $60 pack (5-star God shinobi, 5 Gold Keys, 4-star ninjutsu, 3 EXP cards) |
 | ✅ | Daily spending gift ("Consumption") and 7-day recharge streak ("charging") in the Event menu (rewards are ours: no photo) |
+| ✅ | Monthly sign-in like the original May / July screens: 10 000 silver, 20 gold, Recruitment Orders ... with "vN x2" (VIP N or higher gets it twice, and you can sign again after a VIP-up) |
+| ✅ | Top-up packages like the original screen ($4.99 = 225 + 15, $9.99 = 450 + 40, $19.99 = 950 + 100, $99.99 = 4800 + 700); your first top-up ever pays triple gold |
+| ✅ | "49$ gift" like the original: Naruto card + 80 Reincarnation Pills + 150 Sage Stone III (update 28.0.21) |
+| 🧪 | Akatsuki like the original: members 6 + level, max levels 9 / 5 / 5 / 5, original upgrade costs, donations 10 gold = +12, 4-star card +18 / +12, 5-star +180 / +180 (card donations now work), the mall sells goods for contribution and refreshes every 30 min |
+| 🧪 | Country war like the original: a win = 10 points + 10 exploit + 36 silver + 36 EXP; a failed attack gives the defender 2 + 2 |
+| 🧪 | Spar like the original preview: win EXP = level + 4 and 15 W.A., loss a third of that and 5 W.A. |
+| 🧪 | Element Change works (it did nothing before): 12 Element Change Pills + 2000 silver for a God card, random new element |
+| 🧪 | God evolve costs 100 Development Dan like the original (it was free) |
+| 🧪 | Equipment advance costs 50 000 silver like the original; small EXP-card bags 2000 silver; gold chest opens a day from the VIP table (VIP1 25 ... VIP11 75) |
 | ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |
 
 ## Still to build
