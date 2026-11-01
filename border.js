@@ -63,7 +63,7 @@ function claimDaily(db, pl) {
   if (exp) game.addExp(db, db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id), exp);
   if (merit) game.propAdd(db, pl.uid, pl.server_id, 9994, merit);
   const drops = rows.flatMap((r) => r.drops.split(',').filter(Boolean).map(Number)).map((d) => game.grantDrop(db, pl, d)).filter(Boolean);
-  return { code: 0, xml: `<attack_award>${el('exp', exp)}${el('merit', merit)}</attack_award>` + game.mergeAwards(drops.length ? drops : [game.awardFull({})]) };
+  return { code: 0, xml: `<attack_award>${el('exp', exp)}${el('merit', merit)}</attack_award>` + (drops.length ? game.mergeAwards(drops) : '') }; // no <award> = no pop-up (ShowAward skips nil); exp/merit show as a tip
 }
 // The rest of the server uses countries 1-3; the border screen uses 0-4 where 1 = Thunder, 2 = Water, 3 = Fire.
 const myCountry = (pl) => pl.country;
