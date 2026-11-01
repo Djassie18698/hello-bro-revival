@@ -471,3 +471,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   9100 ActType 10; gold topped up is logged in topup_log (rl_x_free_topup, rl_w_ky_payorder). Its activity_config entry was a home-button script call
   ("Get data from file(GetMainMenu():ChangeToActivity(...).lua) failed" = empty page): fixed in 28.0.16. Lottery (id 22): rl_r_lottery 1/2/3, rl_w_lottery
   1 No / 2 claim; draw 20:30 server time, prize = digits in place (3+/2/1), from the game texts. All numbers (ours). Verified in game: all 3 screens.
+- Chains (GitHub #5 again): the partner id lists in ninjamatch miss whole variants (Six Paths Madara (God) "Fight with Six Paths Obito" lists only
+  Uchiha Obito 4/156; Hokage Naruto "Fight with Madara" misses Six Paths Madara). teamStats now ALSO matches the name in the chain text: every word
+  of "Fight with X" (minus of/the/and, plural s, bracket tags) must be in the card name. Verified: 7 reported/control pairs, and in game the
+  Six Paths Madara (God) + Six Paths Obito (God) team now counts the chain (G 3/6).
