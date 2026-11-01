@@ -721,3 +721,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     (InitFromXML on the root, SetFightType 6, AddDataFromReward), AddRewardData (coin -> this+0x38 = reward+4, no early exit), InitUI round
     layer (label_round_getsilver = reward+4, only write), setIntegerVal (plain "+%d"). EXP / W.A. on that screen also equal the preview values,
     so the screen may be built from another CFightResultData than the one parsed. Left as is (silver is paid; loss screen shows it).
+  * Recruit gold prizes researched further (still OFF): CCommonPrayDialogView single recruit always opens CDialogShowBox with SetShowType(1) /
+    SetCurrShowType(1) / SetForJieYin(true). CDialogShowBox::InitUI switches on the current show type (box+0x1b0): 1 ninja card, 4 gold (needs
+    cash >= CConfigMgr value 0xce, label "%s*%d" with props_037), 2 / 8 / 0x20 other kinds. So the single reveal can only draw a card (blank 5-star
+    "Sample Text" card seen in game with HB_GOLD=137). The 10-pull (CPrayTenDialogView) lists "Gold*210" with a "?" ninja picture, and tapping it
+    opens a placeholder tip "ddddd...". The photos 2339-2348 show the plain Rewards card (show type 4), from a screen not identified.
