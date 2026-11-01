@@ -116,7 +116,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Ninja Treasure prices like the original (refresh 100 gold, new board every 2 h, explore 35 / 70 / 300 / 320 / 1000) |
 | ✅ | Arena daily rewards like the original (rank 1: 25 000 silver + 5000 reputation, at least 2000 + 400). Amounts checked on the arena screens (rank 1 25 000 / 5000, rank 16 15 640 / 3128); the payout itself happens at the daily reset |
 | ✅ | Growth Fund in the Event menu, like the original (VIP3, 500 gold, 2500 back) |
-| 🧪 | Ninja Test guards grow with the stage and your level, matching the original photos (low levels were far too hard) |
+| ✅ | Ninja Test guards grow with the stage and your level, matching the original photos (low levels were far too hard). Checked at level 45: stage 1 guards 50-70, stage 6 114-134 |
 | ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
 | ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
 | ✅ | "Great gift for total recharge" (Timed Gift) like the original photo: top up $240 / $420 / $750 in 48 h for The Fourth Sage + Shakujo, a 2nd-rebirth Hokage Kakashi (God), a 7th-rebirth Kaguya (God) and pills |
