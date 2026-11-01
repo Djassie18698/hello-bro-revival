@@ -555,3 +555,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - 28.0.18 broke the "So lucky" pop-up: every drop showed a dark purple box (I mistook that for a different pop-up while testing). The
   re-encoded .pvr.ccz is wrong somewhere (decoding is right: the original decodes to a clean picture). 28.0.19 ships the original files
   back; owner chose to keep "Fold". Verified in game: So lucky + Fold show again.
+- 2 Nov, from the Facebook photos (G:/HELLO BRO/Pictures/FINDINGS.md, batches 7, 40, 80 read):
+  * Save time now = the original screen (photo 2212: chapter 11-6 -> Exp 3200 / Silver 3800, VIP1 and Lv.80 needed, "VIP1 +2/day",
+    "Gain 10Gold"): ceil(200 / stage energy) fights of the furthest story stage, rounded down to hundreds (matches the photo exactly);
+    chances a day 2 x VIP (ours), then 10 gold an exchange. Table `savetime` (day counter).
+  * A level-up now also refills grudge (sp = -1 = full), like the original "LEVEL UP!" pop-up "Energy ↑ Grudge ↑" (photo 2156).
+  * Checked as already right: reincarnation pill costs (newlifeconfig, photo note "God 100/180/350/510/720/850/1030/1130"),
+    ninjutsu values at lv1/lv50 (ninjutsuinfo), secret shop 75 + 5 x VIP refreshes, arena rank rewards to rank 10.

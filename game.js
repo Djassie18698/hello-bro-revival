@@ -452,9 +452,10 @@ function addExp(db, pl, exp) {
     cur -= r[2]; level++;
   }
   db.prepare('UPDATE players SET level=?, exp=? WHERE uid=? AND server_id=?').run(level, cur, pl.uid, pl.server_id);
-  if (level > pl.level) { // a level-up fills the energy to the new level's maximum (owner: "leveling should refill")
+  if (level > pl.level) { // a level-up fills energy and grudge to the new level's maximum (the original "LEVEL UP!" pop-up shows
+    // "Energy ↑ Grudge ↑", Facebook photo 2156; owner: "leveling should refill")
     const max = (rows.find((x) => x[1] === level) || [])[4] || 0;
-    db.prepare('UPDATE players SET energy=MAX(energy,?), energy_t=? WHERE uid=? AND server_id=?').run(max, Math.floor(Date.now() / 1000), pl.uid, pl.server_id);
+    db.prepare('UPDATE players SET energy=MAX(energy,?), energy_t=?, sp=-1 WHERE uid=? AND server_id=?').run(max, Math.floor(Date.now() / 1000), pl.uid, pl.server_id);
   }
   return level;
 }

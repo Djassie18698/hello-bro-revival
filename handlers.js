@@ -826,28 +826,38 @@ module.exports = {
     return '<root code="0"></root>';
   },
 
-  // "Save time": trade one Big Ramen (BIG_ENERGY_ITEM_ID = 4, from libgame.so) for the exp + silver its 200 energy would earn by fighting
-  // the player's current training stage (roundinfo [22] energy, [23] exp, [24] silver). The original amount lived on the dead server (ours).
-  // Cmd 1 = info, Cmd 2 = exchange one.
+  // "Save time": trade one Big Ramen (BIG_ENERGY_ITEM_ID = 4, from libgame.so) for the exp + silver of the player's furthest story stage.
+  // Original screen (Facebook photo 2212): "Chapter 11 chapter, 6 round, Exp 3200, Silver 3800", "(only for VIP1 and those over Lv.80)",
+  // "chances", "Gain 10Gold", "VIP1 +2/day". Stage 11-6 costs 18 energy and pays 270 exp / 324 silver, so the photo = 12 fights
+  // (ceil(200 energy / 18)) rounded down to hundreds; that rule is used for every stage. Chances a day = 2 x VIP level (ours, from
+  // "+2/day"); once they are used up each exchange costs 10 gold (the "Gain 10Gold" button). Cmd 1 = info, Cmd 2 = exchange one.
   rl_r_savetime: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const sid = Number(p.ServerID || 1);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
     if (!pl) return '<root code="3"><message>session expired</message></root>';
-    const RAMEN = 4;
-    const top = db.prepare('SELECT MAX(chap) c FROM progress WHERE uid=? AND server_id=? AND chap BETWEEN 1 AND 19').get(pl.uid, sid).c || 1;
-    const chap = top, round = Math.min(game.getStage(db, pl.uid, sid, chap), game.chapterStages(chap));
+    const RAMEN = 4, GOLD = 10, VIP_MIN = 1, LEVEL_MIN = 80, PER_VIP = 2;
+    const chap = db.prepare('SELECT MAX(chap) c FROM progress WHERE uid=? AND server_id=? AND chap BETWEEN 1 AND 19').get(pl.uid, sid).c || 1;
+    const round = Math.min(game.getStage(db, pl.uid, sid, chap), game.chapterStages(chap));
     const row = game.table('roundinfo').rows.find((r) => r[4] === chap && r[2] === round) || [];
-    const fights = Math.floor(200 / Math.max(1, row[22] || 1));
-    const exp = fights * (row[23] || 0), coin = fights * (row[24] || 0);
+    const fights = Math.ceil(200 / Math.max(1, row[22] || 1));
+    const exp = Math.floor((fights * (row[23] || 0)) / 100) * 100, coin = Math.floor((fights * (row[24] || 0)) / 100) * 100;
     const have = game.propCounts(db, pl.uid, sid)[RAMEN] || 0;
+    db.exec('CREATE TABLE IF NOT EXISTS savetime (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER, PRIMARY KEY(uid, server_id))');
+    const today = new Date().toISOString().slice(0, 10);
+    const st = db.prepare('SELECT * FROM savetime WHERE uid=? AND server_id=?').get(pl.uid, sid);
+    const vipLv = vip.level(db, pl.uid, sid), used = st && st.day === today ? st.used : 0, total = PER_VIP * vipLv;
     if (Number(p.Cmd) === 2) {
+      if (vipLv < VIP_MIN || pl.level < LEVEL_MIN) return `<root code="5"><message>only for VIP${VIP_MIN} and those over Lv.${LEVEL_MIN}</message></root>`;
       if (have < 1) return '<root code="5"><message>no ramen</message></root>';
+      const pay = used >= total ? GOLD : 0;
+      if (pay && pl.gold < pay) return '<root code="5"><message>not enough gold</message></root>';
       game.propAdd(db, pl.uid, sid, RAMEN, -1); game.addExp(db, pl, exp);
-      db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
+      db.prepare('UPDATE players SET coin=coin+?, gold=gold-? WHERE uid=? AND server_id=?').run(coin, pay, pl.uid, sid);
+      db.prepare('INSERT OR REPLACE INTO savetime VALUES (?,?,?,?)').run(pl.uid, sid, today, used + 1);
       return `<root code="0"><basic><ratio>1</ratio><exp>${exp}</exp><coin>${coin}</coin><remain>${have - 1}</remain></basic></root>`;
     }
-    return `<root code="0"><basic><chapter>${chap}</chapter><round>${round}</round><prop_num>${have}</prop_num><total_trans>99</total_trans><used_trans>0</used_trans><cost_cash>10</cost_cash><vip_add>99</vip_add><exp>${exp}</exp><coin>${coin}</coin><vip_limit>1</vip_limit><level_limit>1</level_limit></basic></root>`;
+    return `<root code="0"><basic><chapter>${chap}</chapter><round>${round}</round><prop_num>${have}</prop_num><total_trans>${total}</total_trans><used_trans>${Math.min(used, total)}</used_trans><cost_cash>${GOLD}</cost_cash><vip_add>${PER_VIP}</vip_add><exp>${exp}</exp><coin>${coin}</coin><vip_limit>${VIP_MIN}</vip_limit><level_limit>${LEVEL_MIN}</level_limit></basic></root>`;
   },
 
   // Mail actions (read / delete / accept): nothing to change on this server, acknowledge.
