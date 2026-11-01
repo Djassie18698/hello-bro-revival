@@ -136,6 +136,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Wheel of Fortune countdown shows the time to Monday (said "3649 hours") |
 | ✅ | "Login with Facebook" says it isn't available and to tap PLAY (showed a page of code) |
 | ✅ | Arena lists (Compete and Rank) show each rival's 3 fighters instead of 1 card and empty purple slots (checked in game) |
+| ✅ | Opening the Arena crashed the game once rivals had bigger teams: each row now shows the first ninja + 3 teammates, as many as the screen has room for (checked in game) |
 | ✅ | Spar, arena and war against a real player now use their real team, strength, elements and nation (before, every real rival was treated as a made-up bot) |
 | ✅ | Fights use elements like the original: when your ninja's element beats the enemy's it hits 15 % harder, when theirs beats yours their defence is 15 % higher, and the result screen shows "Restrain" (it always said 0). Water beats Fire, Fire beats Wind, Wind beats Thunder, Thunder beats Earth, Earth beats Water |
 | ✅ | Equipment advance costs 50 000 silver like the original (checked: two level-50 5-star Blood Kunai -> +1, attack 125 -> 187, 50 000 silver paid); small EXP-card bags 2000 silver; gold chest opens a day from the VIP table (VIP1 25 ... VIP11 75) |
