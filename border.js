@@ -8,8 +8,15 @@ const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const now = () => Math.floor(Date.now() / 1000);
 const day = () => new Date().toISOString().slice(0, 10);
-const STAY = 1800, TOTAL_HP = 2000000, PROVOKE_GOLD = 20, WANDER_SILVER = 20000, PROVOKE_HP = 60000, WANDER_HP = 20000;
-const REWARD = { 1: { exp: 300, merit: 30 }, 2: { exp: 120, merit: 12 } };
+// ORIGINAL (Facebook photos 0540, 0666): monument HP 300; per day 2 taunt rewards, 2 wander rewards, 4 taunt-clear and 4 wander-clear
+// rewards; "At Thunder wandered 2 time(s), reward received: EXP 6600, merit 1572" = 3300 + 786 a wander; breaking a country's border
+// = special award Gold*50 + Super Ninja Pill + Reincarnation Pill. (ours): taunts pay like wanders, a clear pays half, the damage a
+// station does (taunt 10, wander 5 of the 300), and that only the player who breaks the monument gets the special award.
+const STAY = 1800, TOTAL_HP = 300, PROVOKE_GOLD = 20, WANDER_SILVER = 20000, PROVOKE_HP = 10, WANDER_HP = 5;
+const REWARD = { 1: { exp: 3300, merit: 786 }, 2: { exp: 3300, merit: 786 } };
+const CLEAR_REWARD = { exp: 1650, merit: 393 };
+const DAILY = { 1: 2, 2: 2, 3: 4, 4: 4 }; // award kind -> rewarded times a day: 1 taunt, 2 wander, 3 taunt cleared, 4 wander cleared
+const BREAK_DROPS = [100, 1327, 1325]; // Gold*50, Super Ninja Pill, Reincarnation Pill
 const CLEARS_PER_DAY = 10;
 
 function ensure(db) {
@@ -17,7 +24,46 @@ function ensure(db) {
     CREATE TABLE IF NOT EXISTS border_station (server_id INTEGER, uid INTEGER, country INTEGER, to_country INTEGER, type INTEGER, start INTEGER, claimed INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS border_score (server_id INTEGER, day TEXT, uid INTEGER, att INTEGER DEFAULT 0, def INTEGER DEFAULT 0, clears INTEGER DEFAULT 0,
       PRIMARY KEY(server_id, day, uid));
-    CREATE TABLE IF NOT EXISTS border_log (id INTEGER PRIMARY KEY AUTOINCREMENT, server_id INTEGER, country INTEGER, enemy_country INTEGER, nick TEXT, type INTEGER, ts INTEGER, hurt INTEGER)`);
+    CREATE TABLE IF NOT EXISTS border_log (id INTEGER PRIMARY KEY AUTOINCREMENT, server_id INTEGER, country INTEGER, enemy_country INTEGER, nick TEXT, type INTEGER, ts INTEGER, hurt INTEGER);
+    CREATE TABLE IF NOT EXISTS border_award (id INTEGER PRIMARY KEY AUTOINCREMENT, server_id INTEGER, uid INTEGER, day TEXT, kind INTEGER, country INTEGER,
+      exp INTEGER DEFAULT 0, merit INTEGER DEFAULT 0, drops TEXT DEFAULT '', claimed INTEGER DEFAULT 0)`);
+  try { db.exec('ALTER TABLE border_station ADD COLUMN counted INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
+}
+// Daily rewards (the "reward" screen, ui_borderWarStateRewardLayer). A finished station or a won clear becomes an award row while today's
+// count of that kind is under DAILY; claimed all at once with rl_r_frontiers_war_recv_award Cmd 1.
+const usedToday = (db, pl, kind) => db.prepare('SELECT COUNT(*) n FROM border_award WHERE server_id=? AND uid=? AND day=? AND kind=?').get(pl.server_id, pl.uid, day(), kind).n;
+function addAward(db, pl, kind, country, r, drops = '') {
+  if (kind && usedToday(db, pl, kind) >= DAILY[kind]) return;
+  db.prepare('INSERT INTO border_award(server_id,uid,day,kind,country,exp,merit,drops) VALUES(?,?,?,?,?,?,?,?)').run(pl.server_id, pl.uid, day(), kind, country, r.exp || 0, r.merit || 0, drops);
+}
+function collect(db, pl) { // stations that ran their full time count once
+  ensure(db);
+  for (const s of db.prepare('SELECT rowid id, * FROM border_station WHERE server_id=? AND uid=? AND start>0 AND start<=? AND counted=0').all(pl.server_id, pl.uid, now() - STAY)) {
+    db.prepare('UPDATE border_station SET counted=1 WHERE rowid=?').run(s.id);
+    addAward(db, pl, s.type, s.to_country, REWARD[s.type]);
+  }
+}
+function dailyXml(db, pl) {
+  collect(db, pl);
+  const cnt = [1, 2, 3, 4].map((k) => usedToday(db, pl, k));
+  const open = db.prepare('SELECT kind, country, COUNT(*) n, SUM(exp) exp, SUM(merit) merit FROM border_award WHERE server_id=? AND uid=? AND claimed=0 AND kind>0 GROUP BY kind, country').all(pl.server_id, pl.uid);
+  const broke = db.prepare('SELECT * FROM border_award WHERE server_id=? AND uid=? AND claimed=0 AND kind=0').all(pl.server_id, pl.uid);
+  const dropItem = (d) => `<item dropid="${d}" icon="${({ 100: 'props_037', 1327: 'props_145', 1325: 'props_033' })[d] || 'props_033'}" name=""/>`;
+  return '<award_count>' + el('total_defiance', DAILY[1]) + el('current_defiance', cnt[0]) + el('total_wander', DAILY[2]) + el('current_wander', cnt[1]) +
+    el('total_clear_defiance', DAILY[3]) + el('current_clear_defiance', cnt[2]) + el('total_clear_wander', DAILY[4]) + el('current_clear_wander', cnt[3]) + '</award_count>' +
+    '<award_list>' + open.map((a) => `<item Country="${a.country}" Exp="${a.exp}" Merit="${a.merit}" Round="${a.n}" Status="${a.kind}"/>`).join('') + '</award_list>' +
+    '<attack_award_list>' + broke.map((b) => `<item type="0" countryid="${b.country}" destoryuser="">${b.drops.split(',').filter(Boolean).map(dropItem).join('')}</item>`).join('') + '</attack_award_list>';
+}
+function claimDaily(db, pl) {
+  collect(db, pl);
+  const rows = db.prepare('SELECT * FROM border_award WHERE server_id=? AND uid=? AND claimed=0').all(pl.server_id, pl.uid);
+  if (!rows.length) return { code: 329009 };
+  db.prepare('UPDATE border_award SET claimed=1 WHERE server_id=? AND uid=? AND claimed=0').run(pl.server_id, pl.uid);
+  const exp = rows.reduce((t, r) => t + r.exp, 0), merit = rows.reduce((t, r) => t + r.merit, 0);
+  if (exp) game.addExp(db, db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id), exp);
+  if (merit) game.propAdd(db, pl.uid, pl.server_id, 9994, merit);
+  const drops = rows.flatMap((r) => r.drops.split(',').filter(Boolean).map(Number)).map((d) => game.grantDrop(db, pl, d)).filter(Boolean);
+  return { code: 0, xml: `<attack_award>${el('exp', exp)}${el('merit', merit)}</attack_award>` + game.mergeAwards(drops.length ? drops : [game.awardFull({})]) };
 }
 // The rest of the server uses countries 1-3; the border screen uses 0-4 where 1 = Thunder, 2 = Water, 3 = Fire.
 const myCountry = (pl) => pl.country;
@@ -68,8 +114,9 @@ function attack(db, pl, type, to) {
   if (pl[col] < cost) return { code: 5, msg: 'not enough ' + (type === 1 ? 'gold' : 'silver') };
   db.prepare(`UPDATE players SET ${col}=${col}-? WHERE uid=? AND server_id=?`).run(cost, pl.uid, pl.server_id);
   const dmg = type === 1 ? PROVOKE_HP : WANDER_HP;
-  hp(db, pl.server_id, to);
+  const before = hp(db, pl.server_id, to);
   db.prepare('UPDATE border_mon SET hp=MAX(0,hp-?) WHERE server_id=? AND day=? AND country=?').run(dmg, pl.server_id, day(), to);
+  if (before > 0 && before <= dmg) addAward(db, pl, 0, to, {}, BREAK_DROPS.join(',')); // this attack broke the border
   db.prepare('INSERT INTO border_station(server_id,uid,country,to_country,type,start) VALUES(?,?,?,?,?,?)').run(pl.server_id, pl.uid, myCountry(pl), to, type, now());
   db.prepare('INSERT INTO border_log(server_id,country,enemy_country,nick,type,ts,hurt) VALUES(?,?,?,?,?,?,?)').run(pl.server_id, to, myCountry(pl), pl.nick, type, now(), dmg);
   score(db, pl);
@@ -90,13 +137,11 @@ function clear(db, pl, toUid) {
   if (!st || !enemy) return { code: 5, msg: 'that enemy already left' };
   const pw = (uid) => { const t = game.teamStats(db, uid, pl.server_id).total; return t.al + t.ah + t.dl + t.dh; };
   const win = pw(pl.uid) * (0.8 + Math.random() * 0.4) >= pw(toUid);
-  let exp = 0, merit = 0;
+  const exp = 0, merit = 0; // a clear pays on the daily reward screen
   if (win) {
     db.prepare('UPDATE border_station SET start=0 WHERE rowid=(SELECT rowid FROM border_station WHERE server_id=? AND uid=? ORDER BY start DESC LIMIT 1)').run(pl.server_id, toUid);
     db.prepare('UPDATE border_score SET def=def+20, clears=clears+1 WHERE server_id=? AND day=? AND uid=?').run(pl.server_id, day(), pl.uid);
-    exp = 100; merit = 10;
-    game.addExp(db, pl, exp);
-    game.propAdd(db, pl.uid, pl.server_id, 9994, merit);
+    addAward(db, pl, st.type === 1 ? 3 : 4, st.to_country, CLEAR_REWARD);
     game.bumpTask(db, pl.uid, pl.server_id, 11); // daily task: clear borders
   }
   const fight = game.battleXml(db, pl, 1, 1, { win, enemyName: enemy.nick, enemyUid: enemy.uid, enemyLevel: enemy.level });
@@ -113,6 +158,7 @@ function awardInfoXml(db, pl) {
   return `<award alive_time="8" exp="${r.exp}" power="${r.merit}" destory_type="${s.type}" enemy_nick="" enemy_country="${s.to_country}"/>`;
 }
 function recv(db, pl, cmd) {
+  if (cmd === 1) return claimDaily(db, pl);
   if (cmd === 2) {
     const s = lastFinished(db, pl);
     if (!s) return { code: 329009 };
@@ -140,4 +186,4 @@ function rankXml(db, pl, type) {
     '<rank_list>' + rows.map((r, i) => `<item rank="${i + 1}" nick="${esc(r.nick)}" country="${r.country}" level="${r.level}" score="${r.score}" award="371"/>`).join('') + '</rank_list>';
 }
 
-module.exports = { infoXml, userXml, attack, enemyXml, clear, awardInfoXml, recv, rankXml };
+module.exports = { infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml };

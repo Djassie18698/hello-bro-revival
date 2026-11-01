@@ -1074,7 +1074,7 @@ module.exports = {
   rl_r_frontiers_war_attack: (c) => borderCall(c, (db, pl, p) => border.attack(db, pl, Number(p.Cmd), Number(p.ToCountry))),
   rl_r_frontiers_war_enemy_info: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: border.enemyXml(db, pl, p.Country !== undefined ? Number(p.Country) : pl.country) })),
   rl_r_frontiers_war_clear: (c) => borderCall(c, (db, pl, p) => border.clear(db, pl, Number(p.ToUid))),
-  rl_r_frontiers_war_award_info: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: border.awardInfoXml(db, pl) })),
+  rl_r_frontiers_war_award_info: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: Number(p.Cmd) === 1 ? border.dailyXml(db, pl) : border.awardInfoXml(db, pl) })),
   rl_r_frontiers_war_recv_award: (c) => borderCall(c, (db, pl, p) => border.recv(db, pl, Number(p.Cmd))),
   rl_r_frontiers_war_rank: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: border.rankXml(db, pl, Number(p.Cmd)) })),
 

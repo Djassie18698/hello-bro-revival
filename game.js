@@ -93,7 +93,8 @@ function randomEquip(slot, minStar = 3, maxStar = 5) {
 const el = (n, v) => `<${n}>${v}</${n}>`;
 function cardXml(c) {
   const f = {
-    type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: c.attri || 1, // 0 (never changed) = water; the client names only 1-5 (Change Element showed "nil") starlevel: c.starlevel,
+    // attri 0 (never changed) is sent as 1 = water: the client names only 1-5 (Change Element showed "nil")
+    type: c.type, id: c.ninja_id, exp: c.exp, seq: c.seq, level: c.level, attri: c.attri || 1, starlevel: c.starlevel,
     newlife: c.newlife || 0, tupo_level: c.breaklvl || 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
     attack_add: c.pot_att || 0, defence_add: c.pot_def || 0, cha_add: c.pot_ckr || 0, status: 0,
   };
