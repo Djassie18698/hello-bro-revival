@@ -401,9 +401,31 @@ from the game at all; those are skipped. Most screenshots are from the English H
 | World boss Obito | Lv **10**, HP **145 800 W** (=1.458 billion), Power +80%; top damage 615 million; "The reputation will be clean at 14:00 next day"; reputation shop 30 000 / 15 000 / 12 000 / 400 / 350 (`2751`, `2752`) | `boss.js` |
 | Time limited GiftPack ("Preferential" tab) | "lowest **$19** recharge, claim **$60** price giftpack": 5-star Shinobi (God) chest + 5 keys + 4-star Ninjutsu + 3 EXP; event 70 h (`2755`) | built 2 Nov: Preferential (`limited.js`) |
 
+### Batch 90-96 (`batch-90` to `batch-96`, photos 1195, 1746-1750, 1925-1927, 2357-2358 and 3585-4737; read 2 Nov)
+| Topic | Original (picture) | Server now |
+|---|---|---|
+| **Christmas Buy price** | "buy prop": **1 Christmas Cap = 80 gold, 1 Christmas Tree = 100 gold**; limits "number **700**/700" caps and "number **600**/600" trees (per event); "time for buying: 12.23-12.29" (`batch-90/3627`) | 80 / 100 gold (consumeinfo) **matches**; limit 10 a day (ours) |
+| **Christmas drop** | a **Christmas Tree** is one of the 3 face-down cards in the spar "Please draw your victory reward" (next to Adamantine Staff and a Gyuki Seal Fragment) (`3673`); caps come from training fights. No count per fight is shown | 60% chance of 1-2 per win (ours) |
+| Christmas exchange (second year, begin 12.23-12.28, end 12.29; another run 12.23-12.26, end 12.27) | 10 Caps -> 5 red order tokens (50/50); 20 Trees -> 10 purple crystals (50/50); 30 Caps -> 5 Reincarnation Pills (50/50); 40 Caps + 35 Trees -> 5 purple orbs (40/40); 50 + 45 -> 3 Itachi fragments (20/20); 50 + 45 -> 1 Santa of the Six Paths fragment (1/1); **230 + 180 -> Seven-star Sword (1/1)**; **220 + 180 -> Sexy Technique (1/1)**; **650 + 600 -> Santa of the Six Paths card (1/1)** (`3623`, `3630`, `3658`, `3672`, `3676`) | `festival.js` uses the first-year list |
+| **Anniversary event** (same screen as Christmas, "Anniversary", begin 12.16-12.20, end 12.21) | items: **Fireworks** ("go training, batter") and **Balloon** ("go spar"); shop price **Fireworks 100 gold, Balloon 140 gold** (`3817`); exchange: 20 Balloons -> 10 crystals (50), 30 Fireworks -> 5 Reinc Pills (40), 40 + 35 -> 5 purple orbs (30), 45 + 40 -> 5 Souls Dan (30), 35 + 30 -> 1 Anniversary Sasuke fragment (30), 230 + 180 -> Seven-star Sword (3), 200 + 170 -> armour (3), **550 + 500 -> Anniversary Sasuke card (1)** (`3720`, `3722`, `3732`, `3774`, `3809`); mail "Anniversary Reward: Anniversary Sasuke Fragment(D) x1, God x50, silver x50000" (`3695`, `3768`, `3782`) | not built |
+| Anniversary Sasuke cards | Anniversary Sasuke (ATK) chains Sage of Six Path +30% ATK, Six Path Naruto +30%, Kaguya +25%, Rinnegan +25%, all +13%; the (God) version adds all +7% (`3811`, `3815`, `3822`-`3824`) | |
+| **Daily task chests (all six)** | bar 250 points, chests at **30 / 80 / 120 / 160 / 210 / 250** (`4107`, `4211`, `3685`); tasks: Treasure Chest "Opened Gold Chest 3 times" **15**, Ramen 3x **10**, Money Tree 3x **15**, Get 1000 Arena Reputation 10, Upgrade Shinobi 3x 10, Reincarnation 1x **30**, Training 20x 10, Advance 5x 10, Plunder 2 seals 10 | 7 chests at 30/60/90/120/160/210/250: original has 6, with 80 instead of 60 and 90 |
+| **Normal recruit pity** | the **1 in 10000** "Shinobi recruitment" window says **"Recruit 2 more will get one - Five Star Purple"**, with "Free recruitment this time" and 10x = 2800 gold (`batch-93/4435`). So the normal recruit DID have a pity counter; this photo only shows 2 left, so the full number is still unknown | 20 (ours) |
+| Treasure chests (keys) | "Chances today to open the treasure chest **45/45**, VIP5 +5 times"; gold / silver / bronze key (`4380`) | vipinfo col 24 (VIP5 = 45) **matches** |
+| Recharge streak ("charging") | "Top up 3 dollars and get the rewards"; day 1: 2 order tokens + 5 purple items + 2~5S Shinobi; day 2: 4 tokens + 2 tickets + 5 + 2~5S; day 3: 5 nostrum + 10 crystals + 5 + 2~5S; 7 days in a row: Minato (ATK) + 30 Reinc Pills + 8 tickets + 5 (`3942`) | compare `dailyevents.js` |
+| Flower Worship rewards | Mei Terumi: Sasuke(G) + Amaterasu + 100 crystals; Konan: 5-star equip + 5-star ninjutsu + 20 Reinc Pills; Hinata: 5-star shinobi + 5 ramen + 50 tokens; another: Boruto(A) + Tensei + 80 (`3863`); Tsunade: Kushina(God) + 80 + 15; Sakura: Sakura(God) + Izanagi + Bashosen (`4709`); flowers given 24 / 95 (`3864`, `4543`) | not built |
+| Arena reputation shop (later) | first about **40 000**, second Seal of Ten Tails **80 000**, third Flying Thunder God Kunai **120 000**, four Naruto Uzumaki (Attack Card) **480 000**, each "Total Exchange 1 Times" (`3882`, `4364`, `4618`) | check arena exchange |
+| Arena rules (player guide) | "3 hits and a cool down of **10 minutes**" (limit by VIP); rank reward collected **9:00-9:30**; cross-server **Friday 11:30**; super ninja draw: 1 free draw and another 24 h later (`3924`, `3926`) | |
+| Spar preview | win: EXP 129, silver **2758**, **15 W.A.**, chance of equipment/ninjutsu chest; lose: EXP 43, silver **-271**, **5 W.A.**; "Insufficient spar value, unable to spar" (`4372`) | |
+| World boss (later version) | "Battle begins **12:30** daily"; "The reputation will be clean at 12:30 next day"; "Akatsuki is invading" countdown about 27 min before (`3776`, `3807`, `4622`) | earlier photos: 14:00 |
+| Pets | "Nov 11, pets officially online ... Obtain pets in secret shop" (`4286`); Pakkun "beast hit 1/3 chance cause 175 damage", fragments from the mystery shop (`4153`, `4248`) | `pet.js` |
+| Daily "complete the designated lines" | Development Dan claim; "secret-shop-refresh-5-times" -> Refresh Order; "5 times of successful ..." -> Gold*30 (`4295`, `4639`) | |
+| Mails | "New version players hit 5000, reward 1000 gold"; "Android V21.3 players hit 4600 reward 1120 gold" (`3695`, `4377`) | |
+| VIP groups (publisher post) | transfer to World of Ninjas grouped by VIP 1-4 / 5-7 / 8-12 / 12-15 / 15+ (`4430`); no thresholds shown | |
+| Eight Gates | point cost 647 souls + 9705 silver (= 15x) (`4270`) | same as before |
+
 ## Holiday events
-(Second pass, 2 Nov: all batches 01-84, about 3 580 photos, checked for holiday screens. **No** Valentine, Goddess Tsunade, Halloween or
-"God recruit" slot screens and **no** Christmas Buy price or caps/trees-per-fight number appear on any photo. What was found is below.)
+(Checked in all batches 01-96. **No** Valentine, Goddess Tsunade, Halloween or "God recruit" slot screens. Batch 90 adds the Christmas **Buy price: cap 80 gold, tree 100 gold**, limits 700 / 600, a second-year exchange list and the Anniversary event: see "Batch 90-96" above.)
 
 ### Santa Killer B and other holiday finds (batches 07-84)
 - **Killer B (Santa Claus)** is a real 5-star card. Its card screen shows chains Third Raikage +25% DEF and ATK, equip Tailed Beast Mode +25%, Naruto Uzumaki +25%,
@@ -419,9 +441,9 @@ from the game at all; those are skipped. Most screenshots are from the English H
   says "wishing everyone prosperity and luck in the year" (`2828`, `2871`).
 
 ### Normal recruit (not the event draw)
-- The recruit screen shows only the free timers ("Free after 4 days 9 hours" / "2 days 9 hours" (`batch-81/2780`), "Free after 00:01" (`batch-84/3360`)) and
-  "You have: 0, Use recruitment orders x1". **No "recruit N more" pity line is ever shown on the normal recruit**, so the photos cannot give a normal pity number.
-  Only the S-shinobi draw has a pity counter: "Recruit N more will get one" with N from 1 to 9 = **every 10th draw** (seen dozens of times in batches 80-84).
+- Free timers seen: "Free after 4 days 9 hours" / "2 days 9 hours" (`batch-81/2780`), "Free after 00:01" (`batch-84/3360`).
+- **Pity counter found (batch 93):** the 1 in 10000 "Shinobi recruitment" window shows "Recruit **2** more will get one - Five Star Purple"
+  (`batch-93/4435`). Only that one photo shows it, with 2 left, so the full pity number is still unknown (the S-shinobi event draw is every 10th draw).
 
 ### Christmas festival ("Merry Christmas" tab in the Event menu, next to Flower Worship / Treasure / Growth Fund)
 - **How you get the items:** Christmas Cap = "go training, batter" (training fights), Christmas Tree = "go spar" (spar fights). A **Buy** button on the
@@ -509,6 +531,12 @@ Still different, or still to build, ordered by how much a player notices:
 7. **W.A. ranks 8-14** are also confirmed by `batch-84/3382`: 30 000 / 45 000 / 60 000 / 90 000 / 120 000 / 160 000 W.A. = +550 ... +1100, the same as `data/playemedal.json`.
 8. **Not built:** Treasure (key) chests, limited group purchase, cross-server battle, scratch card (prizes 5-800 gold), ~~Time limited GiftPack, "Great gift for total recharge"~~ (built 2 Nov).
 
-**Never shown on any photo:** normal recruit pity number, VIP 6-18 thresholds, VIP benefit list, Christmas cap/tree drop per fight and Buy price, Valentine and Goddess Tsunade events.
+**Never shown on any photo (batches 01-84; see the batch 90-96 update below for the Buy price and the recruit pity line):** normal recruit pity number, VIP 6-18 thresholds, VIP benefit list, Christmas cap/tree drop per fight and Buy price, Valentine and Goddess Tsunade events.
 
 **Built since (2 Nov 2026, later):** Treasure (key) chests, limited group purchase, scratch card, Growth Fund, Great gift for total recharge, Time limited GiftPack, Ninja Test boss chests 160 / 250 gold, Eight Gates levels, daily task 250-point chests, shinobi training with pills.
+
+## Update 2 Nov (batches 90-96, about 1 160 more photos)
+Most useful new numbers: Christmas Buy 80 / 100 gold with limits 700 caps / 600 trees per event (server: 10 a day); daily task chests are
+exactly 30 / 80 / 120 / 160 / 210 / 250 (server has an extra chest and 60 / 90); the normal 1-in-10000 recruit has a pity counter ("Recruit 2 more",
+full number still unknown); Anniversary event (fireworks 100 gold / balloons 140 gold, Anniversary Sasuke); a second Christmas exchange list;
+recharge-streak and Flower Worship reward lists; world boss later at 12:30. Still never shown: VIP 6-18 thresholds, VIP benefit list, Valentine, Goddess Tsunade.
