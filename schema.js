@@ -16,7 +16,7 @@ module.exports = (db) => {
       exp INTEGER NOT NULL DEFAULT 0,
       gold INTEGER NOT NULL DEFAULT 1000,
       coin INTEGER NOT NULL DEFAULT 100000,
-      energy INTEGER NOT NULL DEFAULT 50,
+      energy INTEGER NOT NULL DEFAULT 50, -- (ours, owner 1 Nov 2026): a new account starts with 50 energy, above the level-1 max of 10, so it gets a few levels in
       created INTEGER NOT NULL,
       PRIMARY KEY (uid, server_id)
     );
