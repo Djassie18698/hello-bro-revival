@@ -12,7 +12,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 |---|---|---|---|---|
 | Bug list 1 | 15 | 0 | 0 | 4 |
 | Bug list 2 | 8 | 0 | 0 | 0 |
-| Bug list 3 | 8 | 0 | 1 | 0 |
+| Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 11 | 3 | 0 | 0 |
 
 ## Bug list 1
@@ -64,7 +64,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | 7-day goals not translated / do nothing | English, Go opens the right screen |
 | ✅ | Shinobi training crashes | Fixed |
 | ✅ | "1 in 100" orders count stays at 39 | Updates right after each recruit (fixed 1 Nov) |
-| ⏳ | 7-day goals: Claim says nothing when a goal isn't reached | The game checks this itself; small |
+| ✅ | 7-day goals: Claim says nothing when a goal isn't reached | Now says "finish all goals first" (update 28.0.20) |
 
 ## Bug list 4
 
@@ -110,18 +110,18 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Daily Task: original 250-point bar and 250 chest (30 000 silver, 100 gold, 10 Reincarnation Pills, Killer B fragment); all tasks now count |
 | ✅ | Shinobi training costs Super Ninja Pills like the original (2 pills, or 1 pill + 10 gold) |
 | ✅ | Save file ready for many players: faster write mode, health check, automatic backup every 6 hours while running |
-| 🧪 | Change country with the Immigration Card (300 gold, from the photos) |
-| 🧪 | Shop: Reincarnation Pill and Development Dan cost 120 gold, like the original shop photos |
+| ✅ | Change country with the Immigration Card (300 gold, from the photos) |
+| ✅ | Shop: Reincarnation Pill and Development Dan cost 120 gold, like the original shop photos |
 | ✅ | Secret shop Refresh works like the original (Refresh Order or 20 gold, 75 + 5 x VIP a day, new goods every 2 h) |
-| 🧪 | Ninja Treasure prices like the original (refresh 100 gold, new board every 2 h, explore 35 / 70 / 300 / 320 / 1000) |
+| ✅ | Ninja Treasure prices like the original (refresh 100 gold, new board every 2 h, explore 35 / 70 / 300 / 320 / 1000) |
 | 🧪 | Arena daily rewards like the original (rank 1: 25 000 silver + 5000 reputation, at least 2000 + 400) |
 | ✅ | Growth Fund in the Event menu, like the original (VIP3, 500 gold, 2500 back) |
 | 🧪 | Ninja Test guards grow with the stage and your level, matching the original photos (low levels were far too hard) |
 | ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
 | ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
-| 🧪 | "Great gift for total recharge" (Timed Gift) like the original photo: top up $240 / $420 / $750 in 48 h for The Fourth Sage + Shakujo, a 2nd-rebirth Hokage Kakashi (God), a 7th-rebirth Kaguya (God) and pills |
-| 🧪 | "Time limited GiftPack" (Preferential) like the original photo: top up $19 in 70 h, claim a $60 pack (5-star God shinobi, 5 Gold Keys, 4-star ninjutsu, 3 EXP cards) |
-| 🧪 | Daily spending gift ("Consumption") and 7-day recharge streak ("charging") in the Event menu (rewards are ours: no photo) |
+| ✅ | "Great gift for total recharge" (Timed Gift) like the original photo: top up $240 / $420 / $750 in 48 h for The Fourth Sage + Shakujo, a 2nd-rebirth Hokage Kakashi (God), a 7th-rebirth Kaguya (God) and pills |
+| ✅ | "Time limited GiftPack" (Preferential) like the original photo: top up $19 in 70 h, claim a $60 pack (5-star God shinobi, 5 Gold Keys, 4-star ninjutsu, 3 EXP cards) |
+| ✅ | Daily spending gift ("Consumption") and 7-day recharge streak ("charging") in the Event menu (rewards are ours: no photo) |
 | ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |
 
 ## Still to build
@@ -135,6 +135,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | | What |
 |---|---|
+| 🚫 | After buying an item in the Shop's Tool tab its count shows the old number (and USE stays grey) until you log in again. The item is in your bag; the game app only refreshes that number at login |
 | 🚫 | "Limited daily gift" packs: the game's own layout for that screen is missing its price, buy button and item labels, so it crashes whatever the server sends |
 | 🚫 | Card split ("tear a card to fragments"): no button in this game version opens it |
 | 🚫 | Recharge rebate wheel: it only multiplies real-money top-ups, which are free here |

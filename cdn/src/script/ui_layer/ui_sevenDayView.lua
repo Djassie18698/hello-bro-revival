@@ -544,7 +544,13 @@ function init_binding_event(self)
 					else
 						--通过错误码提示信息
 						--GetMainMenu():ShowTextTip(tostring(retcode), -1)
-						GetMainMenu():ShowErrorTip(retcode,-1)
+						-- revival server: show the server's reason (e.g. the goal is not reached yet); the error code alone shows nothing
+						local msg = item:find("message")
+						if msg and msg[1] then
+							GetMainMenu():ShowTextTip(tostring(msg[1]), -1)
+						else
+							GetMainMenu():ShowErrorTip(retcode,-1)
+						end
 					end
 				end)
 		end

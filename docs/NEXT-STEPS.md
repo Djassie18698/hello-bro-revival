@@ -628,3 +628,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * rl_r_marquee answers an empty <marquee/> (ui_borderWarTip reads its children). Every rl_x_small_activity Cmd a Lua screen sends is handled.
   * mergeAwards now sums <soul> (it always sent 0, so souls vanished from combined reward pop-ups; the souls were still given).
 
+  * 28.0.20: ui_sevenDayView.lua shows the server's <message> when a 7-day Claim fails ("finish all goals first"); checked in game.
+  * Checked in game (test save): shop prices 120 (Reincarnation Pill, Development Dan), Immigration Card -> Change country 300 gold
+    (card used, country changed), Ninja Treasure refresh 100 / explore 35 / 2 h board.
+  * Shop quirk (not fixed): after rl_w_shopbuy the Tool tab keeps the old count and USE stays grey until the next login, although
+    CItemView::onHttpRequestCompleted adds <retobj count> to CTradeMgr's ConsumeInfo bagnum (retobj layout type/costyb/costyz/id/count
+    matches) and the tab re-requests rl_r_shoplist 1601 (which sends the new bagnum). Using an item updates the count at once.
