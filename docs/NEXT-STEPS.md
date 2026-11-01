@@ -527,3 +527,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Verified in game: Chibaku Tensei pop-up "Skill damage increase 2086 (Chakra 1306)", Skill bonus, animation. Enemy defense skills not sent.
 - Team builder Benchmark (/admin/api/bench {uid, targets}): 300 simulated fights per enemy team defence with the battleXml rule (attack rolled
   low..high per ninja, worn ninjutsu by m_rate, attack spent in team order); win %, ninjas used, story stage with that defence (game.stageForDefence).
+- Fights ignored team-wide bonuses (sets, Eight Gates, pets: only in teamStats.total). teamStats.fight = each slot scaled by total/sum per stat;
+  battleXml, the benchmark, the training and Battles win checks use it / the total. Owner save: slots 6.0M-6.3M -> fight 7.67M-8.09M = Team screen.
+- Spar Benchmark rivals (settings switch "bench", off by default, noconf so it is not an event button): ids 8000001-6, 100K..8M defence over
+  5 enemies (spreadFoes), free (no grudge), no reward, battleXml opt.real = no outcome scaling, the replay decides. Verified in game (100K).

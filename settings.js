@@ -23,6 +23,7 @@ const EVENTS = [
   { id: 'diligence', screen: 33, pos: 15, type: 2, limited: true, icon: '💪', name: 'Diligence gift', desc: 'Every 20 training fights, 5 spar wins, 5 growths... today gives a reward, a few times a day.' },
   { id: 'discount', screen: 27, pos: 16, type: 2, limited: true, icon: '🏷️', name: 'Limited discount', desc: 'Top up 980 gold (free here) while it runs and claim a gift worth 3000 gold, once.' },
   { id: 'lottery', screen: 22, pos: 17, type: 2, limited: true, icon: '🎟️', name: 'Lottery', desc: 'Pick 4-digit numbers for 50 gold (3 a day). Drawn daily at 20:30; matching digits win prizes.' },
+  { id: 'bench', noconf: true, limited: true, icon: '📏', name: 'Benchmark rivals in Spar', desc: 'Six computer rivals at the top of Spar with 100K, 500K, 1M, 2M, 4M and 8M defence. Free, no rewards: to test a team.' },
 ];
 const DISCORD = 'https://discord.gg/2Cbp4UDHrU';
 const DEFAULT_BANNER = 'Join our Discord for help, bugs and friends: discord.gg/2Cbp4UDHrU  (Settings > Join Discord)';

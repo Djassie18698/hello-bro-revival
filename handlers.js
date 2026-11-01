@@ -88,7 +88,7 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   // energy (and a boss try) but gives nothing and opens nothing.
   const foes = game.stageFoes(chap, stage);
   const ts = game.teamStats(db, pl.uid, pl.server_id);
-  const myPower = ts.slots.reduce((t, s) => t + (s.al + s.ah) / 2, 0); // my total attack against their total defence (only my side attacks)
+  const myPower = (ts.total.al + ts.total.ah) / 2; // my total attack against their total defence (only my side attacks)
   const theirPower = foes.reduce((t, f) => t + f.power, 0);
   // Only boss rows are real fights: normal rows are story stages (the client skips the fight and spins the wheel, crediting exp/silver itself),
   // so they always count as won.
@@ -330,6 +330,8 @@ module.exports = {
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    const bench = game.benchFight(db, pl, Number(p.ToUid)); // benchmark rival: free, no reward
+    if (bench) return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + bench.xml + game.awardFull({}) + '</root>';
     if (!game.spUse(db, pl)) return '<root code="5"><message>not enough grudge</message></root>';
     const r = game.sparFight(db, pl, Number(p.ToUid));
     game.addExp(db, pl, r.exp);
@@ -1111,7 +1113,7 @@ module.exports = {
     const exp = trow[20] || 60 * chap, coin = trow[21] || 90 * chap; // the round's own reward (towerfloor)
     const tfoes = game.towerFoes(chap, round) || [];
     const tts = game.teamStats(db, pl.uid, sid);
-    const tAtk = tts.slots.reduce((t, s) => t + (s.al + s.ah) / 2, 0), tDef = tfoes.reduce((t, f) => t + f.def, 0);
+    const tAtk = (tts.total.al + tts.total.ah) / 2, tDef = tfoes.reduce((t, f) => t + f.def, 0);
     if (process.env.HB_PVE ? process.env.HB_PVE !== 'win' : tAtk * (0.85 + Math.random() * 0.3) < tDef) { // lost: no reward, the round stays open
       return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { foes: tfoes, win: false, enemyName: String((game.ninjas().get((trow[4] || 0)) || [])[2] || 'Enemy'), enemyLevel: 10 * chap }) + game.awardFull({}) + '</root>';
     }

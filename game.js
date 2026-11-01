@@ -356,7 +356,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   // ninjutsu worn (equipped kinds 5-8) by each team ninja: they can fire when that ninja starts attacking
   const jRows = db.prepare('SELECT e.slot, c.seq, c.ninja_id, c.level FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=? AND e.kind BETWEEN 5 AND 8')
     .all(pl.uid, pl.server_id);
-  const mine = team.map((t, i) => { const q = ts.slots[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
+  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.dl || 0) + (q.dh || 0)) * 2 + 300), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel }; });
   const given = opt.foes ? opt.foes.map((f, i) => ({ ...f, bagid: 1000 + i })) : null; // real stage enemies (game.stageFoes)
   const mkFoes = (ratio) => given ? given.map((f) => ({ ...f })) : (opt.enemyIds || [21, 22, 23]).map((id, i) => {
     if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0 };
@@ -375,7 +375,8 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     const def = foes.map((f) => Math.max(1, f.def || 1));
     const sumA = atk.reduce((t, x) => t + x, 0), sumD = def.reduce((t, x) => t + x, 0);
     // the server decided the result already: scale the enemy defence so the replay ends that way (a win needs my attack > their defence)
-    if (want === true && sumD >= sumA) { const k = (sumA * 0.85) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.max(1, Math.floor(def[j] * k)); }
+    if (want === 'real') { /* benchmark: the replay decides */ }
+    else if (want === true && sumD >= sumA) { const k = (sumA * 0.85) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.max(1, Math.floor(def[j] * k)); }
     if (want === false && sumD <= sumA) { const k = (sumA * 1.25) / sumD; for (let j = 0; j < def.length; j++) def[j] = Math.ceil(def[j] * k); }
     foes.forEach((f, j) => { f.def = def[j]; });
     const rolled = [];
@@ -408,7 +409,8 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     return { rounds: rolled, won: j >= foes.length };
   };
   let foes, fight;
-  if (opt.win === undefined) { foes = mkFoes(Math.min(0.55, 0.3 + stage * 0.004)); fight = play(foes, true); } // no decision given: a win
+  if (opt.real) { foes = mkFoes(); fight = play(foes, 'real'); }
+  else if (opt.win === undefined) { foes = mkFoes(Math.min(0.55, 0.3 + stage * 0.004)); fight = play(foes, true); } // no decision given: a win
   else { foes = mkFoes(opt.win ? 0.3 : 1.5); fight = play(foes, !!opt.win); }
   const rounds = fight.rounds;
   const roundXml = rounds.map((r) => '<round>' + Object.entries(r).filter(([k]) => k !== '_skills').map(([k, v]) => el(k, v)).join('') +
@@ -504,6 +506,24 @@ function awardFull({ coin = 0, cash = 0, exp = 0 } = {}) {
 // ---- Spar / rivals --------------------------------------------------------------------------
 const BOT_NAMES = ['Iron Fist Lee', 'Shadow Hana', 'Rogue Kaito', 'Silent Ren', 'Blaze Mika', 'Sand Gaku', 'Mist Yuna', 'Thunder Ryo', 'Frost Aoi', 'Wind Sora'];
 // Rival list: other real players first (friends on the same server), then bots near the player's level.
+// Benchmark rivals (Server Manager switch "Benchmark rivals in Spar"): computer teams with a fixed total defence, top of the Spar list.
+// Fighting them is free (no grudge), pays nothing, and the result is the real replay (no decided outcome).
+const BENCH = [100000, 500000, 1000000, 2000000, 4000000, 8000000];
+const benchId = (i) => 8000001 + i;
+const shortNum = (n) => (n >= 1e6 ? n / 1e6 + 'M' : n / 1e3 + 'K');
+function benchRivals(db) {
+  if (!settings.eventOn(db, 'bench')) return [];
+  const ids = [2085, 5037, 2029, 2070, 5070, 5040]; // god cards as the shown face (ours)
+  return BENCH.map((d, i) => ({ id: benchId(i), level: 350, nick: 'Benchmark ' + shortNum(d), country: 1, ninja: ids[i % ids.length], star: 6, bench: d }));
+}
+function benchFight(db, pl, toUid) {
+  const b = benchRivals(db).find((r) => r.id === toUid);
+  if (!b) return null;
+  const foes = spreadFoes([b.ninja, b.ninja, b.ninja, b.ninja, b.ninja], b.bench, 350);
+  const out = {};
+  const xml = battleXml(db, pl, 0, 1, { foes, real: true, enemyName: b.nick, enemyUid: b.id, enemyLevel: 350, out });
+  return { win: out.win, xml, coin: 0, exp: 0 };
+}
 function rivals(db, pl, count = 8) {
   const real = db.prepare('SELECT * FROM players WHERE server_id=? AND uid!=? ORDER BY ABS(level-?) LIMIT ?').all(pl.server_id, pl.uid, pl.level, count);
   const out = real.map((r) => ({ id: r.uid, level: r.level, nick: r.nick, country: r.country, ninja: firstNinja(db, r) }));
@@ -525,7 +545,9 @@ function rivalsXml(db, pl) {
       chakralow: a, chakrahigh: a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: 0, country: r.country, coin: 100 + lv * 20 };
     return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
   };
-  return '<userlist page="1" addrate="0" resttime="0">' + rivals(db, pl).map(f).join('') + '</userlist>';
+  const bench = benchRivals(db).map((r) => '<user>' + Object.entries({ id: r.id, level: r.level, nick: r.nick, attacklow: r.bench, attackhigh: r.bench, defenselow: r.bench, defenseHigh: r.bench,
+    chakralow: 0, chakrahigh: 0, firstninja: r.ninja, firstninjastar: 6, newlife: 0, country: 1, coin: 0 }).map(([k, v]) => el(k, v)).join('') + '</user>').join('');
+  return '<userlist page="1" addrate="0" resttime="0">' + bench + rivals(db, pl).map(f).join('') + '</userlist>';
 }
 
 // ---- Event packs (login days / level-up gifts) ------------------------------------------------
@@ -550,7 +572,7 @@ function actXml(db, pl) {
   return `<activity type="1" loginallnum="${c.days}"><item actid="1">${subs(c.login)}</item></activity>` +
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="-1"></item></activity><activity type="4"><item actid="4"></item></activity>` +
     // Events switched off in the Server Manager are left out of the list, so their button / Event menu line disappears.
-    '<conf><items>' + [...new Map(settings.EVENTS.filter((e) => e.id !== 31 && settings.eventOn(db, e.id)).map((e) => [e.screen || e.id, { ...e, id: e.screen || e.id }])).values()].map(({ id, pos, type }) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') +
+    '<conf><items>' + [...new Map(settings.EVENTS.filter((e) => e.id !== 31 && !e.noconf && settings.eventOn(db, e.id)).map((e) => [e.screen || e.id, { ...e, id: e.screen || e.id }])).values()].map(({ id, pos, type }) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') +
     `<item><id>31</id><pos>10</pos><status>1</status><onoff>0</onoff><type>1</type><timeleft>${!settings.eventOn(db, 31) || db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
 }
 // What the pack screens show comes from the client's own Lua tables (loginPackData / upgradePackData, 1-4 dropinfo ids each):
@@ -950,7 +972,11 @@ function teamStats(db, uid, sid) {
   if (gb.flat) { const g = {}; KEYS.forEach((k) => { g[k] = gb.flat + Math.round((tot[k] || 0) * gb.pct); }); tot = addStats(tot, g); }
   const pb = require('./pet').teamBonus(db, uid, sid); // master + helper pets (required here: pet.js requires this file)
   tot = addStats(tot, { al: pb.attack, ah: pb.attack, dl: pb.defense, dh: pb.defense, cl: pb.chakala, ch: pb.chakala });
-  return { slots, total: tot, suits, bonus };
+  // Sets, Eight Gates and pets are team-wide: in fights each ninja gets its share (in proportion to its own stats), so the fight
+  // numbers add up to the team total shown on the Team screen.
+  const sum = slots.reduce((t, s) => addStats(t, s), {});
+  const fight = slots.map((s) => { const o = { ...s }; KEYS.forEach((k) => { o[k] = sum[k] ? Math.round((s[k] || 0) * (tot[k] || 0) / sum[k]) : s[k]; }); return o; });
+  return { slots, fight, total: tot, suits, bonus };
 }
 
 // Sage growth (rl_w_star Cmd 1): spend sage stones on a card for a chance at +1 sage level (stored in cards.starlevel).
@@ -1342,4 +1368,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

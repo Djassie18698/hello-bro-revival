@@ -92,11 +92,11 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Control panel: Server, Players & items, Team builder in one site |
 | ✅ | Server Manager: who's online, events on/off, top banner, announcement, backups, restart |
 | ✅ | Admin: give anything, edit levels / rebirth / growth / item amounts, Unlock everything, reset |
-| ✅ | Team builder: whole team in one go, Complete chains, Best gear (owned / all), fight Benchmark (100K-8M) |
+| ✅ | Team builder: whole team in one go, Complete chains, Best gear (owned / all), fight Benchmark (100K-8M); Benchmark rivals in Spar to fight in the game (switch in the Server Manager) |
 | ✅ | Account picker: main + 3 starter slots on the login screen |
 | ✅ | Limited events: Christmas, New Year, God Recruit, Hot Treasure, Gold spending, Diligence gift, Limited discount, Lottery |
 | ✅ | Fights work like the original; enemy strength from 285 (stage 1-2) to 2.5 million (last story boss) |
-| ✅ | Card stats use the game's own formula; set bonuses pick the best set |
+| ✅ | Card stats use the game's own formula; set bonuses pick the best set; sets, Eight Gates and pets count in fights |
 | ✅ | Sage growth with the original chances; rebirth up to 8 |
 | ✅ | Discord link on GitHub, in the top banner and in Settings |
 | ✅ | Ramen window when out of energy in training |
