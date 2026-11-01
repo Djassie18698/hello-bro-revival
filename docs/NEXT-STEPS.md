@@ -441,3 +441,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - hottreasure.js, Event menu id 43 ("treasure"): rl_x_small_activity 12 info (<remain_time><one_cost><ten_cost><main><item/></main><second>items</second>
   <all>items</all><left_free_count>; item = drop_id/desc/main_type/sub_type/prop_id children), 13 one hunt (<cash><left_free_count><award>),
   14 ten hunts (<cash><award_list> of <award dropid>). Prices, prizes and chances (ours). Verified in game: screen and ten hunts.
+
+## Gold spending event (1 Nov 2026)
+- consumption.js, Event menu id 37 ("Consume"): rl_r_comm Cmd 13 (<basic><cash><remain></basic><award><item id cash status drop1-4 name1-4 icon1-4/></award>),
+  rl_w_comm Cmd 18 ID claim. Tiers/rewards ORIGINAL from photo 0347; lowest tier gold 3000 (ours). Gold spent = trigger gold_spent_log on players.gold
+  (every decrease is logged; the event counts from its switch-on time). Verified in game: tiers, icons, claim buttons.

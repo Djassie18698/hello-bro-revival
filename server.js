@@ -29,6 +29,7 @@ try {
 } catch (e) { console.error('backup failed', e.message); }
 const db = new DatabaseSync(process.env.DB || 'hellobro.db');
 require('./schema')(db);
+require('./consumption').ensure(db); // gold-spending log (trigger) for the spending event
 
 function parseBody(req) {
   return new Promise((res) => {

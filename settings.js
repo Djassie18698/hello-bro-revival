@@ -19,6 +19,7 @@ const EVENTS = [
   { id: 'newyear', screen: 44, pos: 11, type: 2, limited: true, icon: '🎆', name: 'New Year festival', desc: 'Same trade event with Kaguya for New Year rewards. Only one festival at a time.' },
   { id: 'godrecruit', screen: 46, pos: 12, type: 2, limited: true, icon: '🎰', name: 'God Recruit', desc: 'Slot machine of holiday god cards (300 gold a spin). Keep the card or return it for gold and energy, trade energy for cards.' },
   { id: 'hottreasure', screen: 43, pos: 13, type: 2, limited: true, icon: '💰', name: 'Hot Treasure', desc: 'Treasure hunt: 1 free hunt a day, then 100 gold (10 hunts 900). Ten hunts always give the top prize.' },
+  { id: 'consumption', screen: 37, pos: 14, type: 2, limited: true, icon: '🪙', name: 'Gold spending rewards', desc: 'Spend gold while it runs: 3000 / 8000 / 13000 / 30000 gold unlock god cards, ninjutsu and dans (original rewards).' },
 ];
 const DISCORD = 'https://discord.gg/2Cbp4UDHrU';
 const DEFAULT_BANNER = 'Join our Discord for help, bugs and friends: discord.gg/2Cbp4UDHrU  (Settings > Join Discord)';

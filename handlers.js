@@ -6,6 +6,7 @@ const wheel = require('./wheel');
 const festival = require('./festival');
 const godrecruit = require('./godrecruit');
 const hottreasure = require('./hottreasure');
+const consumption = require('./consumption');
 const signin = require('./signin');
 const stagegift = require('./stagegift');
 const guild = require('./guild');
@@ -748,6 +749,7 @@ module.exports = {
     if (cmd === 3) return '<root code="0">' + mora.infoXml(db, pl) + '</root>';
     if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
     if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
+    if (cmd === 13) { const x = consumption.infoXml(db, pl); if (x) return '<root code="0">' + x + '</root>'; } // gold spending event (consumption.js)
     if (cmd === 13) return '<root code="0"><basic><cash>0</cash><remain>86400</remain></basic><award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award></root>';
     if (cmd === 15) return '<root code="0">' + slot.info(db, pl) + '</root>';
     if (cmd === 18) return '<root code="0">' + slot.listXml(db, pl) + '</root>';
@@ -759,6 +761,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
+    if (wc === 18) { const r = consumption.claim(db, pl, Number(p.ID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 10) { const r = game.mergeChips(db, pl, Number(p.ChipBagID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 24) return '<root code="0">' + slot.bet(db, pl) + '</root>';
     if (wc === 23) { const r = slot.spin(db, pl); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
