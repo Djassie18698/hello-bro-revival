@@ -109,3 +109,9 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ⏳ | Scratch card, daily limited offers, card split, cross-server battle (the game has the screens, the server doesn't answer yet) |
 | ⏳ | Some small events in the event menu still answer empty |
 | ⏳ | Real login with a password (now any device just logs in) |
+
+## Known, harmless
+
+| | What |
+|---|---|
+| 🚫 | "INTERSTITIAL 'Leaderboard' REQUEST FAILED - NETWORK_FAILURE" after login: the game app's old ad service (Chartboost) can't load an ad. Harmless; removing it needs a new game app (left for a later app update) |

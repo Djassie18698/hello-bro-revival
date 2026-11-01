@@ -533,3 +533,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   5 enemies (spreadFoes), free (no grudge), no reward, battleXml opt.real = no outcome scaling, the replay decides. Verified in game (100K).
 - Victory/Lose screen "ATK / DEF" = sum of <ninja><end> of each side (video 671 / 285). end was an old HP model (enemies def x4, mine (dl+dh)x2+300)
   -> Benchmark 4M showed DEF 16M. Now mine.end = avg attack, foes end = final defence. Verified in game: Benchmark 1M shows DEF 1,000,002.
+- Login toast "INTERSTITIAL 'Leaderboard' REQUEST FAILED - NETWORK_FAILURE" = Chartboost SDK in classes.dex (com/chartboost/sdk). Only an APK
+  patch can silence it; owner chose to leave it (1 Nov). Do it together with the next APK change.
