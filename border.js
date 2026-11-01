@@ -136,7 +136,8 @@ function clear(db, pl, toUid) {
   const enemy = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(toUid, pl.server_id);
   if (!st || !enemy) return { code: 5, msg: 'that enemy already left' };
   const pw = (uid) => { const t = game.teamStats(db, uid, pl.server_id).total; return t.al + t.ah + t.dl + t.dh; };
-  const win = pw(pl.uid) * (0.8 + Math.random() * 0.4) >= pw(toUid);
+  const myPw = pw(pl.uid), theirPw = pw(toUid);
+  const win = myPw * (0.8 + Math.random() * 0.4) >= theirPw;
   const exp = 0, merit = 0; // a clear pays on the daily reward screen
   if (win) {
     db.prepare('UPDATE border_station SET start=0 WHERE rowid=(SELECT rowid FROM border_station WHERE server_id=? AND uid=? ORDER BY start DESC LIMIT 1)').run(pl.server_id, toUid);
@@ -144,7 +145,7 @@ function clear(db, pl, toUid) {
     addAward(db, pl, st.type === 1 ? 3 : 4, st.to_country, CLEAR_REWARD);
     game.bumpTask(db, pl.uid, pl.server_id, 11); // daily task: clear borders
   }
-  const fight = game.battleXml(db, pl, 1, 1, { win, enemyName: enemy.nick, enemyUid: enemy.uid, enemyLevel: enemy.level });
+  const fight = game.battleXml(db, pl, 1, 1, { win, enemyIds: game.foeTeam(db, enemy.uid, pl.server_id, 0, enemy.level), ratio: theirPw / Math.max(1, myPw), enemyName: enemy.nick, enemyUid: enemy.uid, enemyLevel: enemy.level, enemyCountry: enemy.country });
   return { code: 0, xml: `<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime>${el('Exp', exp)}${el('Merit', merit)}</userinfo>` + fight + game.awardFull({ exp }) };
 }
 // Reward for the last finished station (Cmd 2 info / recv).

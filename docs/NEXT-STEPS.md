@@ -773,3 +773,13 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     follows the server's decision. But the replay used to scale the enemy defence to reach that result (same boss showed DEF 215 / 285 / 385).
     battleXml now keeps the real enemy stats and re-rolls only my luck (attack inside my card range, ninjutsu chances) up to 400 times until
     the replay ends as decided; defence nudging is only a last resort. 400 test fights at 1-2: 0 mismatches, enemy defence 285 every time.
+## 1 Nov 2026 (evening): enemy teams scale, with variance
+  * game.foeTeam(db, uid, sid, first, level, botAtk, around): a real player = their WHOLE team (every slot, own element / level / growth /
+    attack range from teamStats); a bot = about the challenger's team size (that, +1 or -1, fixed per bot), never more than teamSizeAt(level)
+    (newcardinfo levels, max 12). Arena lists show the same team.
+  * battleXml: every enemy card has a defence range +-7 % (ours), rolled each fight and on every re-roll; training/tower foes too. The enemy
+    team total = my average total attack x opt.ratio (the fight's own decision: their strength / mine), split by the cards' real defence
+    (real player) or a fixed weight (bot). Spar, arena, war, border war, officials, national treasure and cross-server pass ratio.
+  * Tried deciding PvP by the whole-team replay (true stats both sides): spar became all-or-nothing (team totals barely vary; one card more
+    or less = 0 % or 100 %), so the decisions stay (owner keeps the balance). Measured after: same win counts (235 / 277 of 480), 0 mismatches.
+  * Checked in game: spar vs Ninja19427 showed his real 4-card team (Shikamaru, Naruto, Kakashi, Sasuke).

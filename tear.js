@@ -58,8 +58,9 @@ function raid(db, pl, to) {
   let fight = '';
   if (guard) {
     const pw = (uid) => { const s = game.teamStats(db, uid, pl.server_id).total; return s.al + s.ah + s.dl + s.dh; };
-    win = pw(pl.uid) * (0.8 + Math.random() * 0.4) >= pw(guard.uid);
-    fight = game.battleXml(db, pl, 1, 1, { win, enemyName: guard.nick, enemyUid: guard.uid, enemyLevel: guard.level });
+    const myPw = pw(pl.uid), theirPw = pw(guard.uid);
+    win = myPw * (0.8 + Math.random() * 0.4) >= theirPw;
+    fight = game.battleXml(db, pl, 1, 1, { win, enemyIds: game.foeTeam(db, guard.uid, pl.server_id, 0, guard.level), ratio: theirPw / Math.max(1, myPw), enemyName: guard.nick, enemyUid: guard.uid, enemyLevel: guard.level, enemyCountry: guard.country });
   }
   if (win) {
     db.prepare('UPDATE tear SET bank=bank+1 WHERE server_id=? AND uid=?').run(pl.server_id, pl.uid);

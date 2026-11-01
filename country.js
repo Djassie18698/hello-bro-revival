@@ -41,13 +41,14 @@ function take(db, pl, seat) {
   const sit = () => db.prepare('INSERT OR REPLACE INTO officials VALUES(?,?,?,?)').run(pl.server_id, pl.country, seat, pl.uid);
   if (!holder) { free(); sit(); return { xml: '<officaltake direct="1"></officaltake>' }; }
   const enemy = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(holder.uid, pl.server_id);
-  const win = power(db, pl.uid, pl.server_id) * (0.8 + Math.random() * 0.4) >= power(db, holder.uid, pl.server_id);
+  const myPw = power(db, pl.uid, pl.server_id), theirPw = power(db, holder.uid, pl.server_id);
+  const win = myPw * (0.8 + Math.random() * 0.4) >= theirPw;
   if (win) {
     const old = mySeat(db, pl);
     free(); sit();
     if (old) db.prepare('INSERT OR REPLACE INTO officials VALUES(?,?,?,?)').run(pl.server_id, pl.country, old, holder.uid); // swap seats
   }
-  const fight = game.battleXml(db, pl, 1, 1, { win, enemyName: enemy ? enemy.nick : 'Official', enemyUid: holder.uid, enemyLevel: enemy ? enemy.level : 1 });
+  const fight = game.battleXml(db, pl, 1, 1, { win, enemyIds: game.foeTeam(db, holder.uid, pl.server_id, 0, enemy ? enemy.level : 1), ratio: theirPw / Math.max(1, myPw), enemyName: enemy ? enemy.nick : 'Official', enemyUid: holder.uid, enemyLevel: enemy ? enemy.level : 1, enemyCountry: enemy ? enemy.country : undefined });
   return { xml: '<officaltake direct="0">' + fight.replace(/^<fight>/, '').replace(/<\/fight>$/, '') + '</officaltake>' };
 }
 function salary(db, pl) {

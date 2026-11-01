@@ -65,7 +65,7 @@ function attack(db, pl) {
   if (exp) game.addExp(db, db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id), exp);
   const guard = 1 + Math.floor(Math.random() * 400); // a guard bot: a random base ninja of the player's country's foes
   const gid = foe ? 0 : (Array.from(game.ninjas().values()).filter((r) => r[4] === 1 && r[11] >= 4)[guard % 200] || [21])[0];
-  const fight = game.battleXml(db, pl, 1, 1, { enemyIds: game.foeTeam(db, foe ? foe.uid : 9000000 + guard, pl.server_id, foe ? 0 : gid), win, enemyName: foe ? foe.nick : 'Country Guard', enemyUid: foe ? foe.uid : 0, enemyLevel: foe ? foe.level : pl.level, enemyCountry: foe ? foe.country : undefined });
+  const fight = game.battleXml(db, pl, 1, 1, { enemyIds: game.foeTeam(db, foe ? foe.uid : 9000000 + guard, pl.server_id, foe ? 0 : gid, foe ? foe.level : pl.level, 0, game.teamStats(db, pl.uid, pl.server_id).slots.length), ratio: theirs / Math.max(1, mine), win, enemyName: foe ? foe.nick : 'Country Guard', enemyUid: foe ? foe.uid : 0, enemyLevel: foe ? foe.level : pl.level, enemyCountry: foe ? foe.country : undefined });
   game.bumpTask(db, pl.uid, pl.server_id, 10); // daily task: join today's war
   // CWarInfoView reads only batter= from <CountryWar>; InitFromXML takes the ROOT, so userinfo/fight/award are root children.
   return { xml: `<CountryWar batter="${win ? 1 : 0}"/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>${fight}${game.awardFull({ coin, exp })}` };

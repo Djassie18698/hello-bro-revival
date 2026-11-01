@@ -239,16 +239,17 @@ function fight(db, pl, pos) {
   if (target.holder.startsWith('b:')) {
     theirs = mine / boost * (0.6 + 0.8 * (SLOTS - pos) / (SLOTS - 1));
     const id = Number(target.holder.slice(2));
-    foeIds = game.foeTeam(db, 9300000 + id, pl.server_id, botNinja(id));
+    foeIds = game.foeTeam(db, 9300000 + id, pl.server_id, botNinja(id), botLevel(id), 0, ts.slots.length);
   } else {
     const [, uid, sid] = target.holder.split(':').map(Number);
     const t2 = game.teamStats(db, uid, sid);
     theirs = (t2.total.al + t2.total.ah) / 2 / Math.max(1, t2.slots.length);
-    foeIds = game.foeTeam(db, uid, sid, myCard(db, uid, sid).id);
+    const op = db.prepare('SELECT level FROM players WHERE uid=? AND server_id=?').get(uid, sid);
+    foeIds = game.foeTeam(db, uid, sid, myCard(db, uid, sid).id, op ? op.level : 1);
   }
   const win = process.env.HB_CWAR ? process.env.HB_CWAR === 'win' : mine * (0.75 + Math.random() * 0.5) >= theirs;
   const h = holderInfo(db, target.holder);
-  const xml = game.battleXml(db, pl, 0, 1, { enemyIds: foeIds, enemyName: h.name, enemyUid: h.uid, enemyLevel: h.level, win });
+  const xml = game.battleXml(db, pl, 0, 1, { enemyIds: foeIds, ratio: theirs / Math.max(1, mine), enemyName: h.name, enemyUid: h.uid, enemyLevel: h.level, win });
   if (win) {
     const now = Math.floor(Date.now() / 1000), mineKey = `p:${pl.uid}:${pl.server_id}`;
     settle(db, ph); // pay both sides up to now before the positions change
