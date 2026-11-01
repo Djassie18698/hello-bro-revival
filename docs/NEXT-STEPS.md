@@ -752,3 +752,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     card via AddObjFromNetCardData). Our cards.type differs (2 weapon, 3 armor): RETOBJ_TYPE maps it. Items now send type 1.
   * Checked in game: Tael bought -> count 0 -> 2 -> 3 at once, USE turns blue; Armor Bag (S) -> 10 Samurai Attire in the Armor tab at once,
     no crash (the old "reveal crash" was the wrong type). Live they show Lv3 until the next login (server Lv 1): display only.
+  * Gear packs: game.equipFromText reads the dropinfo text (pack type 1 and shop bags giftinfo 7-12). Before: randomEquip(slot, min) picked
+    uniformly up to 5 stars (3☆ bag "at least 2, chance of 4" gave 5-star 29-42 %; 4☆ bag 41-50 %) and "Five-Star weapon Card" packs gave
+    3-5 stars of a random slot. Measured after: 3☆ bag 2* 30 / 3* 60 / 4* 9 %, 4☆ bag 3* 29 / 4* 60 / 5* 11 %, named packs exact + right slot.
+  * First boss 1-2 (owner not answered): replay-decided would be 55 % / 48 % / 29 % at 1-2 / 1-6 / 1-10 vs now 22 / 10 / 1 % for the starter;
+    mid-game teams barely change. Left as is.

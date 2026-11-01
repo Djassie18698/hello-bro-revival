@@ -266,11 +266,30 @@ function awardXml(c) {
 // [10] gold, [11] silver, [12] drop type (1 = random pack), [13] count. Grants the reward and returns a full <award>.
 // Random packs (type 1, no fixed item) are resolved from their description: shinobi packs roll a ninja,
 // equipment packs a piece of gear, gift packs a card or gold.
+// Gear packs follow their own description (dropinfo text). "Has a chance to get X-Star, higher chance of Y-Star, at least Z-Star" ->
+// X 10 % / Y 60 % / Z 30 % (ours: the original rates are lost); "chance of X, at least Y" -> 25 / 75 (ours); "Five-Star weapon Card" = exactly
+// that star; "One, Two-Star" = 1-2. The slot is the one the text names (weapon / armor / trinket), else random. null = not a gear pack text.
+const STAR_WORD = { One: 1, Two: 2, Three: 3, Four: 4, Five: 5 };
+function equipFromText(t) {
+  const slotOf = /weapon/i.test(t) ? 0 : /armor/i.test(t) ? 1 : /trinket/i.test(t) ? 2 : Math.floor(Math.random() * 3);
+  const w = (re) => { const m = re.exec(t); return m ? STAR_WORD[m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()] : 0; };
+  const top = w(/chance (?:to get|to grant|of) (One|Two|Three|Four|Five)-Star/i), mid = w(/(?:higher|great) chance (?:to win |to grant |of )?(One|Two|Three|Four|Five)-Star/i);
+  const low = w(/at least (?:gets? |get )?(?:a )?(One|Two|Three|Four|Five)-Star/i);
+  let star;
+  if (top && mid && low) { const x = Math.random(); star = x < 0.1 ? top : x < 0.7 ? mid : low; }
+  else if (top && low) star = Math.random() < 0.25 ? top : low;
+  else if (/^One,s*Two-Star|^One-Star Equipment Card, Two-Star/i.test(t)) star = 1 + Math.floor(Math.random() * 2);
+  else { const m = /^(One|Two|Three|Four|Five)-Star (?:Equipment|Weapon|Armor|Trinket) Card$/i.exec(t.trim()); star = m ? STAR_WORD[m[1]] : 0; }
+  if (!star) return null;
+  return randomEquip(slotOf, star, star);
+}
 function rollPack(r) {
   const t = String(r[2]);
   const star = /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
   // "One, Two-Star ..." and "Three-Star ..." packs are exactly those stars (slot 0-2 = weapon / armor / trinket)
   const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);
+  const exact = equipFromText(t);
+  if (exact) return { equip: exact };
   if (/Equipment/.test(t)) return low ? { equip: randomEquip(Math.floor(Math.random() * 3), 1, 2) } : three ? { equip: randomEquip(Math.floor(Math.random() * 3), 3, 3) } : { equip: randomEquip(Math.floor(Math.random() * 3), star) };
   if (low && !/Ninjutsu/.test(t)) { const pool = pools()[1 + Math.floor(Math.random() * 2)]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
   if (three && !/Ninjutsu/.test(t)) { const pool = pools()[3]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
@@ -773,7 +792,7 @@ function packBuy(db, pl, packId) {
   else if (/weapon|armor|trinket/.test(name)) {
     const slot = /weapon/.test(name) ? 0 : /armor/.test(name) ? 1 : 2;
     const minStar = /4☆/.test(name) ? 3 : 2;
-    give = () => { const id = randomEquip(slot, minStar); return [SLOT_TYPE[slot], id, giveEquip(db, pl.uid, pl.server_id, id)]; };
+    give = () => { const id = equipFromText(String(drop[2])) || randomEquip(slot, minStar); return [SLOT_TYPE[slot], id, giveEquip(db, pl.uid, pl.server_id, id)]; }; // the bag's own text (3☆ bag: 2-4 stars, never 5)
   } else return { error: 'this pack is not available on the revival server yet' };
   db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
   const n = Math.max(1, drop[13] || 1);
