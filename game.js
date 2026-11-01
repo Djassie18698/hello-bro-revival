@@ -243,7 +243,7 @@ function pull(db, pl, type, count, free) {
   return { cost, got };
 }
 function awardXml(c) {
-  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) +
+  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', c.newlife || 0) + el('starlevel', c.starlevel || 0) +
     '</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>';
 }
 // ---- Real game drops (dropinfo.dbf): [3] ninja, [4] equipment, [5] ninjutsu, [6] mark, [7] prop, [8] equip piece,
@@ -1504,7 +1504,11 @@ function godSynth(db, pl, attSeq, defSeq) {
   if ((propCounts(db, pl.uid, pl.server_id)[34] || 0) < GOD_COST) return { error: 'Insufficient evolution pills' };
   propAdd(db, pl.uid, pl.server_id, 34, -GOD_COST);
   db.prepare('DELETE FROM cards WHERE seq IN (?,?)').run(a.seq, b.seq);
-  return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
+  const seq = giveCard(db, pl.uid, pl.server_id, god);
+  // "Reincarnation and growth will be retained" (the evolve screen): the best rebirth and sage growth of the two cards carry over
+  const newlife = Math.max(a.newlife || 0, b.newlife || 0), starlevel = Math.max(a.starlevel || 0, b.starlevel || 0);
+  db.prepare('UPDATE cards SET newlife=?, starlevel=? WHERE seq=?').run(newlife, starlevel, seq);
+  return { ninja: god, seq, newlife, starlevel };
 }
 
 module.exports = { foeTeam, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
