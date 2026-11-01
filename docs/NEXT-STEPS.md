@@ -605,3 +605,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     Prize lists = boxOpenInfoData.lua (original), weights/key gold prices/opens a day (25 + 5 x VIP) ours; "Double the reward" sets
     the chest's double flag (next prize x2). Keys 22/23/24: 8% bronze key on normal story wins, 8% silver key on boss wins (ours).
     Counts daily task 15 (gold chest). Checked in game (gold + bronze chest rewards shown).
+  * Limited group purchase built (groupbuy.js, Event menu id 13, rl_r_comm Cmd 4 list <preview resttime/><itemlist><item><id/><cost/>
+    <origincost/><restnum/><awardlist><award><name/><icon/><dropid/><newlife/></award></awardlist></item>; rl_w_comm Cmd 8 LimitPackID buy
+    -> <preview restnum/><award>). Stock shared per server, 50 a pack a run of 72 h (Server Manager switch "Limited group purchase", off by
+    default). Packs/prices from the photos; pet packs left out (icon is always loaded from props/<icon>.plist). Checked in game.

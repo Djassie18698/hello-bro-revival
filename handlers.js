@@ -839,6 +839,7 @@ module.exports = {
       const status = got ? 1 : dollars >= 49 ? 2 : 0;
       return `<root code="0"><basic><status>${status}</status><amount>4900</amount><current>${Math.min(dollars, 49) * 100}</current></basic><awards><item icon1="props_015" icon2="props_049" icon3="props_073" drop1="11" drop2="15" drop3="374"><id>1</id><num>1</num></item></awards></root>`;
     }
+    if (cmd === 4) { const x = require('./groupbuy').listXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the event is over</message></root>'; } // limited group purchase
     if (cmd === 3) return '<root code="0">' + mora.infoXml(db, pl) + '</root>';
     if (cmd === 20) return '<root code="0"><basic><prop_num>99</prop_num></basic></root>';
     if (cmd === 8) return '<root code="0"><basic><cost_prop>1</cost_prop><prop_num>99</prop_num></basic></root>';
@@ -855,6 +856,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
     if (wc === 18) { const r = consumption.claim(db, pl, Number(p.ID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
+    if (wc === 8) { const r = require('./groupbuy').buy(db, pl, Number(p.LimitPackID)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 10) { const r = game.mergeChips(db, pl, Number(p.ChipBagID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 24) return '<root code="0">' + slot.bet(db, pl) + '</root>';
     if (wc === 23) { const r = slot.spin(db, pl); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
