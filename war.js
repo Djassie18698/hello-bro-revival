@@ -1,4 +1,5 @@
-// Country war (War > War tab, CWarInfoView). On this server the war is always open: your country fights the other
+// Country war (War > War tab, CWarInfoView). On this server the war is always open (owner decision 1 Nov 2026; the original ran
+// 19:30-20:30, normalconfig rows 7/8, which hot update 28.0.27 sets to 0-86400 so the client clock counts down to midnight): your country fights the other
 // two. Every attack is a fight against a member (or a guard bot) of an enemy country; wins earn merit score and kills.
 // Each player has "alive" points (lives) that refill daily.
 const game = require('./game');

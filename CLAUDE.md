@@ -100,7 +100,7 @@ The game downloads `cdn/<val>_update.zip` (via `rl_r_version` `<updatechip>`) an
 file: copy it from `re/obb/<path>` (or `reference/lua-scripts`) to `cdn/src/<same path>` (Lua goes in `cdn/src/script/...`),
 edit, `python -I tools/build_cdn.py 28.0.N` with a **higher** N, `git rm` the previous zip, note it in `docs/HOT-UPDATE.md`.
 Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing.
-Current: **28.0.26** (28.0.26 victory screen shows the real silver; 28.0.25 refused top-up shows why; 28.0.24 7-day Claim button greys out properly; 28.0.23 Score Ranking pop-up fix; 28.0.22 cross-server battle talks to our server; 28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goals Claim says why it fails; 28.0.18 "Proceed" button reverted: re-encoded sprite sheets break, `tools/pvrccz.py` only reads them; 28.0.17 team screen names fit their box, `tools/ccbi.py` patches .ccbi layouts; 28.0.16 limited discount opens from the Event menu; 28.0.15 (festival screen icons fixed; (Settings has a Join Discord button; 28.0.10 English 7-day goals; earlier: top-up/VIP screen, 7-day goals in Event menu, tutorial off via `home/userguideConfig.xml` levels moved to
+Current: **28.0.27** (28.0.27 War open all day: tables.bin normalconfig rows 7/8 = 0/86400 via `tools/patch_tables.py`; 28.0.26 victory screen shows the real silver; 28.0.25 refused top-up shows why; 28.0.24 7-day Claim button greys out properly; 28.0.23 Score Ranking pop-up fix; 28.0.22 cross-server battle talks to our server; 28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goals Claim says why it fails; 28.0.18 "Proceed" button reverted: re-encoded sprite sheets break, `tools/pvrccz.py` only reads them; 28.0.17 team screen names fit their box, `tools/ccbi.py` patches .ccbi layouts; 28.0.16 limited discount opens from the Event menu; 28.0.15 (festival screen icons fixed; (Settings has a Join Discord button; 28.0.10 English 7-day goals; earlier: top-up/VIP screen, 7-day goals in Event menu, tutorial off via `home/userguideConfig.xml` levels moved to
 900+, original pet screens).
 
 ## 7. Data model cheat sheet
@@ -142,7 +142,6 @@ Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), eleme
 Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 five-element panel (photo 2666, per-element atk/def/chakra/ninjutsu %) not found in any v28 layout;
 first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter; replay and Skip give the same result);
-War countdown shows negative times outside 19:30-20:30 (original war hours, normalconfig rows 7/8, read by the client): asked the owner whether to bring back those hours; the other way (war all day) is ready: `tools/patch_tables.py` normalconfig:7:2=0 normalconfig:8:2=86400 -> cdn/src/tables.bin (tested on the emulator, not shipped);
 Balance: owner keeps it as is
 (docs/BALANCE-SIMULATIONS.md); don't change rates without asking.
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`

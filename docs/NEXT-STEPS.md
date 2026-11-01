@@ -835,3 +835,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (CCFileUtils search path). tools/patch_tables.py edits numbers in it. Test: normalconfig row 7 = 0, row 8 = 86400 -> the War screen
   counted down to midnight properly (01:03:10 at 22:56), no errors. Not shipped (waits for the owner: original 19:30-20:30 vs all day).
   The Claude emulator still has that patched tables.bin (newer zips don't contain it); a fresh install removes it.
+- War open all day SHIPPED (owner: "All day open", 1 Nov 2026): hot update 28.0.27 = patched tables.bin (normalconfig 7/8 = 0/86400).
+  Checked in game: War clock 00:04:33 at 23:55, no Lua errors. Note war.js day() is the UTC date, so lives/scores reset at 01:00 Dutch
+  time while the clock counts to the phone's midnight (small mismatch, left as is).
