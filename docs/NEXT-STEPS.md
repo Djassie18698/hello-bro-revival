@@ -367,3 +367,14 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   confirms the grudge value we already used. The client has no refill on level-up (CPlayerDataMgr::firefly_FullRecover has no callers).
 - Chains match partners by character name (variants and "(God)" count), because the table has only 8 partner places (Kaguya lists Susa Kakashi 5026 only, not 5027/5028).
 - Unsolved items of all bug lists now live in docs/OPEN-ISSUES.md.
+
+## Bug list 3 leftovers (GitHub #4, 1 Nov 2026)
+- "Beast" placeholder card: the <award><card><type> is the CLIENT's reward kind (1 shinobi, 2 any equipment, 4 ninjutsu, 5 seal), not our cards.type (2/3/4 equipment, 6 ninjutsu).
+  grantDrop now maps them (AWARD_TYPE). Verified in game: first-recharge shows Senju Tsunade (God), Sword of Kusanagi, Big Ball Rasengan (ninjutsu card).
+- Same victory card every time: "X-Star ... Card" drops have one example card in dropinfo col 3/4 and drop type 1 (random); grantDrop gave the example. Now rolls a random card
+  of that star/kind (17 different 3-star shinobi in 40 rolls instead of always Aburame Torune).
+- Recruit odds now stay within each banner's promise (purple 4-5 star, blue 3-5, green 2-5; weights ours). Pity text verified on screen ("Recruit 19 more will get one Five-Star Purple").
+- Free recruit repeat: verified in game that a second press without closing the window is charged (300 gold); the server refuses a second Free=1.
+- 0 defence in training: the friend's screenshot shows the attacked enemies' defence (blue shield) = 0 at that moment, i.e. broken; the boss scaling now gives real defence
+  (shown on the victory screen). The number on the card itself follows the client's SetFinalData rule.
+- 7-day goals: hot update 28.0.10 adds ui_sevenDayCell.lua with English goal texts (SEVEN_DAY_EN). Verified in game ("Reach player level 70"); Go opens the right screen.

@@ -165,10 +165,10 @@ function stateXml(db, uid, sid) {
 // ---- Gacha ("recruit") -----------------------------------------------------------------
 // Pull types follow recruitinfo.dbf rows: 1 = premium (300 gold), 2 = standard (150 gold), 3 = free.
 // Star weights are a hobby-server design choice (the original rates lived on the old server).
-const RATES = {
-  1: { 6: 2, 5: 12, 4: 36, 3: 50 },
-  2: { 5: 4, 4: 20, 3: 46, 2: 30 },
-  3: { 4: 5, 3: 25, 2: 40, 1: 30 },
+const RATES = { // star weights per banner; the stars must stay inside what each banner promises (purple 4-5, blue 3-5, green 2-5). Weights (ours).
+  1: { 5: 12, 4: 88 },
+  2: { 5: 4, 4: 26, 3: 70 },
+  3: { 5: 1, 4: 5, 3: 30, 2: 64 },
 };
 const COST = { 1: 300, 2: 150, 3: 0 };
 const TEN_COST = { 1: 2800, 2: 1400, 3: 0 };
@@ -287,7 +287,9 @@ function grantDrop(db, pl, dropId) {
   const n = r[13] || 1;
   const cards = [], props = [];
   let coin = 0, cash = 0, soul = 0, chips = 0;
-  const pack = r[12] === 1 && !(r[3] > 0) && !(r[7] > 0) ? rollPack(r) : null;
+  // drop type 1 = random pack. "X-Star ... Card" packs carry one example card in col 3/4; roll a random card of that kind instead
+  // of always giving the example (Aburame Torune every time, GitHub #4).
+  const pack = r[12] === 1 && !(r[7] > 0) && (!(r[3] > 0) || /Star/.test(String(r[2]))) ? rollPack(r) : null;
   const ninja = pack ? pack.ninja : r[3], equip = pack ? pack.equip : (r[3] > 0 ? 0 : r[4]);
   if (ninja > 0) for (let i = 0; i < n; i++) cards.push({ type: 1, id: ninja, seq: giveCard(db, pl.uid, pl.server_id, ninja) });
   else if (equip > 0) for (let i = 0; i < n; i++) { const seq = giveEquip(db, pl.uid, pl.server_id, equip); if (seq) cards.push({ type: db.prepare('SELECT type FROM cards WHERE seq=?').get(seq).type, id: equip, seq }); }
@@ -302,7 +304,11 @@ function grantDrop(db, pl, dropId) {
   else if (r[5] > 0) for (let i = 0; i < n; i++) cards.push({ type: 6, id: r[5], seq: giveCard(db, pl.uid, pl.server_id, r[5], 6) });
   else if (r[6] > 0) for (let i = 0; i < n; i++) cards.push({ type: 5, id: r[6], seq: giveCard(db, pl.uid, pl.server_id, r[6], 5) });
   if (coin || cash) db.prepare('UPDATE players SET coin=coin+?, gold=gold+? WHERE uid=? AND server_id=?').run(coin, cash, pl.uid, pl.server_id);
-  const cardXml = cards.map((c) => '<card>' + el('id', c.id) + el('type', c.type) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
+  // In an <award> the client reads <type> as the reward kind (CGameObjElement::firefly_GetInfoFromDropId): 1 shinobi, 2 ANY equipment,
+  // 4 ninjutsu, 5 seal. Our card table uses 2/3/4 for weapon/armor/trinket and 6 for ninjutsu; sending those drew ninjutsu as the
+  // "beast" placeholder card (GitHub #4) and armor/trinkets as the wrong kind.
+  const AWARD_TYPE = { 1: 1, 2: 2, 3: 2, 4: 2, 5: 5, 6: 4 };
+  const cardXml = cards.map((c) => '<card>' + el('id', c.id) + el('type', AWARD_TYPE[c.type] || c.type) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
   const propXml = props.map((x) => '<prop>' + el('id', x.id) + el('num', x.num) + '</prop>').join('');
   // Lua award screens count one fragment per <chipitem>, so repeat it n times with num="1".
   const chipXml = `<chipitem id="${r[8]}" num="1"/>`.repeat(chips);

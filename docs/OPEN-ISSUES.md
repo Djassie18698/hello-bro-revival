@@ -1,7 +1,7 @@
 # Open issues
 
 Everything reported in the GitHub bug lists that is **not fixed yet**, in one place. When something here gets fixed, move it to
-the dated `docs/FIXES-*.md` file and delete it here. Last update: 1 Nov 2026.
+the dated `docs/FIXES-*.md` file and delete it here. Last update: 1 Nov 2026 (list 3 done).
 
 Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/2) ·
 [#3 List 2](https://github.com/Djassie18698/hello-bro-revival/issues/3) ·
@@ -12,17 +12,12 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | From | Problem | Notes |
 |---|---|---|
-| List 3 | First-recharge gift gives a "beast" as its third item | Check the three drops of `firstpurchase.json` against what the gift screen shows |
-| List 3 | Free recruit can be used again and again while the recruit menu stays open | The game only re-reads the timer when the menu opens; the server must refuse the second free pull and answer with the gold price |
-| List 3 | Training still shows 0 defence | Partly the game's design (the number under a card is the defence that was *not* broken); check the boss screens again after the scaling fix |
-| List 3 | The same card shows up very often after drawing the victory card | Probably the client's own filler table; check what the server drops |
-| List 3 | 7-day goals menu is not translated and does nothing | Texts are Thai in `sevendays_quest`; the "Go" buttons and claims need checking |
+| List 3 | 7-day goals: the Claim button gives no message when a goal is not reached yet | The game checks this itself and sends nothing; texts are now English and Go works |
 
 ## Not checked in the game yet
 
 | From | What |
 |---|---|
-| List 1 | The pity text ("recruit N more times") on the recruit screen |
 | List 2 | The chain "ready" list (a partner owned but not in the team) |
 | List 1 | Lost fights other than spar (arena, exam, war, border, country) |
 | List 4 | Energy refill every 180 s and the exp bar after a main-page visit (fixed on 1 Nov, only tested on a test database) |
