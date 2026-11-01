@@ -373,7 +373,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       // to a huge damage ("2000K") and crashes, so FinalAttack must never be below FinalDefense (clamped to defence + 1).
       const roll = Math.max((def.def || 0) + 1, Math.round(att.low + Math.random() * (att.high - att.low)));
       hp.set(def.bagid, hp.get(def.bagid) - roll);
-      rolled.push({ AttackNinja: att.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: def.bagid, Defense: 0, DefenseAttri: 0,
+      rolled.push({ AttackNinja: att.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: def.bagid, Defense: def.def || 0, DefenseAttri: 0,
         CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: def.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
         AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
     };
@@ -391,7 +391,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       mine.forEach((m, i) => {
         const f = foes[i % foes.length], roll = (f.def || 0) + 1;
         hp.set(f.bagid, hp.get(f.bagid) - roll);
-        rolled.push({ AttackNinja: m.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: f.bagid, Defense: 0, DefenseAttri: 0,
+        rolled.push({ AttackNinja: m.bagid, Attack: roll, AttackAttri: 0, DefenseNinja: f.bagid, Defense: f.def || 0, DefenseAttri: 0,
           CauseLimit: 0, LimitVal: 0, FinalAttack: roll, FinalDefense: f.def || 0, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
           AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0 });
       });
@@ -1257,6 +1257,25 @@ function roundInfoXml(db, pl) {
   return '<normal>' + el('chapid', cur.chap) + el('roundid', cur.stage) + el('subroundid', 1) + el('restback', 3) + el('maxround', per[cur.chap] || 1) + '</normal>' +
     `<chaplist>${open.map(chap).join('')}</chaplist>`;
 }
+// Admin "Unlock everything": top player level (playerlevel table), every training chapter and stage cleared (so every team slot and
+// chapter opens: slots follow level + cleared stages, game.maxTeam), every Battles round cleared, energy full.
+function unlockAll(db, pl) {
+  ensure(db); stageEnsure(db);
+  const lv = table('playerlevel').rows;
+  const top = lv[lv.length - 1];
+  db.prepare('UPDATE players SET level=?, exp=0, energy=MAX(energy,?) WHERE uid=? AND server_id=?').run(top[1], top[4] || 0, pl.uid, pl.server_id);
+  const today = new Date().toISOString().slice(0, 10);
+  const put = db.prepare(`INSERT INTO stage_clears(uid,server_id,chap,stage,clears,boss_day,boss_used) VALUES(?,?,?,?,?,?,0)
+    ON CONFLICT DO UPDATE SET clears=MAX(clears, excluded.clears)`);
+  for (let chap = 1; chap <= 19; chap++) {
+    const n = chapterStages(chap);
+    for (let s = 1; s <= n; s++) put.run(pl.uid, pl.server_id, chap, s, clearsNeeded(stageRow(chap, s) || []), today);
+    setStage(db, pl.uid, pl.server_id, chap, n + 1);
+  }
+  for (let c = 1; c <= 3; c++) setStage(db, pl.uid, pl.server_id, 1000 + c, 7); // Battles: 3 chapters x 6 rounds
+  const after = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
+  return { level: after.level, slots: maxTeam(db, after) };
+}
 function setStage(db, uid, sid, chap, stage) {
   ensure(db);
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
@@ -1283,4 +1302,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

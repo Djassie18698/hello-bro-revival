@@ -201,6 +201,10 @@ html.embed .wrap{padding-top:18px}
           <input type="number" id="amount" value="10000" style="width:150px">
           <button class="btn" onclick="give($('field').value, +$('amount').value)">Apply</button>
         </div>
+        <div class="note" style="margin-top:18px;justify-content:space-between;align-items:center">
+          <div>🔓 <b>Unlock everything</b>: top player level, every training chapter and stage cleared, every team slot open, all Battles rounds cleared.</div>
+          <button class="btn purple" onclick="unlockAll()">Unlock everything</button>
+        </div>
       </section>
 
       <section class="panel view" id="v-give">
@@ -314,6 +318,11 @@ function renderHero() {
 const QUICK = [['💰', 'gold', 1000, '+1,000 gold'], ['💰', 'gold', 10000, '+10,000 gold'], ['🪙', 'coin', 100000, '+100,000 silver'], ['🪙', 'coin', 1000000, '+1,000,000 silver'],
   ['⚡', 'energy', 100, '+100 energy'], ['👻', 'souls', 10000, '+10,000 souls'], ['👑', 'vip', 10, 'Set VIP 10'], ['⭐', 'level', 60, 'Set level 60']];
 $('quick').innerHTML = QUICK.map(([e, f, a, t]) => '<button class="qb" onclick="give(\'' + f + '\',' + a + ')"><div class="e">' + e + '</div><b>' + t + '</b><small>one click</small></button>').join('');
+async function unlockAll() {
+  if (!sel || !confirm('Unlock everything for ' + current().nick + '? This cannot be undone (a backup is made at every server start).')) return;
+  const r = await api('unlockall', { uid: sel });
+  toast(r.ok ? 'Unlocked: level ' + r.level + ', ' + r.slots + ' team slots<br><small>Close the game completely and open it again.</small>' : r.error, r.ok); loadPlayers();
+}
 async function give(field, amount) {
   if (!sel) return toast('Pick a player first', false);
   const r = await api('give', { uid: sel, field, amount });

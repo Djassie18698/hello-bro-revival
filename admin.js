@@ -249,6 +249,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       setCard(db, card.seq, c);
       return json(res, { ok: true, level: c.lv, newlife: c.nl, growth: c.gr });
     }
+    if (u.pathname === '/admin/api/unlockall') return json(res, { ok: true, ...game.unlockAll(db, pl) });
     if (u.pathname === '/admin/api/setteam') return json(res, applyTeam(db, pl, b.slots));
     if (u.pathname === '/admin/api/setprop') { // set the exact amount of one item / fragment / souls
       const id = Math.trunc(Number(b.id)), n = Math.max(0, Math.min(Math.trunc(Number(b.count)) || 0, 999999999));

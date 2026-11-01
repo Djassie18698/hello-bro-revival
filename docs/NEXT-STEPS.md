@@ -479,3 +479,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   parts in the team, "X or Y" one. Typos/other names aliased (Kyubi = Kurama, Eight Tails = Gyuki, Forth, Fukasakun, Sasu Sasuke, Raikagand,
   Itachiand, "Mei Tsunade Onoki", "Fourth Sage Minato"). Every part now matches at least one card by name; a part that would match none falls back
   to the listed ids. NOTE: "and" chains were "any partner" before; now all partners are needed (as the text says).
+- Fight cards before the hit: CNewFightCardView::InitUI shows round Attack (attacker) / Defense (defender) and counts down by the damage, then
+  SetFinalData. We sent Defense 0 -> enemies showed 0 before any hit. Now Defense = the enemy defence (FinalAttack stays >= defence+1).
+  Verified in game (Battles): enemies show 523/482/523, count to 0 on the hit, no crash.
+- Admin "Unlock everything" (game.unlockAll): level = last playerlevel row (350), all 19 chapters cleared (stage_clears + progress),
+  Battles 3x6 cleared, energy full; team slots follow (newcardinfo has 26 rows, the last at level 350). Verified in game: slots open.
