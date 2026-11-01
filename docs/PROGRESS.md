@@ -130,6 +130,10 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Spar pays exactly what the game's own preview shows (EXP, W.A., silver from its duel table) |
 | ✅ | Element Change works (it did nothing before): 12 Element Change Pills + 2000 silver for a God card, random new element |
 | ✅ | God evolve costs 100 Development Dan like the original (it was free); the new card keeps rebirth and growth |
+| ✅ | World Boss shows the right name for each boss (always said "Deidara"); bosses rotate and you fight the boss itself (update 28.0.24 not needed, server side) |
+| ✅ | 7-day Goals: the Claim button stays grey until the goals are done (a screen error made it look ready; update 28.0.24) |
+| ✅ | Wheel of Fortune countdown shows the time to Monday (said "3649 hours") |
+| ✅ | "Login with Facebook" says it isn't available and to tap PLAY (showed a page of code) |
 | ✅ | Arena lists (Compete and Rank) show each rival's 3 fighters instead of 1 card and empty purple slots (checked in game) |
 | ✅ | Spar, arena and war against a real player now use their real team, strength, elements and nation (before, every real rival was treated as a made-up bot) |
 | ✅ | Fights use elements like the original: when your ninja's element beats the enemy's it hits 15 % harder, when theirs beats yours their defence is 15 % higher, and the result screen shows "Restrain" (it always said 0). Water beats Fire, Fire beats Wind, Wind beats Thunder, Thunder beats Earth, Earth beats Water |
