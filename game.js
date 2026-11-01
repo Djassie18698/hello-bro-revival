@@ -779,14 +779,25 @@ function soulOf(db, pl) {
   if (c[SOUL] === undefined) { propAdd(db, pl.uid, pl.server_id, SOUL, 30000); return 30000; } // starter souls for the offline server
   return c[SOUL];
 }
-// Mystery shop (secret_shop rows: [id, id, name, type, subtype, itemid, num, costtype, cost, weight, dropid]): 6 rows a day
-// picked by weight from everything the original sold - ninjas, ninja fragments, pet fragments, grain, nostrum, sage stones,
-// reincarnation pills. Each row can be bought once per day.
-function secretPicks(pl) {
+// Mystery shop (secret_shop rows: [id, id, name, type, subtype, itemid, num, costtype, cost, weight, dropid]): 6 rows picked by weight
+// from everything the original sold - ninjas, ninja fragments, pet fragments, grain, nostrum, sage stones, reincarnation pills.
+// Rules from the Facebook photos of the original (FINDINGS.md): the goods change by themselves every 2 h (countdown 1:58:xx); Refresh
+// costs a Refresh Order (prop 31) or 20 gold; refreshes a day = 75 + 5 x VIP ("Number of refresh today 61/95, VIP4 +5"). Each row can
+// be bought once per board.
+const SECRET_EVERY = 2 * 3600, SECRET_GOLD = 20, REFRESH_ORDER = 31;
+const secretSlot = () => Math.floor(Date.now() / 1000 / SECRET_EVERY);
+function secretState(db, pl) {
+  db.exec('CREATE TABLE IF NOT EXISTS secret_state (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER, seed INTEGER, PRIMARY KEY(uid, server_id))');
+  const today = new Date().toISOString().slice(0, 10);
+  const r = db.prepare('SELECT * FROM secret_state WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || { day: today, used: 0, seed: 0 };
+  if (r.day !== today) { r.day = today; r.used = 0; }
+  return r;
+}
+function secretPicks(db, pl) {
   // rows 233-241 are untranslated duplicates from the Chinese server
   const rows = table('secret_shop').rows.filter((r) => r[9] > 0 && r[10] > 0 && /^[ -~]*$/.test(r[2]));
-  const day = Math.floor(Date.now() / 86400000), picks = [];
-  let seed = (pl.uid * 31 + day + (pl.shopseed || 0)) >>> 0;
+  const picks = [];
+  let seed = (pl.uid * 31 + secretSlot() * 7919 + secretState(db, pl).seed * 104729) >>> 0;
   const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
   const total = rows.reduce((a, r) => a + r[9], 0);
   for (let guard = 0; picks.length < 6 && guard < 500; guard++) {
@@ -796,24 +807,37 @@ function secretPicks(pl) {
   }
   return picks;
 }
+const secretBoard = (db, pl) => secretSlot() * 1000 + secretState(db, pl).seed % 1000; // bought rows are kept per board
 function secretBought(db, pl) {
   db.exec('CREATE TABLE IF NOT EXISTS secret_bought (uid INTEGER, server_id INTEGER, day INTEGER, row INTEGER, PRIMARY KEY(uid, server_id, day, row))');
-  const day = Math.floor(Date.now() / 86400000);
-  return new Set(db.prepare('SELECT row FROM secret_bought WHERE uid=? AND server_id=? AND day=?').all(pl.uid, pl.server_id, day).map((r) => r.row));
+  return new Set(db.prepare('SELECT row FROM secret_bought WHERE uid=? AND server_id=? AND day=?').all(pl.uid, pl.server_id, secretBoard(db, pl)).map((r) => r.row));
 }
 function secretXml(db, pl) {
-  const soul = soulOf(db, pl), bought = secretBought(db, pl);
+  const soul = soulOf(db, pl), bought = secretBought(db, pl), st = secretState(db, pl);
+  const total = 75 + 5 * require('./vip').level(db, pl.uid, pl.server_id);
   const esc = (t) => String(t).replace(/[<>&]/g, '');
-  const cards = secretPicks(pl).map((r) => `<item><card>${el('id', r[0])}${el('type', r[3])}${el('subtype', r[4])}${el('name', esc(r[2]))}${el('icon', r[5])}${el('num', r[6])}${el('cost', r[8])}${el('costtype', r[7])}${el('status', bought.has(r[0]) ? 1 : 0)}${el('itemid', r[5])}${el('attacktype', 0)}</card></item>`).join('');
-  return `<user>${el('cursoul', soul)}${el('updatenum', 99)}${el('gold', pl.gold)}${el('refreshcost', 0)}${el('totalrefresh', 99)}${el('dayrefreshleft', 99)}${el('lefttime', 86400 - Math.floor(Date.now() / 1000) % 86400)}</user><cardlist>${cards}</cardlist>`;
+  const cards = secretPicks(db, pl).map((r) => `<item><card>${el('id', r[0])}${el('type', r[3])}${el('subtype', r[4])}${el('name', esc(r[2]))}${el('icon', r[5])}${el('num', r[6])}${el('cost', r[8])}${el('costtype', r[7])}${el('status', bought.has(r[0]) ? 1 : 0)}${el('itemid', r[5])}${el('attacktype', 0)}</card></item>`).join('');
+  const left = SECRET_EVERY - (Math.floor(Date.now() / 1000) % SECRET_EVERY);
+  return `<user>${el('cursoul', soul)}${el('updatenum', propCounts(db, pl.uid, pl.server_id)[REFRESH_ORDER] || 0)}${el('gold', pl.gold)}${el('refreshcost', SECRET_GOLD)}${el('totalrefresh', total)}${el('dayrefreshleft', Math.max(0, total - st.used))}${el('lefttime', left)}</user><cardlist>${cards}</cardlist>`;
+}
+// Refresh button: a Refresh Order if the player has one, else 20 gold. Code 325006 = the client's "only N refreshes a day" tip.
+function secretRefresh(db, pl) {
+  const st = secretState(db, pl), total = 75 + 5 * require('./vip').level(db, pl.uid, pl.server_id);
+  if (st.used >= total) return { code: 325006 };
+  if ((propCounts(db, pl.uid, pl.server_id)[REFRESH_ORDER] || 0) > 0) propAdd(db, pl.uid, pl.server_id, REFRESH_ORDER, -1);
+  else if (pl.gold < SECRET_GOLD) return { error: 'not enough gold' };
+  else db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(SECRET_GOLD, pl.uid, pl.server_id);
+  db.prepare('INSERT OR REPLACE INTO secret_state VALUES (?,?,?,?,?)').run(pl.uid, pl.server_id, st.day, st.used + 1, (st.seed || 0) + 1);
+  pl.gold = db.prepare('SELECT gold FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).gold;
+  return { xml: secretXml(db, pl) };
 }
 function secretBuy(db, pl, rowId) {
-  const r = secretPicks(pl).find((x) => x[0] === rowId);
+  const r = secretPicks(db, pl).find((x) => x[0] === rowId);
   if (!r) return { error: 'not in shop' };
-  if (secretBought(db, pl).has(r[0])) return { error: 'already bought today' };
+  if (secretBought(db, pl).has(r[0])) return { error: 'already bought' };
   if (r[7] === 1) { if (soulOf(db, pl) < r[8]) return { error: 'not enough souls' }; propAdd(db, pl.uid, pl.server_id, SOUL, -r[8]); }
   else { if (pl.gold < r[8]) return { error: 'not enough gold' }; db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(r[8], pl.uid, pl.server_id); }
-  db.prepare('INSERT INTO secret_bought VALUES(?,?,?,?)').run(pl.uid, pl.server_id, Math.floor(Date.now() / 86400000), r[0]);
+  db.prepare('INSERT INTO secret_bought VALUES(?,?,?,?)').run(pl.uid, pl.server_id, secretBoard(db, pl), r[0]);
   return { xml: grantDrop(db, pl, r[10]) };
 }
 
@@ -1374,4 +1398,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

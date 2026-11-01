@@ -102,6 +102,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Ramen window when out of energy in training |
 | 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold |
 | 🧪 | Levelling up refills grudge too, like the original pop-up |
+| ✅ | Secret shop Refresh works like the original (Refresh Order or 20 gold, 75 + 5 x VIP a day, new goods every 2 h) |
 | 🧪 | Ninja Treasure prices like the original (refresh 100 gold, new board every 2 h, explore 35 / 70 / 300 / 320 / 1000) |
 | 🧪 | Arena daily rewards like the original (rank 1: 25 000 silver + 5000 reputation, at least 2000 + 400) |
 | ✅ | Growth Fund in the Event menu, like the original (VIP3, 500 gold, 2500 back) |

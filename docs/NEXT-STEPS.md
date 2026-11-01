@@ -575,3 +575,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     now one function game.arenaReward used by both.
   * Ninja Treasure (sudoku.js) = photos 0018, 0150, 1070-1073, 2816, 2819, 2833: refresh 100 gold, auto reroll every 2 h, explore
     35 / 70 / 300 / 320 / 1000 by prizes taken (0-4), 1000 after (ours). Was 20 gold, 4 h, 10 + 10 x taken.
+  * Secret shop Refresh (rl_x_mystery_shop Cmd 2) did nothing before. Now: Refresh Order (prop 31) or 20 gold, 75 + 5 x VIP a day
+    (code 325006 when used up), goods change every 2 h by themselves; table secret_state (day, used, seed); bought rows per board.
+    Checked in game.

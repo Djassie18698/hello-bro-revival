@@ -710,6 +710,12 @@ module.exports = {
       game.propAdd(db, pl.uid, pl.server_id, 9999, total);
       return `<root code="0"><award dropid="1" coin="0"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>${total}</soul></award></root>`;
     }
+    if (cmd === 2) {
+      const r = game.secretRefresh(db, pl);
+      if (r.code) return `<root code="${r.code}"></root>`;
+      if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+      return '<root code="0">' + r.xml + '</root>';
+    }
     return '<root code="0">' + game.secretXml(db, pl) + '</root>';
   },
 
