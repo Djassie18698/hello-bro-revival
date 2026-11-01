@@ -672,3 +672,13 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Spar now uses the game's duelinfo table by RIVAL level (exactly what CFightPreView shows): win/lose EXP [5]/[6], W.A. [7]/[8],
     silver = rival silver x [3] on a win, your silver x [4] lost on a loss. Result screen shows W.A.; it shows silver 0 although the
     silver is given (+568 seen in the save) - not found yet which field that label reads.
+  * FIXED a login crash I caused: an inline // comment in game.js cardXml cut off starlevel/newlife/... (every card). smoke.js now checks
+    that every card of rl_r_mainpage 1302 has type/id/seq/level/attri/starlevel/newlife.
+  * Second-device login checked in game: pm clear (= new phone) -> Login with Gumptech name + password -> same account; relaunch logs in
+    by itself. Note: after a fresh install the region list starts on the LAST region ("Starter slot 3", empty -> character creation).
+  * Border war rewards (border.js) checked in game: Get Award screen like photo 0666 (counters 0/2, 1/2, 0/4, 0/4; "Wandered 1 time(s)
+    3300 / 786"), monument HP 300/300 like photo 0540. Claim without items sends no <award> (else an empty "Sample Text" card pops up).
+  * 300-gold recruit gold prizes: coded (drop rows 137/290/295/298) but OFF: the single-recruit reveal shows a blank card; the gold is given.
+  * Five-element panel (photo 2666, "Shinobi attack increase: %.2f%%" = Struct_String_Menu 300-303): no server data found; not built.
+  * Fight "Restrain: 0": the element restrain table (ninjafiveprop, +15% vs the weak element) is not used in our fights yet.
+

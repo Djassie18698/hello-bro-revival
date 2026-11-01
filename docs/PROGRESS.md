@@ -125,13 +125,16 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Monthly sign-in like the original May / July screens: 10 000 silver, 20 gold, Recruitment Orders ... with "vN x2" (VIP N or higher gets it twice, and you can sign again after a VIP-up) |
 | ✅ | Top-up packages like the original screen ($4.99 = 225 + 15, $9.99 = 450 + 40, $19.99 = 950 + 100, $99.99 = 4800 + 700); your first top-up ever pays triple gold |
 | ✅ | "49$ gift" like the original: Naruto card + 80 Reincarnation Pills + 150 Sage Stone III (update 28.0.21) |
-| 🧪 | Akatsuki like the original: members 6 + level, max levels 9 / 5 / 5 / 5, original upgrade costs, donations 10 gold = +12, 4-star card +18 / +12, 5-star +180 / +180 (card donations now work), the mall sells goods for contribution and refreshes every 30 min |
-| 🧪 | Country war like the original: a win = 10 points + 10 exploit + 36 silver + 36 EXP; a failed attack gives the defender 2 + 2 |
-| 🧪 | Spar like the original preview: win EXP = level + 4 and 15 W.A., loss a third of that and 5 W.A. |
-| 🧪 | Element Change works (it did nothing before): 12 Element Change Pills + 2000 silver for a God card, random new element |
-| 🧪 | God evolve costs 100 Development Dan like the original (it was free) |
+| ✅ | Akatsuki like the original: members 6 + level, max levels 9 / 5 / 5 / 5, original upgrade costs, donations 10 gold = +12, 4-star card +18 / +12, 5-star +180 / +180 (card donations now work), the mall sells goods for contribution and refreshes every 30 min |
+| ✅ | Country war like the original: a win = 10 points + 10 exploit + 36 silver + 36 EXP; a failed attack gives the defender 2 + 2 |
+| ✅ | Spar pays exactly what the game's own preview shows (EXP, W.A., silver from its duel table) |
+| ✅ | Element Change works (it did nothing before): 12 Element Change Pills + 2000 silver for a God card, random new element |
+| ✅ | God evolve costs 100 Development Dan like the original (it was free); the new card keeps rebirth and growth |
 | 🧪 | Equipment advance costs 50 000 silver like the original; small EXP-card bags 2000 silver; gold chest opens a day from the VIP table (VIP1 25 ... VIP11 75) |
 | ✅ | Real login on our own server: the account window remembers the phone, sign up with a name + password to move phones; public servers only let logged-in players in (new game file) |
+| ✅ | Border war rewards like the original: monument HP 300, daily 2 taunt / 2 wander / 4 + 4 clear rewards, 3300 EXP + 786 merit a wander, Gold*50 + pills for breaking a border |
+| ✅ | Fights show 3 different enemy ninjas (a real player's own team) instead of the same card 3 times |
+| ✅ | Errors show a fitting message (they all said "Your energy level is full") |
 | ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |
 
 ## Still to build
