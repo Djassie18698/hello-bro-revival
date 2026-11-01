@@ -436,3 +436,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   card_exchange_point/>), 18 spin (<id> slot index, <castCash>), 19 keep (<award>), 20 return (<add_cash><left_cash><left_score>), 21 ChangeId trade
   (<award> + <leftScore>). 300 gold per spin from the photos; line-up of holiday god cards, return gold, energy (20 per return) and trade costs are (ours).
   Verified in game: list, spin + confirm, win window, return (120 gold, energy 20), exchange window.
+
+## Hot Treasure (1 Nov 2026)
+- hottreasure.js, Event menu id 43 ("treasure"): rl_x_small_activity 12 info (<remain_time><one_cost><ten_cost><main><item/></main><second>items</second>
+  <all>items</all><left_free_count>; item = drop_id/desc/main_type/sub_type/prop_id children), 13 one hunt (<cash><left_free_count><award>),
+  14 ten hunts (<cash><award_list> of <award dropid>). Prices, prizes and chances (ours). Verified in game: screen and ten hunts.

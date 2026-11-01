@@ -5,6 +5,7 @@ const vip = require('./vip');
 const wheel = require('./wheel');
 const festival = require('./festival');
 const godrecruit = require('./godrecruit');
+const hottreasure = require('./hottreasure');
 const signin = require('./signin');
 const stagegift = require('./stagegift');
 const guild = require('./guild');
@@ -439,6 +440,9 @@ module.exports = {
     // festival trade event (festival.js): 9 info, 10 item shop, 11 trade ExId
     if (cmd === 9) { const x = festival.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the festival is over</message></root>'; }
     if (cmd === 10) return '<root code="0">' + festival.shopXml(db, pl) + '</root>';
+    // Hot Treasure hunt (hottreasure.js): 12 info, 13 one hunt, 14 ten hunts
+    if (cmd === 12) { const x = hottreasure.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the event is over</message></root>'; }
+    if (cmd === 13 || cmd === 14) { const r = cmd === 13 ? hottreasure.huntOne(db, pl) : hottreasure.huntTen(db, pl); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     // God Recruit slot (godrecruit.js): 17 info, 18 spin, 19 keep, 20 return, 21 ChangeId trade
     if (cmd === 17) { const x = godrecruit.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the event is over</message></root>'; }
     if (cmd >= 18 && cmd <= 21) {
