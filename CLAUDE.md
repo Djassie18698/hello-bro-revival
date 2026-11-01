@@ -59,7 +59,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 | `tools/` | `smoke.js`, `emu.sh`, `restart.sh`, `probe.js` (in `tools/dev/`), `setup_re.py`, `armdis.py`, `build_cdn.py`, `patch_apk.py`, `make_game_for.py`, `sync_test_folder.sh`, `make_public.py` |
 | `release/` | patched apks + `revival.keystore` (password/alias `revival`; ALWAYS sign with it, never make a new one) |
 | `discord/` | `dc.js` posts to the owner's Discord (token in `discord/.env`, git-ignored) |
-| docs | `README.md` GitHub front page · `docs/FIXES-2026-10-31.md` plain-words list of the big fix day · `docs/NEXT-STEPS.md` findings log · `docs/BASE-FEATURES.md` Base rules · `docs/HOT-UPDATE.md` · `docs/PROJECT-NOTES.md` early history · `docs/MASTER-PLAN.md` old roadmap · `HOST-YOUR-OWN-SERVER.md` · `PLAY-ON-TAILSCALE.md` |
+| docs | `README.md` GitHub front page · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/FIXES-2026-10-31.md` plain-words list of the big fix day · `docs/NEXT-STEPS.md` findings log · `docs/BASE-FEATURES.md` Base rules · `docs/HOT-UPDATE.md` · `docs/PROJECT-NOTES.md` early history · `docs/MASTER-PLAN.md` old roadmap · `HOST-YOUR-OWN-SERVER.md` · `PLAY-ON-TAILSCALE.md` |
 
 ## 4. Running and testing
 - **Two servers exist, only one can run (both use port 18080):**
