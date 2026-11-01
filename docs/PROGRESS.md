@@ -100,12 +100,12 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Sage growth with the original chances; rebirth up to 8 |
 | ✅ | Discord link on GitHub, in the top banner and in Settings |
 | ✅ | Ramen window when out of energy in training |
+| ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
 
 ## Still to build
 
 | | What |
 |---|---|
-| ⏳ | Ninjutsu pop-ups in fights ("Shadow technique, skill damage +72", seen in the original video) |
 | ⏳ | Scratch card, daily limited offers, card split, cross-server battle (the game has the screens, the server doesn't answer yet) |
 | ⏳ | Some small events in the event menu still answer empty |
 | ⏳ | Real login with a password (now any device just logs in) |

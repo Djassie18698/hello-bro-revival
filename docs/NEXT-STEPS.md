@@ -520,3 +520,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Recruit "1 in 100": the orders count stayed at 39 until the shop was reopened. CItemView subtracts <recruit costprop> from item 30; we sent 0.
   pullXml now sends costprop=1 for type 3. Verified in game: 39 -> 38 right after a recruit.
 - docs/PROGRESS.md = one page with every bug-list item + owner request and its status; control panel Progress tab renders it (/progress.md).
+- Fight ninjutsu: round <skills><skill><cardid>NINJUTSU ID</cardid><chakraattack>damage</chakraattack><chakra>part from chakra</chakra></skill></skills>
+  (max 2 per round, CFightResultData::AddFightRoundData). Attack = before, FinalAttack = after the skill. cardid is the ninjutsuinfo id (a card seq
+  showed another name). Damage = m_attackvalue (col 10) + m_attackvalue_up (col 18) x (level-1) + 20% of avg chakra (ours; video: 40 + 32 = 72).
+  Fires per worn ninjutsu with m_rate (col 4, 15%) when a ninja starts attacking; not in fights the server decided to lose. HB_SKILLS=1 forces it.
+  Verified in game: Chibaku Tensei pop-up "Skill damage increase 2086 (Chakra 1306)", Skill bonus, animation. Enemy defense skills not sent.
