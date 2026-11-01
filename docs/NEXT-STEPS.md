@@ -458,3 +458,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Pages are sent with Cache-Control no-store (an old cached admin.html was served inside the panel once).
 - Team editor: GET /admin/api/team?uid (slots, owned cards by type, power), POST /admin/api/setteam {uid, slots:[{ninja:{seq}|{give}, level, newlife,
   growth, equip:{kind:{seq}|{give}, level, newlife}}]} in one transaction (rolls back on a duplicate or a gear piece of the wrong slot). Capped at maxTeam.
+
+## Card stats = the game formula (1 Nov 2026)
+- game.ninjaStats now copies CPlayerNinja::firefly_GetAttackMin + CNinjaDetailView::InitUI: base = (1+basis)*lv1 + (1+grow)*perlevel*(lv-1)
+  (newlifeprop row with m_newlife_times = rebirth grade: basis col 4, grow col 5), growth bonus = (min+max)/2 * ninjastrengthconfig[growth] added to min
+  and max, + training points. Old guess was +5%/growth level and +10%/rebirth (far too low at high levels). Checked on Susa Indra lv50 R8 G15:
+  detail screen 6663-8336 +12092 = server 18755-20428 exactly. equipStats: equipnewlifeprop matched by col 3 (grade), rounded down like the client.

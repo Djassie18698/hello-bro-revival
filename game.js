@@ -797,25 +797,37 @@ function secretBuy(db, pl, rowId) {
 // ---- Stats: ninja level growth + gear + set bonuses ------------------------------------------
 // ninjainfo cols 19-24 = base atk lo/hi, def lo/hi, chakra lo/hi; 25-30 = growth per level. equipmentinfo: 7-12 base, 13-18 growth.
 const KEYS = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
+// A shinobi card's own stats, exactly as the game draws them on its detail screen (CPlayerNinja::firefly_GetAttackMin and
+// CNinjaDetailView::InitUI in libgame.so, checked digit for digit against the screen):
+//   base  = (1 + basis) * level-1 stat + (1 + grow) * per-level stat * (level - 1)   (basis/grow: newlifeprop row of the rebirth grade, 0 without rebirth)
+//   bonus = (min + max) / 2 * ninjastrengthconfig[growth level]   added to min and max (the "+" on the detail screen), then + training points.
+// God breakthrough: +4% per level on the stats of the card's element (ui_tupo_desc): fire ATK+chakra, water chakra, wind DEF+chakra,
+// earth DEF, thunder ATK; element = cards.attri (1 water, 2 fire, 3 wind, 4 earth, 5 thunder; 0 shows as water).
 function ninjaStats(card) {
   const n = ninjas().get(card.ninja_id);
   const o = {};
-  const mult = 1 + 0.05 * (card.starlevel || 0) + 0.1 * (card.newlife || 0); // sage growth +5% per level, reincarnation +10% per grade
-  // god breakthrough: +4% per level, only on the stats of the card's element (ui_tupo_desc): fire ATK+chakra, water chakra,
-  // wind DEF+chakra, earth DEF, thunder ATK. Element = cards.attri (1 water, 2 fire, 3 wind, 4 earth, 5 thunder; 0 shows as water).
+  if (!n) { KEYS.forEach((k) => { o[k] = 0; }); return o; }
+  const nl = (card.newlife || 0) > 0 ? table('newlifeprop').rows.find((r) => r[3] === card.newlife) : null;
+  const basis = nl ? nl[4] : 0, grow = nl ? nl[5] : 0;
+  const lvl = Math.max(1, card.level || 1);
   const BREAK = { 1: 'c', 2: 'ac', 3: 'dc', 4: 'd', 5: 'a' }[card.attri || 1] || 'c';
   const bk = (k) => (BREAK.includes(k[0]) ? 0.04 * (card.breaklvl || 0) : 0);
-  KEYS.forEach((k, i) => { o[k] = n ? Math.round(((n[19 + i] || 0) + (n[25 + i] || 0) * (card.level - 1)) * (mult + bk(k))) : 0; });
-  const pot = [card.pot_att, card.pot_att, card.pot_def, card.pot_def, card.pot_ckr, card.pot_ckr];
-  KEYS.forEach((k, i) => { o[k] += pot[i] || 0; });
+  KEYS.forEach((k, i) => { o[k] = Math.floor(((1 + basis) * (n[19 + i] || 0) + (1 + grow) * (n[25 + i] || 0) * (lvl - 1)) * (1 + bk(k))); });
+  const add = (table('ninjastrengthconfig').rows.find((r) => r[1] === (card.starlevel || 0)) || [])[2] || 0;
+  const pot = { a: card.pot_att || 0, d: card.pot_def || 0, c: card.pot_ckr || 0 };
+  for (const s of ['a', 'd', 'c']) {
+    const lo = s + 'l', hi = s + 'h';
+    const bonus = Math.trunc(Math.fround(Math.fround(o[lo] + o[hi]) * Math.fround(add)) * 0.5) + pot[s];
+    o[lo] += bonus; o[hi] += bonus;
+  }
   return o;
 }
 function equipStats(card) {
   const e = equipRows().find((r) => r[0] === card.ninja_id);
   const o = {};
-  const row = table('equipnewlifeprop').rows.find((r) => r[0] === (card.newlife || 0));
+  const row = table('equipnewlifeprop').rows.find((r) => r[3] === (card.newlife || 0));
   const mult = 1 + (row ? row[4] : 0); // reincarnation grade grows the whole stat block
-  KEYS.forEach((k, i) => { o[k] = e ? Math.round(((e[7 + i] || 0) + (e[13 + i] || 0) * (card.level - 1)) * mult) : 0; });
+  KEYS.forEach((k, i) => { o[k] = e ? Math.floor(((e[7 + i] || 0) + (e[13 + i] || 0) * (card.level - 1)) * mult) : 0; }); // CPlayerWeapon::firefly_GetAttackMin: (1+basis)*base + (1+grow)*per-level*(level-1), basis = grow, rounded down
   return o;
 }
 const addStats = (a, b) => { const o = {}; KEYS.forEach((k) => { o[k] = (a[k] || 0) + (b[k] || 0); }); return o; };
