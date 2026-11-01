@@ -930,7 +930,7 @@ module.exports = {
       const ok = db.prepare('INSERT OR IGNORE INTO rank_claims VALUES(?,?,?,?)').run(pl.uid, pl.server_id, 'arena', new Date().toISOString().slice(0, 10)).changes;
       if (!ok) return '<root code="5"><message>already claimed today</message></root>';
       const r = db.prepare('SELECT rank FROM arena WHERE uid=?').get(pl.uid);
-      const rank = r ? r.rank : 999, coin = Math.max(2000, 50000 - rank * 1000), rep = Math.max(50, 1000 - rank * 20);
+      const rank = r ? r.rank : 999, { coin, renown: rep } = game.arenaReward(rank); // same as the list shows
       game.propAdd(db, pl.uid, pl.server_id, 9996, rep);
       db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
       return '<root code="0">' + game.awardFull({ coin }) + '</root>';

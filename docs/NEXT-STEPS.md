@@ -570,3 +570,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     Lv50 150 / Lv70 150 / Lv90 200); Lv110-230 steps (ours) add up to 2500. Server Manager switch "Growth Fund". Checked in game (buy, collect).
   * Ninja Test refit with a 5th photo (2678: level 272, stage 1 = ~1175, which the level^2 formula got wrong): guard = stage value
     (1160 / 1950 / 2980 / 10 065 at stages 1 / 2 / 4 / 14, lines between, +708 after) x min(1, (level/280)^2). All 5 photos within 7%.
+  * Arena daily rank reward = the photos: 26 000 - 1000 x rank (ranks 1-10), then -60 a rank (ours) to a 2000 floor; reputation = silver / 5
+    (photos 0211, 1901, 2119, 0389, 2719). Was 6000 - 100 x rank in the list and 50 000 - 1000 x rank when claimed (two different rules);
+    now one function game.arenaReward used by both.
