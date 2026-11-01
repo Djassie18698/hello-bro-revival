@@ -239,6 +239,7 @@ function pull(db, pl, type, count, free) {
   }
   db.prepare(`INSERT INTO recruit_state(uid,server_id,type,last_free,pity) VALUES(?,?,?,?,?)
     ON CONFLICT(uid,server_id,type) DO UPDATE SET last_free=excluded.last_free, pity=excluded.pity`).run(pl.uid, pl.server_id, type, free ? Math.floor(Date.now() / 1000) : st.last, pity);
+  if (type === 1) bumpTask(db, pl.uid, pl.server_id, 14, count); // daily task: 1-in-10000 recruit
   return { cost, got };
 }
 function awardXml(c) {
@@ -462,9 +463,14 @@ function addExp(db, pl, exp) {
 
 // ---- Daily tasks -----------------------------------------------------------------------------
 const today = () => new Date().toISOString().slice(0, 10);
-const DAILY_AWARDS = [ // id, points needed, dropinfo ids paid (the original list is lost: (ours) silver and gold like before, now real drops the dialog can show)
-  { id: 1, cost: 20, drops: [46] }, { id: 2, cost: 40, drops: [97] }, { id: 3, cost: 60, drops: [56] },
-  { id: 4, cost: 80, drops: [100] }, { id: 5, cost: 100, drops: [260] },
+// Daily task chests. ORIGINAL (Facebook photos 0175 and 1328): a 250-point bar with chests at 120 / 160 / 210 / 250 (the list scrolls, so
+// there were more before 120); the 250 chest = 30 000 silver + 100 gold + 10 Reincarnation Pills + 1 Killer B fragment. The chests at
+// 30 / 60 / 90 and the contents of all but the 250 chest are (ours). dropinfo ids.
+const DAILY_TOTAL = 250;
+const DAILY_AWARDS = [
+  { id: 1, cost: 30, drops: [46] }, { id: 2, cost: 60, drops: [97] }, { id: 3, cost: 90, drops: [56] },
+  { id: 4, cost: 120, drops: [100] }, { id: 5, cost: 160, drops: [56, 97] }, { id: 6, cost: 210, drops: [260] },
+  { id: 7, cost: 250, drops: [226, 260, 108, 1166] },
 ];
 function dailyEnsure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS dailytask (uid INTEGER, server_id INTEGER, day TEXT, task_id INTEGER, process INTEGER DEFAULT 0, PRIMARY KEY(uid,server_id,day,task_id));
@@ -485,9 +491,9 @@ function dailyXml(db, uid, sid) {
     if (p >= r[5]) score += r[6];
     return `<task id="${r[0]}" process="${p}"/>`;
   }).join('');
-  score = Math.min(score, 100);
+  score = Math.min(score, DAILY_TOTAL);
   const awards = DAILY_AWARDS.map((a) => `<award id="${a.id}" status="${claimed.has(a.id) ? 2 : score >= a.cost ? 1 : 0}" cost="${a.cost}"><drop_list>${a.drops.map((d) => `<item>${d}</item>`).join('')}</drop_list></award>`).join('');
-  return `<player><total>100</total><current>${score}</current></player><task_list>${tasks}</task_list><award_list>${awards}</award_list>`;
+  return `<player><total>${DAILY_TOTAL}</total><current>${score}</current></player><task_list>${tasks}</task_list><award_list>${awards}</award_list>`;
 }
 function dailyClaim(db, pl, awardId) {
   dailyEnsure(db);
@@ -645,6 +651,7 @@ function propCounts(db, uid, sid) {
 function propAdd(db, uid, sid, id, n) {
   propEnsure(db);
   db.prepare('INSERT INTO props(uid,server_id,prop_id,count) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,prop_id) DO UPDATE SET count=MAX(0,count+excluded.count)').run(uid, sid, id, n);
+  if (id === 9996 && n > 0) bumpTask(db, uid, sid, 19, n); // daily task: get 1000 arena reputation
 }
 // Buy: kind 'good' (consumeinfo) or 'pack' (giftinfo, opened immediately for coins/gold).
 // Gold prices the original shop showed that differ from consumeinfo (Facebook photos 0080, 0082, 1011, 1757, 2964): Reincarnation Pill 120
@@ -742,10 +749,16 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
   if (b) db.prepare('DELETE FROM cards WHERE seq=?').run(b.seq);
   else propAdd(db, pl.uid, pl.server_id, 11, -pills);
   const gain = Math.round(((ninjaStats({ ...a, newlife: next }).ah) - ninjaStats(a).ah) / 2) || 0;
+  bumpTask(db, pl.uid, pl.server_id, 21); // daily task: reincarnation
   return { grade: next, cost, gain };
 }
 
 // ---- Potential training ("Train" screen, rl_x_develop): roll gains, then save them. Free here (no pills needed).
+// Shinobi training cost, ORIGINAL (Facebook photos 1835, 1839, 1840, 1347): "foster once" = 2 Super Ninja Pills, or "gold advance" =
+// 1 pill + 10 gold; five at once = 10 pills, or 5 pills + 40 gold. The 10-times rows scale that (ours): 20 pills, or 10 pills + 80 gold.
+const NINJA_PILL = 28;
+const POT_COST = [{ id: 1, name: '1 time', type: 1, pills: 2, gold: 0 }, { id: 2, name: '1 time', type: 2, pills: 1, gold: 10 },
+  { id: 3, name: '10 times', type: 1, pills: 20, gold: 0 }, { id: 4, name: '10 times', type: 2, pills: 10, gold: 80 }];
 const potLimit = (c) => 100 + 40 * (c.starlevel || 0) + 10 * (c.level || 1) + 100 * (c.newlife || 0);
 function potentialXml(db, pl, seq) {
   const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);
@@ -753,21 +766,26 @@ function potentialXml(db, pl, seq) {
   const lim = potLimit(c);
   return `<attack limit_att="${lim}" add_att="${c.pot_att}"/><defense limit_def="${lim}" add_def="${c.pot_def}"/><chakra limit_ckr="${lim}" add_ckr="${c.pot_ckr}"/>` +
     // CPotentialView keeps these rows in one list: even index = pill row, odd = gold row; the dropdown (onClickMode) jumps 2 rows, so it
-    // needs the "10 times" pair too (with only 2 rows it read past the list and crashed). Costs (ours): free, as before.
-    '<cost_list><cost cost_id="1" name="1 time" type="1" need_miyao="0" need_golden="0"/><cost cost_id="2" name="1 time" type="2" need_miyao="0" need_golden="0"/>' +
-    '<cost cost_id="3" name="10 times" type="1" need_miyao="0" need_golden="0"/><cost cost_id="4" name="10 times" type="2" need_miyao="0" need_golden="0"/></cost_list>';
+    // needs the "10 times" pair too (with only 2 rows it read past the list and crashed).
+    '<cost_list>' + POT_COST.map((k) => `<cost cost_id="${k.id}" name="${k.name}" type="${k.type}" need_miyao="${k.pills}" need_golden="${k.gold}"/>`).join('') + '</cost_list>';
 }
 function potentialRoll(db, pl, seq, costId) {
   const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);
   if (!c) return { error: 'no such card' };
   const gold = costId % 2 === 0, times = costId > 2 ? 10 : 1;
+  const k = POT_COST.find((x) => x.id === costId) || POT_COST[0];
+  if ((propCounts(db, pl.uid, pl.server_id)[NINJA_PILL] || 0) < k.pills) return { error: 'not enough Super Ninja Pills' };
+  if (pl.gold < k.gold) return { error: 'not enough gold' };
+  propAdd(db, pl.uid, pl.server_id, NINJA_PILL, -k.pills);
+  if (k.gold) db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(k.gold, pl.uid, pl.server_id);
+  bumpTask(db, pl.uid, pl.server_id, 12, times); // daily task: training shinobi
   const lim = potLimit(c), hi = gold ? 14 : 8, lo = gold ? 3 : -2;
   const roll = () => { let s = 0; for (let i = 0; i < times; i++) s += Math.floor(Math.random() * (hi - lo + 1)) + lo; return s; };
   const d = { att: roll(), def: roll(), ckr: roll() };
   // never push a stat outside 0..limit
   d.att = Math.max(-c.pot_att, Math.min(lim - c.pot_att, d.att)); d.def = Math.max(-c.pot_def, Math.min(lim - c.pot_def, d.def)); d.ckr = Math.max(-c.pot_ckr, Math.min(lim - c.pot_ckr, d.ckr));
   db.prepare('UPDATE cards SET pend_att=?, pend_def=?, pend_ckr=? WHERE seq=?').run(d.att, d.def, d.ckr, seq);
-  return d;
+  return { ...d, pills: k.pills, gold: k.gold };
 }
 function potentialSave(db, pl, seq) {
   const c = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(seq, pl.uid, pl.server_id);

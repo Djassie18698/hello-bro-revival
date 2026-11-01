@@ -587,3 +587,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   backup with VACUUM INTO on start and every 6 h while running (backups/hellobro-start|auto-*.db, newest 10 kept; manual-* never
   deleted). The old start backup copied the .db file before opening, which could miss data left in a -wal file. Extra indexes
   (pets, mail, war_log, equipped.seq, team.seq, accounts.session) + PRAGMA optimize. hellobro.db-wal / -shm are git-ignored.
+  * Daily task chests = original 250-point bar (photos 0175, 1328): chests 30/60/90 (ours), 120/160/210/250; the 250 chest pays the
+    original 30 000 silver + 100 gold + 10 Reincarnation Pills + Killer B fragment (drops 226, 260, 108, 1166). Tasks now also counted:
+    3 seals, 7 refine, 8 world boss, 10 war, 11 border clear, 12 shinobi training, 13 recharge, 14 1-in-10000 recruit, 19 arena reputation,
+    21 reincarnation (before only 1,2,4,5,6,17,18,20 = max 95 points). Checked in game (10/250 bar, 7 chests).
+  * Shinobi training costs like the original (photos 1835-1840, 1347): 2 Super Ninja Pills, or 1 pill + 10 gold; 10 times = 20 pills
+    or 10 + 80 gold (ours). Was free. Checked in game (screen shows the costs, pills taken).

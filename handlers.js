@@ -362,6 +362,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const r = seals.merge(db, pl, Number(p.MarkID));
+    if (!r.error) game.bumpTask(db, pl.uid, pl.server_id, 3); // daily task: synthesize seals
     return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
   // Country war (War > War tab). Cmd 7200 status (also polled from home), 7300ish war info.
@@ -601,6 +602,7 @@ module.exports = {
     const t = TOPUPS.find((x) => x.id === Number(p.RechargeId));
     if (!t) return '<root code="5"><message>bad package</message></root>';
     db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(t.gold + t.give, pl.uid, pl.server_id);
+    game.bumpTask(db, pl.uid, pl.server_id, 13); // daily task: recharge
     vip.addExp(db, pl.uid, pl.server_id, t.rmb / 10); // cents / 10 = dollars x 10
     limited.logTopup(db, pl.uid, pl.server_id, t.gold + t.give);
     // <viplevel>: the hot-updated top-up screen (28.0.9) sets the new level right away
@@ -723,6 +725,7 @@ module.exports = {
       if (cards.some((c) => db.prepare('SELECT 1 FROM team WHERE uid=? AND server_id=? AND seq=?').get(pl.uid, pl.server_id, c.seq))) return '<root code="5"><message>take the card out of the team first</message></root>';
       for (const c of cards) { db.prepare('DELETE FROM equipped WHERE uid=? AND server_id=? AND seq=?').run(pl.uid, pl.server_id, c.seq); db.prepare('DELETE FROM cards WHERE seq=?').run(c.seq); }
       game.propAdd(db, pl.uid, pl.server_id, 9999, total);
+      game.bumpTask(db, pl.uid, pl.server_id, 7, cards.length); // daily task: refine cards
       return `<root code="0"><award dropid="1" coin="0"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>${total}</soul></award></root>`;
     }
     if (cmd === 2) {
@@ -799,7 +802,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const bag = Number(p.BagId), cmd = Number(p.Cmd);
     if (cmd === 1) { const x = game.potentialXml(db, pl, bag); return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no such card</message></root>'; }
-    if (cmd === 2) { const d = game.potentialRoll(db, pl, bag, Number(p.CostId)); return d.error ? `<root code="5"><message>${d.error}</message></root>` : `<root code="0"><add_num att="${d.att}" def="${d.def}" ckr="${d.ckr}"/><cost miyao="0" yuanbao="0"/></root>`; }
+    if (cmd === 2) { const d = game.potentialRoll(db, pl, bag, Number(p.CostId)); return d.error ? `<root code="5"><message>${d.error}</message></root>` : `<root code="0"><add_num att="${d.att}" def="${d.def}" ckr="${d.ckr}"/><cost miyao="${d.pills}" yuanbao="${d.gold}"/></root>`; }
     return game.potentialSave(db, pl, bag) ? '<root code="0"></root>' : '<root code="5"><message>no such card</message></root>';
   },
 
