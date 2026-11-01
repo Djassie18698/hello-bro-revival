@@ -73,8 +73,10 @@ function quit(db, pl) {
   }
 }
 
-function buildingsXml(g) {
-  return [1, 2, 3, 4, 5].map((i) => `<item${i} level="${g.level}"/>`).join('');
+// map labels (ui_orgMapLayer): item1 Akatsuki, item2 Shop, item3 Donate, item4 Hall (item5 Rankings is not shown)
+function buildingsXml(db, g) {
+  const lv = constructLevels(db, g);
+  return [lv[1], lv[2], lv[3], lv[4], lv[1]].map((l, i) => `<item${i + 1} level="${l}"/>`).join('');
 }
 
 // ---- Buildings (ui_orgUpgradeLayer: rl_w_group_admin Cmd 8 list, Cmd 9 upgrade ConstructID) ----------------------------------
@@ -90,7 +92,7 @@ const CONSTRUCT_COST = { // cost to reach level n = [n]
   4: [0, 0, 4000, 8000, 13000, 20000],
 };
 const CONSTRUCT_NEED = { '1:9': [4, 4], '2:5': [1, 9], '4:5': [2, 5] }; // 'building:next level' -> [building needed, its level]
-const CONSTRUCT_EFFECT = { 1: 'member +1', 2: 'more goods in the mall', 3: '+5% donation profit', 4: '+10% mission profits' };
+const CONSTRUCT_EFFECT = { 1: 'member +1', 2: 'more goods', 3: 'donation +5%', 4: 'missions +10%' }; // short: longer texts run under the Upgrade button
 function constructLevels(db, grp) {
   db.exec('CREATE TABLE IF NOT EXISTS group_construct (group_id INTEGER, cid INTEGER, level INTEGER, PRIMARY KEY(group_id, cid))');
   const lv = { 1: grp.level || 1, 2: 1, 3: 1, 4: 1 };
@@ -150,6 +152,8 @@ const TASKS = [
   { taskid: 2, group_score: 30, member_score: 30, consume: 20, consume_type: 1 },
   { taskid: 3, group_score: 100, member_score: 100, consume: 100, consume_type: 1 },
 ];
+// the missions with the Hall bonus included (+10% mission profits a Hall level, 140% at Lv4, photo 0567), as the screen shows them
+const boosted = (db, g) => { const b = 1 + 0.1 * constructLevels(db, g)[4]; return TASKS.map((t) => ({ ...t, group_score: Math.floor(t.group_score * b), member_score: Math.floor(t.member_score * b) })); };
 function ensureHall(db) {
   db.exec('CREATE TABLE IF NOT EXISTS group_checkin (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, name TEXT, taskname TEXT, ts INTEGER, uid INTEGER, day TEXT)');
 }
@@ -164,20 +168,19 @@ function hallXml(db, pl) {
   ensureHall(db);
   const done = db.prepare('SELECT 1 FROM group_checkin WHERE uid=? AND day=?').get(pl.uid, today()) ? 1 : 0;
   const tasks = TASKS.map((t) => '<task>' + Object.entries(t).map(([k, v]) => `${k}="${v}"`).join(' ') + '</task>');
-  const tl = '<task_list>' + TASKS.map((t) => '<task ' + Object.entries(t).map(([k, v]) => `${k}="${v}"`).join(' ') + '/>').join('') + '</task_list>';
+  const tl = '<task_list>' + boosted(db, g).map((t) => '<task ' + Object.entries(t).map(([k, v]) => `${k}="${v}"`).join(' ') + '/>').join('') + '</task_list>';
   return `<my_checkin>${el('today_checkin', done)}${el('score', memberScore(db, pl.uid, pl.server_id))}</my_checkin>${tl}${logXml(db, g.id)}`;
 }
 function checkin(db, pl, taskId) {
   const g = myGroup(db, pl.uid, pl.server_id); if (!g) return { error: 'no group' };
   ensureHall(db);
   if (db.prepare('SELECT 1 FROM group_checkin WHERE uid=? AND day=?').get(pl.uid, today())) return { error: 'already checked in today' };
-  const t = TASKS.find((x) => x.taskid === taskId); if (!t) return { error: 'bad task' };
+  const t = boosted(db, g).find((x) => x.taskid === taskId); if (!t) return { error: 'bad task' };
   const col = t.consume_type === 1 ? 'gold' : 'coin';
   if (pl[col] < t.consume) return { error: 'not enough ' + col };
   db.prepare(`UPDATE players SET ${col}=${col}-? WHERE uid=? AND server_id=?`).run(t.consume, pl.uid, pl.server_id);
-  const boost = 1 + 0.1 * constructLevels(db, g)[4]; // Hall: +10% mission profits a level (140% at Lv4, photo 0567)
-  db.prepare('UPDATE group_members SET score=score+? WHERE uid=? AND server_id=?').run(Math.floor(t.member_score * boost), pl.uid, pl.server_id);
-  db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(Math.floor(t.group_score * boost), g.id);
+  db.prepare('UPDATE group_members SET score=score+? WHERE uid=? AND server_id=?').run(t.member_score, pl.uid, pl.server_id);
+  db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(t.group_score, g.id);
   db.prepare('INSERT INTO group_checkin(group_id,name,taskname,ts,uid,day) VALUES(?,?,?,?,?,?)').run(g.id, pl.nick, 'Task ' + taskId, Math.floor(Date.now() / 1000), pl.uid, today());
   const p = db.prepare('SELECT gold, coin FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
   return { xml: logXml(db, g.id) + el('cash', p.gold) + el('coin', p.coin) + el('score', memberScore(db, pl.uid, pl.server_id)) };
@@ -210,7 +213,7 @@ function shopXml(db, pl) {
   const mallLv = constructLevels(db, g)[2], bought = mallBought(db, pl);
   const items = mallGoods(g).map(([drop, icon, score, cash], i) => {
     const need = i < 6 ? 1 : 5;
-    return `<item store_drop="${drop}" store_icon="${icon}" cost_score="${score}" cost_cash="${cash}" onoff="${mallLv >= need ? 1 : 0}" min_store_level="${need}" buyflag="${bought.has(i + 1) ? 1 : 0}"/>`;
+    return `<item item_index="${i + 1}" store_drop="${drop}" store_icon="${icon}" cost_score="${score}" cost_cash="${cash}" onoff="${mallLv >= need ? 1 : 0}" min_store_level="${need}" buyflag="${bought.has(i + 1) ? 1 : 0}"/>`;
   }).join('');
   const left = MALL_EVERY - (Math.floor(Date.now() / 1000) % MALL_EVERY);
   return '<store_info>' + el('remain_time', left) + el('user_score', memberScore(db, pl.uid, pl.server_id)) + `</store_info><item_list>${items}</item_list>`;

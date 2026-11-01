@@ -803,7 +803,7 @@ module.exports = {
     if (cmd === 3) { const r = guild.create(db, pl, p.GroupName, p.Desc); return r.error ? bad(r.error) : `<root code="0"><groupid>${r.id}</groupid></root>`; }
     if (cmd === 2) { const x = guild.detailXml(db, pl, Number(p.GroupId)); return x ? `<root code="0">${x}</root>` : bad('no such group'); }
     if (cmd === 6) { const r = guild.join(db, pl, Number(p.GroupId)); return r.error ? bad(r.error) : '<root code="0"></root>'; }
-    if (cmd === 9) { const g = guild.myGroup(db, pl.uid, pl.server_id); return g ? `<root code="0">${guild.buildingsXml(g)}</root>` : bad('no group'); }
+    if (cmd === 9) { const g = guild.myGroup(db, pl.uid, pl.server_id); return g ? `<root code="0">${guild.buildingsXml(db, g)}</root>` : bad('no group'); }
     if (cmd === 10) { guild.quit(db, pl); return '<root code="0"></root>'; }
     return `<root code="0">${guild.listXml(db, pl)}</root>`;
   },

@@ -97,6 +97,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   } else {
     console.log(`\x1b[90m[ok] ${cgi} Cmd=${params.Cmd || ''} ${Date.now() - t0} ms ${(out.length / 1024).toFixed(1)} KB\x1b[0m`); // grey: game requests
   }
+  out = require('./errcodes').fix(out); // code 5 = "energy level is full" in the game's own texts: use a fitting code
   resp.writeHead(200, { 'Content-Type': 'text/xml; charset=utf-8' });
   // The Lua side looks for a <RENLONG> root; the C++ side accepts any root name.
   out = out.replace(/^<root/, '<RENLONG').replace(/<\/root>$/, '</RENLONG>');
