@@ -535,3 +535,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   -> Benchmark 4M showed DEF 16M. Now mine.end = avg attack, foes end = final defence. Verified in game: Benchmark 1M shows DEF 1,000,002.
 - Login toast "INTERSTITIAL 'Leaderboard' REQUEST FAILED - NETWORK_FAILURE" = Chartboost SDK in classes.dex (com/chartboost/sdk). Only an APK
   patch can silence it; owner chose to leave it (1 Nov). Do it together with the next APK change.
+- Loading screen ("Loading for you, Master"), 1 Nov: measured every request (server log now shows ms and KB per request). Every handler
+  answers in 0-30 ms. Training and Team make NO server request: that wait is the phone loading the screen's images (client only).
+  Home makes 8 small requests. rl_r_mainpage Cmd 1301 (every return to Home, level-up, store) sent the whole card list + chip bag
+  (183 KB on the owner's save) although its callers (CDefaultMainMenu, CPlayerLevelUp, CStoreItemsView) only read <user>/team/horn:
+  now only Cmd 1302 (login, CLoadInitInfoScene builds the card bag) sends them (1301 = 21 KB). Checked in game: Backpack/Team still full.
+- Team screen name overflow: names are a CCLabelTTF in sub_ui/TeamNinjaView.ccbi (Arial-BoldMT 24, no width). 28.0.17 patches it
+  (font 18, width 28% = name bar, centred): 21-letter names fit on one line, longer (up to 29 owned) wrap to 2 lines. Checked in game.
+  Backpack list (another ccbi) still overlaps the element icon for long names: not changed yet.

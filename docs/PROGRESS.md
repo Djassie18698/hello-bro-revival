@@ -100,6 +100,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Sage growth with the original chances; rebirth up to 8 |
 | ✅ | Discord link on GitHub, in the top banner and in Settings |
 | ✅ | Ramen window when out of energy in training |
+| ✅ | Faster return to Home (it no longer resends every card); long ninja names fit their box on the team screen (update 28.0.17) |
 | ✅ | Ninjutsu in fights: they fire with their own chance and add damage, with the pop-up and animation like the original video |
 
 ## Still to build
@@ -114,4 +115,5 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | | What |
 |---|---|
+| 🚫 | The "Loading for you, Master" wait on Training and Team: the server isn't asked anything there, it's the phone loading the screen's pictures |
 | 🚫 | "INTERSTITIAL 'Leaderboard' REQUEST FAILED - NETWORK_FAILURE" after login: the game app's old ad service (Chartboost) can't load an ad. Harmless; removing it needs a new game app (left for a later app update) |

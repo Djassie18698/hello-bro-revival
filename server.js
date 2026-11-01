@@ -92,6 +92,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   const h = handlers[cgi];
   settings.hit(params.Uid, cgi);
   let out;
+  const t0 = Date.now();
   try {
     out = h ? h({ db, params, cgi, host: req.headers.host }) : null;
   } catch (e) {
@@ -102,7 +103,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     console.log(`\x1b[33m[UNHANDLED] ${req.method} ${req.url} ${body}\x1b[0m`);
     out = '<root code="1"><message>not implemented</message></root>';
   } else {
-    console.log(`\x1b[90m[ok] ${cgi} Cmd=${params.Cmd || ''}\x1b[0m`); // grey: game requests
+    console.log(`\x1b[90m[ok] ${cgi} Cmd=${params.Cmd || ''} ${Date.now() - t0} ms ${(out.length / 1024).toFixed(1)} KB\x1b[0m`); // grey: game requests
   }
   resp.writeHead(200, { 'Content-Type': 'text/xml; charset=utf-8' });
   // The Lua side looks for a <RENLONG> root; the C++ side accepts any root name.

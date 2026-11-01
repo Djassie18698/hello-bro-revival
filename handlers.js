@@ -286,8 +286,12 @@ module.exports = {
       caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
       score: pl.exp || 0, viplevel: // <score> is the client's EXP field (CPlayerDataMgr +0xd4); 0 here reset the exp bar on every main page visit
         vip.level(db, acc.uid, pl.server_id), soul: game.propCounts(db, acc.uid, pl.server_id)[9999] || 0, totalm: 0 };
-    return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + gs.cards +
-      gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
+    // Cmd 1302 = login (CLoadInitInfoScene: the client builds its card bag from this). Cmd 1301 = every return to Home / level-up / store:
+    // those screens only read <user> (+ the home screen the team list), so the whole card list (408 cards = 180 KB for a big account,
+    // the "Loading for you, Master" wait) and the fragment bag are left out there.
+    const full = Number(p.Cmd) !== 1301;
+    return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + (full ? gs.cards : '') +
+      gs.suitlist + '<defensesuitlist></defensesuitlist>' + (full ? game.chipbagXml(db, acc.uid, pl.server_id) : '') +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
       `<chapinfo currentchap="${cur.chap}" currentstage="${game.stagePart(cur.chap, cur.stage).part}"/>` +
       // the scrolling banner at the top of the home screen (CDefaultMainMenu -> CMainMenu::InitAnnounceMsg; '|' separates messages); text from the Server Manager.

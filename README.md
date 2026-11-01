@@ -78,7 +78,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 ## 📜 What changed recently
 
 - **1 Nov 2026:** holiday and limited events (**Christmas** with the original trades, New Year, God Recruit, Hot Treasure, Gold spending, Diligence gift, Limited discount, Lottery), card stats exactly like the game, a **team builder**, everything in one **control panel**, the ramen window when out of energy, new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,
-  chapters open after the last boss, a **Join Discord** button in the game's Settings and the Discord link in the top banner, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts:
+  chapters open after the last boss, a **Join Discord** button in the game's Settings and the Discord link in the top banner, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts, quicker return to Home, long ninja names fit their box:
   [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md).
 - **31 Oct 2026:** the big fix day (training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more):
   [**`docs/FIXES-2026-10-31.md`**](docs/FIXES-2026-10-31.md).
