@@ -124,6 +124,15 @@ async function handle(req, resp, parseBody, db) {
   ensure(db);
   const p = Object.fromEntries(new URLSearchParams(body || (req.url.split('?')[1] || '')));
   const path = req.url.split('?')[0].replace(/\/+/g, '/');
+  // "Login with Facebook" opens /facebook2/login.do in a web view (the old Facebook sign-in). Facebook can't sign in to the revival servers,
+  // so show a short page instead of raw text; the player closes it with the X.
+  if (path.startsWith('/facebook')) {
+    resp.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+    return resp.end('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:sans-serif;padding:24px;' +
+      'text-align:center;background:#fff;color:#333"><h2>Facebook login is not available</h2><p>The revival servers can\'t use Facebook.</p>' +
+      '<p>Close this window (<b>X</b> at the top right) and tap <b>PLAY</b>.<br>Want to keep your account on another device? Use ' +
+      '<b>Login with Gumptech &gt; Signup</b> and pick a name and password.</p></body>');
+  }
   let out;
   try {
     if (path === '/quick/login.do') out = await quickLogin(db, p);
