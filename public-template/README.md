@@ -33,11 +33,8 @@ Not yet: adventure, tear raids. See the roadmap in `docs/ROADMAP.md`.
 4. Double-click **START-SERVER.bat** and leave the window open.
 5. Admin page: http://localhost:18080/admin
 
-## Letting others join (no Tailscale needed)
-See `docs/HOSTING.md`. Short version:
-- **playit.gg** (free, easiest, your PC must be on): gives a fixed public address. Use it in SETUP.bat.
-- **A small cloud server** (Oracle Cloud free tier or a ~5 EUR/month VPS): online 24/7.
-- **Port forwarding** on your router (port 18080) + a free DuckDNS name.
+## Letting others join
+Friends on the same Wi-Fi use this PC's local IP (e.g. 192.168.1.20:18080), friends elsewhere join through Tailscale.
 
 ## Players: how to install
 Install the `HelloBro-<address>.apk` the server owner gives you, and copy the OBB file

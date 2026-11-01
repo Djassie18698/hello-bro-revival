@@ -64,13 +64,9 @@ Want a world of your own? The server and the game run on the same PC, nothing to
 Your save is `hellobro.db` in the folder: yours alone, kept safe by backups in `backups\`. The admin page (http://localhost:18080/admin) can give gold or reset your character.
 Friends on the same Wi-Fi can join with the same `.xapk`.
 
-### 🌍 Public server (people over the internet)
+### 🌍 Join the public server
 
-Forward **TCP port 18080** in your router to your PC, get a free name at [duckdns.org](https://www.duckdns.org), build the game file with `HOST-MY-SERVER.bat` and that name (e.g. `yourname.duckdns.org`), and start **`START-PUBLIC-SERVER.bat`** instead of `START-SERVER.bat`.
-The public server has its **own save** (`public.db`), players **must log in** (the game's account window: Play as guest, or sign up with a name and password to use the account on another phone), and the admin page asks for a password.
-Your private save is not touched: close one server and start the other to switch (both use port 18080, so one at a time).
-
-The official public server: download `HelloBro-ninjaonline.xapk` from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases).
+Play with everyone on the official server: download **`HelloBro-ninjaonline.xapk`** from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases), drag it onto BlueStacks 5, open the game and press **START**. The game remembers your phone; to use your account on another phone tap **Change > Login with Gumptech > Signup** and pick a name and password.
 
 ### 🔄 Getting the newest fixes
 
@@ -99,7 +95,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
-- **2 Nov 2026 (later):** **real login**: the game's account window now logs in on our own server (no more Gumptech), remembers your phone (Play as guest) and can sign up a name + password to move to another phone; new **`START-PUBLIC-SERVER.bat`** for an internet server with its own save, and a guide for solo playthroughs. Needs the new game file from the Releases page.
+- **2 Nov 2026 (later):** **real login**: the game's account window now logs in on our own server (no more Gumptech), remembers your phone (Play as guest) and can sign up a name + password to move to another phone; the official public server **ninjaonline** (game file on the Releases page), and a guide for solo playthroughs. Needs the new game file from the Releases page.
 - **2 Nov 2026:** all ~3 580 photos of the original game read; Save time, Ninja Test, arena rewards, Ninja Treasure, secret shop refresh and shop prices now use the original numbers, new **Growth Fund**, **change country**, **Great gift for total recharge** and **Time limited GiftPack** with the original rewards, daily spending gift and recharge streak; monthly sign-in, top-up packages, Akatsuki, country war, spar and Element Change balanced to the original photos:
   [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
 - **1 Nov 2026:** holiday and limited events (**Christmas** with the original trades, New Year, God Recruit, Hot Treasure, Gold spending, Diligence gift, Limited discount, Lottery), card stats exactly like the game, a **team builder**, everything in one **control panel**, the ramen window when out of energy, new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,

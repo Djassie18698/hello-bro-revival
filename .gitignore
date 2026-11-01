@@ -17,3 +17,7 @@ tools/dev/emu.device
 admin-password.txt
 backups-public/
 release/HelloBro-for-*.apk
+
+# the owner's public server start file stays on the owner's PC only
+START-PUBLIC-SERVER.bat
+public.db

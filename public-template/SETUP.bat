@@ -11,8 +11,6 @@ if "%XAPK%"=="" (
 echo Found %XAPK%
 echo.
 echo Which address will players use to reach this server?
-echo   playit.gg:   something.joinmc.link:12345
-echo   cloud/home:  1.2.3.4:18080  or  yourname.duckdns.org:18080
 echo   same Wi-Fi only: this PC's local IP, e.g. 192.168.1.20:18080
 set /p ADDR=Address:
 if "%ADDR%"=="" exit /b

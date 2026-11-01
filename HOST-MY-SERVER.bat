@@ -24,7 +24,7 @@ if defined ADDR (
   rem playing alone or on the same Wi-Fi: this PC's own network address works (BlueStacks on this PC reaches it too)
   for /f %%i in ('powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway } | Select-Object -First 1).IPv4Address.IPAddress"') do if not defined ADDR set ADDR=%%i
   call echo Playing alone or on the same Wi-Fi? Just press Enter to use this PC's address %%ADDR%%.
-  echo For friends elsewhere type their way in: a Tailscale IP like 100.x.x.x, or a DuckDNS / playit.gg address.
+  echo For friends elsewhere type their way in: their Tailscale IP like 100.x.x.x.
   set /p NEWADDR=Address:
 )
 if defined NEWADDR set ADDR=%NEWADDR%

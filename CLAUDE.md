@@ -132,4 +132,4 @@ Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ 
 Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
 Not built yet (Lua screens exist): cross-server battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`.
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
-(never opened), rebate wheel `rl_r_multiple_pay`. Login: gumplogin.js + release/classes-revival.dex (see NEXT-STEPS 2 Nov); public servers use START-PUBLIC-SERVER.bat (LOGIN_LOCK). Find more with: compare `reference/client-endpoints.txt` to `Object.keys(require('./handlers'))`.
+(never opened), rebate wheel `rl_r_multiple_pay`. Login: gumplogin.js + release/classes-revival.dex (see NEXT-STEPS 2 Nov); the owner's public server ninjaonline.duckdns.org runs START-PUBLIC-SERVER.bat (LOGIN_LOCK, public.db; NOT in git, owner-only by request: GitHub only offers solo/private hosting + joining ninjaonline). Find more with: compare `reference/client-endpoints.txt` to `Object.keys(require('./handlers'))`.

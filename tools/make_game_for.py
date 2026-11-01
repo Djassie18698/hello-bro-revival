@@ -1,5 +1,5 @@
 """Make the game file (XAPK) that connects to YOUR server.
-usage: python -I tools/make_game_for.py <address>        e.g. 100.64.12.34  or  myname.duckdns.org:18080
+usage: python -I tools/make_game_for.py <address>        e.g. 192.168.1.20  or  100.64.12.34
 Looks for a Hello Bro .xapk in this folder or in Downloads (the one from the Releases page), points its app at
 <address>, signs it with release/revival.keystore (needs a JDK) and writes HelloBro-for-<address>.xapk here."""
 import glob, os, subprocess, sys, zipfile

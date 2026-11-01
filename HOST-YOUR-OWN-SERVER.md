@@ -14,7 +14,6 @@ Windows PC and play on it with friends. It takes about 15 minutes.
 - **Tailscale (easiest, private):** install https://tailscale.com/download, log in, and invite your friends to your
   tailnet. Your address is shown in the Tailscale app (100.x.x.x).
 - **Same Wi-Fi only:** your PC's local IP (`ipconfig` shows it as IPv4 Address, like 192.168.1.20).
-- **Open to the internet:** see `public-template/docs/HOSTING.md` (playit.gg, a cloud server, or port forwarding).
 
 ## 3. Set up (one time)
 Double-click **HOST-MY-SERVER.bat**. It:
