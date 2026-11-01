@@ -25,3 +25,5 @@ Note: mainActivity.lua is run by C++ straight from the OBB, so patching it does 
 28.0.19 = reverts 28.0.18: ships the ORIGINAL runlevel_drop.pvr.ccz and RunLevelDrop.ccbi (the re-encoded sprite sheet drew a dark purple box instead of "So lucky"). Owner: keep the Fold button.
 28.0.20 = ui_layer/ui_sevenDayView.lua: a failed Claim on the 7-day goals shows the server's reason ("finish all goals first") instead of nothing (bug list 3).
 28.0.21 = ui_layer/ui_purchaseLayer.lua: the "49$ gift" row can show a card picture (icon_npc.. from icon/), for the original Naruto card.
+28.0.22 = util/common.lua: the cross-server battle (MULTI_BATTLE_CGI_IP) talks to the game's own server (CServerListMgr server url) instead of the dead 23.91.96.227:8080.
+28.0.23 = ui_layer/multi_battle/ui_multiBattleScoreDlg.lua: the cross-server Score Ranking pop-up starts with an empty list (it asked the size of a nil list before the server answered: Lua error).

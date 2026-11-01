@@ -12,6 +12,7 @@ const signin = require('./signin');
 const stagegift = require('./stagegift');
 const guild = require('./guild');
 const mora = require('./mora');
+const crosswar = require('./crosswar');
 const slot = require('./slot');
 const rankings = require('./rankings');
 const boss = require('./boss');
@@ -54,6 +55,7 @@ const serverXml = (s, tag) =>
 // original game servers) are created on the fly and keep the session the client sent.
 // STRICT_SESSIONS=1 (public server): only rl_w_login2 may change an account's session; every other request
 // must carry the session of the latest login, so a stale or copied session is refused.
+const playerOf = (db, p) => { const acc = accountBySession(db, p); return acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1)); };
 function accountBySession(db, p, isLogin = false) {
   const uid = Number(p.Uin || p.Uid);
   if (!uid) return null;
@@ -1191,6 +1193,30 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     return '<root code="0">' + game.arenaListXml(db, pl) + '</root>';
   },
+  // Cross-server battle (crosswar.js). Errors use code 5 + message like the rest; the rank screen gets code 0 always (its error path
+  // looks the code up in text_config, which can be nil).
+  rl_r_cross_war: ({ db, params: p }) => {
+    const pl = playerOf(db, p);
+    return pl ? '<root code="0">' + crosswar.stateXml(db, pl, p.Page) + '</root>' : '<root code="3"><message>session expired</message></root>';
+  },
+  rl_w_cwar: ({ db, params: p }) => {
+    const pl = playerOf(db, p);
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    const r = cmd === 1 ? crosswar.buyTicket(db, pl) : cmd === 2 ? crosswar.inspire(db, pl) : cmd === 3 ? crosswar.exchange(db, pl, p.ExchId) : cmd === 4 ? crosswar.topTen(db, pl) : { error: 'unknown' };
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+  },
+  rl_w_cwar_war: ({ db, params: p }) => {
+    const pl = playerOf(db, p);
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = crosswar.fight(db, pl, p.Pos);
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+  },
+  rl_r_crosswar_rank: ({ db, params: p }) => {
+    const pl = playerOf(db, p);
+    return pl ? '<root code="0">' + crosswar.rankXml(db, pl, p.Cmd) + '</root>' : '<root code="0"><rank_list></rank_list></root>';
+  },
+  rl_w_cross_war: () => '<root code="0"><fight><killer><ninjalist></ninjalist></killer><guard><ninjalist></ninjalist></guard></fight></root>', // team compare: not opened in v28
   rl_r_sportrank: ({ db }) => '<root code="0">' + game.arenaRankXml(db) + '</root>',
   rl_w_sport: ({ db, params: p }) => {
     const acc = accountBySession(db, p);

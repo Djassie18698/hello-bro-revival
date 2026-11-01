@@ -145,7 +145,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | | What |
 |---|---|
-| ⏳ | Cross-server battle (the game has the screens, the server doesn't answer yet) |
+| ✅ | Cross-server battle ("Cross" building on Home): buy a 500-gold ticket (arena top 20 are in for free), Saturday 8-9 pm fight for positions on the ladder, points every second, Inspire (200 gold, +10 %), Score Ranking, server / nation / history rankings, point shop 24 000 - 850 000 like the original (update 28.0.23) |
 
 ## Known, harmless
 

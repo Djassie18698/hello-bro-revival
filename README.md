@@ -28,7 +28,7 @@
 | | | |
 |---|---|---|
 | 🥷 **Cards & team** with chains that turn red when active | 🎰 **Recruit** with free timers and a pity counter | 🗺️ **Training** in parts, bosses, drops, reward wheel |
-| ⚔️ **Spar, Arena, Battles, War, Border war** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
+| ⚔️ **Spar, Arena, Battles, War, Border war, Cross-server battle** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
 | 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
 | 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** with Super Ninja Pills like the original |
 | 🚪 **Eight Gates** with levels (LV1-150) | 🎫 **Scratch card, treasure chests, Growth Fund, group purchase, total-recharge gifts, Time limited GiftPack, Akatsuki mall** | 📷 Numbers checked against **~3 580 photos** of the original game |
@@ -95,6 +95,8 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
+- **1 Nov 2026 (evening):** the **cross-server battle** works (the "Cross" building on Home: ticket, Saturday ladder fights, points every second, rankings and the point shop), shop purchases show at once (item counts and gear bags), gear packs give what their text says:
+  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 11). Game update 28.0.23.
 - **1 Nov 2026 (later):** **elements in fights** (Water > Fire > Wind > Thunder > Earth > Water, +15 %, "Restrain" on the result screen), real players fight with their **real team** in spar / arena / war, and every fix that was only tested on a save is now **checked in the game**:
   [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 10).
 - **2 Nov 2026 (evening):** a **Player log** tab in the control panel (levels, team attack over time, chapters reached per player); Akatsuki, war, spar, Element Change, evolve and border war checked in the game; balance simulations (`docs/BALANCE-SIMULATIONS.md`).

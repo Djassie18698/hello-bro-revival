@@ -757,3 +757,13 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     3-5 stars of a random slot. Measured after: 3☆ bag 2* 30 / 3* 60 / 4* 9 %, 4☆ bag 3* 29 / 4* 60 / 5* 11 %, named packs exact + right slot.
   * First boss 1-2 (owner not answered): replay-decided would be 55 % / 48 % / 29 % at 1-2 / 1-6 / 1-10 vs now 22 / 10 / 1 % for the starter;
     mid-game teams barely change. Left as is.
+## 1 Nov 2026 (evening): cross-server battle built
+  * crosswar.js + handlers rl_r_cross_war / rl_w_cwar / rl_w_cwar_war / rl_r_crosswar_rank (rl_w_cross_war = team compare, unused, stub).
+    Hot update 28.0.22 util/common.lua: MULTI_BATTLE_CGI_IP = CServerListMgr server url (works for every game file / host). 28.0.23
+    ui_multiBattleScoreDlg.lua: rankData = {} at init (the table asked #nil before the reply: Lua error).
+  * Opens from the Home map building "Cross" (btn_ninja -> CDefaultSLGMenu::ClickNinja; scroll the map right). Phases by server time:
+    1 tickets until Friday 20:00, 3 list made, 2 battle Saturday 20:00-21:00. HB_CWAR_PHASE=1|2|3 forces a phase, HB_CWAR=win forces wins.
+  * Status 1 / 2 / 3 screens: BuyTicket / Battling / Before. warlefttime must stay > 0 (0 makes the screen reopen itself in a loop).
+  * Checked in game: ticket (535 -> 35 gold, "You have entered already"), battle list like photo 3238, challenge 41 -> win -> position 41
+    +5 points a second, list moves to 35-40, Score Ranking, Merit tabs (present / server / nation / history), shop exchange 24 000 points ->
+    4-star Gamabunta with the card reveal. The rank screen's client-side check uses the points from its last Present load.

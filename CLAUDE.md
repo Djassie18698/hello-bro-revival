@@ -48,7 +48,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 | `server.js` | HTTP server on :18080 (rewrites `<root` to `<RENLONG`, %20-encodes raw spaces, rate limit, `/admin`, `/cdn/`) |
 | `handlers.js` | one function per client endpoint (`rl_r_*` read, `rl_w_*` write, `rl_x_*` mixed, `xk_*` login/directory) |
 | `game.js` | core: cards, team/stats, gear, sets, drops (`grantDrop`), gacha, training, fights (`battleXml`), shop, props |
-| feature modules | `totalgift` total-recharge gifts · `dailyevents` daily spending + recharge streak · `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` · `mora` · `slot` · `signin` · `rankings` · `stagegift` · `drops` |
+| feature modules | `totalgift` total-recharge gifts · `dailyevents` daily spending + recharge streak · `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `crosswar` cross-server battle · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` · `mora` · `slot` · `signin` · `rankings` · `stagegift` · `drops` |
 | `playerlog.js` / `playerlog.html` | progress log per player (level-ups, team attack changes of 2 %+, new stages / chapters, VIP, login days); control panel tab "Player log" = /admin/playerlog |
 | `gumplogin.js` | the APK's account window (Play / Login / Signup, *.do paths) on our server; `LOGIN_LOCK=1` = only its sessions count |
 | `admin.js` | admin page (players keyed "uid:server_id", server 1 = main, 2-4 = starter slots from the login region list): give gold/items/cards, set level/VIP, inventory edits, **team editor** (`/admin/api/team`, `setteam`: whole team + 8 gear slots in one transaction), **reset a player** |
@@ -100,7 +100,7 @@ The game downloads `cdn/<val>_update.zip` (via `rl_r_version` `<updatechip>`) an
 file: copy it from `re/obb/<path>` (or `reference/lua-scripts`) to `cdn/src/<same path>` (Lua goes in `cdn/src/script/...`),
 edit, `python -I tools/build_cdn.py 28.0.N` with a **higher** N, `git rm` the previous zip, note it in `docs/HOT-UPDATE.md`.
 Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing.
-Current: **28.0.21** (28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goals Claim says why it fails; 28.0.18 "Proceed" button reverted: re-encoded sprite sheets break, `tools/pvrccz.py` only reads them; 28.0.17 team screen names fit their box, `tools/ccbi.py` patches .ccbi layouts; 28.0.16 limited discount opens from the Event menu; 28.0.15 (festival screen icons fixed; (Settings has a Join Discord button; 28.0.10 English 7-day goals; earlier: top-up/VIP screen, 7-day goals in Event menu, tutorial off via `home/userguideConfig.xml` levels moved to
+Current: **28.0.23** (28.0.23 Score Ranking pop-up fix; 28.0.22 cross-server battle talks to our server; 28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goals Claim says why it fails; 28.0.18 "Proceed" button reverted: re-encoded sprite sheets break, `tools/pvrccz.py` only reads them; 28.0.17 team screen names fit their box, `tools/ccbi.py` patches .ccbi layouts; 28.0.16 limited discount opens from the Event menu; 28.0.15 (festival screen icons fixed; (Settings has a Join Discord button; 28.0.10 English 7-day goals; earlier: top-up/VIP screen, 7-day goals in Event menu, tutorial off via `home/userguideConfig.xml` levels moved to
 900+, original pet screens).
 
 ## 7. Data model cheat sheet
@@ -131,8 +131,7 @@ Current: **28.0.21** (28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goal
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
 Checked in game on 1 Nov 2026 (dev server): team slot unlocks, VIP refresh after top-up, Ninja Test boss chests.
-Not built yet (Lua screens exist): cross-server battle `rl_r_cross_war`/`rl_w_cross_war`/`rl_w_cwar`/`rl_w_cwar_war`/`rl_r_crosswar_rank`
-(owner on 2 Nov: "forget cross server battle right now"; ask before starting it).
+Cross-server battle: built 1 Nov (crosswar.js, hot update 28.0.22/23; see NEXT-STEPS).
 Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), element restrain (built), real rivals, arena teammates.
 Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 spar win screen shows silver 0 (silver is given; not found which object the screen reads);
