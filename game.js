@@ -604,7 +604,7 @@ function benchFight(db, pl, toUid) {
 }
 function rivals(db, pl, count = 8) {
   const real = db.prepare('SELECT * FROM players WHERE server_id=? AND uid!=? ORDER BY ABS(level-?) LIMIT ?').all(pl.server_id, pl.uid, pl.level, count);
-  const out = real.map((r) => ({ id: r.uid, level: r.level, nick: r.nick, country: r.country, ninja: firstNinja(db, r) }));
+  const out = real.map((r) => ({ id: r.uid, level: r.level, nick: r.nick, country: r.country, ninja: firstNinja(db, r), coin: r.coin || 0 }));
   const pool = Array.from(ninjas().values()).filter((r) => r[4] === 1);
   for (let i = 0; out.length < count; i++) {
     const n = pool[(pl.level * 7 + i * 13) % pool.length];
@@ -620,7 +620,7 @@ function rivalsXml(db, pl) {
   const f = (r) => {
     const lv = r.level, a = 20 + lv * 12;
     const o = { id: r.id, level: lv, nick: r.nick, attacklow: a, attackhigh: a + 20, defenselow: Math.floor(a / 2), defenseHigh: Math.floor(a / 2) + 10,
-      chakralow: a, chakrahigh: a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: 0, country: r.country, coin: 100 + lv * 20 };
+      chakralow: a, chakrahigh: a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
     return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
   };
   const bench = benchRivals(db).map((r) => '<user>' + Object.entries({ id: r.id, level: r.level, nick: r.nick, attacklow: r.bench, attackhigh: r.bench, defenselow: r.bench, defenseHigh: r.bench,

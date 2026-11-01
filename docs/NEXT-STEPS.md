@@ -715,3 +715,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     (gold 725 -> 315), then Challenge sends Cmd 7 and stage 6 opens.
   * exam.js guard element came from ninjainfo [5], which is an index, not an element (values 0-163, so the screen showed Water): now
     game.foeAttri like the fights. tools/dev/dev.js: admin-API shortcuts + `sql` on the dev save + `relog`.
+  * Spar list (rivalsXml) sent coin = 100 + level x 20 for everyone, but the preview silver is that coin x duelinfo [3] and sparFight now pays
+    from a real rival's real silver: real rivals now send their real coin (Riskeric 21 500 -> "Silver: 215", paid 215: checked in game).
+  * Spar WIN screen still shows silver 0 although <award><coin>215</coin> is sent and paid. Ruled out: CFightPreView::onHttpRequestCompleted
+    (InitFromXML on the root, SetFightType 6, AddDataFromReward), AddRewardData (coin -> this+0x38 = reward+4, no early exit), InitUI round
+    layer (label_round_getsilver = reward+4, only write), setIntegerVal (plain "+%d"). EXP / W.A. on that screen also equal the preview values,
+    so the screen may be built from another CFightResultData than the one parsed. Left as is (silver is paid; loss screen shows it).
