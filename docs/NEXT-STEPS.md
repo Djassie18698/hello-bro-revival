@@ -783,3 +783,18 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Tried deciding PvP by the whole-team replay (true stats both sides): spar became all-or-nothing (team totals barely vary; one card more
     or less = 0 % or 100 %), so the decisions stay (owner keeps the balance). Measured after: same win counts (235 / 277 of 480), 0 mismatches.
   * Checked in game: spar vs Ninja19427 showed his real 4-card team (Shikamaru, Naruto, Kakashi, Sasuke).
+## 1 Nov 2026 (night): new-player play-test (dev server, fresh install)
+  * Fixed: "Login with Facebook" opened /facebook2/login.do in a web view and showed raw JSON; gumplogin.js now serves a short HTML page
+    ("not available, close with X, tap PLAY"). Checked in game.
+  * Fixed: world boss name picture. boss.js sent props_115/085/100 (coin pictures), so fightBossView kept its default "Deidara" over Madara.
+    Names are boss_wt_01-11 in ccbResources/activity_05 (01 Hidan, 02 Zetsu, 03 Kakuzu, 04 Sasori, 05 Madara, 06 Kisame, 07 Obito, 08 Nagato,
+    09 Konan, 10 Itachi, 11 Deidara). Bosses rotate Kakuzu, Sasori, Deidara, Hidan, Konan, Zetsu, Itachi, Obito, Madara; the fight shows the boss.
+  * Fixed: ui_sevenDayView.lua:412 Lua error (layout has no label_get_award_day_left) skipped the rest of setLockInfo, so Claim looked green
+    for unfinished goals. 28.0.24 guards those lines; checked: no error, Claim grey.
+  * Fixed: wheel of fortune countdown showed 3649:23:59 (lasttime 10 years, 4-digit hours). Now runs to next Monday 00:00 (ours).
+  * Checked fine: login days 1-14 (day 1 claim = 2 recruitment orders), level-up gifts, monthly sign-in, Growth Fund, Lottery and Wheel
+    (level-10 gates from the game's own config), Treasure chests, Daily Task counts, recruit with an order, account window, fresh-install
+    region = Konoha (main).
+  * docs/GEAR-REPORT.md: where 5-star gear comes from (report only).
+  * Betting tab of the cross-server battle: ui_multiServerLayer only shows "Betting event isn't open" (no Lua screen behind it; the
+    multiBattleBingo.ccbi layouts exist without code). Not buildable without writing a new Lua screen.
