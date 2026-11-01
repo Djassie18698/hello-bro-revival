@@ -303,7 +303,7 @@ async function loadPlayers() {
 function renderPlayers() {
   const q = $('pq').value.toLowerCase();
   const list = players.filter((p) => !q || (p.nick + ' ' + p.uid).toLowerCase().includes(q));
-  $('plist').innerHTML = list.map((p) => '<div class="pcard' + (p.key === sel ? ' on' : '') + '" onclick="pick('' + p.key + '')">' + avatar(p) +
+  $('plist').innerHTML = list.map((p) => '<div class="pcard' + (p.key === sel ? ' on' : '') + '" data-key="' + p.key + '" onclick="pick(this.dataset.key)">' + avatar(p) +
     '<div style="min-width:0"><div class="pname">' + esc(p.nick) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
     '<div class="pmeta">Lv ' + p.level + ' · ' + fmt(p.gold) + ' gold · #' + p.uid + (p.server_id > 1 ? ' · starter slot ' + (p.server_id - 1) : '') + '</div></div></div>').join('') || '<div class="empty">No players yet</div>';
 }

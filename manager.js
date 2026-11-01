@@ -33,7 +33,7 @@ function backups() {
 
 function status(db, port) {
   const nick = db.prepare('SELECT nick, level FROM players WHERE uid=? ORDER BY level DESC LIMIT 1');
-  const online = settings.online().map((o) => ({ ...o, ...(nick.get(o.uid) || { nick: 'uid ' + o.uid, level: 0 }) })).sort((a, b) => b.at - a.at);
+  const online = settings.online().filter((o) => nick.get(o.uid)).map((o) => ({ ...o, ...nick.get(o.uid) })).sort((a, b) => b.at - a.at); // only real characters (start-up requests use placeholder ids)
   const one = (sql) => { try { return db.prepare(sql).get().n; } catch { return 0; } };
   let size = 0;
   try { size = fs.statSync(dbFile()).size; } catch {}
