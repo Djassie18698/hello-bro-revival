@@ -5,8 +5,20 @@ const game = require('./game');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const day = () => new Date().toISOString().slice(0, 10);
-const BOSSES = [ // npc icon, name icon (props), attack type
-  { icon: 'npc17_4', nameicon: 'props_115' }, { icon: 'npc20_1', nameicon: 'props_085' }, { icon: 'npc16_4', nameicon: 'props_100' },
+// The Akatsuki boss of each level, in turn: portrait (ninjainfo icon) + its name picture boss_wt_NN (ccbResources/activity_05: 01 Hidan,
+// 02 Zetsu, 03 Kakuzu, 04 Sasori, 05 Madara, 06 Kisame, 07 Obito, 08 Nagato, 09 Konan, 10 Itachi, 11 Deidara). The old props_xxx names were
+// coin pictures the screen couldn't find, so it kept its default "Deidara" over any boss. ORIGINAL bosses seen: Kakuzu, Sasori (photos 1222,
+// 1419, 1603); the order is ours.
+const BOSSES = [
+  { icon: 'npc11_6', nameicon: 'boss_wt_03' }, // Kakuzu
+  { icon: 'npc12_1', nameicon: 'boss_wt_04' }, // Sasori
+  { icon: 'npc11_5', nameicon: 'boss_wt_11' }, // Deidara
+  { icon: 'npc11_4', nameicon: 'boss_wt_01' }, // Hidan
+  { icon: 'npc19_5', nameicon: 'boss_wt_09' }, // Konan
+  { icon: 'npc17_1', nameicon: 'boss_wt_02' }, // Zetsu
+  { icon: 'npc15_2', nameicon: 'boss_wt_10' }, // Itachi
+  { icon: 'npc16_4', nameicon: 'boss_wt_07' }, // Obito
+  { icon: 'npc17_4', nameicon: 'boss_wt_05' }, // Madara
 ];
 const FIGHTS_PER_ROUND = 5, CD = 600, DICE_COST = 10, CD_COST = 20;
 const SHOP = [ // reputation shop: [id, name, icon, cost, dropid]
@@ -80,7 +92,9 @@ function fight(db, pl) {
   db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
   const look = BOSSES[(b.level - 1) % BOSSES.length];
   game.bumpTask(db, pl.uid, pl.server_id, 8); // daily task: join the world boss
-  const fightXml = game.battleXml(db, pl, 1, 1, { enemyName: 'World Boss Lv.' + b.level, enemyLevel: 50 + b.level * 5 });
+  // the fight shows the boss itself (the ninja whose portrait is on the boss screen) as the one enemy card
+  const bossNinja = (Array.from(game.ninjas().values()).find((r) => r[3] === look.icon) || [21])[0];
+  const fightXml = game.battleXml(db, pl, 1, 1, { enemyIds: [bossNinja], enemyName: 'World Boss Lv.' + b.level, enemyLevel: 50 + b.level * 5 });
   return { xml: '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + fightXml + game.awardFull({ coin }) +
     '<xiao>' + el('restlife', Math.max(0, hp)) + el('award', score) + el('outputalltime', m.dmg + dmg) + '</xiao>', look };
 }
