@@ -14,7 +14,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 2. **After every working change**, in this order:
    `node tools/dev/smoke.js` → `git add -A && git commit && git push` → `sh tools/sync_test_folder.sh` (copies the push into
    `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on; keeps its save) → tell the owner to restart
-   their server (never stop or start it yourself while they may be playing; ask first). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
+   their server (never stop or start it yourself while they may be playing; ask first). Then post a short plain-words note of the update in Discord #announcements (owner's request, 1 Nov 2026; #faq has the "can't connect after an update -> make a new game file with HOST-MY-SERVER.bat" post). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
    "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` is **PUBLIC on purpose** (owner's decision on 31 Oct 2026: it is shared with several people and this is easier).
    It still holds game files and the signing keystore, so never add anything secret to it: no tokens, passwords, personal data, `discord/.env`.
