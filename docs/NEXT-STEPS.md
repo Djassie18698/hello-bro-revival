@@ -582,3 +582,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     game.SHOP_GOLD overrides both the list (rl_r_shoplist prop_yuanbao) and the price paid.
   * Change country (switchCountry.lua): rl_r_migrate_price -> <price>300</price> (photo 3270); rl_w_propuse Cmd 1802 with ToCountry
     takes 1 Immigration Card (prop 18) + 300 gold and sets players.country. Not checked in game yet.
+- Database (2 Nov): kept SQLite (one file, no install, fine for dozens of players; Node is single-threaded so a DB server would not
+  add speed). New db.js: WAL mode + synchronous NORMAL + busy_timeout, PRAGMA quick_check on start (Server Manager tile "Save health"),
+  backup with VACUUM INTO on start and every 6 h while running (backups/hellobro-start|auto-*.db, newest 10 kept; manual-* never
+  deleted). The old start backup copied the .db file before opening, which could miss data left in a -wal file. Extra indexes
+  (pets, mail, war_log, equipped.seq, team.seq, accounts.session) + PRAGMA optimize. hellobro.db-wal / -shm are git-ignored.

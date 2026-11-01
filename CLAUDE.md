@@ -52,6 +52,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 | `admin.js` | admin page (players keyed "uid:server_id", server 1 = main, 2-4 = starter slots from the login region list): give gold/items/cards, set level/VIP, inventory edits, **team editor** (`/admin/api/team`, `setteam`: whole team + 8 gear slots in one transaction), **reset a player** |
 | `panel.html` | the control panel at `/`, `/admin`, `/manager`: tabs Server / Players & items / Team builder; it embeds `/manager?embed=1` and `/admin?embed=1` (iframes, postMessage {tab}/{goto}) |
 | `manager.js`/`manager.html`/`settings.js` | Server Manager `/manager`: status, online players, live log, events on/off (`server_settings.events_off`, used by `game.actXml`), announcement (`rl_r_bulletin`), backup, restart (exit code 3, `START-SERVER.bat` loops; `HB_MANAGED=1`) |
+| `db.js` | opens the save: SQLite WAL, health check, backups on start + every 6 h (VACUUM INTO), extra indexes |
 | `schema.js` | base tables (modules create their own with `CREATE TABLE IF NOT EXISTS`) |
 | `data/*.json` | original game tables `{types, rows}` (ninjainfo, equipmentinfo, roundinfo, dropinfo, consumeinfo, petinfo, ...) |
 | `reference/lua-scripts/` | the client's Lua UI (same as `re/obb/script`) |

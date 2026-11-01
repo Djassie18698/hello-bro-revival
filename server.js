@@ -4,7 +4,6 @@
 const http = require('http');
 const net = require('net');
 const url = require('url');
-const { DatabaseSync } = require('node:sqlite');
 const handlers = require('./handlers');
 const admin = require('./admin');
 const settings = require('./settings');
@@ -16,20 +15,12 @@ for (const k of ['log', 'error']) {
   const orig = console[k].bind(console);
   console[k] = (...a) => { settings.addLog(k === 'error' ? 'error' : 'info', a.map((x) => (x && x.stack) || String(x)).join(' ')); orig(...a); };
 }
-// Safety copy of the save on every start (keeps the last 10) in backups/.
-try {
-  const fs = require('fs'), path = require('path');
-  const src = process.env.DB || 'hellobro.db';
-  if (fs.existsSync(src)) {
-    fs.mkdirSync('backups', { recursive: true });
-    fs.copyFileSync(src, path.join('backups', 'hellobro-' + new Date().toISOString().replace(/[:.]/g, '-') + '.db'));
-    const old = fs.readdirSync('backups').filter((f) => f.endsWith('.db')).sort().slice(0, -10);
-    for (const f of old) fs.rmSync(path.join('backups', f), { force: true });
-  }
-} catch (e) { console.error('backup failed', e.message); }
-const db = new DatabaseSync(process.env.DB || 'hellobro.db');
+// The save: SQLite in WAL mode with a health check and backups on start and every 6 h (db.js).
+const dbm = require('./db');
+const db = dbm.open(process.env.DB || 'hellobro.db');
 require('./schema')(db);
 require('./consumption').ensure(db); // gold-spending log (trigger) for the spending event
+dbm.indexes(db);
 
 function parseBody(req) {
   return new Promise((res) => {
