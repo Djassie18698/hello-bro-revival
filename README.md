@@ -30,7 +30,8 @@
 | 🥷 **Cards & team** with chains that turn red when active | 🎰 **Recruit** with free timers and a pity counter | 🗺️ **Training** in parts, bosses, drops, reward wheel |
 | ⚔️ **Spar, Arena, Battles, War, Border war** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
 | 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
-| 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** 1x / 10x |
+| 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** with Super Ninja Pills like the original |
+| 🚪 **Eight Gates** with levels (LV1-150) | 🎫 **Scratch card, treasure chests, Growth Fund, limited group purchase** | 📷 Numbers checked against **~3 580 photos** of the original game |
 
 Every number that came from the game's own data is kept as it was. Where the original value was lost on the dead server we picked one and marked it **(ours)** in the code and in the docs.
 
