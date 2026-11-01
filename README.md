@@ -15,7 +15,7 @@
 
 <br>
 
-<a href="https://discord.gg/Z7nCMgmcx"><img src="https://img.shields.io/badge/JOIN%20OUR%20DISCORD-Bugs%20%C2%B7%20Help%20%C2%B7%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord" height="56"></a>
+<a href="https://discord.gg/2Cbp4UDHrU"><img src="https://img.shields.io/badge/JOIN%20OUR%20DISCORD-Bugs%20%C2%B7%20Help%20%C2%B7%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord" height="56"></a>
 
 *Report bugs, get help installing, and play with the community.*
 
@@ -58,7 +58,7 @@ Close the server window, double-click **`UPDATE.bat`** (first time it installs t
 
 ## 🐞 Found a bug?
 
-**Quickest:** post it in our [Discord](https://discord.gg/Z7nCMgmcx) with a screenshot.
+**Quickest:** post it in our [Discord](https://discord.gg/2Cbp4UDHrU) with a screenshot.
 
 Open an issue with the **Bug report** template: [new issue](https://github.com/Djassie18698/hello-bro-revival/issues/new/choose).
 Or add a comment with a screenshot and one line to the running lists:

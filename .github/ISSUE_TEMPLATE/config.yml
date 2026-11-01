@@ -1,1 +1,5 @@
 blank_issues_enabled: true
+contact_links:
+  - name: Discord (help, bugs, community)
+    url: https://discord.gg/2Cbp4UDHrU
+    about: Quickest way to get help or report a bug, with a screenshot.

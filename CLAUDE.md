@@ -120,6 +120,7 @@ Current: **28.0.9** (top-up/VIP screen, 7-day goals in Event menu, tutorial off 
   host their own; guide in `HOST-YOUR-OWN-SERVER.md`). Public code-only repo: `Djassie18698/hello-bro-revival-public`
   (local clone `C:\Users\dj199\hello-bro-public`), rebuilt with `python -I tools/make_public.py C:/Users/dj199/hello-bro-public`
   (it refuses game files, keystores, the owner's IPs/uids) and pushed after features change.
+- **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU** — use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
   write the text to a file first). Channels include #install-help, #guides, #how-to-play, #announcements, #patch-testing.
 
