@@ -593,3 +593,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     21 reincarnation (before only 1,2,4,5,6,17,18,20 = max 95 points). Checked in game (10/250 bar, 7 chests).
   * Shinobi training costs like the original (photos 1835-1840, 1347): 2 Super Ninja Pills, or 1 pill + 10 gold; 10 times = 20 pills
     or 10 + 80 gold (ours). Was free. Checked in game (screen shows the costs, pills taken).
+  * Eight Gates rebuilt with levels (ui_limitTrainLayer.lua: gate_level = LV, gate_id = next point 1-8, *_per in TENTHS of a percent:
+    we sent 2 for 2% = shown 0.2%). prop 9997 = points opened, 8 a level, cap LV150. Cost a point = 80 x LV souls + 15x silver
+    (photo 2171 LV1 = 80 + 1200 exact). Bonus after n points (x = n/8): flat 340 x^1.5, percent 0.006 x^2 + 0.2 x (fits LV10-LV100
+    photo totals within ~5%). Old saves keep their 0-8 points (now LV1-2 with a smaller bonus than the old flat 120/2% a point).
+    Checked in game (LV:1 -> LV:2, costs, totals).

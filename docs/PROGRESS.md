@@ -102,6 +102,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Ramen window when out of energy in training |
 | 🧪 | "Save time" paid far too much (30 000 EXP in chapter 1): now exactly like the original screen from the photos (chapter 11-6 = 3200 EXP / 3800 silver), VIP1 and level 80 needed, 2 free chances a day per VIP level, then 10 gold |
 | 🧪 | Levelling up refills grudge too, like the original pop-up |
+| ✅ | Eight Gates have levels like the original (LV1, LV2 ... up to 150; cost 80 souls + 1200 silver at LV1, rising) |
 | ✅ | Daily Task: original 250-point bar and 250 chest (30 000 silver, 100 gold, 10 Reincarnation Pills, Killer B fragment); all tasks now count |
 | ✅ | Shinobi training costs Super Ninja Pills like the original (2 pills, or 1 pill + 10 gold) |
 | ✅ | Save file ready for many players: faster write mode, health check, automatic backup every 6 hours while running |

@@ -1086,26 +1086,34 @@ function friendsXml(db, pl, nick) {
 }
 
 // ---- Eight Inner Gates (Dun) -----------------------------------------------------------------
-// gate level 0-8 per player; each gate costs souls (prop 9998) + silver; bonus = flat + percent on the team total.
-const GATE_SOUL = 9998;
-function gateLevel(db, uid, sid) { return Math.min(8, propCounts(db, uid, sid)[9997] || 0); }
-function gateBonus(lv) { return { flat: 120 * lv, pct: 0.02 * lv }; }
+// Eight Inner Gates. prop 9997 = points opened (8 points = one gate level; old saves keep their 0-8 points = level 1-2).
+// ORIGINAL (Facebook photos, FINDINGS.md): the screen shows LV:N and the 8 gate points of that level; a point costs souls (prop 9998)
+// + 15 x those souls in silver ("1018 souls + 15 270 silver" ... "7120 + 106 800"); levels seen up to 150. Fitted to the photos:
+// souls a point = 80 x level (LV1 80, LV45 3600 vs 3514, LV53 4240 vs 4403, LV100 8000 vs 7120); team bonus after n points
+// (x = n / 8 levels): flat = 340 x x^1.5 to attack, defence and chakra (LV10 10 750 vs 10 312, LV25 42 500 vs 41 939, LV100 340 000
+// vs 334 236) and percent = 0.006 x^2 + 0.2 x (LV45 21% seen 21%, LV53 27.5% vs 28-31%, LV100 80% vs 81%). The client shows the
+// percent in tenths (add_attack_per 210 = 21%).
+const GATE_SOUL = 9998, GATE_MAX = 150 * 8;
+function gateLevel(db, uid, sid) { return Math.min(GATE_MAX, propCounts(db, uid, sid)[9997] || 0); } // points opened
+function gateBonus(n) { const x = n / 8; return { flat: Math.round(340 * x ** 1.5), pct: (0.006 * x * x + 0.2 * x) / 100 }; }
+const gateCost = (n) => { const soul = 80 * (Math.floor(n / 8) + 1); return { soul, coin: 15 * soul }; };
 function gateXml(db, pl) {
   const c = propCounts(db, pl.uid, pl.server_id);
   if (c[GATE_SOUL] === undefined) { propAdd(db, pl.uid, pl.server_id, GATE_SOUL, 5000); c[GATE_SOUL] = 5000; }
-  const lv = gateLevel(db, pl.uid, pl.server_id), b = gateBonus(lv), nx = gateBonus(Math.min(8, lv + 1));
+  const n = gateLevel(db, pl.uid, pl.server_id), b = gateBonus(n), nx = gateBonus(Math.min(GATE_MAX, n + 1)), cost = gateCost(n);
   const kinds = [1, 2, 3].map((t) => `<gate type="${t}" value="${nx.flat - b.flat}"/>`).join('');
-  return `<basic>${el('soul', c[GATE_SOUL])}${el('gate_level', lv)}${el('cost_soul', 100 * (lv + 1))}${el('cost_coin', 1000 * (lv + 1))}<gate_id id="${Math.min(8, lv + 1)}">${kinds}</gate_id></basic>` +
-    `<attribute>${el('add_attack', b.flat)}${el('add_defense', b.flat)}${el('add_chakala', b.flat)}${el('add_attack_per', Math.round(b.pct * 100))}${el('add_defense_per', Math.round(b.pct * 100))}${el('add_chakala_per', Math.round(b.pct * 100))}</attribute>`;
+  const per = Math.round(b.pct * 1000);
+  return `<basic>${el('soul', c[GATE_SOUL])}${el('gate_level', Math.floor(n / 8) + 1)}${el('cost_soul', cost.soul)}${el('cost_coin', cost.coin)}<gate_id id="${(n % 8) + 1}">${kinds}</gate_id></basic>` +
+    `<attribute>${el('add_attack', b.flat)}${el('add_defense', b.flat)}${el('add_chakala', b.flat)}${el('add_attack_per', per)}${el('add_defense_per', per)}${el('add_chakala_per', per)}</attribute>`;
 }
 function gateOpen(db, pl) {
-  const lv = gateLevel(db, pl.uid, pl.server_id);
-  if (lv >= 8) return { error: 'all gates open' };
-  const c = propCounts(db, pl.uid, pl.server_id), soul = c[GATE_SOUL] === undefined ? 5000 : c[GATE_SOUL];
-  if (soul < 100 * (lv + 1)) return { error: 'not enough souls', code: 400006 };
-  if (pl.coin < 1000 * (lv + 1)) return { error: 'not enough silver' };
-  db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(1000 * (lv + 1), pl.uid, pl.server_id);
-  propAdd(db, pl.uid, pl.server_id, GATE_SOUL, c[GATE_SOUL] === undefined ? 5000 - 100 * (lv + 1) : -100 * (lv + 1));
+  const n = gateLevel(db, pl.uid, pl.server_id);
+  if (n >= GATE_MAX) return { error: 'all gates open' };
+  const c = propCounts(db, pl.uid, pl.server_id), soul = c[GATE_SOUL] === undefined ? 5000 : c[GATE_SOUL], cost = gateCost(n);
+  if (soul < cost.soul) return { error: 'not enough souls', code: 400006 };
+  if (pl.coin < cost.coin) return { error: 'not enough silver' };
+  db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost.coin, pl.uid, pl.server_id);
+  propAdd(db, pl.uid, pl.server_id, GATE_SOUL, c[GATE_SOUL] === undefined ? 5000 - cost.soul : -cost.soul);
   propAdd(db, pl.uid, pl.server_id, 9997, 1);
   return {};
 }
