@@ -296,24 +296,24 @@ let players = [], sel = null, cat = '', stars = 0, inv = { cards: [], props: [] 
 async function loadPlayers() {
   players = await api('players');
   const first = !sel && players.length;
-  if (first) sel = players[0].uid;
+  if (first) sel = players[0].key;
   renderPlayers(); renderHero();
   if (first && $('v-team').classList.contains('on')) loadTeam();
 }
 function renderPlayers() {
   const q = $('pq').value.toLowerCase();
   const list = players.filter((p) => !q || (p.nick + ' ' + p.uid).toLowerCase().includes(q));
-  $('plist').innerHTML = list.map((p) => '<div class="pcard' + (p.uid === sel ? ' on' : '') + '" onclick="pick(' + p.uid + ')">' + avatar(p) +
+  $('plist').innerHTML = list.map((p) => '<div class="pcard' + (p.key === sel ? ' on' : '') + '" onclick="pick('' + p.key + '')">' + avatar(p) +
     '<div style="min-width:0"><div class="pname">' + esc(p.nick) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
-    '<div class="pmeta">Lv ' + p.level + ' · ' + fmt(p.gold) + ' gold · #' + p.uid + '</div></div></div>').join('') || '<div class="empty">No players yet</div>';
+    '<div class="pmeta">Lv ' + p.level + ' · ' + fmt(p.gold) + ' gold · #' + p.uid + (p.server_id > 1 ? ' · starter slot ' + (p.server_id - 1) : '') + '</div></div></div>').join('') || '<div class="empty">No players yet</div>';
 }
 function pick(uid) { sel = uid; renderPlayers(); renderHero(); if ($('v-inv').classList.contains('on')) loadInv(); if ($('v-team').classList.contains('on')) loadTeam(); }
-function current() { return players.find((p) => p.uid === sel); }
+function current() { return players.find((p) => p.key === sel); }
 function renderHero() {
   const p = current();
   if (!p) { $('hero').innerHTML = '<div class="empty">Nobody has made a character on this server yet.</div>'; return; }
   const s = (k, v) => '<div class="stat"><span>' + k + '</span><b>' + v + '</b></div>';
-  $('hero').innerHTML = '<div class="who">' + avatar(p) + '<div><h2>' + esc(p.nick) + '</h2><div class="pmeta">Player #' + p.uid + ' · server ' + p.server_id + '</div></div></div>' +
+  $('hero').innerHTML = '<div class="who">' + avatar(p) + '<div><h2>' + esc(p.nick) + '</h2><div class="pmeta">Player #' + p.uid + ' · ' + (p.server_id > 1 ? 'starter slot ' + (p.server_id - 1) : 'main character') + '</div></div></div>' +
     '<div class="stats">' + s('Level', p.level) + s('VIP', p.vip) + s('Gold', fmt(p.gold)) + s('Silver', fmt(p.coin)) + s('Energy', fmt(p.energy)) + s('Cards', fmt(p.cards)) + '</div>' +
     '<div class="note">💡 <div><b>New cards, equipment and pets only show after the game is closed completely</b> (swipe it away in the recent-apps list) and opened again. The game reads your cards only when it starts.</div></div>';
 }

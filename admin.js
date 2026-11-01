@@ -7,7 +7,7 @@ const vip = require('./vip');
 
 // Delete one player's character and everything tied to it (the login account stays, so the same device just makes a
 // new character). Shared tables that name the player another way are cleaned too. A save backup is written first.
-function resetPlayer(db, uid) {
+function resetPlayer(db, uid, sid = 1) {
   try {
     const dir = path.join(__dirname, 'backups');
     fs.mkdirSync(dir, { recursive: true });
@@ -17,12 +17,17 @@ function resetPlayer(db, uid) {
   for (const t of tables) {
     if (t === 'accounts' || t === 'sqlite_sequence') continue;
     const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
-    if (cols.includes('uid')) db.prepare(`DELETE FROM ${t} WHERE uid=?`).run(uid);
+    if (cols.includes('uid')) { if (cols.includes('server_id')) db.prepare(`DELETE FROM ${t} WHERE uid=? AND server_id=?`).run(uid, sid); else if (sid === 1) db.prepare(`DELETE FROM ${t} WHERE uid=?`).run(uid); }
   }
   if (tables.includes('mail')) db.prepare('DELETE FROM mail WHERE to_uid=?').run(uid);
   if (tables.includes('groups')) db.prepare('DELETE FROM groups WHERE leader_uid=?').run(uid);
 }
 
+// Admin player key: "uid:server_id" (one login can own a character per server slot); a bare uid means server 1.
+function findPlayer(db, key) {
+  const [uid, sid] = String(key || '').split(':').map(Number);
+  return uid ? db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(uid, sid || 1) : null;
+}
 const json = (res, o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
 
 // Private play: no password. Public server: set ADMIN_PASSWORD; the browser then asks for it (user name is ignored).
@@ -326,7 +331,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (u.pathname === '/admin/api/players') {
     const rows = db.prepare(`SELECT p.uid,p.nick,p.level,p.gold,p.coin,p.energy,p.server_id,
       (SELECT COUNT(*) FROM cards c WHERE c.uid=p.uid AND c.server_id=p.server_id) cards FROM players p ORDER BY p.level DESC, p.uid`).all();
-    return json(res, rows.map((p) => ({ ...p, vip: vip.level(db, p.uid, p.server_id) })));
+    return json(res, rows.map((p) => ({ ...p, key: p.uid + ':' + p.server_id, vip: vip.level(db, p.uid, p.server_id) })));
   }
   if (u.pathname === '/admin/api/catalog') {
     const q = String(u.query.q || '').toLowerCase(), cat = String(u.query.cat || ''), stars = Number(u.query.stars) || 0;
@@ -334,11 +339,11 @@ module.exports = async function admin(req, res, u, db, readBody) {
     return json(res, { total: list.length, items: u.query.all ? list : list.slice(0, 300) });
   }
   if (u.pathname === '/admin/api/team') {
-    const pl = db.prepare('SELECT * FROM players WHERE uid=?').get(Number(u.query.uid));
+    const pl = findPlayer(db, u.query.uid);
     return json(res, pl ? teamView(db, pl) : { max: 0, slots: [], owned: {} });
   }
   if (u.pathname === '/admin/api/inventory') {
-    const pl = db.prepare('SELECT * FROM players WHERE uid=?').get(Number(u.query.uid));
+    const pl = findPlayer(db, u.query.uid);
     if (!pl) return json(res, { cards: [], props: [] });
     const cards = db.prepare('SELECT seq, type, ninja_id, level, newlife, starlevel FROM cards WHERE uid=? AND server_id=? ORDER BY type, seq DESC').all(pl.uid, pl.server_id)
       .map((c) => ({ seq: c.seq, kind: CARD_TYPES[c.type] || '?', name: cardName(c.type, c.ninja_id), level: c.level, newlife: c.newlife || 0, growth: c.starlevel || 0, cat: c.type === 1 ? 'ninja' : c.type <= 4 ? 'equip' : c.type === 5 ? 'seal' : 'ninjutsu' }));
@@ -354,7 +359,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (req.method === 'POST') {
     let b;
     try { b = JSON.parse(await readBody(req)); } catch { return json(res, { ok: false, error: 'bad json' }); }
-    const pl = db.prepare('SELECT * FROM players WHERE uid=?').get(b.uid);
+    const pl = findPlayer(db, b.uid);
     if (!pl) return json(res, { ok: false, error: 'no such player' });
     if (u.pathname === '/admin/api/give') {
       if (b.field === 'renown' || b.field === 'souls') { game.propAdd(db, pl.uid, pl.server_id, b.field === 'renown' ? 9996 : 9999, Math.trunc(Number(b.amount)) || 0); return json(res, { ok: true }); }
@@ -410,7 +415,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       return json(res, { ok: true });
     }
     if (u.pathname === '/admin/api/reset') {
-      resetPlayer(db, pl.uid);
+      resetPlayer(db, pl.uid, pl.server_id);
       return json(res, { ok: true });
     }
     if (u.pathname === '/admin/api/givecard') { // old page / scripts

@@ -504,3 +504,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   -> 203 left, vs 125 -> 78; victory screen "total attack 671 vs total defence 285". game.battleXml play(): one roll per my ninja; enemy defence
   scaled so the replay ends the way the server decided. Verified in game: a lost spar (attack < defence rounds) plays out and shows Lose, no crash.
   Not built yet: ninjutsu "skill damage increase" pop-ups (FinalAttack > Attack with <skills>).
+
+## Account picker (1 Nov 2026, owner request)
+- The login screen region list (xk_r_dir serverlist) now has 4 entries: 1 "Konoha (main)", 2-4 "Starter slot 1-3". Every save is keyed by
+  (uid, server_id), so one login can hold a main and up to 3 starters; each slot is its own world (rankings, guilds, friends per server).
+  Verified in game: the list shows, Starter slot 1 + START opens a new character (nation choice).
+- Admin/control panel: players are keyed "uid:server_id" (findPlayer); the list says "starter slot N"; Reset only deletes that slot.
