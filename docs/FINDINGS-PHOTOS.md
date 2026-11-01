@@ -402,7 +402,26 @@ from the game at all; those are skipped. Most screenshots are from the English H
 | Time limited GiftPack ("Preferential" tab) | "lowest **$19** recharge, claim **$60** price giftpack": 5-star Shinobi (God) chest + 5 keys + 4-star Ninjutsu + 3 EXP; event 70 h (`2755`) | not built |
 
 ## Holiday events
-(Valentine, Santa Killer B and Goddess Tsunade recruit screens: not seen yet in batches 1-4; will add if later batches show them.)
+(Second pass, 2 Nov: all batches 01-84, about 3 580 photos, checked for holiday screens. **No** Valentine, Goddess Tsunade, Halloween or
+"God recruit" slot screens and **no** Christmas Buy price or caps/trees-per-fight number appear on any photo. What was found is below.)
+
+### Santa Killer B and other holiday finds (batches 07-84)
+- **Killer B (Santa Claus)** is a real 5-star card. Its card screen shows chains Third Raikage +25% DEF and ATK, equip Tailed Beast Mode +25%, Naruto Uzumaki +25%,
+  Fourth Raikage +25%, trinket Kohaku Johei +25%, all shinobi ATK/DEF +3% (`batch-83/3133`, `batch-07/1566`). In the shop Tool tab it is sold as
+  **"Killer B (Santa Claus) Ninja Soul": every 50 souls synthesise one card**, shown as "Currently not for sale" outside the event (`batch-83/3261`). On the same
+  screen, Sage Naruto Ninja Soul needs 40. So the Santa card came from soul items sold or dropped during the event, not from a recruit screen.
+- **Santa of the Six Paths (God)** card screen: chains Kaguya +30% ATK and DEF, Six Path Madara / Naruto / Sasuke +30%, all shinobi +15% ATK and DEF, all +10%
+  (`batch-84/3550`, `3572`). It is sold for **3500 souls** in the Secret shop (`batch-07`).
+- **Kaguya for New Year** is the headliner of an S-shinobi draw, with ranking rewards 1 Kaguya for New Year, 2-2 Six Paths Sasuke, 3-5 Hashirama, 6-10 Tobirama (A).
+  The screen says "After another 6 recruits, the next will grant you a Purple Card" (`batch-84/3564`).
+- **Christmas mails:** system mails "Christmas gift : Merry Christmas" and "Last festivity 1600 gold" (`batch-82/2913`); a player title "S73-Christmas" (`batch-81/2761`).
+- **Chinese New Year look:** the Wheel of Fortune has a red New Year skin with a 100-Gold-draw super pool (`batch-82/2975`, `batch-83/3055`), and the "Rich" board
+  says "wishing everyone prosperity and luck in the year" (`2828`, `2871`).
+
+### Normal recruit (not the event draw)
+- The recruit screen shows only the free timers ("Free after 4 days 9 hours" / "2 days 9 hours" (`batch-81/2780`), "Free after 00:01" (`batch-84/3360`)) and
+  "You have: 0, Use recruitment orders x1". **No "recruit N more" pity line is ever shown on the normal recruit**, so the photos cannot give a normal pity number.
+  Only the S-shinobi draw has a pity counter: "Recruit N more will get one" with N from 1 to 9 = **every 10th draw** (seen dozens of times in batches 80-84).
 
 ### Christmas festival ("Merry Christmas" tab in the Event menu, next to Flower Worship / Treasure / Growth Fund)
 - **How you get the items:** Christmas Cap = "go training, batter" (training fights), Christmas Tree = "go spar" (spar fights). A **Buy** button on the
@@ -455,7 +474,7 @@ Checked and already right: stage rewards, reincarnation pill costs, ninjutsu val
 
 Still open (seen in photos, not built): daily task 250-point chests, Eight Gates with levels (15 x souls silver), shinobi training with pills, Treasure (key) chests, limited group purchase, cross-server battle, scratch card, succession (inherit) screen, sage growth chances per level, recruit free timers (owner keeps 24 h / 8 h).
 
-## Summary: what differs most from the server (batches 1-6, 20, 60, 61)
+## Summary 1 Nov (batches 1-6, 20, 60, 61 only; see the newer summary at the end)
 Read so far: batch-01 to batch-06, batch-20, batch-60, batch-61 (about 1 660 photos). Later batches (07+, 21+, 40+) were not there yet.
 
 **Server already right:** VIP thresholds VIP1 $1, VIP3 $30, VIP5 $100 (exp = $ x 10); energy 1 point per 3 min; stage energy/EXP/silver
@@ -477,3 +496,17 @@ Read so far: batch-01 to batch-06, batch-20, batch-60, batch-61 (about 1 660 pho
 13. **God breakthrough:** 60 000 silver at +1; ninjutsu trigger +1% and restrain +2% (server has them swapped).
 
 **Still not found:** normal recruit pity number (event draw pity is <= 10, "Recruit 3 more" etc.), VIP 6-18 thresholds, VIP benefit list, Christmas cap/tree drop per fight and Buy price, Valentine / Santa Killer B / Goddess Tsunade recruit screens.
+
+## Summary 2 Nov (all batches): what still differs most from the server
+All folders batch-01 to batch-84 are read (about 3 580 photos). The "Update 2 Nov" list above says what was already changed on the server.
+Still different, or still to build, ordered by how much a player notices:
+1. **Daily task chests:** 250 points, chests at 120 / 160 / 210 / 250 (the 250 chest = 30 000 silver + 100 gold + 10 Reincarnation Pills + Killer B fragment). The server uses 100 points.
+2. **Sage growth chance per level:** Sage 0 95%, Sage 10 11%, Sage 12 6-10%, Sage 13 1-8%, Sage 14 4-7%, Sage 15 8%. The server uses at least 30%.
+3. **Eight Inner Gates** have levels: each point costs souls plus 15 x souls in silver, with +7% to +81% totals at high levels.
+4. **Shinobi training** costs 1 Super Ninja Pill + 4000 silver per try at 70%. "Foster 5" = 10 pills, or 5 pills + 40 gold.
+5. **First top-up is x3** ($0.99 = 135 gold). The later Google Play table is $19.99 = 2850, $49.99 = 7200, $99.99 = 14 400 (`batch-84/3478`), which differs from the earlier $0.99 = 45 / $19.99 = 950 table. Two price eras existed.
+6. **Ninja Test boss chests:** first free, then 160 and 250 gold ("spend gold 250 to open?" `batch-82/2954`). The server uses 30 / 80.
+7. **W.A. ranks 8-14** are also confirmed by `batch-84/3382`: 30 000 / 45 000 / 60 000 / 90 000 / 120 000 / 160 000 W.A. = +550 ... +1100, the same as `data/playemedal.json`.
+8. **Not built:** Treasure (key) chests, limited group purchase, cross-server battle, scratch card (prizes 5-800 gold), Time limited GiftPack ($19 -> $60 pack), "Great gift for total recharge".
+
+**Never shown on any photo:** normal recruit pity number, VIP 6-18 thresholds, VIP benefit list, Christmas cap/tree drop per fight and Buy price, Valentine and Goddess Tsunade events.

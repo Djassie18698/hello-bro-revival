@@ -601,3 +601,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Scratch card built (scratch.js, rl_w_guaguale Cmd 1700 <root free usercash>, 1701 <root usercash><win cash/><cards><card><id/><cash/>
     <icon/></card>x9</cards>; Event menu id 7 "Lottery", Server Manager switch). Prizes 5-800 gold from the photos; odds (ours) average
     20 gold back per 20-gold card; 1 free card a day (ours); faces = icon_<ninjainfo[3]>. Counts daily task 9. Checked in game.
+  * Treasure chests built (box.js, Event menu id 16 boxOpenActivityView.lua, rl_w_propuse Cmd 1804 info / 1803 Goodsid open; table boxopen).
+    Prize lists = boxOpenInfoData.lua (original), weights/key gold prices/opens a day (25 + 5 x VIP) ours; "Double the reward" sets
+    the chest's double flag (next prize x2). Keys 22/23/24: 8% bronze key on normal story wins, 8% silver key on boss wins (ours).
+    Counts daily task 15 (gold chest). Checked in game (gold + bronze chest rewards shown).

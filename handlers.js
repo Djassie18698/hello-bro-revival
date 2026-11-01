@@ -125,7 +125,10 @@ function trainingFight(db, pl, chap, part, pos, buy) {
 // dropinfo ids: 250 Sage Stone III*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
 function stageAward(db, pl, row, coin, exp) {
   const r = Math.random();
-  const dropId = Number(process.env.HB_STAGE_DROP) || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
+  // Treasure chest keys also drop from story fights, as in the original (victory card "Bronze Key", photo 2500; dropinfo 549/550 list
+  // keys with stage drops): 8% a bronze key on a normal stage, 8% a silver key on a boss stage (ours).
+  const key = Math.random() < 0.08 ? (row[38] ? 513 : 514) : 0;
+  const dropId = Number(process.env.HB_STAGE_DROP) || key || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
   const xml = game.grantDrop(db, pl, dropId);
   if (!xml) return game.awardFull({});
   const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
@@ -656,6 +659,13 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    // Treasure chests (box.js): Cmd 1804 info, 1803 Goodsid = open the gold / silver / bronze chest
+    if (Number(p.Cmd) === 1804 || Number(p.Cmd) === 1803) {
+      const box = require('./box');
+      if (Number(p.Cmd) === 1804) return '<root code="0">' + box.infoXml(db, pl) + '</root>';
+      const r = box.open(db, pl, Number(p.Goodsid));
+      return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
     // Immigration Card (prop 18) from switchCountry.lua: Cmd 1802 + ToCountry; costs the card and MIGRATE_PRICE gold.
     if (p.ToCountry !== undefined) {
       const to = Number(p.ToCountry);
