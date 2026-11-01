@@ -95,6 +95,8 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
+- **1 Nov 2026 (night):** fights scale: real players bring their **whole team**, bots about as many cards as you, every enemy card **varies** each fight, and watching or skipping a fight gives the same result; story bosses stay hard. Discord tidied up with chaptered guides:
+  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 12).
 - **1 Nov 2026 (evening):** the **cross-server battle** works (the "Cross" building on Home: ticket, Saturday ladder fights, points every second, rankings and the point shop), shop purchases show at once (item counts and gear bags), gear packs give what their text says:
   [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 11). Game update 28.0.23.
 - **1 Nov 2026 (later):** **elements in fights** (Water > Fire > Wind > Thunder > Earth > Water, +15 %, "Restrain" on the result screen), real players fight with their **real team** in spar / arena / war, and every fix that was only tested on a save is now **checked in the game**:
