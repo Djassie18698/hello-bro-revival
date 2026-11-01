@@ -3,7 +3,7 @@
 The owner asked: "do a lot of simulations for drop rates, and whether it's possible to finish the game ... without waiting hours for
 stamina. Don't apply the results yet, save them in a list and tell me what you would do with them."
 
-**Nothing in the game was changed.** The script is `tools/dev/sim_balance.js` (run it with `node tools/dev/sim_balance.js`); it uses the
+**Nothing in the game was changed.** Owner's decision (2 Nov 2026): keep everything as it is (last boss stays 2.5 million) and let it play out, since gold and pulls are freely available. The script is `tools/dev/sim_balance.js` (run it with `node tools/dev/sim_balance.js`); it uses the
 game's own tables and the server's own formulas (team power, enemy strength, energy, EXP). Raw numbers: `BALANCE-SIMULATIONS.json`.
 
 ## What was simulated

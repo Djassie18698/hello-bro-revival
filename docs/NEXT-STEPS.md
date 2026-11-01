@@ -685,3 +685,4 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 
 ## 2 Nov 2026 (night): balance simulations
   * tools/dev/sim_balance.js -> docs/BALANCE-SIMULATIONS.md (+ .json). Nothing applied; the report lists what I would change (owner decides).
+  * Owner decided: keep the balance as is (last boss 2.5M, recruit rates, EXP) - let it play out.
