@@ -484,3 +484,5 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Verified in game (Battles): enemies show 523/482/523, count to 0 on the hit, no crash.
 - Admin "Unlock everything" (game.unlockAll): level = last playerlevel row (350), all 19 chapters cleared (stage_clears + progress),
   Battles 3x6 cleared, energy full; team slots follow (newcardinfo has 26 rows, the last at level 350). Verified in game: slots open.
+- Battles (rl_w_dup) enemies + reward from towerfloor ([2] chapter, 7 rows per chapter in id order, [4..8] the 5 enemies, [20] exp, [21] silver);
+  before it was always the same 3 placeholder enemies (owner screenshot). npc level = 10 x chapter + round (ours). Verified in game (Kidomaru + 4 Amegakure).

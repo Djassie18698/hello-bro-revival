@@ -1102,13 +1102,14 @@ module.exports = {
       return '<root code="0"><dup_list>' + list + '</dup_list></root>';
     }
     const chap = Number(p.Chap || 1), round = Number(p.Round || 1);
-    const exp = 60 * chap, coin = 90 * chap;
+    const trow = game.towerRow(chap, round) || [];
+    const exp = trow[20] || 60 * chap, coin = trow[21] || 90 * chap; // the round's own reward (towerfloor)
     game.addExp(db, pl, exp);
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
     game.setStage(db, pl.uid, sid, 1000 + chap, round + 1);
     game.bumpTask(db, pl.uid, sid, 1);
     festival.dropOnWin(db, pl, 'training'); // battles drop Christmas Caps too
-    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { enemyLevel: 10 * chap }) + stageAward(db, pl, [], 0, 0) + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3); the client credits exp/silver itself
+    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { foes: game.towerFoes(chap, round) || undefined, win: true, enemyName: String((game.ninjas().get((trow[4] || 0)) || [])[2] || 'Enemy'), enemyLevel: 10 * chap }) + stageAward(db, pl, [], 0, 0) + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3); the client credits exp/silver itself
   },
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).

@@ -1164,6 +1164,17 @@ function stageFoes(chap, stage) {
     return { id, low: s.al, high: s.ah, def: Math.round((s.dl + s.dh) / 2), end: Math.round((s.dl + s.dh) * 2 + 300), level: lv, star: n[11] || 2, power: (s.al + s.ah) / 2 + (s.dl + s.dh) / 2 };
   });
 }
+// Battles ("dup", rushtower chapters 1-25): towerfloor rows with [2] = chapter, 7 rounds each in id order (the map: 6 shinobi then the boss);
+// [4..8] the five enemies (the first is the named one), [20] exp, [21] silver (the reward the round's popup shows).
+function towerRow(chap, round) { return table('towerfloor').rows.filter((r) => r[2] === chap).sort((a, b) => a[0] - b[0])[round - 1] || null; }
+function towerFoes(chap, round) {
+  const row = towerRow(chap, round);
+  if (!row) return null;
+  return row.slice(4, 9).filter((x) => x > 0).map((id) => {
+    const n = ninjas().get(id) || [], lv = n[7] || chap * 10 + round, s = npcStats(n[11] || 2, lv); // tower npcs have no level: (ours) 10 x chapter + round
+    return { id, low: s.al, high: s.ah, def: Math.round((s.dl + s.dh) / 2), end: Math.round((s.dl + s.dh) * 2 + 300), level: lv, star: n[11] || 2, power: (s.al + s.ah) / 2 + (s.dl + s.dh) / 2 };
+  });
+}
 function getStage(db, uid, sid, chap) {
   ensure(db);
   const r = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
@@ -1302,4 +1313,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq: giveCard(db, pl.uid, pl.server_id, god) };
 }
 
-module.exports = { unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
