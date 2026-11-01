@@ -740,3 +740,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     stage-1-2 anchor 285 (owner video). handlers rl_w_pve decides by average attack x 0.85-1.15 -> 23 % win, 45 % stuck after 3 tries on
     day 1. If the replay decided (attack roll + ninjutsu + element, battleXml real mode, like the original fight) it would be 55 % / 9 %.
     Asked the owner (balance decision); nothing changed.
+  * Shop Tool tab count re-checked with the reply log: after rl_w_shopbuy (retobj type 2 id 1 count 1) the client does NOT re-request
+    rl_r_shoplist (older note was wrong). CItemView buy branch: LoadTradeInfo -> GetRetObj {type, costyb, costyz, id, count} -> AddGold(-cost)
+    (gold label updates) -> GetConsumByID(id) (match on ConsumeInfo first field) -> bagnum += count -> SetConsumByID -> member callback +
+    InitHeader. All of that matches, so the stale label is the cell redraw inside the C++ screen. Still harmless (item is in the bag).
