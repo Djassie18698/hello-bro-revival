@@ -10,7 +10,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | | Fixed | Test save only | To do | Not possible |
 |---|---|---|---|---|
-| Bug list 1 | 15 | 0 | 0 | 4 |
+| Bug list 1 | 16 | 0 | 0 | 3 |
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
@@ -36,7 +36,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | All sign-in rewards open on day one | One per day |
 | 🚫 | Opening scene can't be skipped | Inside the game app |
 | 🚫 | No orange-card zoom on 10 pulls | Inside the game app (owner: skip) |
-| 🚫 | Victory screen shows silver 0 | The silver IS paid; the screen reads a field that double-pays when filled |
+| ✅ | Victory screen shows silver 0 | The win screen had two silver numbers on the same spot: the real one was hidden and the visible one was never filled. Game update 28.0.26 shows the real one (Spar win checked in game) |
 | 🚫 | The two extra cards next to a drop have Chinese names | Picked by the game from its own table |
 
 ## Bug list 2

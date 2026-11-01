@@ -821,3 +821,17 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     yet!" (closes the war); fightlefttime = the attack cooldown ("attack-CD"). Neither fixes it; both reverted. Real fixes: run the
     war 19:30-20:30 like the original (owner decision), or patch normalconfig in the client (table not found in the OBB yet).
   * Fights checked in game: Spar (win, reward draw), Arena (loss screen), no crash.
+
+## Victory-screen silver 0 fixed; War all-day table ready (1 Nov 2026, late)
+- Real cause of "victory screen shows silver 0": core_combat/NewFightResult_WinView.ccbi has label_round_getsilver (visible=False) and
+  label_round_getsilver_pre (visible, same position, never written by any code). InitUI writes reward.coin (+ the stage silver for fight type 0)
+  into the hidden one. Hot update 28.0.26 (tools/patch_winview.py, tools/ccbi.py can now write Check/visible) shows it and moves _pre away.
+  Checked in game: Spar win with a test award of coin 4321 / exp 77 / merit 55 showed +4321 / +77 / +55. The earlier "double pay" note was
+  about putting the stage silver into <award><coin> for training, which is still not done (the client adds the stage silver itself).
+  Training wins should now show the stage silver too (type 0 adds roundinfo silver to that label): not checked in game.
+- For fight type 6 (Spar) the round layer labels are: getexp = reward exp, getgold (merit icon) = reward+0x1c merit, getsilver = coin,
+  needbdoy (grudge icon) = reward+0x18.
+- War clock: the client tables are tables.bin in the OBB (zip with '@B>R' local headers, MBS .dbf files) and a hot update CAN replace it
+  (CCFileUtils search path). tools/patch_tables.py edits numbers in it. Test: normalconfig row 7 = 0, row 8 = 86400 -> the War screen
+  counted down to midnight properly (01:03:10 at 22:56), no errors. Not shipped (waits for the owner: original 19:30-20:30 vs all day).
+  The Claude emulator still has that patched tables.bin (newer zips don't contain it); a fresh install removes it.

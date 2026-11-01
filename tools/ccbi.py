@@ -187,6 +187,7 @@ def encode(t, v):
     elif t in (6, 20): w.int(v, True)
     elif t == 26: w.float(v[0]).int(v[1], False)
     elif t in (5, 7): w.float(v)
+    elif t == 9: w.out.append(1 if v else 0)  # Check (e.g. visible)
     else: raise ValueError('cannot write property type %d' % t)
     return bytes(w.out)
 
