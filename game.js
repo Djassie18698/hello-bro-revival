@@ -328,10 +328,11 @@ function mergeAwards(list) {
     '<exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>';
 }
 // Cmd 1900 (one pull): <recruit .../> attributes + <award>. Cmd 1901 (ten pulls): <recruit_list> of exactly 10 <item><award>.
-function pullXml(res, count) {
+function pullXml(res, count, type = 0) {
   if (count === 1) {
     const c = res.got[0];
-    return `<recruit ninjaid="${c.ninja}" cost="${res.cost}" bagid="${c.seq}" attr="0" costprop="0"/>` + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
+    // costprop = recruitment orders used (CItemView takes it off item 30, so the "orders left" count updates without leaving the shop)
+    return `<recruit ninjaid="${c.ninja}" cost="${res.cost}" bagid="${c.seq}" attr="0" costprop="${type === 3 ? 1 : 0}"/>` + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
   }
   return '<recruit_list>' + res.got.map((c) => '<item>' + awardXml(c) + '</item>').join('') + '</recruit_list>';
 }

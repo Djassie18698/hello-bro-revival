@@ -67,6 +67,8 @@ Or add a comment with a screenshot and one line to the running lists:
 - [Bugfix List 2](https://github.com/Djassie18698/hello-bro-revival/issues/3)
 - [Bugfix List 3](https://github.com/Djassie18698/hello-bro-revival/issues/4) · [Bugfix List 4](https://github.com/Djassie18698/hello-bro-revival/issues/5)
 
+📋 **What's fixed and what's still open:** [docs/PROGRESS.md](docs/PROGRESS.md) (also the **Progress** tab of the control panel).
+
 What is still open is listed in [`docs/OPEN-ISSUES.md`](docs/OPEN-ISSUES.md).
 
 A good report says **where** it happened, the **taps**, what **should** happen, what **did** happen, and a **screenshot**.

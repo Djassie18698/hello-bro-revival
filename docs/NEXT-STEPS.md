@@ -517,3 +517,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   choice). First enemy x1.12. Battles: 175 rounds on the same 285..2.5M curve; a Battles round can now be LOST (attack x 0.85-1.15 < defence).
   Training win check = my total attack vs their total defence. Ninja Test guards: 1150 at stage 1, 1950 at stage 2 (photos), +800 a stage.
   Values: 1-2 285, 2-1 481, 5-1 2.5k, 10-1 38k, 15-1 289k, 19-1 1.33M, 19-87 2.5M. Verified in game: Battles 3-5 shows 159/142.
+- Recruit "1 in 100": the orders count stayed at 39 until the shop was reopened. CItemView subtracts <recruit costprop> from item 30; we sent 0.
+  pullXml now sends costprop=1 for type 3. Verified in game: 39 -> 38 right after a recruit.
+- docs/PROGRESS.md = one page with every bug-list item + owner request and its status; control panel Progress tab renders it (/progress.md).

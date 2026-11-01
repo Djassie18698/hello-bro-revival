@@ -314,7 +314,7 @@ module.exports = {
     const count = Number(p.Cmd) === 1901 ? 10 : 1;
     const res = game.pull(db, pl, Number(p.Type || 2), count, Number(p.Free) === 1);
     if (res.error) return '<root code="5"><message>' + res.error + '</message></root>';
-    return '<root code="0">' + game.pullXml(res, count) + '</root>';
+    return '<root code="0">' + game.pullXml(res, count, Number(p.Type || 2)) + '</root>';
   },
 
   // Spar / Plunder opponent lists.

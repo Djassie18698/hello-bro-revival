@@ -126,7 +126,7 @@ Current: **28.0.16** (limited discount opens from the Event menu; 28.0.15 (festi
   write the text to a file first). Channels include #install-help, #guides, #how-to-play, #announcements, #patch-testing.
 
 ## 9. Open work (update this list)
-Bug-list items that are not fixed are tracked in **`docs/OPEN-ISSUES.md`** (to do / not checked in game / cannot be fixed): keep that file current.
+Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
 Verify in game: team slot unlocks, VIP refresh after top-up (28.0.9), Ninja Test boss stages 5/10/15.
 Not built yet (Lua screens exist): scratch card `rl_w_guaguale`, lottery `rl_r_lottery`/`rl_w_lottery`, daily offers
 `rl_r_dailylimit`, `rl_w_dailycost`, `rl_r_multiple_task`, `rl_r_multiple_pay`, card split `rl_w_split_card`, cross-server
