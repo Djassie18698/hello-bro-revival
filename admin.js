@@ -194,3 +194,5 @@ module.exports = async function admin(req, res, u, db, readBody) {
   }
   res.writeHead(404); res.end('not found');
 };
+
+module.exports.authorized = authorized;

@@ -50,6 +50,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 | `game.js` | core: cards, team/stats, gear, sets, drops (`grantDrop`), gacha, training, fights (`battleXml`), shop, props |
 | feature modules | `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` · `mora` · `slot` · `signin` · `rankings` · `stagegift` · `drops` |
 | `admin.js` | admin page: give gold/items/cards, set level/VIP, **reset a player** |
+| `manager.js`/`manager.html`/`settings.js` | Server Manager `/manager`: status, online players, live log, events on/off (`server_settings.events_off`, used by `game.actXml`), announcement (`rl_r_bulletin`), backup, restart (exit code 3, `START-SERVER.bat` loops; `HB_MANAGED=1`) |
 | `schema.js` | base tables (modules create their own with `CREATE TABLE IF NOT EXISTS`) |
 | `data/*.json` | original game tables `{types, rows}` (ninjainfo, equipmentinfo, roundinfo, dropinfo, consumeinfo, petinfo, ...) |
 | `reference/lua-scripts/` | the client's Lua UI (same as `re/obb/script`) |

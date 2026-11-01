@@ -397,3 +397,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (1 time <-> 10 times); we sent only 2 rows, so the dropdown read past the list. rl_x_develop Cmd 1 now sends 4 rows (cost_id 3/4 = 10 times,
   rolled 10x in potentialRoll). Verified on the emulator. Training stays free (ours; the 2015 costs are lost, a later version used 1 Super Ninja Pill + 4000 silver).
 - Shinobi rebirth goes to 9 (owner's screenshot shows "Shinobi 9 Reincarnation", 1230 pills; newlifeconfig has grades 1-9). The card info lists only 8 bonus lines: that list is the client's own data.
+
+## Server Manager (1 Nov 2026, owner request)
+- /manager (manager.js + manager.html), settings in table server_settings (settings.js): events_off (ids from activity_config.lua; game.actXml leaves them out of <conf><items>; stage gift 31 gets timeleft 0), news (shown as the System note in News, rl_r_msg Cmd 1802, dated news_at).
+- START-SERVER.bat sets HB_MANAGED=1, opens the manager after 3 s, and loops while node exits with code 3 (Restart button). Stop = exit 0.
+- console.log/error are mirrored into a 300-line ring buffer for the live log; settings.hit() tracks uid -> last request for "online now" (5 min).
+- In game (Claude emulator): switching the lucky wheel off removed its home button; the announcement shows in News > System.
+- TRAP: rl_r_bulletin must keep <id>1</id>. A new bulletin id crashed the client a minute after login (CSystemADMgr::SaveLocalNotice on its
+  ADMsg.xml cache, 'this is no node:bulletin', SIGSEGV 0x28). So the announcement does not use the bulletin.

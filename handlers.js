@@ -391,14 +391,14 @@ module.exports = {
   // Mailbox (Cmd 1802): welcome note + messages other players sent with the friend "Communicate" button (rl_w_friend Msg).
   rl_r_msg: ({ db, params: p }) => {
     if (Number(p.Cmd) !== 1802) return '<root code="0"><msglist></msglist></root>';
-    const now = Math.floor(Date.now() / 1000);
+    const S = require('./settings'); // the announcement from the Server Manager is the System note
     const acc = accountBySession(db, p);
     db.exec('CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, to_uid INTEGER, from_nick TEXT, text TEXT, ts INTEGER)');
     const mails = acc ? db.prepare('SELECT * FROM mail WHERE to_uid=? ORDER BY id DESC LIMIT 50').all(acc.uid) : [];
     const items = mails.map((m) => `<msg><iTime>${m.ts}</iTime><ID>${m.id + 1}</ID><iStatus>1</iStatus><text>${esc(m.from_nick + ': ' + m.text)}</text></msg>`).join('');
-    return `<root code="0"><msglist>${items}<msg><iTime>${now}</iTime><ID>1</ID><iStatus>1</iStatus><text>Welcome back to Hello Bro! Revival server.</text></msg></msglist></root>`;
+    return `<root code="0"><msglist>${items}<msg><iTime>${S.newsAt(db)}</iTime><ID>1</ID><iStatus>1</iStatus><text>${esc(S.news(db))}</text></msg></msglist></root>`;
   },
-  rl_r_bulletin: () => {
+  rl_r_bulletin: () => { // keep id 1 and this text: a new id makes the client crash (CSystemADMgr::SaveLocalNotice); announcements go to rl_r_msg
     const now = Math.floor(Date.now() / 1000);
     return `<root code="0"><servertime>${now}</servertime><bulletinlist><bulletin><id>1</id><type>1</type><cycle>60</cycle><begintime>${now - 86400}</begintime><endtime>${now + 86400 * 3650}</endtime><content>Welcome back to Hello Bro! Offline revival server - have fun with your friends.</content></bulletin></bulletinlist></root>`;
   },

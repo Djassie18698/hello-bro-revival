@@ -30,6 +30,7 @@
 | 🥷 **Cards & team** with chains that turn red when active | 🎰 **Recruit** with free timers and a pity counter | 🗺️ **Training** in parts, bosses, drops, reward wheel |
 | ⚔️ **Spar, Arena, Battles, War, Border war** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
 | 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
+| 🖥️ **Server Manager**: who is online, events on/off, announcement, backups, restart | ♻️ **Reincarnation up to 9** | 🧪 **Shinobi training** 1x / 10x |
 
 Every number that came from the game's own data is kept as it was. Where the original value was lost on the dead server we picked one and marked it **(ours)** in the code and in the docs.
 
@@ -43,7 +44,8 @@ Every number that came from the game's own data is kept as it was. Where the ori
    (or use the zip your host sent you).
 2. **Get the game file:** from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases) download `HelloBro-Tailscale-….xapk`.
 3. **Set up once:** double-click `HOST-MY-SERVER.bat`.
-4. **Start the server:** double-click `START-SERVER.bat` and keep the window open.
+4. **Start the server:** double-click `START-SERVER.bat` and keep the window open. The **Server Manager** opens in your browser
+   (events, who is online, restart).
 5. **Play:** drag the made `.xapk` onto BlueStacks, open the game, press **START**.
 
 Details and troubleshooting: [`HOST-YOUR-OWN-SERVER.md`](HOST-YOUR-OWN-SERVER.md) · playing on someone else's server: [`PLAY-ON-TAILSCALE.md`](PLAY-ON-TAILSCALE.md)
@@ -73,8 +75,11 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
-The big fix day (training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more) is written up in
-[**`docs/FIXES-2026-10-31.md`**](docs/FIXES-2026-10-31.md).
+- **1 Nov 2026:** new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 9, Shinobi training crash fixed,
+  chapters open after the last boss, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts:
+  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md).
+- **31 Oct 2026:** the big fix day (training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more):
+  [**`docs/FIXES-2026-10-31.md`**](docs/FIXES-2026-10-31.md).
 
 ---
 
@@ -83,6 +88,7 @@ The big fix day (training in parts, fights that don't crash, chains, rewards, re
 | Path | What |
 |---|---|
 | `server.js`, `handlers.js`, `game.js` | the HTTP server, one function per game screen/endpoint, the core game rules |
+| `manager.js` + `manager.html`, `settings.js` | the Server Manager page (`/manager`) and the server-wide settings (events on/off, announcement) |
 | feature files (`exam.js`, `pet.js`, `war.js`, `sevenday.js` …) | one module per feature |
 | `data/` | the game's own tables (cards, stages, drops, chains …) |
 | `reference/lua-scripts/` | the game's own screens (read-only reference) |
