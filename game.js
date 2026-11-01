@@ -197,6 +197,18 @@ function rollOne(type, forceStar) {
 const FREE_EVERY = { 1: 24 * 3600, 2: 8 * 3600 };
 // Pity counter ("recruit N more times and you are sure to get a 5-star"): the original number is lost, so (ours) = 20 pulls.
 const PITY = 20;
+// The 300-gold recruit can also give gold. ORIGINAL (Facebook photos 2339-2348): "Gold*210", "Gold*500", "Gold*1000", "Gold*2000" on the
+// Rewards card (the game's own dropinfo rows 137, 290, 295, 298). (ours): the chances, % a pull: 4 / 1.5 / 0.4 / 0.1 (about 22 gold back
+// per 300-gold pull on average). A gold result does not count toward the 5-star pity.
+// OFF for now: the single-recruit reveal (CDialogShowBox) shows a blank card for a gold result (it draws <recruit ninjaid>); the gold itself
+// is given. Turn on (the chances below) once the reveal can show the gold picture. HB_GOLD=<drop id> forces one for testing.
+const GOLD_PRIZES = [[137, 0], [290, 0], [295, 0], [298, 0]]; // (ours) when on: 4 / 1.5 / 0.4 / 0.1
+function rollGold() {
+  if (process.env.HB_GOLD) return Number(process.env.HB_GOLD);
+  let x = Math.random() * 100;
+  for (const [drop, pct] of GOLD_PRIZES) if ((x -= pct) < 0) return drop;
+  return 0;
+}
 function recruitEnsure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS recruit_state (uid INTEGER, server_id INTEGER, type INTEGER, last_free INTEGER DEFAULT 0, pity INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, type))');
   try { db.exec("ALTER TABLE recruit_state ADD COLUMN day TEXT DEFAULT ''"); } catch (e) { /* already there */ }
@@ -232,6 +244,8 @@ function pull(db, pl, type, count, free) {
   let pity = st.pity;
   const got = [];
   for (let i = 0; i < count; i++) {
+    const gold = type === 1 && !(FREE_EVERY[type] && pity >= PITY - 1) ? rollGold() : 0;
+    if (gold) { got.push({ gold, award: grantDrop(db, pl, gold) }); continue; }
     const sure = FREE_EVERY[type] && pity >= PITY - 1;
     const nid = process.env.HB_FORCE ? Number(process.env.HB_FORCE) : rollOne(type, sure ? 5 : 0);
     const star = (ninjas().get(nid) || [])[11] || 0;
@@ -244,6 +258,7 @@ function pull(db, pl, type, count, free) {
   return { cost, got };
 }
 function awardXml(c) {
+  if (c.award) return c.award; // a gold prize: the game's own drop row (its Rewards card shows the gold picture and "Gold*500")
   return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', c.newlife || 0) + el('starlevel', c.starlevel || 0) +
     '</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>';
 }
@@ -334,7 +349,7 @@ function pullXml(res, count, type = 0) {
   if (count === 1) {
     const c = res.got[0];
     // costprop = recruitment orders used (CItemView takes it off item 30, so the "orders left" count updates without leaving the shop)
-    return `<recruit ninjaid="${c.ninja}" cost="${res.cost}" bagid="${c.seq}" attr="0" costprop="${type === 3 ? 1 : 0}"/>` + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
+    return `<recruit ninjaid="${c.ninja || 0}" cost="${res.cost}" bagid="${c.seq || 0}" attr="0" costprop="${type === 3 ? 1 : 0}"/>` + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
   }
   return '<recruit_list>' + res.got.map((c) => '<item>' + awardXml(c) + '</item>').join('') + '</recruit_list>';
 }
