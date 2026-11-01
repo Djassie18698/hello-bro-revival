@@ -735,3 +735,8 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Fresh install picked "Starter slot 3": CServerListMgr::GetRecommendServer takes the first cached (recently played) server, else the
     server whose para1 (ServerInfoData +0x14) equals baseconfig.json "Recommend" (1000 in every game file), else the highest id. Konoha
     now sends para1 1000 (others 1062; the server never reads Pt). Checked: pm clear on the emulator -> the start screen shows Konoha (main).
+  * Brand-new account checked in game (guest 55501236, Shikamaru): Lv 1, 50 gold, 18 000 silver, VIP 0 (original); energy starts at 50 over
+    a level-1 max of 10 (schema default, ours; original unknown). 1-1 clears fine. FIRST BOSS 1-2 LOST: starter attack 263 (198-329) vs the
+    stage-1-2 anchor 285 (owner video). handlers rl_w_pve decides by average attack x 0.85-1.15 -> 23 % win, 45 % stuck after 3 tries on
+    day 1. If the replay decided (attack roll + ninjutsu + element, battleXml real mode, like the original fight) it would be 55 % / 9 %.
+    Asked the owner (balance decision); nothing changed.
