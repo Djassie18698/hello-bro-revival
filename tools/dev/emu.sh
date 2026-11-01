@@ -16,7 +16,7 @@ case "$1" in
   shot) "$ADB" -s $D exec-out screencap -p > re/s.png && echo re/s.png ;;
   tap) "$ADB" -s $D shell input tap "$2" "$3" ;;
   back) "$ADB" -s $D shell input keyevent 4 ;;
-  restart) "$ADB" -s $D shell am force-stop com.hello.bro.yo; "$ADB" -s $D logcat -c
+  restart) "$ADB" -s $D shell am force-stop com.hello.bro.yo; "$ADB" -s $D logcat -c; "$ADB" -s $D reverse tcp:18081 tcp:18081 >/dev/null  # game file for 127.0.0.1:18081 -> dev server
            "$ADB" -s $D shell monkey -p com.hello.bro.yo -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 ;;
   update) "$ADB" -s $D shell input tap 545 1650 ;;
   log) "$ADB" -s $D logcat -d | grep -E "SIGSEGV|Fatal signal|LUA ERROR|this is no node|Respose data|POST completed" | tail -${2:-40} | cut -c1-300 ;;
