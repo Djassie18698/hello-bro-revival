@@ -151,7 +151,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | | What |
 |---|---|
-| 🚫 | After buying an item in the Shop's Tool tab its count shows the old number (and USE stays grey) until you log in again. The item is in your bag; the game app only refreshes that number at login |
+| ✅ | After buying an item in the Shop's Tool tab its count showed the old number (and USE stayed grey) until you logged in again: fixed, the count goes up at once. Gear from shop bags also shows in the Backpack at once |
 | 🚫 | "Limited daily gift" packs: the game's own layout for that screen is missing its price, buy button and item labels, so it crashes whatever the server sends |
 | 🚫 | Card split ("tear a card to fragments"): no button in this game version opens it |
 | 🚫 | Recharge rebate wheel: it only multiplies real-money top-ups, which are free here |

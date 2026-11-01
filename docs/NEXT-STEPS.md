@@ -744,3 +744,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     rl_r_shoplist (older note was wrong). CItemView buy branch: LoadTradeInfo -> GetRetObj {type, costyb, costyz, id, count} -> AddGold(-cost)
     (gold label updates) -> GetConsumByID(id) (match on ConsumeInfo first field) -> bagnum += count -> SetConsumByID -> member callback +
     InitHeader. All of that matches, so the stale label is the cell redraw inside the C++ screen. Still harmless (item is in the bag).
+## 1 Nov 2026 (evening): shop replies fixed
+  * CTradeMgr::LoadTradeInfo reads <shopbuy costyb costyz/>, <retobj type id count/>, <bagid bagid="a|b"/> and <attr attr=".."/> as ROOT
+    children. We nested retobj inside <shopbuy> (logcat: "no node: retobj / bagid / attr"), so nothing was added on the phone: the Tool tab
+    kept the old count and bought gear only showed after a re-login. Now siblings (handlers.retobjXml).
+  * retobj type is UseGiftPackItem's own: 1 item (ConsumeInfo bagnum += count), 2 shinobi, 3 weapon, 4 trinket, 5 armor (each bagid added as a
+    card via AddObjFromNetCardData). Our cards.type differs (2 weapon, 3 armor): RETOBJ_TYPE maps it. Items now send type 1.
+  * Checked in game: Tael bought -> count 0 -> 2 -> 3 at once, USE turns blue; Armor Bag (S) -> 10 Samurai Attire in the Armor tab at once,
+    no crash (the old "reveal crash" was the wrong type). Live they show Lv3 until the next login (server Lv 1): display only.

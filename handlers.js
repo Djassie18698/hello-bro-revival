@@ -43,6 +43,10 @@ const servers = (ctx) => [
   { id: 3, name: 'Starter slot 2', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 3 },
   { id: 4, name: 'Starter slot 3', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 4 },
 ];
+const retobjXml = (type, id, count) => `<retobj type="${type}" id="${id}" count="${count}"/>`;
+// retobj type is NOT our card type: CTradeMgr::UseGiftPackItem switches 1 item, 2 shinobi, 3 weapon, 4 trinket, 5 armor
+// (cards.type 1 shinobi, 2 weapon, 3 armor, 4 trinket). Sending 2 for a weapon added the bought weapons as shinobi.
+const RETOBJ_TYPE = { 1: 2, 2: 3, 3: 5, 4: 4 };
 const serverXml = (s, tag) =>
   `<${tag}>` + Object.entries(s).map(([k, v]) => el(k, v)).join('') + `</${tag}>`;
 
@@ -680,17 +684,18 @@ module.exports = {
     if (Number(p.Cmd) === 1701) {
       const r = game.packBuy(db, pl, Number(p.Packageid));
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-      if (r.type !== 1) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"></shopbuy></root>`; // equipment: client crashes on the reveal dialog; cards show up after re-login
-      return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"><retobj type="${r.type}" id="${r.ninja}" count="${r.n}" bagid="${r.seq}" attr="${r.attrs}"/></shopbuy></root>`;
+      // CTradeMgr::LoadTradeInfo reads <retobj>, <bagid bagid="a|b"/> and <attr attr=".."/> as ROOT children (next to <shopbuy>);
+      // UseGiftPackItem then adds every bagid as a card of retobj type, so the items show at once (was: only after re-login)
+      return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(RETOBJ_TYPE[r.type] || 2, r.ninja, r.n)}<bagid bagid="${r.seq}"/><attr attr="${r.attrs}"/></root>`;
     }
     if (festival.isItem(Number(p.Goodsid))) { // festival shop (ui_commonBuyItemDialogCell: Goodsid, Counts=1)
       const r = festival.buy(db, pl, Number(p.Goodsid));
-      return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><shopbuy costyb="${r.costG}" costyz="0"><retobj type="2" id="${Number(p.Goodsid)}" count="1"/></shopbuy></root>`;
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><shopbuy costyb="${r.costG}" costyz="0"/>${retobjXml(1, Number(p.Goodsid), 1)}</root>`;
     }
     const cnt = Math.max(1, Math.min(999, Number(p.Count) || 1));
     const r = game.shopBuy(db, pl, Number(p.Goodsid), cnt);
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-    return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"><retobj type="2" id="${Number(p.Goodsid)}" count="${cnt}"/></shopbuy></root>`;
+    return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(1, Number(p.Goodsid), cnt)}</root>`; // retobj next to shopbuy: the Tool tab adds count to the item at once
   },
 
   rl_w_propuse: ({ db, params: p }) => {
