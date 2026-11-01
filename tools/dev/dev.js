@@ -3,7 +3,7 @@
 //   node tools/dev/dev.js level 80 | vip 5 | gold 1000 | coin 50000 | energy 50 | souls 1000 | renown 500   (gold/coin/energy/souls/renown ADD)
 //   node tools/dev/dev.js item <prop_id> <count>     set the exact amount of an item (consumeinfo id, 9999 souls, 30000+ fragments)
 //   node tools/dev/dev.js thing <cat> <id> [count]    give one admin-catalog entry (cat as `find` shows: ninja, equip, seal, ninjutsu, item ...)
-//   node tools/dev/dev.js find <text>                 search the admin catalog by name
+//   node tools/dev/dev.js find <text> [cat]           search the admin catalog by name (cat: ninja, equip, ...)
 //   node tools/dev/dev.js unlockall                   max level + every story stage cleared
 //   node tools/dev/dev.js show                        the account's cards and items
 //   node tools/dev/dev.js sql "UPDATE exam SET grade=5 WHERE uid=$UID"   one SQL statement on the dev save ($UID / $SID = test account)
@@ -43,9 +43,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     out = /^\s*select/i.test(q) ? db.prepare(q).all() : db.prepare(q).run();
   } else if (cmd === 'show') out = await call('/admin/api/inventory?uid=' + encodeURIComponent(UID));
   else if (cmd === 'find') {
-    const cat = await call('/admin/api/catalog');
-    const all = Array.isArray(cat) ? cat : Object.values(cat).flat();
-    out = all.filter((e) => e && JSON.stringify(e).toLowerCase().includes(String(a).toLowerCase())).slice(0, 30);
+    const cat = await call('/admin/api/catalog?q=' + encodeURIComponent(a || '') + (b ? '&cat=' + encodeURIComponent(b) : '')); // find <name> [cat]
+    out = cat.items.slice(0, 30);
   } else if (cmd === 'relog') {
     const sh = (s) => execSync(s, { cwd: require('path').join(__dirname, '..', '..'), stdio: 'inherit' });
     sh('sh tools/dev/emu.sh restart'); await wait(22000);

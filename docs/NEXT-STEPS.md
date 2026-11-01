@@ -726,3 +726,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     cash >= CConfigMgr value 0xce, label "%s*%d" with props_037), 2 / 8 / 0x20 other kinds. So the single reveal can only draw a card (blank 5-star
     "Sample Text" card seen in game with HB_GOLD=137). The 10-pull (CPrayTenDialogView) lists "Gold*210" with a "?" ninja picture, and tapping it
     opens a placeholder tip "ddddd...". The photos 2339-2348 show the plain Rewards card (show type 4), from a screen not identified.
+  * Checked in game (dev server): Save time 1-1 = 400 EXP / 1000 silver (one Big Ramen, chances 2 -> 1); arena reward amounts (rank 1
+    25 000 / 5000, rank 16 15 640 / 3128); level-up refills grudge 1/3 -> 3/3; a story stage at full energy shows no ramen window; equipment
+    advance (ui_equipListLayer only lists 5-star, level 50, grade < 3, not in a team) 50 000 silver, Blood Kunai 125 -> 187.
