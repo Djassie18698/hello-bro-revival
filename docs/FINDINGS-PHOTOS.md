@@ -510,3 +510,5 @@ Still different, or still to build, ordered by how much a player notices:
 8. **Not built:** Treasure (key) chests, limited group purchase, cross-server battle, scratch card (prizes 5-800 gold), Time limited GiftPack ($19 -> $60 pack), "Great gift for total recharge".
 
 **Never shown on any photo:** normal recruit pity number, VIP 6-18 thresholds, VIP benefit list, Christmas cap/tree drop per fight and Buy price, Valentine and Goddess Tsunade events.
+
+**Built since (2 Nov 2026, later):** Treasure (key) chests, limited group purchase, scratch card, Growth Fund, Ninja Test boss chests 160 / 250 gold, Eight Gates levels, daily task 250-point chests, shinobi training with pills.
