@@ -14,7 +14,9 @@ function state(db, pl) {
   if (!s) { db.prepare('INSERT INTO wheel(uid,server_id,jackpot) VALUES(?,?,?)').run(pl.uid, pl.server_id, JACKPOT_START); s = { score: 0, free_day: '', jackpot: JACKPOT_START }; }
   return s;
 }
-const infoXml = (s, free) => `<info>${el('lasttime', 86400 * 3650)}${el('per_jifeng', SCORE)}${el('bigcash', s.jackpot)}${el('freetimes', free)}${el('jifeng', s.score)}${el('costsingle', COST)}</info>`;
+// The wheel's countdown runs to next Monday 00:00 and starts over (ours): the screen shows only 4 digits of hours, so the old 10 years read "3649:23:59".
+const weekLeft = () => { const d = new Date(), end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + ((8 - d.getDay()) % 7 || 7)); return Math.max(1, Math.floor((end - d) / 1000)); };
+const infoXml = (s, free) => `<info>${el('lasttime', weekLeft())}${el('per_jifeng', SCORE)}${el('bigcash', s.jackpot)}${el('freetimes', free)}${el('jifeng', s.score)}${el('costsingle', COST)}</info>`;
 
 function loadXml(db, pl) {
   const s = state(db, pl);

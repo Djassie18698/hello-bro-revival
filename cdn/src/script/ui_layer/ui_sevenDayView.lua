@@ -409,13 +409,13 @@ function setLockInfo(self)
 		self.label_lock:setVisible(false)
 		self.spr_lock:setVisible(false)	
 		--增加奖励过期提示
-		self.label_get_award_day_left:setVisible(true)
+		if self.label_get_award_day_left then self.label_get_award_day_left:setVisible(true) end
 		if self.login_days == self.m_planDatas[self.cur_day_index]._index then
-			self.label_get_award_day_left:setString(localizable.ui_seven_day_2day_left)
+			if self.label_get_award_day_left then self.label_get_award_day_left:setString(localizable.ui_seven_day_2day_left) end
 		elseif self.login_days == self.m_planDatas[self.cur_day_index]._index + 1 then
-			self.label_get_award_day_left:setString(localizable.ui_seven_day_1day_left)
+			if self.label_get_award_day_left then self.label_get_award_day_left:setString(localizable.ui_seven_day_1day_left) end
 		elseif self.login_days > self.m_planDatas[self.cur_day_index]._index + 1 then--已经过期
-			self.label_get_award_day_left:setString(localizable.ui_seven_day_award_lost)
+			if self.label_get_award_day_left then self.label_get_award_day_left:setString(localizable.ui_seven_day_award_lost) end
 			self._award_overdue = true
 		end	
 
@@ -440,7 +440,7 @@ function setLockInfo(self)
 			self.spr_got:setVisible(true)
 		end
 	else
-		self.label_get_award_day_left:setVisible(false)
+		if self.label_get_award_day_left then self.label_get_award_day_left:setVisible(false) end
 		self.spr_got:setVisible(false)
 		self.spr_lock:setVisible(true)
 		self.label_btn_get:setVisible(true)
