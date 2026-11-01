@@ -703,3 +703,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
     reopens itself in a loop), rl_w_cwar Cmd 1 ticket 500 / 2 inspire 200 (+10 %, 300 s) / 3 exchange ExchId (myscore_left + award) / 4 top-10
     award, rl_w_cwar_war Cmd 1 Pos (ShowArenaView fight + <newlist><user/><positionlist/>), rl_r_crosswar_rank Cmd 1-4 (<player> first,
     rank_list rows col0-col4 attributes, score_package id/icon/cost/desc, topten_award id/rank/desc). rl_w_cross_war Cmd 2 is unused.
+  * Checked in game (dev server, 1 Nov): spar vs Riskeric showed element icons on all cards and "Restrain: 101" on the win screen.
+  * FIXED: foeTeam / sparFight tested `uid < 9000000` for a real player, but real uids are 22 000 000+, so every real rival fought as a bot
+    (made-up team and strength, bot silver). Now: real = has a players row. Spar vs Ninja78277 showed his real team and a fair loss.
+    battleXml takes opt.enemyCountry (preview defensecountry was always 1 = "Land of Thunder"): spar, arena, war pass the rival's country.
+  * Dev setup: dev server on PORT 18081 (tools/dev/restart.sh), Claude emulator runs release/HelloBro-for-127.0.0.1-18081.apk and reaches
+    it through `adb reverse tcp:18081 tcp:18081` (emu.sh restart sets it; the firewall only lets 18080 in). Test login in tools/dev/emu.account
+    (git-ignored), dev account 55501235.

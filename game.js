@@ -370,8 +370,10 @@ function masterPetXml(db, pl) {
 // The 3 enemy cards shown in a spar / arena / war fight: a real player's own team (first 3 slots); a bot shows its own ninja plus
 // 2 other base ninjas of the same stars, picked by its id so the same rival always shows the same team (was 3 copies of one ninja).
 function foeTeam(db, uid, sid, first) {
-  if (uid && uid < 9000000) {
-    const t = db.prepare('SELECT c.ninja_id FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot LIMIT 3').all(uid, sid).map((r) => r.ninja_id);
+  if (uid) { // a bot / guard has no team rows, so it falls through to the made-up team below
+    const rows = db.prepare('SELECT c.ninja_id, c.attri FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot LIMIT 3').all(uid, sid);
+    const t = rows.map((r) => r.ninja_id);
+    t.attris = rows.map((r) => r.attri || 1); // a real player's cards keep their own element in the fight (battleXml reads enemyIds.attris)
     if (t.length) return t;
   }
   const star = (ninjas().get(first) || [])[11] || 4;
@@ -397,11 +399,12 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel, attri: t.attri || 1 }; });
   const given = opt.foes ? opt.foes.map((f, i) => ({ ...f, bagid: 1000 + i })) : null; // real stage enemies (game.stageFoes)
   const mkFoes = (ratio) => given ? given.map((f) => ({ ...f })) : (opt.enemyIds || [21, 22, 23]).map((id, i) => {
-    if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0 };
+    const attri = opt.enemyIds && opt.enemyIds.attris ? opt.enemyIds.attris[i] : 0;
+    if (ratio === undefined) return { id, bagid: 1000 + i, low: 10, high: 20, end: 60 + stage * 10, def: 10, level: opt.enemyLevel || 1, star: 0, attri };
     // enemy stats follow the player's own first ninja so the fight we describe can end the way the server decided (ratio = enemy / me)
     const me = mine[i % mine.length] || { low: 40, high: 60, end: 300 };
     const high = Math.max(1, Math.round(me.high * ratio)), low = Math.max(1, Math.round(me.low * ratio));
-    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), def: Math.max(1, Math.round(high * 0.3)), level: opt.enemyLevel || 1, star: 0 };
+    return { id, bagid: 1000 + i, low, high, end: Math.max(1, Math.round(high * 2.6)), def: Math.max(1, Math.round(high * 0.3)), level: opt.enemyLevel || 1, star: 0, attri };
   });
   // The original fight (owner's video of v28, Mizuki 1-2): only my side attacks. My first ninja hits the first standing enemy with its attack;
   // the enemy's defence is taken off that attack. Attack left over -> the SAME ninja hits the next enemy (291+72 vs 140+20 -> 203 left, then
@@ -476,7 +479,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   const win = fight.won ? 1 : 0;
   if (opt.out) opt.out.win = fight.won;
   const nick = (opt.enemyName || 'Enemy').replace(/[<>&"]/g, '');
-  return `<fight><preview type="0" result="${win}" defensenick="${nick}" defenseuid="${opt.enemyUid || 0}" defensecountry="1" defenselevel="${opt.enemyLevel || 1}" defenseviplevel="0"/>` +
+  return `<fight><preview type="0" result="${win}" defensenick="${nick}" defenseuid="${opt.enemyUid || 0}" defensecountry="${opt.enemyCountry || 1}" defenselevel="${opt.enemyLevel || 1}" defenseviplevel="0"/>` +
     '<guard><ninjalist>' + foes.map(ninjaXml).join('') + '</ninjalist></guard>' +
     '<killer><ninjalist>' + mine.map(ninjaXml).join('') + '</ninjalist>' +
     masterPetXml(db, pl) + '</killer>' +
@@ -491,16 +494,18 @@ function sparFight(db, pl, toUid) {
   const ts = teamStats(db, pl.uid, pl.server_id);
   const mine = (ts.total.al + ts.total.ah) / 2 / Math.max(1, ts.slots.length);
   let theirs;
-  if (rv.id < 9000000) { const o = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id); const t2 = o ? teamStats(db, o.uid, o.server_id) : null; theirs = t2 ? (t2.total.al + t2.total.ah) / 2 / Math.max(1, t2.slots.length) : botAtk(rv.level, 3); }
+  // real players have uids of 22 000 000+ (the old test `< 9000000` treated every real rival as a bot); bots are 9000001+ and not in players
+  const o = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id);
+  if (o) { const t2 = o ? teamStats(db, o.uid, o.server_id) : null; theirs = t2 ? (t2.total.al + t2.total.ah) / 2 / Math.max(1, t2.slots.length) : botAtk(rv.level, 3); }
   else theirs = botAtk(rv.level, rv.star || 3);
   const win = process.env.HB_SPAR ? process.env.HB_SPAR === 'win' : mine * (0.7 + Math.random() * 0.6) >= theirs; // HB_SPAR = test aid
-  const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, rv.id, pl.server_id, rv.ninja), enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, win });
+  const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, rv.id, pl.server_id, rv.ninja), enemyName: rv.nick, enemyUid: rv.id, enemyLevel: rv.level, enemyCountry: o ? o.country : rv.country, win });
   // ORIGINAL: the game's own duelinfo table, the same one its Spar Preview (CFightPreView) shows, picked by the RIVAL's level:
   // [5] win EXP, [6] lose EXP, [7] / [8] W.A. for a win / loss, [3] share of the rival's silver won, [4] share of your silver lost
   // (photo 0078: a level-224 player vs a level-340 rival = 228 / 76 EXP, 15 / 5 W.A., -542 silver). The bot's silver is the list's coin.
   const rows = table('duelinfo').rows.filter((r) => r[0] === r[2]);
   const d = rows.find((r) => r[0] === rv.level) || rows[rows.length - 1];
-  const theirCoin = rv.id < 9000000 ? ((db.prepare('SELECT coin FROM players WHERE uid=? AND server_id=?').get(rv.id, pl.server_id) || {}).coin || 0) : 100 + rv.level * 20;
+  const theirCoin = o ? (o.coin || 0) : 100 + rv.level * 20;
   const coin = win ? Math.round(theirCoin * d[3]) : -Math.round((pl.coin || 0) * d[4]), exp = win ? d[5] : d[6];
   const merit = win ? d[7] : d[8];
   propAdd(db, pl.uid, pl.server_id, 9994, merit); // W.A. (war achievements)
@@ -1301,7 +1306,7 @@ function arenaFight(db, pl, toRank) {
   const ts = teamStats(db, pl.uid, pl.server_id);
   const mine = (ts.total.al + ts.total.ah) / 2 / Math.max(1, ts.slots.length);
   const win = mine * (0.75 + Math.random() * 0.5) >= o.power;
-  const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, o.uid, pl.server_id, o.ninja), enemyName: o.nick, enemyUid: o.uid, enemyLevel: o.level, win });
+  const xml = battleXml(db, pl, 0, 1, { enemyIds: foeTeam(db, o.uid, pl.server_id, o.ninja), enemyName: o.nick, enemyUid: o.uid, enemyLevel: o.level, enemyCountry: o.country, win });
   let from = my, to = my, renown = 0;
   if (win) {
     if (toRank < my) { db.prepare('UPDATE arena SET uid=-1 WHERE rank=?').run(my); db.prepare('UPDATE arena SET uid=? WHERE rank=?').run(my === 0 ? 0 : pl.uid, toRank); db.prepare('UPDATE arena SET uid=? WHERE rank=?').run(t.uid, my); to = toRank; }
