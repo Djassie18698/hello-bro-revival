@@ -479,6 +479,12 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
     if (cmd === 7) return '<root code="0">' + signin.listXml(db, pl) + '</root>';
+    // Growth Fund (growthfund.js): 1 info, 2 buy, 3 Id claim
+    if (cmd >= 1 && cmd <= 3) {
+      const gf = require('./growthfund');
+      const r = cmd === 1 ? { xml: gf.xml(db, pl) } : cmd === 2 ? gf.buy(db, pl, vip.level(db, pl.uid, pl.server_id)) : gf.claim(db, pl, Number(p.Id));
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
     // festival trade event (festival.js): 9 info, 10 item shop, 11 trade ExId
     if (cmd === 9) { const x = festival.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the festival is over</message></root>'; }
     if (cmd === 10) return '<root code="0">' + festival.shopXml(db, pl) + '</root>';

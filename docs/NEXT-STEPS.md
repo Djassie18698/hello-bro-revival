@@ -565,3 +565,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   * Ninja Test guards now follow the photos: value = 0.00705 x stage^1.1 x player level^2 (min 50). Fits level 61 / stage 14 = 480,
     level 281 / stage 14 = 10 062, level 302 / stage 4 = 2979 (photos 2553, 2448, 1811) within 1%. Old rule (1150 + 800 a stage) was the same
     for every level, too hard for low levels. Bosses at 5/10/15 +30% stays (ours).
+  * Growth Fund built (growthfund.js, Event menu id 19, rl_x_small_activity Cmd 1 info / 2 buy / 3 Id claim; preview attrs buycash multiple
+    totalcash buystate needvip [cash], fundlist items id level cash state 0/1/2). Original numbers from photo 2627 (500 gold, x5 = 2500, VIP3,
+    Lv50 150 / Lv70 150 / Lv90 200); Lv110-230 steps (ours) add up to 2500. Server Manager switch "Growth Fund". Checked in game (buy, collect).
