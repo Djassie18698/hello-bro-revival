@@ -833,12 +833,16 @@ function equipStats(card) {
 const addStats = (a, b) => { const o = {}; KEYS.forEach((k) => { o[k] = (a[k] || 0) + (b[k] || 0); }); return o; };
 // Set bonuses: type 1 = N cards of >= X stars, type 2 = N cards of level >= X (counted over all owned ninja cards).
 function activeSuits(db, uid, sid) {
-  const cards = db.prepare('SELECT ninja_id, level FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid);
+  // type 1 = N cards with at least X stars (a god card counts as 6 stars, so also for 4 and 5); type 2 = N cards with Sage GROWTH level >= X
+  // ("Six-/Nine-/Twelve-Level Cards" = growth 6/9/12, cards.starlevel). Per type the set with the biggest bonus wins (21 five-star beats 21 four-star;
+  // rows 49-56 repeat 41-48 with Chinese names, so on a tie the lower id).
+  const cards = db.prepare('SELECT ninja_id, level, starlevel FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid);
   const best = {};
   for (const r of table('suit_info').rows) {
     const [, , type, need, count] = r;
-    const have = cards.filter((c) => (type === 1 ? ((ninjas().get(c.ninja_id) || [])[11] || 0) >= need : c.level >= need)).length;
-    if (have >= count && (!best[type] || count > best[type][4])) best[type] = r;
+    const have = cards.filter((c) => (type === 1 ? ((ninjas().get(c.ninja_id) || [])[11] || 0) >= need : (c.starlevel || 0) >= need)).length;
+    const b = best[type];
+    if (have >= count && (!b || r[5] > b[5] || (r[5] === b[5] && r[6] > b[6]))) best[type] = r;
   }
   return Object.values(best);
 }

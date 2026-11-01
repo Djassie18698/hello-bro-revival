@@ -494,3 +494,6 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Team builder gear calculator (/admin/api/gearplan mode owned|best -> plan + list, then setteam): per team ninja the weapon/armor/trinket/seal
   with the highest total stats (same math as teamStats; best = level 50, equipment rebirth 3), 4 different ninjutsu by power (ninjutsuinfo col 10,
   our stat model gives every ninjutsu the same boost). Gear a chain of that ninja asks for is kept/chosen first. Owned mode only uses free cards.
+- Set bonuses (suit_info, "Shinobi colour card" / "Shinobi Growth Cards"): type 2 counted card LEVEL (every lv 50 card counted) instead of growth
+  (cards.starlevel); per type the set with the most cards won, so 21 four-star beat 21 five-star/six-star. Now the biggest bonus wins.
+  Owner save: 21 Six-Star Cards + 21 Twelve-Level Cards. Not checked on screen.
