@@ -487,10 +487,11 @@ function addExp(db, pl, exp) {
   let level = pl.level, cur = (pl.exp || 0) + exp;
   for (;;) {
     const r = rows.find((x) => x[1] === level);
-    if (!r || cur < r[2]) break;
+    if (!r || cur < r[2] || !rows.some((x) => x[1] === level + 1)) break; // the table ends at 350: no level past it
     cur -= r[2]; level++;
   }
   db.prepare('UPDATE players SET level=?, exp=? WHERE uid=? AND server_id=?').run(level, cur, pl.uid, pl.server_id);
+  if (level > pl.level) require('./playerlog').note(db, pl.uid, pl.server_id, 'level', level); // progress log (admin > Player log)
   if (level > pl.level) { // a level-up fills energy and grudge to the new level's maximum (the original "LEVEL UP!" pop-up shows
     // "Energy ↑ Grudge ↑", Facebook photo 2156; owner: "leveling should refill")
     const max = (rows.find((x) => x[1] === level) || [])[4] || 0;
@@ -1500,6 +1501,12 @@ function unlockAll(db, pl) {
 }
 function setStage(db, uid, sid, chap, stage) {
   ensure(db);
+  if (chap < 1000) { // progress log: every new story stage, and a separate line when a new chapter opens (admin > Player log)
+    const was = db.prepare('SELECT stage FROM progress WHERE uid=? AND server_id=? AND chap=?').get(uid, sid, chap);
+    const log = require('./playerlog');
+    if (!was) log.note(db, uid, sid, 'chapter', chap, `chapter ${chap}`);
+    if (!was || stage > was.stage) log.note(db, uid, sid, 'stage', chap * 1000 + stage, `${chap}-${stage}`);
+  }
   db.prepare('INSERT INTO progress(uid,server_id,chap,stage) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,chap) DO UPDATE SET stage=MAX(stage,excluded.stage)').run(uid, sid, chap, stage);
 }
 

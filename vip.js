@@ -30,7 +30,9 @@ function expOf(db, uid, sid) {
 }
 // Top-up: add dollars x 10 to VIP exp and move the level up when a threshold is passed.
 function addExp(db, uid, sid, n) {
+  const before = levelOf(expOf(db, uid, sid));
   const exp = expOf(db, uid, sid) + Math.max(0, Math.round(n));
+  if (levelOf(exp) > before) require('./playerlog').note(db, uid, sid, 'vip', levelOf(exp)); // progress log
   db.prepare('INSERT INTO vipstate(uid,server_id,level,exp) VALUES(?,?,?,?) ON CONFLICT(uid,server_id) DO UPDATE SET level=excluded.level, exp=excluded.exp')
     .run(uid, sid, levelOf(exp), exp);
 }

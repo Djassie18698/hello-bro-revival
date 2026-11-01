@@ -133,6 +133,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | 🧪 | Equipment advance costs 50 000 silver like the original; small EXP-card bags 2000 silver; gold chest opens a day from the VIP table (VIP1 25 ... VIP11 75) |
 | ✅ | Real login on our own server: the account window remembers the phone, sign up with a name + password to move phones; public servers only let logged-in players in (new game file) |
 | ✅ | Border war rewards like the original: monument HP 300, daily 2 taunt / 2 wander / 4 + 4 clear rewards, 3300 EXP + 786 merit a wander, Gold*50 + pills for breaking a border |
+| ✅ | Player log in the control panel: per player when they level up, how long they stay at a team attack, when they reach new chapters and stages
 | ✅ | Fights show 3 different enemy ninjas (a real player's own team) instead of the same card 3 times |
 | ✅ | Errors show a fitting message (they all said "Your energy level is full") |
 | ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |

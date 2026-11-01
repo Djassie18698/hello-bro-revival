@@ -62,6 +62,7 @@ iframe.on{display:block}
     <a data-t="server">🖥️ Server</a>
     <a data-t="admin">🎁 Players &amp; items</a>
     <a data-t="team">🛡️ Team builder</a>
+    <a data-t="log">📈 Player log</a>
     <a data-t="progress">📋 Progress</a>
   </nav>
   <div class="right">
@@ -72,16 +73,17 @@ iframe.on{display:block}
 <main>
   <iframe id="f-server" title="Server" allowtransparency="true"></iframe>
   <iframe id="f-admin" title="Players and items" allowtransparency="true"></iframe>
+  <iframe id="f-log" title="Player log" allowtransparency="true"></iframe>
   <div id="progress"><div class="prog" id="prog">Loading…</div></div>
 </main>
 <script>
 // One site, three tabs. The Server Manager and the admin page load once (embedded, without their own headers) and stay loaded,
 // so switching tabs keeps your place. "Team builder" is the admin page's Team editor tab.
-const frames = { server: document.getElementById('f-server'), admin: document.getElementById('f-admin') };
+const frames = { server: document.getElementById('f-server'), admin: document.getElementById('f-admin'), log: document.getElementById('f-log') };
 const v = Date.now(); // never reuse an old cached copy after an update
-const src = { server: '/manager?embed=1&v=' + v, admin: '/admin?embed=1&v=' + v };
+const src = { server: '/manager?embed=1&v=' + v, admin: '/admin?embed=1&v=' + v, log: '/admin/playerlog?embed=1&v=' + v };
 function show(t) {
-  if (!['server', 'admin', 'team', 'progress'].includes(t)) t = 'server';
+  if (!['server', 'admin', 'team', 'log', 'progress'].includes(t)) t = 'server';
   document.getElementById('progress').classList.toggle('on', t === 'progress');
   if (t === 'progress') {
     for (const k in frames) frames[k].classList.remove('on');
@@ -90,7 +92,7 @@ function show(t) {
     if (location.hash !== '#progress') history.replaceState(null, '', '#progress');
     return;
   }
-  const f = t === 'server' ? 'server' : 'admin';
+  const f = t === 'server' ? 'server' : t === 'log' ? 'log' : 'admin';
   if (!frames[f].src) frames[f].src = src[f];
   for (const k in frames) frames[k].classList.toggle('on', k === f);
   document.querySelectorAll('nav a').forEach((a) => a.classList.toggle('on', a.dataset.t === t));

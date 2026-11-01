@@ -287,6 +287,7 @@ module.exports = {
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="4"><message>no character</message></root>';
     game.ensureStarterTeam(db, acc.uid, pl.server_id, 1);
+    { const log = require('./playerlog'); log.day(db, pl.uid, pl.server_id); log.attack(db, pl.uid, pl.server_id); } // progress log
     // Offline server: energy is refilled to the level's maximum on every login.
     const lvRow = game.table('playerlevel').rows.find((r) => r[1] === pl.level);
     const en = game.energyTick(db, pl); pl.energy = en.energy; // energy grows 1 per 180 s (no free refill on the main page any more)

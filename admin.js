@@ -357,6 +357,14 @@ module.exports = async function admin(req, res, u, db, readBody) {
     return res.end(pageCache);
   }
   game.ensure(db);
+  if (u.pathname === '/admin/playerlog') { // progress log per player (playerlog.js), the panel's "Player log" tab
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(fs.readFileSync(path.join(__dirname, 'playerlog.html'), 'utf8'));
+  }
+  if (u.pathname === '/admin/api/playerlog') {
+    const pl = findPlayer(db, u.query.uid);
+    return json(res, pl ? require('./playerlog').summary(db, pl.uid, pl.server_id) : { rows: [], attack: [], level: [], story: [], logins: 0 });
+  }
   if (u.pathname === '/admin/api/players') {
     const rows = db.prepare(`SELECT p.uid,p.nick,p.level,p.gold,p.coin,p.energy,p.server_id,
       (SELECT COUNT(*) FROM cards c WHERE c.uid=p.uid AND c.server_id=p.server_id) cards FROM players p ORDER BY p.level DESC, p.uid`).all();
