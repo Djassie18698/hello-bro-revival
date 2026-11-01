@@ -689,7 +689,7 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
 }
 
 // ---- Reincarnation / equipment advance (rl_w_newlife Cmd 7): ReadyCard gains +1 grade, EatCard (same item id) is consumed.
-const NEWLIFE_MAX = (type) => (type === 1 ? 8 : table('equipnewlifeprop').rows.length); // shinobi: 8 (the card screen says x/8)
+const NEWLIFE_MAX = (type) => (type === 1 ? 9 : table('equipnewlifeprop').rows.length); // shinobi: 9 (newlifeconfig has grades 1-9; the game's rebirth screen shows "Shinobi 9 Reincarnation", 1230 pills)
 const NEWLIFE_COST = (grade) => 5000 * grade;
 function newlife(db, pl, readySeq, eatSeq, grade) {
   ensure(db);

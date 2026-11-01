@@ -396,3 +396,4 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Shinobi training crash (dropdown): CPotentialView keeps the cost rows in one list (even = pill, odd = gold) and onClickMode jumps 2 rows
   (1 time <-> 10 times); we sent only 2 rows, so the dropdown read past the list. rl_x_develop Cmd 1 now sends 4 rows (cost_id 3/4 = 10 times,
   rolled 10x in potentialRoll). Verified on the emulator. Training stays free (ours; the 2015 costs are lost, a later version used 1 Super Ninja Pill + 4000 silver).
+- Shinobi rebirth goes to 9 (owner's screenshot shows "Shinobi 9 Reincarnation", 1230 pills; newlifeconfig has grades 1-9). The card info lists only 8 bonus lines: that list is the client's own data.
