@@ -427,3 +427,12 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   Result icons: a_type 2 item / 5 fragment (piece id) / 1 card, a_id = a dropinfo id. Verified in game: list, counts, buy window.
 - Event switches: settings.events {id: on}; limited events (festivals) start off; festivals share screen 44, so switching one on switches the other off.
 - Do NOT switch on events 30 (dailyRestriction) or 39/40 (dailyFirstPay): no activityNN image, would blank the event list.
+- FIX top banner piling up (owner screenshot): every <horninfo> adds another label to the top bar (it stays across screens; the old one freezes).
+  The horn now goes out once per login, on the first rl_r_mainpage Cmd 1301 (the login call Cmd 1302 ignores it). settings.hornPending is filled by rl_w_login2.
+  Verified: three home visits, one clean scrolling line.
+
+## God Recruit (1 Nov 2026)
+- godrecruit.js, Event menu id 46 ("luck draw"): rl_x_small_activity 17 info (<basic> + <card_info_list><item id card_id drop_id card_drop_gold
+  card_exchange_point/>), 18 spin (<id> slot index, <castCash>), 19 keep (<award>), 20 return (<add_cash><left_cash><left_score>), 21 ChangeId trade
+  (<award> + <leftScore>). 300 gold per spin from the photos; line-up of holiday god cards, return gold, energy (20 per return) and trade costs are (ours).
+  Verified in game: list, spin + confirm, win window, return (120 gold, energy 20), exchange window.

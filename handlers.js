@@ -4,6 +4,7 @@ const game = require('./game');
 const vip = require('./vip');
 const wheel = require('./wheel');
 const festival = require('./festival');
+const godrecruit = require('./godrecruit');
 const signin = require('./signin');
 const stagegift = require('./stagegift');
 const guild = require('./guild');
@@ -229,6 +230,7 @@ module.exports = {
   rl_w_login2: ({ db, params: p }) => {
     const acc = accountBySession(db, p, true);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
+    require('./settings').hornPending.add(String(acc.uid)); // the top banner goes out once per login (see rl_r_mainpage)
     const pl = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     return (
       `<root code="0"><login_info>${el('hasreg', pl ? 1 : 0)}${el('userid', acc.uid)}${el('session', acc.session)}</login_info>` +
@@ -278,8 +280,10 @@ module.exports = {
       gs.suitlist + '<defensesuitlist></defensesuitlist>' + game.chipbagXml(db, acc.uid, pl.server_id) +
       gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
       `<chapinfo currentchap="${cur.chap}" currentstage="${game.stagePart(cur.chap, cur.stage).part}"/>` +
-      // the scrolling banner at the top of the home screen (CDefaultMainMenu -> CMainMenu::InitAnnounceMsg; '|' separates messages); text from the Server Manager
-      `<horn><horninfo>${esc(require('./settings').banner(db))}</horninfo><hornflag>1</hornflag></horn></root>`;
+      // the scrolling banner at the top of the home screen (CDefaultMainMenu -> CMainMenu::InitAnnounceMsg; '|' separates messages); text from the Server Manager.
+      // Only ONCE per login, on the first home visit (Cmd 1301; the login call 1302 ignores it): every <horninfo> makes the client add another
+      // scrolling label to the top bar, which stays across screens, on top of the old one (they piled up).
+      (Number(p.Cmd) === 1301 && require('./settings').hornPending.delete(String(acc.uid)) ? `<horn><horninfo>${esc(require('./settings').banner(db))}</horninfo><hornflag>1</hornflag></horn>` : '') + '</root>';
   },
 
   // Gacha status (free pulls / pity counters). Everything available, nothing to track yet.
@@ -435,6 +439,12 @@ module.exports = {
     // festival trade event (festival.js): 9 info, 10 item shop, 11 trade ExId
     if (cmd === 9) { const x = festival.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the festival is over</message></root>'; }
     if (cmd === 10) return '<root code="0">' + festival.shopXml(db, pl) + '</root>';
+    // God Recruit slot (godrecruit.js): 17 info, 18 spin, 19 keep, 20 return, 21 ChangeId trade
+    if (cmd === 17) { const x = godrecruit.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the event is over</message></root>'; }
+    if (cmd >= 18 && cmd <= 21) {
+      const r = cmd === 18 ? godrecruit.spin(db, pl) : cmd === 19 ? godrecruit.keep(db, pl) : cmd === 20 ? godrecruit.giveBack(db, pl) : godrecruit.trade(db, pl, Number(p.ChangeId));
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
     if (cmd === 11) { const r = festival.trade(db, pl, Number(p.ExId)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (cmd === 8) {
       const r = signin.sign(db, pl, Number(p.SignId));

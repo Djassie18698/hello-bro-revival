@@ -17,6 +17,7 @@ const EVENTS = [
   // Limited-time events: off until the owner switches them on. `screen` = the game's event id they show under (several may share one).
   { id: 'xmas', screen: 44, pos: 11, type: 2, limited: true, icon: '🎄', name: 'Christmas festival', desc: 'Win fights for Christmas Caps and Trees, trade them for Santa of the Six Paths. Only one festival at a time.' },
   { id: 'newyear', screen: 44, pos: 11, type: 2, limited: true, icon: '🎆', name: 'New Year festival', desc: 'Same trade event with Kaguya for New Year rewards. Only one festival at a time.' },
+  { id: 'godrecruit', screen: 46, pos: 12, type: 2, limited: true, icon: '🎰', name: 'God Recruit', desc: 'Slot machine of holiday god cards (300 gold a spin). Keep the card or return it for gold and energy, trade energy for cards.' },
 ];
 const DISCORD = 'https://discord.gg/2Cbp4UDHrU';
 const DEFAULT_BANNER = 'Join our Discord for help, bugs and friends: discord.gg/2Cbp4UDHrU  (Settings > Join Discord)';
@@ -62,6 +63,7 @@ function setNews(db, text) { set(db, 'news', text); set(db, 'news_at', Math.floo
 // ---- live stats -------------------------------------------------------------------------------------------------------
 const started = Date.now();
 const seen = new Map(); // uid -> { at, cgi }
+const hornPending = new Set(); // uids that logged in and still need the top banner once
 const log = [];         // last 300 lines for the manager page
 let requests = 0;
 function hit(uid, cgi) {
@@ -74,4 +76,4 @@ function addLog(kind, text) {
 }
 const online = (ms = 5 * 60000) => [...seen.entries()].filter(([, v]) => Date.now() - v.at < ms).map(([uid, v]) => ({ uid, ...v }));
 
-module.exports = { EVENTS, DISCORD, DEFAULT_BANNER, banner, DEFAULT_NEWS, get, set, eventOn, eventsOff, setEvent, switchedOnAt, news, newsAt, setNews, started, hit, addLog, log, online, stats: () => ({ requests }) };
+module.exports = { hornPending, EVENTS, DISCORD, DEFAULT_BANNER, banner, DEFAULT_NEWS, get, set, eventOn, eventsOff, setEvent, switchedOnAt, news, newsAt, setNews, started, hit, addLog, log, online, stats: () => ({ requests }) };
