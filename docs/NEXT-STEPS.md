@@ -418,3 +418,12 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Top banner (the scrolling bar with the horn on the home screen): rl_r_mainpage now ends with <horn><horninfo>TEXT</horninfo><hornflag>1</hornflag></horn>
   (CDefaultMainMenu::onHttpRequestCompleted -> CMainMenu::setHornInfo/InitAnnounceMsg, "|" = gap). Text = settings banner (Server Manager "Top banner"),
   default = the Discord invite. Verified on the emulator: it scrolls and repeats.
+
+## Festival trade event (1 Nov 2026)
+- festival.js: event button 44 in the Event menu (conf type 2; type 1 = home column needs a ccbResources path, activityNN frames only work in the Event menu).
+  rl_x_small_activity Cmd 9 info (<activity> + ONE <exchange_list> with <exchange> children), 10 shop (<prop_info><prop .../>), 11 ExId trade;
+  rl_w_shopbuy Cmd 1700 Goodsid 38/39 Counts=1. Items: Christmas Cap 38 (training + battles), Christmas Tree 39 (spar + Ninja Test).
+  Christmas trade list = the original from the photos (FINDINGS.md Holiday events); limits per event run (keyed by switch-on time).
+  Result icons: a_type 2 item / 5 fragment (piece id) / 1 card, a_id = a dropinfo id. Verified in game: list, counts, buy window.
+- Event switches: settings.events {id: on}; limited events (festivals) start off; festivals share screen 44, so switching one on switches the other off.
+- Do NOT switch on events 30 (dailyRestriction) or 39/40 (dailyFirstPay): no activityNN image, would blank the event list.

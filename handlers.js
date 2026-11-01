@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const game = require('./game');
 const vip = require('./vip');
 const wheel = require('./wheel');
+const festival = require('./festival');
 const signin = require('./signin');
 const stagegift = require('./stagegift');
 const guild = require('./guild');
@@ -96,6 +97,7 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   if (now.clears >= game.clearsNeeded(row)) game.setStage(db, pl.uid, pl.server_id, chap, stage + 1); // enough clears: next stage opens
   if (stage >= game.chapterStages(chap) && now.clears >= game.clearsNeeded(row) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
+  festival.dropOnWin(db, pl, 'training'); // Christmas Caps while a festival runs
   const energy = db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).energy;
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
@@ -318,7 +320,7 @@ module.exports = {
     const r = game.sparFight(db, pl, Number(p.ToUid));
     game.addExp(db, pl, r.exp);
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(r.coin, pl.uid, pl.server_id);
-    if (r.win) { game.bumpTask(db, pl.uid, pl.server_id, 6); }
+    if (r.win) { game.bumpTask(db, pl.uid, pl.server_id, 6); festival.dropOnWin(db, pl, 'spar'); }
     // Plunder (Chip = seal fragment id): a win usually steals the fragment.
     const chip = Number(p.Chip) || 0;
     const got = chip && seals.plunder(db, pl, chip, r.win);
@@ -430,6 +432,10 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
     if (cmd === 7) return '<root code="0">' + signin.listXml(db, pl) + '</root>';
+    // festival trade event (festival.js): 9 info, 10 item shop, 11 trade ExId
+    if (cmd === 9) { const x = festival.infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the festival is over</message></root>'; }
+    if (cmd === 10) return '<root code="0">' + festival.shopXml(db, pl) + '</root>';
+    if (cmd === 11) { const r = festival.trade(db, pl, Number(p.ExId)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (cmd === 8) {
       const r = signin.sign(db, pl, Number(p.SignId));
       return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
@@ -568,6 +574,10 @@ module.exports = {
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
       if (r.type !== 1) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"></shopbuy></root>`; // equipment: client crashes on the reveal dialog; cards show up after re-login
       return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"><retobj type="${r.type}" id="${r.ninja}" count="${r.n}" bagid="${r.seq}" attr="${r.attrs}"/></shopbuy></root>`;
+    }
+    if (festival.isItem(Number(p.Goodsid))) { // festival shop (ui_commonBuyItemDialogCell: Goodsid, Counts=1)
+      const r = festival.buy(db, pl, Number(p.Goodsid));
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0"><shopbuy costyb="${r.costG}" costyz="0"><retobj type="2" id="${Number(p.Goodsid)}" count="1"/></shopbuy></root>`;
     }
     const cnt = Math.max(1, Math.min(999, Number(p.Count) || 1));
     const r = game.shopBuy(db, pl, Number(p.Goodsid), cnt);
@@ -888,7 +898,7 @@ module.exports = {
     if (cmd === 2) return tearRes(exam.setTeam(db, pl, p.card_index_list));
     if (cmd === 3) return tearRes(exam.exchange(db, pl, Number(p.reward_id)));
     if (cmd === 4) return tearRes(exam.buy(db, pl));
-    if (cmd === 5) return tearRes(exam.fight(db, pl));
+    if (cmd === 5) { const r = exam.fight(db, pl); if (r.win) festival.dropOnWin(db, pl, 'exam'); return tearRes(r); }
     if (cmd === 6) return tearRes(exam.openBox(db, pl, Number(p.box_index)));
     if (cmd === 7) return tearRes(exam.next(db, pl));
     return { code: 0, xml: exam.infoXml(db, pl) };
@@ -1048,6 +1058,7 @@ module.exports = {
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, sid);
     game.setStage(db, pl.uid, sid, 1000 + chap, round + 1);
     game.bumpTask(db, pl.uid, sid, 1);
+    festival.dropOnWin(db, pl, 'training'); // battles drop Christmas Caps too
     return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { enemyLevel: 10 * chap }) + stageAward(db, pl, [], 0, 0) + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3); the client credits exp/silver itself
   },
 

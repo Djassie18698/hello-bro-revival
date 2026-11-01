@@ -68,7 +68,7 @@ module.exports = async function manager(req, res, u, db, readBody) {
   let b = {};
   try { b = JSON.parse((await readBody(req)) || '{}'); } catch { return json(res, { ok: false, error: 'bad json' }); }
   if (u.pathname === '/manager/api/event') {
-    const e = settings.EVENTS.find((x) => x.id === Number(b.id));
+    const e = settings.EVENTS.find((x) => String(x.id) === String(b.id));
     if (!e) return json(res, { ok: false, error: 'no such event' });
     settings.setEvent(db, e.id, !!b.on);
     console.log(`[manager] event "${e.name}" switched ${b.on ? 'ON' : 'OFF'}`);
