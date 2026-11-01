@@ -510,3 +510,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   (uid, server_id), so one login can hold a main and up to 3 starters; each slot is its own world (rankings, guilds, friends per server).
   Verified in game: the list shows, Starter slot 1 + START opens a new character (nation choice).
 - Admin/control panel: players are keyed "uid:server_id" (findPlayer); the list says "starter slot N"; Reset only deletes that slot.
+
+## Enemy strength curve (1 Nov 2026, owner request)
+- Enemy npc rows have no stats in the client data (originals lived on the dead server). Now: enemy TEAM defence grows by the same factor every
+  story stage from 285 at stage 1-2 (owner video: Mizuki 140 + 125, "total defence 285") to 2 500 000 at the last stage of chapter 19 (owner
+  choice). First enemy x1.12. Battles: 175 rounds on the same 285..2.5M curve; a Battles round can now be LOST (attack x 0.85-1.15 < defence).
+  Training win check = my total attack vs their total defence. Ninja Test guards: 1150 at stage 1, 1950 at stage 2 (photos), +800 a stage.
+  Values: 1-2 285, 2-1 481, 5-1 2.5k, 10-1 38k, 15-1 289k, 19-1 1.33M, 19-87 2.5M. Verified in game: Battles 3-5 shows 159/142.

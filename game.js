@@ -1136,6 +1136,24 @@ function npcStats(star, level) {
   const v = (i) => Math.round((a.v[i] / a.n + (a.v[i + 6] / a.n) * Math.max(0, level - 1)) * ENEMY_SCALE);
   return { al: v(0), ah: v(1), dl: v(2), dh: v(3), cl: v(4), ch: v(5) };
 }
+// Enemy strength (the originals lived on the dead server). In a fight only my side attacks and every enemy's defence is taken off my attack,
+// so what matters is the enemy team's TOTAL defence. Anchors: stage 1-2 = 285 (the owner's video of the original game: Mizuki 140 +
+// Iruka 125... "total defence 285"); the last story boss (chapter 19, last stage) = 2 500 000 (owner's choice: a strong late build).
+// In between it grows by the same factor every stage (ours). The named / first enemy carries a bit more than the others (video 140 vs 125).
+const CURVE = { first: 285, last: 2500000 };
+let storyIndex = null;
+function storyPos(chap, stage) { // 0 = stage 1-1 ... N-1 = the last stage of chapter 19
+  if (!storyIndex) { storyIndex = [0]; for (let c = 1; c <= 19; c++) storyIndex[c] = storyIndex[c - 1] + chapterStages(c); }
+  return { at: (storyIndex[chap - 1] || 0) + stage - 1, of: storyIndex[19] };
+}
+function teamDefence(frac) { return Math.round(CURVE.first * Math.pow(CURVE.last / CURVE.first, frac)); }
+function spreadFoes(ids, total, level) { // split a total defence over the enemies (first one x1.12) and give each a matching look
+  const w = ids.map((_, i) => (i === 0 ? 1.12 : 1)), sw = w.reduce((t, x) => t + x, 0);
+  return ids.map((id, i) => {
+    const n = ninjas().get(id) || [], def = Math.max(1, Math.round((total * w[i]) / sw));
+    return { id, low: Math.round(def * 1.3), high: Math.round(def * 1.6), def, end: def * 4, level, star: n[11] || 2, power: def };
+  });
+}
 function stageFoes(chap, stage) {
   const parts = chapterParts(chap), sp = stagePart(chap, stage), part = parts[sp.part - 1];
   if (!part) return [];
@@ -1143,10 +1161,8 @@ function stageFoes(chap, stage) {
   const ids = (r) => r.slice(7, 22).filter((x) => x > 0);
   let list = own[38] ? ids(own) : ids(boss).slice(1, 4);
   if (!list.length) list = ids(boss).slice(0, 1);
-  return list.slice(0, 5).map((id) => {
-    const n = ninjas().get(id) || [], lv = n[7] || 1, s = npcStats(n[11] || 2, lv);
-    return { id, low: s.al, high: s.ah, def: Math.round((s.dl + s.dh) / 2), end: Math.round((s.dl + s.dh) * 2 + 300), level: lv, star: n[11] || 2, power: (s.al + s.ah) / 2 + (s.dl + s.dh) / 2 };
-  });
+  const pos = storyPos(chap, stage), frac = Math.max(0, (pos.at - 1) / Math.max(1, pos.of - 2)); // stage 1-2 = the 285 anchor
+  return spreadFoes(list.slice(0, 5), teamDefence(frac), chap * 5 + Math.ceil(stage / 4));
 }
 // Battles ("dup", rushtower chapters 1-25): towerfloor rows with [2] = chapter, 7 rounds each in id order (the map: 6 shinobi then the boss);
 // [4..8] the five enemies (the first is the named one), [20] exp, [21] silver (the reward the round's popup shows).
@@ -1154,10 +1170,9 @@ function towerRow(chap, round) { return table('towerfloor').rows.filter((r) => r
 function towerFoes(chap, round) {
   const row = towerRow(chap, round);
   if (!row) return null;
-  return row.slice(4, 9).filter((x) => x > 0).map((id) => {
-    const n = ninjas().get(id) || [], lv = n[7] || chap * 10 + round, s = npcStats(n[11] || 2, lv); // tower npcs have no level: (ours) 10 x chapter + round
-    return { id, low: s.al, high: s.ah, def: Math.round((s.dl + s.dh) / 2), end: Math.round((s.dl + s.dh) * 2 + 300), level: lv, star: n[11] || 2, power: (s.al + s.ah) / 2 + (s.dl + s.dh) / 2 };
-  });
+  // Battles: 25 chapters x 7 rounds on the same curve as the story (round 1 = 285, the last = 2.5 million) (ours)
+  const k = (chap - 1) * 7 + (round - 1);
+  return spreadFoes(row.slice(4, 9).filter((x) => x > 0), teamDefence(k / 174), chap * 10 + round);
 }
 function getStage(db, uid, sid, chap) {
   ensure(db);

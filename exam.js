@@ -51,7 +51,8 @@ function guards(grade) {
   const pool = [...game.ninjas().values()].filter((n) => n[11] >= 4 && n[11] <= 5).sort((a, b) => a[0] - b[0]);
   return Array.from({ length: 5 }, (_, i) => {
     const n = pool[(grade * 7 + i * 13) % pool.length];
-    return { id: n[0], name: n[2], attr: n[5] || 1, val: Math.round(380 + grade * 140 + i * 35 + (grade % 5 === 0 ? 300 : 0)) };
+    // Facebook photos of the original: stage 1 guards ~1150-1170, stage 2 ~1951-1956 (FINDINGS.md); +800 a stage after that (ours), bosses at 5/10/15 +30%
+    return { id: n[0], name: n[2], attr: n[5] || 1, val: Math.round((1150 + (grade - 1) * 800 + i * 5) * (grade % 5 === 0 ? 1.3 : 1)) };
   });
 }
 // My card's value as the client shows it: average attack (or defense when the guards attack).

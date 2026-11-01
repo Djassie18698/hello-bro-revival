@@ -73,3 +73,5 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - Every **(ours)** value above.
 - Pet master skill in fights: the master pet is sent with each fight, but the skill's damage is only shown by the client.
 - The 3-chest boss stages of the Ninja Test (5, 10, 15) have not been played in game yet.
+
+- **Enemy strength (ours, 1 Nov 2026):** enemy team defence 285 at stage 1-2 (from the owner's video of the original) growing evenly to 2 500 000 at the last story stage; Battles use the same range over their 175 rounds; Ninja Test guards 1150 / 1950 at stages 1 / 2 (photos), +800 a stage.
