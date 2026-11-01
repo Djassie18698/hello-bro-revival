@@ -126,7 +126,11 @@ Current: **28.0.23** (28.0.23 Score Ranking pop-up fix; 28.0.22 cross-server bat
   (it refuses game files, keystores, the owner's IPs/uids) and pushed after features change.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU** — use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
-  write the text to a file first). Channels include #install-help, #guides, #how-to-play, #announcements, #patch-testing.
+  write the text to a file first). Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
+  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcements (every update) · #faq.
+  GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
+  #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
+  Keep it updated: new feature -> #announcements + edit #how-to-play; install/update change -> edit #install-help / #faq. Never reply in chat channels.
 
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
