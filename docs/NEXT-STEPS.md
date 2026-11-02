@@ -929,3 +929,6 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   turns "Weapon/Armor/Trinket Card" packs into that slot's gear (1284 gave a shinobi). Checked in game: picked card = 4-star Scroll of Seal.
   Also hot update 28.0.30: RS_WinAnim.ccbi / BuyItemDialogCellView.ccbi default label "大拉面" -> "Big Ramen" (tools/patch_winanim.py,
   tools/ccbi.py replace_string); the filler ramen card now reads "Big Ramen".
+- Battles (tower) win showed EXP 0 / silver 0 and the top bar lagged until relog (server paid 58 / 87). The tower result screen does not add
+  the round reward itself (story stages do): the award now carries <exp>/<coin> = the round's own reward (+ any drop silver). Checked in
+  game: +58 / +87 shown, top bar 1172 / 22197 = server. First in-game tower fight ever (rl_w_dup had never been called in the replies log).

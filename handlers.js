@@ -1336,7 +1336,12 @@ module.exports = {
     game.setStage(db, pl.uid, sid, 1000 + chap, round + 1);
     game.bumpTask(db, pl.uid, sid, 1);
     festival.dropOnWin(db, pl, 'training'); // battles drop Christmas Caps too
-    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { foes: tfoes.length ? tfoes : undefined, win: true, enemyName: String((game.ninjas().get((trow[4] || 0)) || [])[2] || 'Enemy'), enemyLevel: 10 * chap }) + stageAward(db, pl, [], 0, 0) + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3); the client credits exp/silver itself
+    // Unlike story stages, the tower result screen (tower_layer) does NOT add the round's exp / silver by itself: it shows and adds the award's
+    // <exp>/<coin>. They were 0, so it showed 0 / 0 and the top bar lagged until the next login (the server did pay).
+    let towerAward = stageAward(db, pl, [], 0, 0);
+    const towerDropCoin = Number((towerAward.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
+    towerAward = towerAward.replace(/<exp>\d+<\/exp>/, `<exp>${exp}</exp>`).replace(/ coin="\d+"/, ` coin="${coin + towerDropCoin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin + towerDropCoin}</coin>`);
+    return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { foes: tfoes.length ? tfoes : undefined, win: true, enemyName: String((game.ninjas().get((trow[4] || 0)) || [])[2] || 'Enemy'), enemyLevel: 10 * chap }) + towerAward + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3)
   },
 
   // Daily tasks: Cmd 1 = list, Cmd 2 = claim an award (AwardID).
