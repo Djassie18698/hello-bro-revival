@@ -85,7 +85,9 @@ function fight(db, pl) {
   const base = Math.round((ts.total.al + ts.total.ah) / 2);
   const dmg = Math.min(b.hp, Math.round(base * (20 + Math.random() * 10) * (m.combo / 100)));
   const hp = b.hp - dmg, killed = hp <= 0;
-  const score = Math.max(5, Math.round(dmg / 5000)) + (killed ? 500 : 0);
+  // reputation per hit: ORIGINAL normalconfig row 258 = damage / 30 000 (owner chose the original, 2 Nov 2026; was damage / 5000, at least 5);
+  // at least 1 a hit and the 500 kill bonus are (ours)
+  const score = Math.max(1, Math.floor(dmg / 30000)) + (killed ? 500 : 0);
   db.prepare('UPDATE boss SET hp=?, killer=CASE WHEN ? THEN ? ELSE killer END WHERE server_id=? AND day=?').run(hp, killed ? 1 : 0, pl.nick, pl.server_id, day());
   const fights = cdLeft(m) === 0 && m.fights >= FIGHTS_PER_ROUND ? 1 : m.fights + 1;
   db.prepare('UPDATE boss_hits SET dmg=dmg+?, score=score+?, fights=?, last=?, combo=100 WHERE server_id=? AND day=? AND uid=?')

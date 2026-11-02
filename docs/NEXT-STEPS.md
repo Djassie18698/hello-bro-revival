@@ -870,3 +870,4 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   original would give 6x less; asked), boss hours 12:30-13:00 (normalconfig 106/107, ours all day), succession price (one photo: 2450
   gold for 5-star Lv50 growth 9 rebirth 1, ours 200; one point is not enough for a formula), Save time "round N" (photos 2212 and 4035
   fit different stage rules), Hyourou-gan "Left today 0/6, VIP2 +3" (vipinfo says 30/33 uses; which limit is unclear).
+- Boss reputation per hit now ORIGINAL damage / 30 000 (owner: "Yes, original"); min 1 (ours). Owner's main account (team attack ~8800) gets ~7 a hit instead of ~44.
