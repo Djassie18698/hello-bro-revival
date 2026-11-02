@@ -71,7 +71,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
     `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
   - the dev server in the main repo: `bash tools/dev/restart.sh` (port **18081**, so the owner can play on 18080 at the same time; logs `%TEMP%\hb\server.log`). The Claude emulator runs `release/HelloBro-for-127.0.0.1-18081.apk` and reaches it through `adb reverse` (`emu.sh restart` sets it up). Test login: `tools/dev/emu.account` (git-ignored), account 55501235. `node tools/dev/dev.js` sets level / VIP / gold / items / SQL on the test account and `relog` restarts the game. The main repo's
     `hellobro.db` holds the owner's main account `22079117` (Ninja78277, level 80, VIP 18) and a friend `22078671`.
-- Tests without the game: `node tools/dev/smoke.js` (calls every handler on a temp DB), `node tools/dev/probe.js <endpoint> <Cmd> k=v`,
+- Tests without the game: `node tools/dev/smoke.js` (calls every handler on a temp DB), `node tools/dev/fuzz.js` (bad input + every screen on a brand-new save), `node tools/dev/exploit.js` (cheat check), `node tools/dev/realsave.js [save.db]` (every screen for every player on a read-only copy of a real save), `node tools/dev/probe.js <endpoint> <Cmd> k=v`,
   or a small node script with `new DatabaseSync(':memory:')` + `require('./schema')(db)` + `handlers.rl_w_login2/rl_w_reg2`.
 - In the game: `sh tools/dev/emu.sh restart` → wait ~20 s → `emu.sh update` if "confirm update?" shows → `emu.sh tap 540 1270`
   (START) → `emu.sh shot` and view `re/s.png`. Screen is portrait 1080x1920. Bottom bar y=1860: Home 85, Team 270, Backpack 447,
