@@ -1106,3 +1106,7 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   Cmd 2 MsgID / Cmd 3 claim (<award>); item type 1 = drop (gold goes as the game's gold-only drops, e.g. 2500 = 2000 + 500), 2 = silver,
   3 = reputation. Kept 7 days. Checked in game: message shows like the original, Claim -> reward card Gold*250, top bar updates on the
   next screen change.
+- VIP gift packs, the Lucky Wheel and the stage gift used drops.js, which paid every ninjutsu, seal and fragment as 20 000 silver
+  ("not implemented yet"). VIP2 had no Kurama Seal, VIP6/7/8/9/11/14-17 no ninjutsu (Amaterasu, Tsukuyomi, Susanoo, Shinra Tensei ...),
+  VIP12 no Ten-Tails Seal. They now use game.grantDrop like everything else. Checked in game: VIP2 gift -> Kurama Seal card, VIP6 gift ->
+  Amaterasu (5-star ninjutsu card), no errors. (The VIP2 text says 10 Large Ramen; the game's own drop 1395 gives 5: kept.)

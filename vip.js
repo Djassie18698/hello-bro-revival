@@ -1,6 +1,5 @@
 // VIP system: VIP level per player (offline server: free, set from the admin page), VIP gift shop, free "top-up".
 const game = require('./game');
-const drops = require('./drops');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const DEFAULT_VIP = 0; // like the original: VIP comes from (free) top-ups
 const MAX_VIP = 18;
@@ -77,10 +76,8 @@ function buy(db, pl, giftId) {
   if (pl.gold < g[2]) return { error: 'not enough gold' };
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(g[2], pl.uid, pl.server_id);
   db.prepare('INSERT INTO vipbought(uid,server_id,gift_id) VALUES(?,?,?)').run(pl.uid, pl.server_id, giftId);
-  const out = drops.newOut();
-  [4, 5, 6, 7, 8].forEach((i) => g[i] && drops.give(db, pl, g[i], out));
-  drops.settle(db, pl, out);
-  return { xml: drops.awardXml(out) };
+  // game.grantDrop gives every kind (ninjutsu, seals, gear, items, silver); the old drops.js paid ninjutsu / seals as 20 000 silver
+  return { xml: game.mergeAwards([4, 5, 6, 7, 8].filter((i) => g[i]).map((i) => game.grantDrop(db, pl, g[i])).filter(Boolean)) };
 }
 
 module.exports = { level, setLevel, addExp, progress, listXml, buy, MAX_VIP, DEFAULT_VIP };

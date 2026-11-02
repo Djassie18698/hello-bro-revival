@@ -1,6 +1,5 @@
 // Lucky wheel (ui_rouletteLayer.lua). rl_r_wheel Cmd 1401 = load info + 12 wheel slots, rl_w_wheel Cmd 1400/1401 = spin once / ten times.
 const game = require('./game');
-const drops = require('./drops');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const COST = 50, SCORE = 10, JACKPOT_START = 5000;
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -36,11 +35,12 @@ function spin(db, pl, times) {
   for (let i = 0; i < times; i++) {
     let x = Math.random() * total, row = rows[rows.length - 1];
     for (const r of rows) { if ((x -= r[5]) < 0) { row = r; break; } }
-    const out = drops.newOut();
-    let dropId = row[4];
-    if (!drops.give(db, pl, row[4], out)) { out.cash += jackpot; jackpot = JACKPOT_START; dropId = 0; } // "super prize" slot: pays the pot
-    drops.settle(db, pl, out);
-    awards.push(`<award_item item_id="${row[0]}">${drops.awardXml(out, dropId)}</award_item>`);
+    let award = game.grantDrop(db, pl, row[4]); // every kind, like the rest of the game (the old drops.js paid ninjutsu / seals as silver)
+    if (!award) { // "super prize" slot: pays the pot
+      db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(jackpot, pl.uid, pl.server_id);
+      award = game.awardFull({ cash: jackpot }); jackpot = JACKPOT_START;
+    }
+    awards.push(`<award_item item_id="${row[0]}">${award}</award_item>`);
   }
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(Math.max(0, cost), pl.uid, pl.server_id);
   const score = s.score + SCORE * times;
