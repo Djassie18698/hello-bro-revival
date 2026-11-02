@@ -456,9 +456,9 @@ module.exports = async function admin(req, res, u, db, readBody) {
       return json(res, { ok: true, count: n });
     }
     if (u.pathname === '/admin/api/delcard') {
-      const inTeam = db.prepare('SELECT 1 FROM team WHERE uid=? AND server_id=? AND seq=?').get(pl.uid, pl.server_id, b.seq);
-      if (inTeam) return json(res, { ok: false, error: 'that card is in the team; take it out first' });
-      db.prepare('DELETE FROM equipped WHERE uid=? AND server_id=? AND seq=?').run(pl.uid, pl.server_id, b.seq);
+      const inTeam = ['team', 'team_alt'].some((t) => db.prepare(`SELECT 1 FROM ${t} WHERE uid=? AND server_id=? AND seq=?`).get(pl.uid, pl.server_id, b.seq));
+      if (inTeam) return json(res, { ok: false, error: 'that card is in a team (Team 1 or 2); take it out first' });
+      for (const t of ['equipped', 'equipped_alt']) db.prepare(`DELETE FROM ${t} WHERE uid=? AND server_id=? AND seq=?`).run(pl.uid, pl.server_id, b.seq);
       db.prepare('DELETE FROM cards WHERE uid=? AND server_id=? AND seq=?').run(pl.uid, pl.server_id, b.seq);
       return json(res, { ok: true });
     }
