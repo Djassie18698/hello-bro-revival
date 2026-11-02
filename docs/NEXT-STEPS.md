@@ -968,3 +968,10 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   The client reads the step from rl_r_activity <activity type="3"><item actid="3" pos> (was always -1 = finished) and invests with
   rl_w_activity Cmd 9100 ActType 3 ActID 3 SubID; reply <caishen recash/>, the client adds recash - invest. Checked in game: tile shows,
   "Investing 25 / gain at least 30 / 8 chances", bet -> recash 32, gold 7123 -> 7130, next step 150 / 175 / 7 chances.
+- Month card (Event menu "Monthly Card", activity id 3, monthCardActivity.lua) built: monthcard.js + switch `monthcard` (off by default:
+  top-ups are free, so it is free daily gold). ORIGINAL monthCardData.lua: $4.99 = 60 gold a day x 30 days, $9.99 = 120 x 30. State via
+  rl_r_activity <activity type="4"><item actid="4"><canget subid/> | <ing><card subid/></ing></item> (was always empty = "Buy"); claim =
+  rl_w_activity ActType 4 ActID 4 SubID. (ours): Android has no buy flow for it, so a free top-up of exactly $4.99 / $9.99 activates the card.
+  Hot update 28.0.31: the screen adds <month recash> to the top bar (the original line was commented out). Checked in game: "Claim" shown
+  after a $4.99 top-up, claim +60 gold, second claim the same day refused; after relog the button does nothing (the original screen never
+  greys it).
