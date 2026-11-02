@@ -39,12 +39,14 @@ function listXml(db, pl) {
 }
 
 function claim(db, pl, id) {
-  if (!settings.eventOn(db, 'totalgift') || !left(db)) return { error: 'The event has expired' };
+  // codes the claim button understands (ui_accumulateMoneyTableCell): 314000 already claimed, 314004 not reached, 314002 expired; any other
+  // code shows nothing at all
+  if (!settings.eventOn(db, 'totalgift') || !left(db)) return { code: 314002 };
   ensure(db);
   const g = GIFTS.find((x) => x[0] === id);
   if (!g) return { error: 'no such gift' };
-  if (claimed(db, pl).includes(id)) return { error: 'This reward has already been redeemed' };
-  if (dollars(db, pl) < g[1]) return { error: 'Recharge amount is insufficient, please redeem after recharge.' };
+  if (claimed(db, pl).includes(id)) return { code: 314000 };
+  if (dollars(db, pl) < g[1]) return { code: 314004 };
   db.prepare('INSERT INTO totalgift_claim VALUES (?,?,?,?)').run(pl.uid, pl.server_id, start(db), id);
   const awards = [];
   for (const [, , , nl, drops] of g[2]) for (const d of drops) {

@@ -1121,3 +1121,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   drop 16 -> Moegi (1-star shinobi).
   Lucky Wheel checked in game after the switch: free spin -> Gold*210 card, no errors.
   Border war target switch now checked in game: wander at Water, then Fire -> the original "You are already at Water border ... Want to wander?" dialog, Confirm -> Fire Wander 30min, Fire monument 300 -> 295, Water station ended. (The Border building is on the left of the Home map; its tap area is the stone's lower half.)
+- Screens with their own codes: the "Great gift for total recharge" claim (ui_accumulateMoneyTableCell) shows tips ONLY for 314000
+  (already claimed), 314004 (not reached), 314002 (expired) and nothing at all for other codes; Gold spending gifts (ui_consumptionLayer)
+  580001 (insufficient gold) / 580002 (already claimed). totalgift.js / consumption.js now send those. Tip sources: ShowErrorTip (C++
+  CShowTipView) reads Struct_String_Menu; some Lua screens (treasure chests, Ninja Test, wheel, monthly sign-in, Flower Worship, item
+  buy dialog ...) read text.lua text_config[code] instead, a code missing there is a Lua error. Every code errcodes.js can send exists in
+  text.lua except 480007 / 520002, which only Akatsuki screens get (they use ShowErrorTip): fine.

@@ -49,8 +49,8 @@ function claim(db, pl, id) {
   ensure(db);
   const t = TIERS.find((x) => x[0] === id);
   if (!t) return { error: 'no such reward' };
-  if (claimed(db, pl, id)) return { error: 'already claimed' };
-  if (spent(db, pl) < t[1]) return { error: 'spend more gold first' };
+  if (claimed(db, pl, id)) return { code: 580002 }; // ui_consumptionLayer: 580002 "already claimed", 580001 "insufficient gold"
+  if (spent(db, pl) < t[1]) return { code: 580001 };
   db.prepare('INSERT INTO consumption_claim VALUES(?,?,?,?)').run(pl.uid, pl.server_id, start(db), id);
   const awards = t[2].map((r) => {
     if (!r.prop) return game.grantDrop(db, pl, r.drop) || '';
