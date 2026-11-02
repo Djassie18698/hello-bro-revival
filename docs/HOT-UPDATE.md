@@ -28,6 +28,7 @@ Note: mainActivity.lua is run by C++ straight from the OBB, so patching it does 
 28.0.22 = util/common.lua: the cross-server battle (MULTI_BATTLE_CGI_IP) talks to the game's own server (CServerListMgr server url) instead of the dead 23.91.96.227:8080.
 28.0.23 = ui_layer/multi_battle/ui_multiBattleScoreDlg.lua: the cross-server Score Ranking pop-up starts with an empty list (it asked the size of a nil list before the server answered: Lua error).
 28.0.24 = ui_layer/ui_sevenDayView.lua: the 7-day goals screen no longer stops with a Lua error (its layout has no label_get_award_day_left), so the Claim button is grey until the goals are done.
+- 28.0.32: tables.bin ninjainfo 100016 name "黄金秋道丁次（材料）" -> "Golden Chōji (Material)" (the shop's golden Chōji EXP card showed a Chinese name). tools/patch_tables.py can now change text columns (ninjainfo:100016:1=...).
 28.0.31 = monthCardActivity.lua: a month card claim adds the <month recash> gold to the top bar and marks the card claimed (the original had that code commented out).
 28.0.30 = core_combat/RS_WinAnim.ccbi + dlg_ui/BuyItemDialogCellView.ccbi: the default item label "大拉面" reads "Big Ramen" (tools/patch_winanim.py; tools/ccbi.py replace_string swaps a string-table entry).
 28.0.29 = ui_layer/ui_lotteryTicketLayer.lua: the lottery draw time reads "11/02 20:30" (was "11Month02Day20Hour30").

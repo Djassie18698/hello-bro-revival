@@ -1,6 +1,7 @@
 # Change numbers in the client's own data tables (tables.bin in the OBB) and write a new tables.bin for a hot update.
 # tables.bin is a zip whose local-header magic is @B>R instead of PK; tables are MBS files (see mbs.py).
 # usage: python -I tools/patch_tables.py <tables.bin in> <tables.bin out> table:rowid:col=value ... table:+[json row] ...
+#   value is a number for number columns and any text for text columns (e.g. ninjainfo:100016:1=Golden Choji).
 #   col is 0-based over the row's columns as data/<table>.json shows them minus the leading id (json col 3 = col 2 here).
 #   table:+[...] appends a row written like a data/<table>.json row (leading index id first, then every column).
 import io, json, struct, sys, zipfile
@@ -14,10 +15,15 @@ def patch_mbs(d, rowid, col, value):
     types = d[type_off:type_off + cols].decode()
     width = sum(4 if t in 'uf' else 6 for t in types)
     r = ids.index(rowid)
-    assert types[col] == 'u', 'only number columns'
     p = data_off + r * width + sum(4 if t in 'uf' else 6 for t in types[:col])
+    if types[col] == 's':  # text: the string pool is the last part of the file, so the new text is appended and the slot points to it
+        b = str(value).encode('utf8')
+        print('row %d col %d: text -> %s' % (rowid, col, ascii(value)))
+        struct.pack_into('<IH', d, p, len(d), len(b))
+        return bytes(d) + b + bytes(1)
+    assert types[col] == 'u', 'only number and text columns'
     print('row %d col %d: %d -> %d' % (rowid, col, struct.unpack_from('<I', d, p)[0], value))
-    struct.pack_into('<I', d, p, value)
+    struct.pack_into('<I', d, p, int(value))
     return bytes(d)
 
 def add_row(d, row):
@@ -62,9 +68,9 @@ def main(src, dst, edits):
             files[key] = add_row(files[key], json.loads(row))
             continue
         name, rowid, rest = e.split(':')
-        col, value = rest.split('=')
+        col, value = rest.split('=', 1)
         key = 'tables/%s.dbf' % name
-        files[key] = patch_mbs(files[key], int(rowid), int(col), int(value))
+        files[key] = patch_mbs(files[key], int(rowid), int(col), value)
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
         for i in zin.infolist():
