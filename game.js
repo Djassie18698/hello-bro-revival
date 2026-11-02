@@ -910,10 +910,16 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
   const src = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(srcSeq, pl.uid, pl.server_id);
   if (!src) return { error: 'card not found' };
   const eat = eatSeqs.filter((q) => q !== srcSeq && !db.prepare('SELECT 1 FROM team WHERE seq=?').get(q))
-    .map((q) => db.prepare('SELECT seq FROM cards WHERE seq=? AND uid=? AND server_id=?').get(q, pl.uid, pl.server_id)).filter(Boolean);
-  const exp = eat.length * 75, cost = exp * 2;
+    .map((q) => db.prepare('SELECT seq, type, level FROM cards WHERE seq=? AND uid=? AND server_id=?').get(q, pl.uid, pl.server_id)).filter(Boolean);
+  // ORIGINAL (the client's CPlayerNinja/CPlayerWeapon/...::firefly_ExpCost and GetNeedSilver): every eaten card gives [3] EXP and costs
+  // [4] silver from its OWN kind's upgrade table at its level (ninjaupgrade, equipupgrade, markupgrade, ninjutsuupgrade); the card that
+  // grows needs [2] EXP per level from its own kind's table. Was a flat 75 EXP / 150 silver a card and the ninja table for every kind.
+  // (ours): the ninja EXP-card bonus multiplier the client has for special cards is not applied.
+  const up = (type) => table(type === 1 ? 'ninjaupgrade' : type === 5 ? 'markupgrade' : type === 6 ? 'ninjutsuupgrade' : 'equipupgrade').rows;
+  let exp = 0, cost = 0;
+  for (const e of eat) { const r = up(e.type).find((x) => x[1] === (e.level || 1)) || []; exp += r[3] || 0; cost += r[4] || 0; }
   if (pl.coin < cost) return { error: 'not enough silver' };
-  const rows = table('ninjaupgrade').rows;
+  const rows = up(src.type);
   let level = src.level, cur = src.exp + exp;
   for (;;) { const r = rows.find((x) => x[1] === level); if (!r || level >= Math.min(pl.level * 2 + 10, 99) || cur < r[2]) break; cur -= r[2]; level++; }
   db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);

@@ -942,3 +942,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   attack (CPlayerDataMgr::firefly_GetPlayerAttack / CActiveTeamMgr::GetAttack). game.meritLevel counts every W.A. ever earned (new prop 9993,
   starts at the current W.A. for old players) so spending W.A. in the shop does not drop the title; teamStats adds the bonus. Checked in
   game: 600 W.A. -> "NinjaLv.: Junior Genin", attack 3410 -> 3435. The owner's main account (4010 W.A.) becomes Elite Genin (+150).
+- Card feeding (rl_w_strengthen) now uses the game's own tables, like the client does (CPlayerNinja/CPlayerWeapon/CPlayerMark/
+  CPlayerNinjutsu::firefly_ExpCost = row[3] EXP given, GetNeedSilver = row[4] silver, of the EATEN card's kind and level; the growing card
+  levels by row[2] of its own kind). Before: flat 75 EXP / 150 silver per card and ninjaupgrade for gear too, so gear/ninjutsu/seal levels
+  on the server differed from what the client showed (the client computes the result itself from the tables; reply only carries eatexp).
+  Level-1 ninja food unchanged (75 / 150); a level-1 gear card now gives 250 EXP. Not checked in game (math = client tables).
