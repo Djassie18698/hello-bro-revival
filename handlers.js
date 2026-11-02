@@ -1175,7 +1175,13 @@ module.exports = {
       const rank = r ? r.rank : 999, { coin, renown: rep } = game.arenaReward(rank); // same as the list shows
       game.propAdd(db, pl.uid, pl.server_id, 9996, rep);
       db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
-      return '<root code="0">' + game.awardFull({ coin }) + '</root>';
+      // Ladder prize (owner, 2 Nov 2026: on top of the daily silver): ranks 1-1000 also get their ladderconfig -> ladderdesc pack, the
+      // prizes the Arena "Rules" window lists (rank 1 five-star gear / four-star gear / full seal / 300 gold ... 501-1000 gear or 5000 silver).
+      // Only for a real ladder place (ranks 1001-2000 have pack 0; someone who never entered the Arena has no place). The pack goes first so
+      // the merged <award> keeps its dropid (dropid 0 makes the client skip the card list).
+      const ladder = r && (game.table('ladderconfig').rows.find((x) => x[0] === rank) || [])[2];
+      const silver = game.awardFull({ coin });
+      return '<root code="0">' + (ladder ? game.mergeAwards([game.grantDrop(db, pl, ladder), silver]) : silver) + '</root>';
     }
     // Cmd 1 = the Exchange tab (CArenaListView): <renown_value> (my reputation) + <renown><ritem><id/><dayget/><totalget/></ritem></renown>; the items
     // themselves come from the client's exchange_award table. (The old code-1 answer showed the tip "Successfully purchased".)

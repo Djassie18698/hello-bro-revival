@@ -175,8 +175,7 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
 Who does what next: **`docs/CHECKLIST.md`** (owner + Claude, keep it current). Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible;
 the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
 State on 2 Nov 2026: bug lists 1-4 all done (48 ✅, 2 🚫), no 🧪 rows left, GitHub issue #6 (list 5) still empty.
-Waiting on the owner: arena ladder rank rewards (ladderconfig/ladderdesc, shown in Arena rules) not given: do they come on top of the
-daily silver?
+Arena ladder rank rewards (ladderconfig/ladderdesc) built 2 Nov on top of the daily silver (owner); Eight Gates 5000 starter souls kept (owner).
 Limited Super Ninja (limitsuper.js) built 2 Nov with our numbers; the owner wants the hourly god rotation "for now" (ROTATE_HOURS).
 Left as is: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 five-element panel (photo 2666) not found in any v28 layout; first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter).

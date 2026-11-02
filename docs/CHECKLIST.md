@@ -11,9 +11,10 @@ new bug reports. This list says who does what. Tick a box (`[x]`) when it's done
 - [ ] **Bot always online:** double-click `discord\BOT-AUTOSTART.bat` once. After that the bot starts with Windows. (I'm not allowed to set up auto-start myself.)
 
 ### Answer when you have a minute (I'm waiting on these)
-- [ ] **Arena ladder rewards:** the Arena "Rules" screen lists rank rewards (rank 1 = 5-star gear, a seal or 300 gold ... rank 501-1000 = gear or 5000 silver). Should players get these **on top of** the daily silver they already get? (yes / no)
-- [ ] **Eight Gates starter souls:** new players get **5000 free gate souls** the first time they open Eight Gates (Dun). Like the 30 000 Ninja Souls, no photo shows that. Remove them too? (remove / keep)
-- [ ] **Super Ninja:** it runs every hour with a new god card (your choice "for now"). The original was a 3-day event with bigger rank prizes. Keep it hourly, or switch to the original later? (hourly / original)
+- [x] **Arena ladder rewards:** answered: yes, on top (built 2 Nov).
+- [x] **Eight Gates starter souls:** answered: keep the 5000.
+- [x] **Super Ninja:** answered: stays hourly for now. Tell me when you want the original 3-day event.
+- [ ] **Check in the game:** claim the Arena daily reward. You should now also get a ladder prize if you are in the top 1000.
 
 ### Keep doing
 - [ ] Play and write down anything odd. Put it in **GitHub issue #6** (bug list 5, still empty) or tell me in chat. A screenshot helps.
@@ -28,9 +29,8 @@ new bug reports. This list says who does what. Tick a box (`[x]`) when it's done
 
 ### Ready to do when you say so
 - [ ] Fix every new bug from issue #6, Discord or chat (test it, push, sync, post in #updates).
-- [ ] Arena ladder rewards: build them once you answer above.
-- [ ] Eight Gates: remove the 5000 starter gate souls if you say so.
-- [ ] Super Ninja: switch it to the original 3-day event if you want.
+- [x] Arena ladder rewards: built 2 Nov (still to see in the game).
+- [ ] Super Ninja: switch it to the original 3-day event when you say so.
 - [ ] Close issues #2-#5 with an "all done" comment.
 
 ### Bigger, only if you want it (needs a new game app, so everyone reinstalls)

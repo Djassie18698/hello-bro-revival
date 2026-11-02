@@ -362,6 +362,17 @@ function equipFromText(t) {
 }
 function rollPack(r) {
   const t = String(r[2]);
+  // Arena ladder packs 159-165 (ladderdesc): "You will get one of these 4 rewards: Five-Star Equipment, Four-Star Equipment, Full Seal, and
+  // 300 gold." = exactly one of the listed prizes; equal chances (ours, the real ones were on the server).
+  const list = t.match(/one of these \d+ rewards:\s*(.*?)\.?$/i);
+  if (list) {
+    const opts = list[1].split(/,\s*(?:and\s+)?/), o = opts[Math.floor(Math.random() * opts.length)];
+    const st = /Five-Star/.test(o) ? 5 : /Four-Star/.test(o) ? 4 : /Three-Star/.test(o) ? 3 : 0;
+    if (st) return { equip: randomEquip(Math.floor(Math.random() * 3), st, st) };
+    if (/Seal/i.test(o)) { const seals = table('markmerge').rows.map((m) => m[0]).filter((id) => id >= 1 && id <= 9); return { seal: seals[Math.floor(Math.random() * seals.length)] }; }
+    const n = Number((o.match(/(\d+)/) || [0, 0])[1]);
+    return /gold/i.test(o) ? { cash: n } : { coin: n };
+  }
   const star = /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
   // "One, Two-Star ..." and "Three-Star ..." packs are exactly those stars (slot 0-2 = weapon / armor / trinket)
   const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);

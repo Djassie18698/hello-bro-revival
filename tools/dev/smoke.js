@@ -89,6 +89,18 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const all = sudoku.buyAll(db, pl);
   if (all.error || db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77').get().n <= before) { bad++; console.log('NINJA TREASURE buy all gave no card', all.error || ''); }
 }
+// Arena daily reward: a ladder place 1-1000 also pays its ladder pack (rank 1 = pack 159: gear, a full seal or 300 gold); no place, no pack.
+{
+  const claim = () => handlers.rl_x_sport_ext({ db, params: { ...base, Cmd: 3 } });
+  require('../../game').arenaEnsure(db);
+  db.exec("DELETE FROM rank_claims WHERE board='arena'"); db.prepare('DELETE FROM arena WHERE uid=77').run();
+  const none = claim();
+  if (/dropid="16\d"/.test(none)) { bad++; console.log('ARENA ladder pack paid without a ladder place:', none.slice(0, 100)); }
+  db.exec("DELETE FROM rank_claims WHERE board='arena'"); db.prepare('DELETE FROM arena WHERE rank=1').run(); db.prepare('INSERT INTO arena(rank, uid) VALUES(1, 77)').run();
+  const top = claim();
+  if (!/<award dropid="159"/.test(top) || !/<coin>25000<\/coin>/.test(top) || !(/<card>/.test(top) || /<cash>300<\/cash>/.test(top))) { bad++; console.log('ARENA rank 1 claim:', top.slice(0, 200)); }
+  if (!/code="5"/.test(claim())) { bad++; console.log('ARENA second claim the same day was paid'); }
+}
 // The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
 {
   const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });
