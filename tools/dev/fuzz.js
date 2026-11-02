@@ -39,6 +39,8 @@ const run = (name, params) => {
 };
 handlers.rl_w_reg2({ db, params: { ...base, Nick: 'Fuzz', Card: 1, Ninja: 55, Country: 1 } });
 db.prepare('UPDATE players SET gold=100000, coin=10000000, level=100').run();
+const settings = require('../../settings');
+for (const e of settings.EVENTS) settings.setEvent(db, e.id, true); // events are off by default: switch all on so their paths run too
 for (const name of Object.keys(handlers)) {
   const cs = [0, ...(cmds[name] || [])];
   for (const c of new Set(cs)) for (const v of VALUES) {

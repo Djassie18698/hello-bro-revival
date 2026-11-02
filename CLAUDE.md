@@ -142,6 +142,8 @@ Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), eleme
 Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 five-element panel (photo 2666, per-element atk/def/chakra/ninjutsu %) not found in any v28 layout;
 first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter; replay and Skip give the same result);
+arena ladder rank rewards (ladderconfig/ladderdesc, shown in Arena rules) not given: asked the owner whether they come on top of the daily silver;
+event 18 "Limited Super Ninja" (limit_superninja/*.lua, rl_r_comm Cmd 6/7, rl_w_recruit 1900/1902, rank rewards rl_w_comm Cmd 11) not built: pool, price and rank rewards came from the server and are lost (all would be ours);
 Balance: owner keeps it as is
 (docs/BALANCE-SIMULATIONS.md); don't change rates without asking.
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`

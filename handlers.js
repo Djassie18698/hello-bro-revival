@@ -677,8 +677,8 @@ module.exports = {
     game.bumpTask(db, pl.uid, pl.server_id, 13); // daily task: recharge
     vip.addExp(db, pl.uid, pl.server_id, t.rmb / 10); // cents / 10 = dollars x 10
     limited.logTopup(db, pl.uid, pl.server_id, gold, t.rmb);
-    require('./monthcard').onTopup(db, pl, t.rmb);
-    require('./flower').onTopup(db, pl, t.rmb); // roses for Flower Worship (1 a dollar, while it runs) // $4.99 / $9.99 = month card (when switched on)
+    require('./monthcard').onTopup(db, pl, t.rmb); // $4.99 / $9.99 = month card (when switched on)
+    require('./flower').onTopup(db, pl, t.rmb); // roses for Flower Worship (1 a dollar, while it runs)
     // <viplevel>: the hot-updated top-up screen (28.0.9) sets the new level right away
     return '<root code="0">' + game.awardFull({ cash: gold }) + el('viplevel', vip.level(db, pl.uid, pl.server_id)) + '</root>';
   },
