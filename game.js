@@ -204,9 +204,14 @@ function lineupXml(db, uid, sid, t) {
   return { ts, suits: ts.suits.map((r) => `<item id="${r[0]}" type="${r[2]}"/>`).join(''), slots: team.map((x, i) => slotXml(x.seq, i, eqOf(i + 1), (ts.slots[i] || {}))).join('') };
 }
 // The team-edit reply for line-up idx (CMyGroupCardView reads <teamid> and loads <suitlist>/<ninjalist> into that team)
+// For the USED line-up it also carries <usernum><AttackLow/>..<ChakraHigh/></usernum> (children of usernum): CMyGroupView then updates the
+// player's attack / defense / chakra at once (only when <usernum> is there and teamid is the active team; flat siblings crash at 0x18).
 function teamReplyXml(db, uid, sid, idx) {
-  const l = lineupXml(db, uid, sid, lineup(db, uid, sid, idx));
-  return `<teamid>${Number(idx) === 1 ? 1 : 0}</teamid><suitlist>${l.suits}</suitlist><ninjalist>${l.slots}</ninjalist>`;
+  const t = lineup(db, uid, sid, idx), l = lineupXml(db, uid, sid, t);
+  const tot = t === USED ? l.ts.total : null;
+  const stats = tot ? el('usernum', el('AttackLow', tot.al) + el('AttackHigh', tot.ah) + el('DefenseLow', tot.dl) +
+    el('DefenseHigh', tot.dh) + el('ChakraLow', tot.cl) + el('ChakraHigh', tot.ch)) : '';
+  return `<teamid>${Number(idx) === 1 ? 1 : 0}</teamid>${stats}<suitlist>${l.suits}</suitlist><ninjalist>${l.slots}</ninjalist>`;
 }
 function stateXml(db, uid, sid) {
   ensure(db);

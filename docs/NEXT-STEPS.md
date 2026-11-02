@@ -1073,3 +1073,7 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   read <userrank myscorecount myrank myscore> + <user><rank/><uid/><nick/><realval/><countryid/></user>. war.progressXml now sends
   today's war: kills (or casualties) per player of that country, my kills, rank in my country and merit. Checked in game: "Active kills
   ranking" after one war win: actively killed 1, country ranking 1, achievement earned 10, list row Ninja5613 1.
+- Team edit reply (rl_w_ninjalist 2300-2308) for the USED team now carries <usernum><AttackLow/><AttackHigh/><DefenseLow/><DefenseHigh/>
+  <ChakraLow/><ChakraHigh/></usernum>: CMyGroupView then updates the player's attack / defense right away (it reads them only when
+  <usernum> is there and teamid = activeTeamId). The stats are CHILDREN of usernum: as flat siblings the game crashed (0x18), checked.
+  Checked in game: adding Obito / Gaara to the used team, no crash.
