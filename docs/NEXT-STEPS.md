@@ -855,3 +855,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   20 Balloons -> 10 Sage Stone III paid, Buy window 100 / 140 gold with 700 / 600 limits, buying 1 Fireworks works. The Event menu button still
   reads "Merry Christmas" (client label for event 44). The unused item pictures props_340-383 include other later-version holiday art
   (scratch sheet in the session scratchpad); only 343/344 are used.
+- Festival trade rewards that are equipment (Seven-star Sword, Sage Robe) showed the client's "更新整包显示图片" placeholder: festival.js sent
+  the dropinfo ninja column (0) as a_goods; now dropinfo [4] (equipment id) is used. Checked in game.
+- Arena limits like the original (owner: "do it like the original"): normalconfig 18/19/20/22 = cooldown after 3 attacks, 25 attacks a day,
+  600 s cooldown, 30 gold to clear it; VIP adds vipinfo[21]-20 attacks (screen says "VIP2 +1 times"). rl_r_sport <my> sends todayresttime/
+  todayall/resttime/restbatter; rl_w_sportpack (Cmd 8301, CArenaCdDialogView) clears the cooldown for 30 gold. Checked in game: after 3
+  fights the built-in "Countdown to battle 00:09:xx" overlay with "Eliminate CD" appears, "Spend 30 gold to remove cool-down?" -> gold
+  3660 -> 3630, challenges 22/25. Buying extra attacks (restpack, BtnPurchase) is not built (restpack 0).

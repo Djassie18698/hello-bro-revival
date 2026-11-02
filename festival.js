@@ -110,8 +110,8 @@ function infoXml(db, pl) {
   const rows = t.trades.map(([id, a, b, times, rw]) => {
     const drop = rw.drop || rw.show;
     const r = drops.find((x) => x[0] === drop) || [];
-    // result icon: fragment = type 5 with the piece id, item = type 2 with the consumeinfo id, ninjutsu card = type 1, shinobi card = type 1
-    const [type, goods, num] = rw.prop ? [2, rw.prop, rw.n] : r[8] ? [5, r[8], r[13]] : r[7] ? [2, r[7], r[13]] : r[5] ? [1, r[5], 1] : [1, r[3], r[13] || 1];
+    // result icon: fragment = type 5 with the piece id, item = type 2 with the consumeinfo id, ninjutsu card, equipment card (dropinfo [4]) and shinobi card = type 1 with their own id
+    const [type, goods, num] = rw.prop ? [2, rw.prop, rw.n] : r[8] ? [5, r[8], r[13]] : r[7] ? [2, r[7], r[13]] : r[5] ? [1, r[5], 1] : r[4] ? [1, r[4], 1] : [1, r[3], r[13] || 1];
     return `<exchange exchange_id="${id}" remain_times="${Math.max(0, times - used(db, pl, 'ex', id))}" total_times="${times}">` +
       `<need><a_id>${a ? t.a : 0}</a_id><a_num>${a}</a_num><b_id>${b ? t.b : 0}</b_id><b_num>${b}</b_num></need>` +
       `<changed><a_id>${drop}</a_id><a_num>${num}</a_num><a_goods>${goods}</a_goods><a_type>${type}</a_type><b_id>0</b_id><b_num>0</b_num><b_goods>0</b_goods><b_type>0</b_type></changed>` +

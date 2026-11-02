@@ -1355,7 +1355,7 @@ function teammateXml(db, uid, sid, first, withFirst, level) { // withFirst: the 
   return '<teammate>' + ids.map((id) => `<mate>${el('ninja', id)}${el('firstninjastar', (ninjas().get(id) || [])[11] || 1)}</mate>`).join('') + '</teammate>';
 }
 function arenaListXml(db, pl) {
-  const my = arenaJoin(db, pl);
+  const my = arenaJoin(db, pl), use = arenaUse(db, pl);
   const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank').all();
   const idx = rows.findIndex((r) => r.uid === pl.uid);
   const targets = rows.slice(Math.max(0, idx - 6), idx).concat(rows.slice(idx + 1, idx + 4)).filter((r) => r.uid !== pl.uid);
@@ -1365,14 +1365,38 @@ function arenaListXml(db, pl) {
     return `<user>${el('id', r.uid)}${el('rank', r.rank)}${el('nick', esc(o.nick))}${el('level', o.level)}${el('ninja', o.ninja)}${el('country', o.country)}${el('firstninjastar', o.star)}${el('newlife', 0)}${el('winexp', 20)}${el('wincoin', 300)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('failexp', 5)}${el('failcoin', 50)}${el('host', 0)}${teammateXml(db, r.uid, pl.server_id, o.ninja, false, o.level)}</user>`;
   }).join('');
   const renown = propCounts(db, pl.uid, pl.server_id)[9996] || 0;
-  return `<sport><my>${el('rank', my)}${el('renown', renown)}${el('rewardtimeleft', 3600)}${el('timeleft', 3600)}${el('dayrewardstat', 0)}${el('todayresttime', 99)}${el('todayall', 99)}${el('resttime', 0)}${el('restbatter', 99)}${el('restpack', 0)}</my></sport><oppe>${opp}</oppe>`;
+  return `<sport><my>${el('rank', my)}${el('renown', renown)}${el('rewardtimeleft', 3600)}${el('timeleft', 3600)}${el('dayrewardstat', 0)}${el('todayresttime', arenaPerDay(db, pl) - use.fights)}${el('todayall', arenaPerDay(db, pl))}${el('resttime', use.rest)}${el('restbatter', ARENA.perBatch - use.batch)}${el('restpack', 0)}</my></sport><oppe>${opp}</oppe>`;
 }
 function arenaRankXml(db) {
   const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank LIMIT 50').all();
   const items = rows.map((r) => { const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank); return `<item>${el('nick', String(o.nick).replace(/[<>&"]/g, ''))}${el('rank', r.rank)}${el('level', o.level)}${el('host', 0)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('ninja', o.ninja)}${el('firstninjastar', o.star)}${teammateXml(db, r.uid, 0, o.ninja, true, o.level)}</item>`; }).join('');
   return `<sportrank>${items}</sportrank>`;
 }
+// Arena limits, ORIGINAL (the game's own normalconfig: row 18 a cooldown after 3 attacks, row 19 25 attacks a day, row 20 cooldown 600 s,
+// row 22 clearing the cooldown costs 30 gold; player guide photo 3924 "3 hits and a cool down of 10 minutes"). VIP adds attacks: the arena screen
+// says "VIP2 +1 times" and vipinfo [21] is 20 at VIP1, +1 a level, so a day = 25 + vipinfo[21] - 20. Buying extra attacks is not built.
+const ARENA = { perBatch: 3, perDay: 25, cd: 600, cdCost: 30 };
+const arenaPerDay = (db, pl) => { const v = require('./vip').level(db, pl.uid, pl.server_id); return ARENA.perDay + Math.max(0, ((table('vipinfo').rows.find((r) => r[0] === v) || [])[21] || 20) - 20); };
+function arenaUse(db, pl) {
+  db.exec('CREATE TABLE IF NOT EXISTS arena_use (uid INTEGER, server_id INTEGER, day TEXT, fights INTEGER DEFAULT 0, batch INTEGER DEFAULT 0, cd_until INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, day))');
+  db.prepare('INSERT OR IGNORE INTO arena_use(uid, server_id, day) VALUES(?,?,?)').run(pl.uid, pl.server_id, today());
+  const u = db.prepare('SELECT * FROM arena_use WHERE uid=? AND server_id=? AND day=?').get(pl.uid, pl.server_id, today());
+  return { ...u, rest: Math.max(0, u.cd_until - Math.floor(Date.now() / 1000)) };
+}
+function arenaClearCd(db, pl) {
+  const u = arenaUse(db, pl);
+  if (!u.rest) return {};
+  if (pl.gold < ARENA.cdCost) return { error: 'not enough gold' };
+  db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(ARENA.cdCost, pl.uid, pl.server_id);
+  db.prepare('UPDATE arena_use SET cd_until=0 WHERE uid=? AND server_id=? AND day=?').run(pl.uid, pl.server_id, today());
+  return {};
+}
 function arenaFight(db, pl, toRank) {
+  const use = arenaUse(db, pl);
+  if (use.fights >= arenaPerDay(db, pl)) return { error: 'no arena challenges left today' };
+  if (use.rest) return { error: 'the arena is cooling down' };
+  db.prepare('UPDATE arena_use SET fights=fights+1, batch=?, cd_until=? WHERE uid=? AND server_id=? AND day=?')
+    .run((use.batch + 1) % ARENA.perBatch, use.batch + 1 >= ARENA.perBatch ? Math.floor(Date.now() / 1000) + ARENA.cd : 0, pl.uid, pl.server_id, today());
   const my = arenaJoin(db, pl);
   const t = db.prepare('SELECT * FROM arena WHERE rank=?').get(toRank);
   if (!t || t.uid === pl.uid) return { error: 'bad target' };
@@ -1644,4 +1668,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

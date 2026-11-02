@@ -22,7 +22,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 
 ## 5. Fighting other players
 • **Spar** (bottom bar): win EXP, silver and war achievements.
-• **Arena** (Home, from level 25): climb the ranks for daily silver and reputation.
+• **Arena** (Home, from level 25): climb the ranks for daily silver and reputation. 25 challenges a day (+1 per VIP level from VIP2); after every 3 there is a 10-minute wait, or pay 30 gold to skip it.
 • **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight.
 • Real players fight with their **whole team**. Bots bring about as many cards as you do, and every enemy card's stats vary a little each fight. Watching a fight or pressing **Skip** always gives the same result.
 

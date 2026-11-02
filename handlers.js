@@ -1116,7 +1116,13 @@ module.exports = {
   // Campaign chapter/round info (CListLevelView / CRunLevelView, CPlayerDataMgr::InitRoundInfoFromXML), from Training progress.
   rl_r_adventure: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: game.roundInfoXml(db, pl) })),
   rl_w_adventure: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: game.roundInfoXml(db, pl) })),
-  rl_w_sportpack: () => '<root code="0"></root>', // arena: cancel cooldown (no cooldowns on this server)
+  // arena: clear the cooldown for 30 gold (CArenaCdDialogView; the client takes the gold off its own display)
+  rl_w_sportpack: ({ db, params: p }) => {
+    const pl = playerOf(db, p);
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const r = game.arenaClearCd(db, pl);
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0"></root>';
+  },
 
   // Millionaire / Monopoly (monopoly.js, activity 17 on the home screen).
   rl_r_monopoly_info: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: monopoly.infoXml(db, pl) })),
