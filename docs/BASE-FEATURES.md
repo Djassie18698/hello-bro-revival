@@ -90,6 +90,7 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - **Ramen / Hyourou-gan daily uses (2 Nov 2026):** ORIGINAL vipinfo: ramen 20 a day + 2 per VIP level, Hyourou-gan 30 a day + 3 per VIP level; Hyourou-gan refills 50 % / 100 % of the maximum grudge.
 - **VIP limits (2 Nov 2026):** ORIGINAL the game reads the VIP table at row VIP + 1 (VIP0 = first row): gold chests 25, arena 25 attacks, mystery shop 80 refreshes, high-level soul training 3 a day at VIP0, each a bit more per VIP level.
 - **Second team line-up (2 Nov 2026):** ORIGINAL: opens at level 100, can use every card (also Team 1's), Activate chooses the used team (the screen's own text).
+- **Battle reports (2 Nov 2026):** ORIGINAL texts from the game. (ours): a defender loses no silver or fragments when sparred / plundered (as before), the last 30 reports are kept.
 - **Gear / ninjutsu sets (2 Nov 2026):** ORIGINAL table skill_suit_info, the bonuses the game's own set panel shows for 2 / 3 / 4 pieces. (ours): ninjutsu sets only add their skill chance (as an expected value), because fights are worked out from stats.
 - **Battles (2 Nov 2026):** ORIGINAL 25 chapters x 7 rounds (the client's rushtower/towerfloor), round 7 the boss, the next chapter opens after it. The boss drop is one of the four the game shows; equal chances (ours).
 - **W.A. titles (2 Nov 2026):** ORIGINAL table playemedal (Junior Genin 500 W.A. +25 ... Supreme Gaiden 3 000 000 +2550 to attack, defense and chakra). (ours): the title follows all W.A. ever earned, so spending W.A. does not lower it.

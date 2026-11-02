@@ -1077,3 +1077,10 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   <ChakraLow/><ChakraHigh/></usernum>: CMyGroupView then updates the player's attack / defense right away (it reads them only when
   <usernum> is there and teamid = activeTeamId). The stats are CHILDREN of usernum: as flat siblings the game crashed (0x18), checked.
   Checked in game: adding Obito / Gaara to the used team, no crash.
+- Battle reports built (News > Battle tab, CNoticeDataHelper / CFightMsgCellView; was always empty): notices.js records a notice for the
+  defender when a real player spars or plunders a real player (rl_w_pvp 2701 with / without Chip); rl_r_msg Cmd 1800 lists them
+  (<msglist><msg> with child elements subtype 0 spar / 1 plunder, fromnick/uid/ninja/firstninjastar/country/level, result 0 = attacker
+  won, iTime, ID, iCoin, iTakeRes 0 stolen / 1 failed, iChipid = seal piece (markinfo) id, iStatus, newlife); rl_w_msg 2901 Op 1 delete
+  ("Ignore") / Op 2 read, Index = ID; Revenge = an ordinary spar. Texts are the game's own (Struct_String_Menu 26-34). The defender loses
+  nothing here (ours), so the reports say "you lost 0 silver" / "failed to steal". 30 kept per player (ours). Checked in game: three
+  reports (spar won / plunder / spar lost) with the right texts, Ignore removes one, Revenge starts the spar.

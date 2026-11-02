@@ -384,6 +384,7 @@ module.exports = {
     // Plunder (Chip = seal fragment id): a win usually steals the fragment.
     const chip = Number(p.Chip) || 0;
     const got = chip && seals.plunder(db, pl, chip, r.win, r.rivalLevel);
+    require('./notices').record(db, pl, Number(p.ToUid), chip ? 1 : 0, r.win, chip); // battle report for a real defender (News screen)
     // The fragment is stored on the server; the seal list re-reads counts (rl_r_markchip) when it is shown again.
     // The victory reward draw shows the award's dropid as the card you pick. ORIGINAL drops (the game's own tables): the first spar ever
     // drops 1284 (normalconfig 182), below level 30 drop 397 (normalconfig 113/114), otherwise duelinfo [10] = 27 "Drop from Equipment, Seal".
@@ -469,6 +470,7 @@ module.exports = {
   // Mailbox: Cmd 1802 = system notices (a welcome message), 1800 fights / 1801 friends stay empty.
   // Mailbox (Cmd 1802): welcome note + messages other players sent with the friend "Communicate" button (rl_w_friend Msg).
   rl_r_msg: ({ db, params: p }) => {
+    if (Number(p.Cmd) === 1800) { const a = accountBySession(db, p), pl = a && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(a.uid, Number(p.ServerID || 1)); return '<root code="0">' + (pl ? require('./notices').listXml(db, pl, p.Page) : '<msglist></msglist>') + '</root>'; } // fight notices
     if (Number(p.Cmd) !== 1802) return '<root code="0"><msglist></msglist></root>';
     const S = require('./settings'); // the announcement from the Server Manager is the System note
     const acc = accountBySession(db, p);
@@ -1053,7 +1055,12 @@ module.exports = {
   },
 
   // Mail actions (read / delete / accept): nothing to change on this server, acknowledge.
-  rl_w_msg: () => '<root code="0"></root>',
+  // Cmd 2901 Op 1 delete / 2 read a fight notice (Index = its ID); friend / apply replies (2902/2903) need nothing: everyone is a friend here
+  rl_w_msg: ({ db, params: p }) => {
+    const a = accountBySession(db, p), pl = a && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(a.uid, Number(p.ServerID || 1));
+    if (pl && Number(p.Cmd) === 2901) require('./notices').op(db, pl, p.Op, p.Index);
+    return '<root code="0"></root>';
+  },
 
   // Invitation code (settings): any non-empty code pays 500 gold, once per code per player.
   rl_w_invitecode: ({ db, params: p }) => {
