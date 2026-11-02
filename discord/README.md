@@ -28,6 +28,8 @@ Never commit `.env` (it is git-ignored) and never paste the token or key into ch
 ## Show the bot as online
 Double-click `START-BOT-ONLINE.bat` in this folder. It runs `online.js`, which only keeps the bot connected so it shows a green dot and "Playing Hello Bro" in the member list (it reads and posts nothing, needs only `DISCORD_TOKEN`, no `npm install`). Leave the window open (minimized is fine); closing it takes the bot offline. It reconnects by itself after an internet drop.
 
+To start it with Windows, double-click `BOT-AUTOSTART.bat` once (it puts a shortcut in the Windows Startup folder; double-click again to switch it off). The bot is online whenever this PC is on; for 24/7 while the PC is off it would need a server that is always on.
+
 ## No API key? Use `dc.js` with a Claude session you already have
 `bot.js` is a self-running bot and needs a paid Claude API key. `dc.js` is the free alternative: a small command-line tool that only needs the **bot token** (steps 1-3 above, `DISCORD_TOKEN` in `.env`). You then tell a Claude session on your PC (e.g. Claude Code) what you want, and it runs these commands:
 ```

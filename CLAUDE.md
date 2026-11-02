@@ -162,7 +162,7 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
 - Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
-  write the text to a file first). The bot shows online while `START-BOT-ONLINE.bat` runs on the owner's PC (a minimized window).
+  write the text to a file first). The bot shows online while `START-BOT-ONLINE.bat` runs on the owner's PC (a minimized window); `BOT-AUTOSTART.bat` (the owner double-clicks it: making a Startup shortcut ourselves is blocked) starts it with Windows.
   Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
   START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update) · #faq ("can't connect after an update -> make a new game file with HOST-MY-SERVER.bat").
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·

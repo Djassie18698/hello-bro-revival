@@ -1145,3 +1145,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   so we send pulls-left + 1 for the event (the normal recruit sends pulls-left: its dialog shows one less; not changed). Rank prizes: rounds
   run back to back (actstatus always 1, Claim says 315005) and settle() mails them to the Awards chest. The reward list cuts text after ~12
   letters (rows split). Checked in game: open, one draw, sure god (Susa Indra) on the 25th, ten draw, free draw + 8 h timer, ranking.
+- 2 Nov: the bot went offline (its window was closed). Started again; discord/BOT-AUTOSTART.bat adds / removes a Windows Startup shortcut to START-BOT-ONLINE.bat (minimized). Claude can't make that shortcut itself (blocked as persistence), the owner double-clicks it.
