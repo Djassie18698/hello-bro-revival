@@ -1120,3 +1120,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   now (26 "Card and Seal", 219/220 one of shinobi / gold). Checked in game via the Award Center: drop 174 -> Ten Tails Seal Fragment 5,
   drop 16 -> Moegi (1-star shinobi).
   Lucky Wheel checked in game after the switch: free spin -> Gold*210 card, no errors.
+  Border war target switch now checked in game: wander at Water, then Fire -> the original "You are already at Water border ... Want to wander?" dialog, Confirm -> Fire Wander 30min, Fire monument 300 -> 295, Water station ended. (The Border building is on the left of the Home map; its tap area is the stone's lower half.)
