@@ -912,3 +912,5 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   ids, 3692 calls) and tools/dev/exploit.js (sane vs negative/huge/0 parameters with identical dice, flags extra gold/silver/items/cards).
   Found + fixed: a non-whole Uid ("1.5", "-1") crashed every handler at the account insert (accountBySession now needs a positive whole
   id); rl_w_dup with a bad Chap/Round wrote exp NULL (now "no such round"). Exploit check: nothing.
+- Lottery tile in the Event menu shows Chinese 忍村彩票: it is the picture activity21 in ccbResources/activity_btns_2 (sprite sheet; re-encoding broke 28.0.18), left as is.
+- Lottery screen: header/labels 第1期忍村彩票, 本期彩票开奖时间, 领奖截止时间, 一等奖.. are pictures in LotteryTicketView (left); the draw time reads '11Month02Day20Hour30' (ui_lotteryTicketLayer open_time + localizable ui_lottry_month/day/dian/min): candidate for a hot-update tidy.
