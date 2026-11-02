@@ -58,7 +58,7 @@ const serverXml = (s, tag) =>
 const playerOf = (db, p) => { const acc = accountBySession(db, p); return acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1)); };
 function accountBySession(db, p, isLogin = false) {
   const uid = Number(p.Uin || p.Uid);
-  if (!uid) return null;
+  if (!Number.isSafeInteger(uid) || uid <= 0) return null; // only whole positive ids ("1.5" or "-1" crashed the account insert)
   let acc = db.prepare('SELECT * FROM accounts WHERE uid=?').get(uid);
   // LOGIN_LOCK=1 (gumplogin.js): only sessions handed out by the account login count, for every request including rl_w_login2
   const lock = require('./gumplogin').locked();
@@ -1309,6 +1309,7 @@ module.exports = {
       return '<root code="0"><dup_list>' + list + '</dup_list></root>';
     }
     const chap = Number(p.Chap || 1), round = Number(p.Round || 1);
+    if (![1, 2, 3].includes(chap) || !(Number.isInteger(round) && round >= 1 && round <= 6)) return '<root code="5"><message>no such round</message></root>';
     const trow = game.towerRow(chap, round) || [];
     const exp = trow[20] || 60 * chap, coin = trow[21] || 90 * chap; // the round's own reward (towerfloor)
     const tfoes = game.towerFoes(chap, round) || [];

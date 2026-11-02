@@ -906,3 +906,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   cards with God versions (Teenager Naruto, Goddess Sakura, Susa..., 48 five-stars) and DEF were wrong (DEF was never given). Checked in
   game: free pull 18->17 + price shown, paid pull, 5-star resets to 19.
 - Discord (owner, 2 Nov): #announcements renamed #updates (every update); new read-only #announcement for big news only (new app, releases). layout.js channels can now take was: for a rename.
+
+## Big test round (2 Nov 2026, from 04:39 until 13:00; owner's list)
+- B16 bad input: new tools/dev/fuzz.js (every handler x every Lua Cmd x missing/0/-1/huge/text/injection values, valid and broken player
+  ids, 3692 calls) and tools/dev/exploit.js (sane vs negative/huge/0 parameters with identical dice, flags extra gold/silver/items/cards).
+  Found + fixed: a non-whole Uid ("1.5", "-1") crashed every handler at the account insert (accountBySession now needs a positive whole
+  id); rl_w_dup with a bad Chap/Round wrote exp NULL (now "no such round"). Exploit check: nothing.
