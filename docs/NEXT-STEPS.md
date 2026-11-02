@@ -1089,3 +1089,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   cumulative top-up steps ready to claim, 19 month cards to claim today, 5 world boss open now, 9 Flower Worship and 14 group buy while
   switched on (period = the switch-on time, so a new run lights the tile again). Others (roulette, mora, monopoly, war award ...) are
   left out = the client keeps its default. Checked in game: no errors; the News button shows "1" for an unread battle report.
+- errcodes.js: more refusals now show a fitting game text instead of "Parameter error" (already collected/opened, Akatsuki full / name taken / authority, cooldowns, boss defeated, cross-server registration/battle time, morale boosts, free recruit not ready, maximum level, stage cleared, grudge full, exchange limits, daily item use limit, nothing to claim). Codes checked: only the client's text table uses them (no special handling).
