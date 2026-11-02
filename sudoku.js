@@ -7,7 +7,11 @@ const el = (n, v) => `<${n}>${v}</${n}>`;
 // From the Facebook photos of the original (FINDINGS.md): refresh 100 gold, the board rerolls by itself every 2 h (countdowns 1:59:xx).
 const REFRESH_SECS = 2 * 3600, REFRESH_CASH = 100;
 // single-item drops (dropinfo col 12 != 1): ninjas, fragments, ramen, gold, silver
-const POOL = [28, 236, 221, 222, 69, 70, 33, 36, 38, 98, 99, 100, 42, 43];
+const POOL = [28, 221, 222, 69, 70, 33, 36, 38, 98, 99, 100, 42, 43];
+// ORIGINAL "Top Level Rewards" (photo 4335): 16 big prizes, Senju Tsunade the only god card (orange). Pure dropinfo rows, attack versions:
+// Six Paths Obito, Sasuke, Hinata, The Fourth Sage, Obito, Jiraiya, Killer B, Tsunade (God), Madara, Choji, Indra, Hashirama, Shisui,
+// Itachi, Sakura (Sage Mode), Bashosen (weapon). (ours): every new board hides exactly one of them among its 9 prizes.
+const TOP = [532, 352, 1644, 531, 273, 641, 276, 1498, 322, 1696, 1501, 236, 962, 285, 1795, 281];
 // Explore price by prizes already taken, counted on the photos: 0 -> 35, 1 -> 70, 2 -> 300, 3 -> 320, 4 -> 1000; after that 1000 (ours).
 const EXPLORE = [35, 70, 300, 320, 1000];
 const cost = (got) => EXPLORE[Math.min(got, EXPLORE.length - 1)];
@@ -17,7 +21,8 @@ function ensure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS sudoku (uid INTEGER, server_id INTEGER, cells TEXT, made INTEGER, PRIMARY KEY(uid, server_id))');
 }
 function newBoard() {
-  const ids = POOL.slice().sort(() => Math.random() - 0.5).slice(0, 9);
+  const ids = POOL.slice().sort(() => Math.random() - 0.5).slice(0, 8);
+  ids.splice(Math.floor(Math.random() * 9), 0, TOP[Math.floor(Math.random() * TOP.length)]);
   return ids.map((id) => ({ id, got: 0 }));
 }
 function save(db, pl, cells, made) {
@@ -34,7 +39,8 @@ function board(db, pl, reroll) {
   save(db, pl, b.cells, b.made);
   return b;
 }
-const num = (id) => { const r = game.table('dropinfo').rows.find((x) => x[0] === id); return r ? r[13] || 1 : 1; };
+// the number shown on a cell: gold and silver rows carry their amount in [10] / [11] (photo 4178 shows 5000 / 100 / 50), the rest in [13]
+const num = (id) => { const r = game.table('dropinfo').rows.find((x) => x[0] === id); return r ? r[10] || r[11] || r[13] || 1 : 1; };
 const gotCount = (cells) => cells.filter((c) => c.got).length;
 const remainingCost = (cells) => { let g = gotCount(cells), t = 0; for (const c of cells) if (!c.got) t += cost(g++); return t; };
 function costsXml(cells) {
@@ -42,11 +48,9 @@ function costsXml(cells) {
 }
 // "Top Level Rewards" window (ui_ninjaTrasureTopViewLayer, rl_r_sudoku Cmd 2): <mibao_info> holding one <item index drop_id/> per prize
 // (the Lua reads the children of the first <mibao_info>), shown 4 a row.
-// It lists the prizes the board can really give (POOL), best first. (The original's list on photo 4335 had 16 cards; changing the
-// pool to that would change the rewards, so it is not done.)
+// It lists the 16 original top prizes (TOP), in the photo's order.
 function topXml() {
-  const rank = (id) => { const r = game.table('dropinfo').rows.find((x) => x[0] === id) || []; return r[3] ? 0 : r[7] === 13 ? 1 : r[10] ? 2 : r[7] ? 3 : 4; };
-  return '<mibao_info>' + POOL.slice().sort((a, b) => rank(a) - rank(b)).map((id, i) => `<item index="${i + 1}" drop_id="${id}"/>`).join('') + '</mibao_info>';
+  return '<mibao_info>' + TOP.map((id, i) => `<item index="${i + 1}" drop_id="${id}"/>`).join('') + '</mibao_info>';
 }
 function infoXml(db, pl, reroll) {
   const b = board(db, pl, reroll);
@@ -85,4 +89,4 @@ function buyAll(db, pl) {
   return { xml: game.mergeAwards(awards) };
 }
 
-module.exports = { topXml, infoXml, refresh, search, buyAll };
+module.exports = { TOP, topXml, infoXml, refresh, search, buyAll };

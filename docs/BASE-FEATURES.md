@@ -74,7 +74,8 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - Pet master skill in fights: the master pet is sent with each fight, but the skill's damage is only shown by the client.
 - The 3-chest boss stages of the Ninja Test (5, 10, 15) have not been played in game yet.
 
-- **Ninja Treasure (2 Nov 2026):** refresh 100 gold, board every 2 h, explore 35 / 70 / 300 / 320 / 1000 (original), 1000 after the 5th **(ours)**.
+- **Ninja Treasure (2 Nov 2026):** refresh 100 gold, board every 2 h, explore 35 / 70 / 300 / 320 / 1000 (original), 1000 after the 5th **(ours)**. Top Rewards = the 16 original big prizes (photo 4335: Six Paths Obito, Sasuke, Hinata, Fourth Sage, Obito, Jiraiya, Killer B, Tsunade (God), Madara, Choji, Indra, Hashirama, Shisui, Itachi, Sakura, Bashosen); every board hides exactly one of them among its 9 prizes **(ours)**, so clearing a whole board (5725 gold) always gives one.
+- **Invitation code (2 Nov 2026):** type the game ID of the friend who invited you (Settings shows your own ID above the box); 500 gold, once per player **(ours)**.
 - **Arena daily reward (2 Nov 2026):** 26 000 - 1000 x rank silver for ranks 1-10 (original), then -60 a rank **(ours)**, at least 2000 (original); reputation = silver / 5 (original).
 - **Treasure chests (2 Nov 2026):** prize lists original; weights, gold price without a key (50 / 20 / 5), 25 + 5 x VIP gold-chest opens a day and 8% key drops in story fights **(ours)**.
 - **Eight Gates (2 Nov 2026):** 8 points a level, cost 80 x level souls + 15 x souls silver (original); bonus curve fitted to the photo totals **(ours)**, max level 150.

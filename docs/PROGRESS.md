@@ -161,6 +161,9 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Big test round (2 Nov morning): Battles 25 chapters + boss + floor rewards, Spar win card, W.A. titles, set bonuses, plunder chances, Hyourou-gan, item USE, VIP limits, Arena exchange, Team 2, battle reports, friend messages, Akatsuki leader tools, war rankings, Ninja Treasure top list, red dots, Award Center, shop bags, VIP gifts / wheel / prize packs give what they say; new tests (bad input, cheats, new and real saves) |
 | ✅ | Events: login streak, God of Wealth, Month card, Flower Worship (switches) |
 | ✅ | **Limited Super Ninja** ("Super Ninja" button on Home, 2 Nov): a new god card every hour, won by 1st place of that hour (2nd-3rd 300 gold, 4th-10th 100 gold, every prize needs 50 points). Draws like the original photos: 300 gold, 4-5 star cards, every 10th draw a sure 5-star, a free draw once a day |
+| ✅ | Invitation code (Settings): only a friend's game ID counts, once per player (any word used to give 500 gold again and again) |
+| ✅ | Soul Disenchant checked again in the game: 4-star cards give 150 souls, 5-star 1000, purple 5-star / god 2000; 3-star cards give 0 (the game's own table) |
+| ✅ | Ninja Treasure: "Top Rewards" shows the 16 original big prizes (photo 4335) and every board hides one of them; gold and silver squares show their real amount |
 
 ## Still to build
 

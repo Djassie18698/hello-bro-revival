@@ -73,6 +73,22 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const mail = db.prepare("SELECT content, items FROM award_mail WHERE uid=77 AND title='Limited Super Ninja'").all();
   ck(mail.length === 1 && /#1 with 120 points/.test(mail[0].content) && mail[0].items.includes(`"dropid":${god.drop}`), 'round prize mail: ' + JSON.stringify(mail));
 }
+// Ninja Treasure (sudoku.js): the top list is the 16 original prizes, every board hides exactly one of them, buying the board gives it.
+{
+  const sudoku = require('../../sudoku');
+  const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+  db.prepare('UPDATE players SET gold=100000 WHERE uid=77').run();
+  const top = (sudoku.topXml().match(/<item /g) || []).length;
+  if (top !== 16) { bad++; console.log('NINJA TREASURE top list has', top, 'prizes'); }
+  for (let i = 0; i < 20; i++) {
+    const ids = [...sudoku.refresh(db, pl).xml.matchAll(/drop_id="(\d+)"/g)].map((m) => Number(m[1]));
+    const tops = ids.filter((id) => sudoku.TOP.includes(id)).length;
+    if (ids.length !== 9 || tops !== 1) { bad++; console.log('NINJA TREASURE board', ids, 'has', tops, 'top prizes'); break; }
+  }
+  const before = db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77').get().n;
+  const all = sudoku.buyAll(db, pl);
+  if (all.error || db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77').get().n <= before) { bad++; console.log('NINJA TREASURE buy all gave no card', all.error || ''); }
+}
 // The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
 {
   const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });
