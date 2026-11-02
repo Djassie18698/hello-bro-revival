@@ -120,14 +120,12 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - Recharge streak (`dailyevents.js`): "$3 a day" is the screen's own text; the 7 daily gifts and the bonus (300 Reincarnation Pills + 200 Souls Dan) are (ours).
 
 ## Limited Super Ninja (added 2 Nov 2026, owner's request)
-- `limitsuper.js`, Home button "Super Ninja". The screens and protocol are ORIGINAL; the numbers are **(ours, owner's choice "for now", 2 Nov 2026)**:
-  featured card = each of the game's 82 god cards in turn, a new one every hour (`ROTATE_HOURS`); a draw costs 300 gold (ten for 2800, original 300
-  from the photos); 4 % for the featured god card, sure on the 25th draw without one (the count carries over); otherwise a 4-5 star premium-recruit
-  card; 1 free draw every 8 hours; 10 points a draw; the ranking pays out every hour into the Awards chest: 1st = that hour's god card,
-  2nd-3rd 300 gold, 4th-10th 100 gold, every prize needs 50 points (the screen's "The MINIMUM for 1st prise is 50").
-  ORIGINAL from the photos (FINDINGS-PHOTOS lines 63, 93, 158, 183, 211, 271, 380, 475, 513, 543-556), not used yet by the owner's choice: the headliner
-  was only the 1st prize (draws gave normal 4-5 star cards), every 10th draw a sure five-star purple card ("Recruit N more will get one", N 0-9),
-  10-30 points a draw, minimum for 1st 240-480, free draw once a day, a 3-day event, prize cards for ranks 1 / 2-3 / 3-5 / 6-10.
+- `limitsuper.js`, Home button "Super Ninja". Screens and protocol ORIGINAL. Draws ORIGINAL from the photos (FINDINGS-PHOTOS lines 63, 93, 158,
+  183, 211, 271, 380, 463, 475, 513, 543-556): 300 gold a draw (ten 2800 = the premium recruit), free draw once a day, "Recruit N more will get one"
+  Five-Star Purple Card every 10th draw, 10 points a draw (photo 1625; others show 20-30), the headline card only as the 1st prize. **(ours)**: the
+  5-star chance 25 % (a 10x draw then gives ~3.5 five-stars, photos 2469 / 2470 show 3 and 4); owner's choice for now (2 Nov 2026) instead of the
+  original 3-day event with a 240-480 minimum and prize cards down to rank 10: every god card in turn, a new one every hour, the ranking pays out
+  every hour (1st = that hour's god card, 2nd-3rd 300 gold, 4th-10th 100 gold, every prize needs 50 points).
 
 ## Balancing from the photos (2 Nov 2026, later)
 - Monthly sign-in (`signin.js`): days 1-16 and their VIP x2 marks are ORIGINAL (photos 0516, 1871). (ours): which cards (4-star pack days 4 / 9, 5-star pack day 12), days 17-28 = days 5-16 again with VIP marks +4 (at most v15).

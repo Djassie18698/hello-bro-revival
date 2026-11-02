@@ -49,7 +49,7 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   db.exec('DELETE FROM superninja; DELETE FROM superninja_me'); // the calls above already pulled (Cmd 1902 is in the Lua)
   const info = call('rl_r_comm', { Cmd: 6 });
   for (const t of ['resttime=', 'nexttime=', 'protect=', 'gold="300"', 'actstatus="1"', 'limitscore=', '<ninjalist><item name=', 'ninjiaid=', 'dropid=', '<myrank', '<rewardlist><item rankrange=']) ck(info.includes(t), 'open misses ' + t);
-  ck(/protect_comming="26"/.test(call('rl_r_recruit', { Cmd: 2900, Type: 1 })), 'pray dialog count is not the event count');
+  ck(/protect_comming="11"/.test(call('rl_r_recruit', { Cmd: 2900, Type: 1 })), 'pray dialog count is not the event count');
   let g = gold(), c = cards();
   const one = call('rl_w_recruit', { Cmd: 1900, Type: 1, Free: 0, TwoStars: 0, IsSuperAct: 0 });
   ck(/<recruit ninjaid="\d+" cost="300"/.test(one) && /<award/.test(one) && gold() === g - 300 && cards() === c + 1, 'one pull: ' + one.slice(0, 120));

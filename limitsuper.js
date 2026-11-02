@@ -10,20 +10,21 @@
 //    open (Cmd 6 / 7) and treats their pulls as event pulls until they go Home or to the Shop (rl_r_mainpage / rl_r_shoplist).
 //  - rl_w_comm Cmd 11 = claim the rank prize after the event (actstatus 2). Not used: rounds run back to back and the prizes are mailed
 //    to the Awards chest when a round ends.
-// Everything the dead server decided is lost, so all numbers here are (ours), owner's requests 2 Nov 2026 (the owner remembers the god
-// cards only came as rank prizes in the original; the draws giving them too is the owner's choice "for now"):
-//  - every god card of the game (82) takes a turn as the featured ninja, a new one every ROTATE_HOURS (1 for now) on the hour;
-//  - a pull costs what the premium recruit costs (300 gold, ten for 2800); FEATURED_PCT % for the featured god card, sure on the PITY-th
-//    pull without one (the count carries over to the next featured card); otherwise a premium-recruit card (4-5 star);
-//  - one free pull every FREE_EVERY seconds; every pull (free too) scores SCORE points;
+// The draws follow the ORIGINAL rules from the owner's Facebook photos (FINDINGS-PHOTOS: S-shinobi draw rows): 300 gold a draw, the free
+// draw once a day (timer 23:58:38), "Recruit N more will get one" a Five-Star Purple Card with N 0-9 (= every 10th draw), 10 points a draw
+// (photo 1625; others show 20 or 30), the headline card ONLY as the 1st prize, a 10x draw showing 3-4 five-star cards (photos 2469 / 2470:
+// FIVE_PCT is (ours) from those two). The rest is the owner's choice for now (2 Nov 2026), not the original 3-day event with a 240-480
+// minimum and prize cards down to rank 10:
+//  - every god card of the game (82) takes a turn as the headline card, a new one every ROTATE_HOURS (1 for now) on the hour;
+//  - draws give premium-recruit cards (4-5 star), never the headline card;
 //  - the ranking is per featured card (one round = ROTATE_HOURS): when it ends, 1st place wins that god card; every prize needs
 //    LIMIT_SCORE points (so a free pull alone never pays gold), below it there is no prize.
 const game = require('./game');
 const settings = require('./settings');
 
 const ROTATE_HOURS = 1;
-const FEATURED_PCT = 4, PITY = 25;
-const FREE_EVERY = 8 * 3600;
+const FIVE_PCT = 25, PITY = 10;
+const FREE_EVERY = 24 * 3600;
 const SCORE = 10;
 const LIMIT_SCORE = 50;
 const RANK_SHOWN = 20;
@@ -68,7 +69,7 @@ function me(db, pl) {
   return db.prepare('SELECT pity, last_free FROM superninja_me WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || { pity: 0, last_free: 0 };
 }
 // (savepoints, not BEGIN: they also work inside a caller's transaction)
-const toGo = (db, pl) => Math.max(1, PITY - me(db, pl).pity); // pulls until the sure god card; the screen and the pray dialog both show the number sent - 1
+const toGo = (db, pl) => Math.max(1, PITY - me(db, pl).pity); // pulls until the sure five-star card; the screen and the pray dialog both show the number sent - 1
 const freeLeft = (db, pl) => Math.max(0, me(db, pl).last_free + FREE_EVERY - now());
 function board(db, sid, round = roundOf()) {
   ensure(db);
@@ -123,7 +124,7 @@ function infoXml(db, pl) {
   const hhmm = (s) => String(Math.floor((((slotOf(t) + s) * ROTATE_HOURS * 3600) % 86400) / 3600)).padStart(2, '0') + ':00';
   const next = [0, 1, 2, 3, 4].map((s) => ({ g: featured(t + s * ROTATE_HOURS * 3600), s }));
   return `<preview resttime="${roundEnd(roundOf()) - t}" nexttime="${freeLeft(db, pl)}" protect="${toGo(db, pl) + 1}" gold="${game.COST[1]}" status="0" actstatus="1" limitscore="${LIMIT_SCORE}"/>` +
-    '<ninjalist>' + next.map(({ g, s }) => `<item name="${esc(s ? `Next ${hhmm(s)}: ${g.name}` : `Now: ${g.name}`)}" ninjiaid="${g.id}" attr="3" dropid="${g.drop}"/>`).join('') + '</ninjalist>' +
+    '<ninjalist>' + next.map(({ g, s }) => `<item name="${esc(s ? `At ${hhmm(s)}: ${g.name}` : `Prize: ${g.name}`)}" ninjiaid="${g.id}" attr="3" dropid="${g.drop}"/>`).join('') + '</ninjalist>' +
     rankRows(m.board) + `<myrank rank="${m.rank || '-'}" score="${m.score}"/>` +
     '<rewardlist>' + [...PRIZES.flatMap((p) => p[4] ? [[p[2], 'the god card'], [p[2], 'of this hour']] : [[p[2], `${p[3]} gold`]]),
       ['Every prize', `${LIMIT_SCORE}+ points`], ['Points', `${SCORE} a draw`], ['Paid out', ROTATE_HOURS === 1 ? 'every hour' : `every ${ROTATE_HOURS} hours`], ['Prizes', 'in Awards']]
@@ -145,16 +146,14 @@ function pull(db, pl, count, free) {
   const cost = free ? 0 : count === 10 ? game.TEN_COST[1] : game.COST[1];
   const gold = db.prepare('SELECT gold FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).gold;
   if (gold < cost) return { error: 'not enough gold' };
-  const feat = featured();
   let { pity } = me(db, pl);
   const got = [];
   db.exec('SAVEPOINT superninja');
   try {
     db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
     for (let i = 0; i < count; i++) {
-      const hit = pity >= PITY - 1 || Math.random() * 100 < FEATURED_PCT;
-      const nid = hit ? feat.id : game.rollOne(1);
-      pity = hit ? 0 : pity + 1;
+      const nid = game.rollOne(1, pity >= PITY - 1 || Math.random() * 100 < FIVE_PCT ? 5 : 0);
+      pity = ((game.ninjas().get(nid) || [])[11] || 0) >= 5 ? 0 : pity + 1;
       got.push({ ninja: nid, seq: game.giveCard(db, pl.uid, pl.server_id, nid) });
     }
     db.prepare(`INSERT INTO superninja_me(uid, server_id, pity, last_free) VALUES(?,?,?,?)
