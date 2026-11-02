@@ -1152,3 +1152,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   (headliner = 1st prize only, every 10th draw a sure 5-star, 10-30 points, min 240-480, free draw daily, 3-day event): check the photo
   findings FIRST before choosing (ours) numbers.
 - 2 Nov (later): Super Ninja draws switched to the original rules from the photos (owner): no god card from draws, 25 % five-star (ours, 10x ~3.5 five-stars like photos 2469/2470), every 10th draw a sure five-star, free draw once a day; labels 'Prize: X' / 'At 17:00: X'. Checked in game: 10x = 4 purple + 6 blue.
+- 2 Nov (later): Super Ninja reward list = only the prize rows (1st God card / 2nd-3rd 300 gold / 4th-10th 100 gold); the info rows looked odd (owner).

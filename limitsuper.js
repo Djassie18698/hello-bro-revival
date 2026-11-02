@@ -126,9 +126,8 @@ function infoXml(db, pl) {
   return `<preview resttime="${roundEnd(roundOf()) - t}" nexttime="${freeLeft(db, pl)}" protect="${toGo(db, pl) + 1}" gold="${game.COST[1]}" status="0" actstatus="1" limitscore="${LIMIT_SCORE}"/>` +
     '<ninjalist>' + next.map(({ g, s }) => `<item name="${esc(s ? `At ${hhmm(s)}: ${g.name}` : `Prize: ${g.name}`)}" ninjiaid="${g.id}" attr="3" dropid="${g.drop}"/>`).join('') + '</ninjalist>' +
     rankRows(m.board) + `<myrank rank="${m.rank || '-'}" score="${m.score}"/>` +
-    '<rewardlist>' + [...PRIZES.flatMap((p) => p[4] ? [[p[2], 'the god card'], [p[2], 'of this hour']] : [[p[2], `${p[3]} gold`]]),
-      ['Every prize', `${LIMIT_SCORE}+ points`], ['Points', `${SCORE} a draw`], ['Paid out', ROTATE_HOURS === 1 ? 'every hour' : `every ${ROTATE_HOURS} hours`], ['Prizes', 'in Awards']]
-      .map(([a, b]) => `<item rankrange="${esc(a)}" dropinfo="${esc(b)}"/>`).join('') + '</rewardlist>';
+    // one row per prize, like the original list (the card itself is named above: "Prize: ..."; the 50-point minimum is the screen's own line)
+    '<rewardlist>' + PRIZES.map((p) => `<item rankrange="${esc(p[2])}" dropinfo="${esc(p[4] ? 'God card' : `${p[3]} gold`)}"/>`).join('') + '</rewardlist>';
 }
 function refreshXml(db, pl) {
   if (!on(db)) return null;
