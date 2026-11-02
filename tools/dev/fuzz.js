@@ -5,11 +5,11 @@ const os = require('os'), path = require('path'), fs = require('fs');
 const { DatabaseSync } = require('node:sqlite');
 const tmp = path.join(os.tmpdir(), 'hb-fuzz-' + process.pid + '.db');
 const db = new DatabaseSync(tmp);
-require('../../schema')(db);
-const handlers = require('../../handlers');
+require('../../server/schema')(db);
+const handlers = require('../../server/handlers');
 
 // every parameter name the client sends (scraped from AddData / GetUrlNormalHeader in the Lua scripts) plus the common ones
-const lua = path.join(__dirname, '..', '..', 'reference', 'lua-scripts');
+const lua = path.join(__dirname, '..', '..', 'server', 'reference', 'lua-scripts');
 const names = new Set(['Cmd', 'Type', 'Free', 'Goodsid', 'Count', 'Counts', 'ToUid', 'ToRank', 'Chip', 'BagId', 'BagID', 'SRCBagID', 'EATCardsBagIDList', 'ExId',
   'PackID', 'Packageid', 'AwardID', 'GiftId', 'SignId', 'Chap', 'Round', 'DupId', 'traintype', 'multitype', 'ToCountry', 'Code', 'GroupName', 'GroupId', 'Pos',
   'ExchId', 'reward_id', 'box_index', 'ChipBagID', 'AttackCardBagIndex', 'DefenseCardBagIndex', 'Exchg', 'ActType', 'ActID', 'SubID', 'Page', 'Nick', 'Card']);
@@ -39,7 +39,7 @@ const run = (name, params) => {
 };
 handlers.rl_w_reg2({ db, params: { ...base, Nick: 'Fuzz', Card: 1, Ninja: 55, Country: 1 } });
 db.prepare('UPDATE players SET gold=100000, coin=10000000, level=100').run();
-const settings = require('../../settings');
+const settings = require('../../server/settings');
 for (const e of settings.EVENTS) settings.setEvent(db, e.id, true); // events are off by default: switch all on so their paths run too
 for (const name of Object.keys(handlers)) {
   const cs = [0, ...(cmds[name] || [])];
@@ -56,7 +56,7 @@ db.close(); try { fs.unlinkSync(tmp); } catch {}
 // every handler x Cmd called FIRST on a brand-new save: finds screens that read a table only another screen creates (a new server)
 for (const name of Object.keys(handlers)) for (const c of new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, ...(cmds[name] || [])])) {
   const fresh = new DatabaseSync(':memory:');
-  require('../../schema')(fresh);
+  require('../../server/schema')(fresh);
   handlers.rl_w_reg2({ db: fresh, params: { ...base, Nick: 'Fresh', Card: 1, Ninja: 55, Country: 1 } });
   calls++;
   try { handlers[name]({ db: fresh, params: { ...base, Cmd: String(c), ToUid: '78', Id: '1' }, host: 'localhost:18080', method: 'POST', body: '' }); }

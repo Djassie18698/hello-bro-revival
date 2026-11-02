@@ -36,7 +36,7 @@ Want your own world? The server runs on your Windows PC.
 3. Double-click **`HOST-MY-SERVER.bat`**. Press Enter to play on your own PC, or type the address your friends will use (your Tailscale IP, for example). It makes **`HelloBro-for-<address>.xapk`**.
 4. Double-click **`START-SERVER.bat`** and keep the window open. The control panel opens in your browser.
 5. Drag your `HelloBro-for-….xapk` onto BlueStacks. Give the same file to friends who play on your server.
-Full guide: https://github.com/Djassie18698/hello-bro-revival/blob/main/HOST-YOUR-OWN-SERVER.md
+Full guide: https://github.com/Djassie18698/hello-bro-revival/blob/main/docs/HOST-YOUR-OWN-SERVER.md
 
 ## 5. Updates
 • **Game updates** come in by themselves: when the game says **"confirm update?"**, tap **Confirm**.

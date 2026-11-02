@@ -2,7 +2,7 @@
 and write cdn/manifest.json for rl_r_version. usage: python -I tools/build_cdn.py <val e.g. 28.0.1>"""
 import hashlib, json, os, sys, zipfile
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-cdn = os.path.join(root, 'cdn')
+cdn = os.path.join(root, 'server', 'cdn')
 val = sys.argv[1]
 PREFIX = 'renlong28/'  # the client adds <files>/renlong28/ and <files>/renlong28/script/ to its search path
 name = '%s_update.zip' % val  # the client reads the target version from the file name, up to the first '_'

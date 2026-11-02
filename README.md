@@ -45,6 +45,22 @@ Every number that came from the game's own data is kept as it was. Where the ori
 
 ---
 
+## 🖱️ Which file do I click?
+
+Everything you need is in the top folder. The rest is in sub-folders you don't have to open.
+
+| File | When |
+|---|---|
+| **`HOST-MY-SERVER.bat`** | Once: sets up your server and makes the game file (`HelloBro-for-<address>.xapk`) that connects to it |
+| **`START-SERVER.bat`** | Every time you play: runs the server (keep the window open) |
+| **`UPDATE.bat`** | Gets the newest fixes (close the server first). Your save is never touched |
+| **`INSTALL-WITH-USB.bat`** | The game won't install on a phone or tablet? Install it from your PC with a USB cable or over Wi-Fi |
+| **`OPEN-FIREWALL.bat`** | Phones or friends can't connect: opens port 18080 (run as admin) |
+
+Folders: `server` (the server itself and the game's data), `tools` (helpers), `docs` (guides and notes), `discord` (the Discord bot), `release` (the signing key).
+
+---
+
 ## 🚀 Play in 5 minutes
 
 > You need a Windows PC and **BlueStacks 5**.
@@ -57,7 +73,7 @@ Every number that came from the game's own data is kept as it was. Where the ori
    (events, who is online, restart).
 5. **Play:** drag the made `.xapk` onto BlueStacks, open the game, press **START**.
 
-Details and troubleshooting: [`HOST-YOUR-OWN-SERVER.md`](HOST-YOUR-OWN-SERVER.md) · playing on someone else's server: [`PLAY-ON-TAILSCALE.md`](PLAY-ON-TAILSCALE.md)
+Details and troubleshooting: [`docs/HOST-YOUR-OWN-SERVER.md`](docs/HOST-YOUR-OWN-SERVER.md) · playing on someone else's server: [`docs/PLAY-ON-TAILSCALE.md`](docs/PLAY-ON-TAILSCALE.md) · game won't install on a phone: [`INSTALL-WITH-USB.bat`](INSTALL-WITH-USB.bat)
 
 ### 🥷 Your own playthrough (just you, on your own PC)
 
@@ -115,16 +131,16 @@ Every fix one by one, and what is still open: [**docs/PROGRESS.md**](docs/PROGRE
 
 | Path | What |
 |---|---|
-| `server.js`, `handlers.js`, `game.js` | the HTTP server, one function per game screen/endpoint, the core game rules |
-| `manager.js` + `manager.html`, `settings.js` | the Server Manager page (`/manager`) and the server-wide settings (events on/off, announcement) |
-| feature files (`exam.js`, `pet.js`, `war.js`, `sevenday.js` …) | one module per feature |
-| `data/` | the game's own tables (cards, stages, drops, chains …) |
-| `reference/lua-scripts/` | the game's own screens (read-only reference) |
-| `cdn/` | hot updates the server pushes to every phone |
+| `server/server.js`, `server/handlers.js`, `server/game.js` | the HTTP server, one function per game screen/endpoint, the core game rules |
+| `server/manager.js` + `manager.html`, `settings.js` | the Server Manager page (`/manager`) and the server-wide settings (events on/off, announcement) |
+| feature files (`server/exam.js`, `pet.js`, `war.js`, `sevenday.js` …) | one module per feature |
+| `server/data/` | the game's own tables (cards, stages, drops, chains …) |
+| `server/reference/lua-scripts/` | the game's own screens (read-only reference) |
+| `server/cdn/` | hot updates the server pushes to every phone |
 | `tools/` | test, build and emulator helpers |
 | `docs/` | [`PROGRESS.md`](docs/PROGRESS.md) (every bug and its state), `FIXES-<date>.md` (plain-words fix days), [`NEXT-STEPS.md`](docs/NEXT-STEPS.md) (technical log), [`BASE-FEATURES.md`](docs/BASE-FEATURES.md), [`HOT-UPDATE.md`](docs/HOT-UPDATE.md), `history/` (old plans) |
 | `discord/` | the Discord bot: guides, channel layout, keep-online |
-| `.bat` files | `HOST-MY-SERVER.bat` (setup), `START-SERVER.bat` (run), `UPDATE.bat` (get the newest fixes), `OPEN-FIREWALL.bat` |
+| `.bat` files (top folder) | `HOST-MY-SERVER.bat` (setup), `START-SERVER.bat` (run), `UPDATE.bat` (get the newest fixes), `INSTALL-WITH-USB.bat` (install on a phone from the PC), `OPEN-FIREWALL.bat` |
 | `CLAUDE.md` | start-here guide for the AI helper that maintains the project |
 
 ---

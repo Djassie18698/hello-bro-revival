@@ -3,7 +3,7 @@
 The game has its own resource updater. It is driven by `rl_r_version`:
 `<updatechip><version val="X"/><cdn>http://host/cdn/</cdn><filelist><file name="X_update.zip" val="X" md5 size/></filelist></updatechip>`.
 
-1. Put changed files in `cdn/src/` with the same paths as inside the OBB, e.g. `cdn/src/script/ui_layer/ui_purchaseLayer.lua`.
+1. Put changed files in `server/cdn/src/` with the same paths as inside the OBB, e.g. `server/cdn/src/script/ui_layer/ui_purchaseLayer.lua`.
 2. Run `python -I tools/build_cdn.py 28.0.4` (always a HIGHER version than the last one).
 3. Restart not needed: the next game start shows "confirm update?", downloads, unzips to `files/renlong28/`, and the game loads those files first.
 

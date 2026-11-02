@@ -5,13 +5,13 @@ const os = require('os'), path = require('path'), fs = require('fs');
 const { DatabaseSync } = require('node:sqlite');
 const tmp = path.join(os.tmpdir(), 'hb-smoke-' + process.pid + '.db');
 const db = new DatabaseSync(tmp);
-require('../../schema')(db);
-const handlers = require('../../handlers');
+require('../../server/schema')(db);
+const handlers = require('../../server/handlers');
 const base = { Uid: '77', Session: 'smoke', ServerID: '1', GroupID: '2' };
 
 // endpoint -> Set of Cmd numbers, scraped from GetUrlNormalHeader(uid, CMD, "endpoint") calls (CMD may be a protocol.lua constant).
 const cmds = {};
-const lua = path.join(__dirname, '..', '..', 'reference', 'lua-scripts');
+const lua = path.join(__dirname, '..', '..', 'server', 'reference', 'lua-scripts');
 if (fs.existsSync(lua)) {
   const consts = {};
   const proto = path.join(lua, 'util', 'protocol.lua');
@@ -67,7 +67,7 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   ck(db.prepare('SELECT score FROM superninja WHERE uid=77').get().score === 120, 'a normal recruit after leaving counted for the event');
   // the hour ends: prizes are mailed once; 1st place (120 points, the minimum is 50) wins that hour's god card
   db.prepare('UPDATE superninja SET round=round-1').run();
-  const ls = require('../../limitsuper'), round = db.prepare('SELECT round FROM superninja WHERE uid=77').get().round;
+  const ls = require('../../server/limitsuper'), round = db.prepare('SELECT round FROM superninja WHERE uid=77').get().round;
   const god = ls.godList()[round % ls.godList().length];
   ls.settle(db); ls.settle(db);
   const mail = db.prepare("SELECT content, items FROM award_mail WHERE uid=77 AND title='Limited Super Ninja'").all();
@@ -75,7 +75,7 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
 }
 // Ninja Treasure (sudoku.js): the top list is the 16 original prizes, every board hides exactly one of them, buying the board gives it.
 {
-  const sudoku = require('../../sudoku');
+  const sudoku = require('../../server/sudoku');
   const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
   db.prepare('UPDATE players SET gold=100000 WHERE uid=77').run();
   const top = (sudoku.topXml().match(/<item /g) || []).length;
@@ -92,13 +92,13 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
 // Arena daily reward: a ladder place 1-1000 also pays its ladder pack (rank 1 = pack 159: gear, a full seal or 300 gold); no place, no pack.
 {
   const claim = () => handlers.rl_x_sport_ext({ db, params: { ...base, Cmd: 3 } });
-  require('../../game').arenaEnsure(db);
+  require('../../server/game').arenaEnsure(db);
   db.exec("DELETE FROM rank_claims WHERE board='arena'"); db.prepare('DELETE FROM arena WHERE uid=77').run();
   const none = claim();
   if (/dropid="16\d"/.test(none)) { bad++; console.log('ARENA ladder pack paid without a ladder place:', none.slice(0, 100)); }
   db.exec("DELETE FROM rank_claims WHERE board='arena'"); db.prepare('DELETE FROM arena WHERE rank=1').run(); db.prepare('INSERT INTO arena(rank, uid) VALUES(1, 77)').run();
   // the Compete list carries the player's own row (<host>1) with the claim button: no countdown, dayrewardstat 0 before / 1 after the claim
-  const pl77 = db.prepare('SELECT * FROM players WHERE uid=77').get(), list = () => require('../../game').arenaListXml(db, pl77);
+  const pl77 = db.prepare('SELECT * FROM players WHERE uid=77').get(), list = () => require('../../server/game').arenaListXml(db, pl77);
   if (!/<host>1<\/host>/.test(list()) || !/<rewardtimeleft>0<\/rewardtimeleft>/.test(list()) || !/<dayrewardstat>0</.test(list())) { bad++; console.log('ARENA list has no claimable own row'); }
   const top = claim();
   if (!/<dayrewardstat>1</.test(list())) { bad++; console.log('ARENA list does not show the claim as done'); }
@@ -117,7 +117,7 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
 // Account window on Android 14+ (the app targets Android 7, so the phone ID is hidden): PLAY sends deviceId="" and must still make a
 // guest, and the kept password must log that same guest in again.
 (async () => {
-  const gump = require('../../gumplogin');
+  const gump = require('../../server/gumplogin');
   const call = async (url, form) => {
     let out = '';
     await gump.handle({ method: 'POST', url }, { writeHead() {}, end(s) { out = s; } }, async () => new URLSearchParams(form).toString(), db);

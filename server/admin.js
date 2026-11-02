@@ -9,7 +9,7 @@ const vip = require('./vip');
 // new character). Shared tables that name the player another way are cleaned too. A save backup is written first.
 function resetPlayer(db, uid, sid = 1) {
   try {
-    const dir = path.join(__dirname, 'backups');
+    const dir = path.join(process.cwd(), process.env.HB_BACKUPS || 'backups'); // next to the save, like the other backups
     fs.mkdirSync(dir, { recursive: true });
     db.exec(`VACUUM INTO '${path.join(dir, `before-reset-${uid}-${Date.now()}.db`).replace(/'/g, "''")}'`);
   } catch (e) { /* backup is best effort */ }

@@ -12,7 +12,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 
 ## 1. Rules (the owner asked for all of these)
 1. **Keep it original.** Unlock levels, starting cards, VIP, stage clears, prices: take them from the game's own data
-   (`data/*.json`), Lua (`reference/lua-scripts/`) or the C++ disassembly. If the original number is lost (it lived on the dead
+   (`server/data/*.json`), Lua (`server/reference/lua-scripts/`) or the C++ disassembly. If the original number is lost (it lived on the dead
    server), choose one, mark it `(ours)` in a code comment and in `docs/BASE-FEATURES.md`. Don't "improve" or hand out freebies.
    "Is this normal?" questions: check the game's own code first; often the answer is "yes, the original did that" (e.g. finished
    story stages show Finish and only bosses can be replayed).
@@ -65,6 +65,10 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
   `C:\Program Files\BlueStacks_nxt\HD-Adb.exe`.
 
 ## 4. Map of the repo
+Layout since 2 Nov 2026 (owner: "only the .bat files on top"): the top folder holds only the .bat files, README.md and CLAUDE.md;
+all server code plus `data/`, `cdn/`, `reference/` live in **`server/`** (the .bat files run `node server\server.js` from the top
+folder, so the save `hellobro.db` and `backups/` stay on top). START-SERVER.bat deletes the old top-level code copies a friend's
+UPDATE.bat left behind. Paths below without a folder are in `server/`.
 | Path | What |
 |---|---|
 | `server.js` | HTTP server on :18080 (rewrites `<root` to `<RENLONG`, %20-encodes raw spaces, rate limit, `/admin`, `/cdn/`, `/progress.md`) |
@@ -79,15 +83,15 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 | `manager.js`/`manager.html`/`settings.js` | Server Manager `/manager`: status, online players, live log, events on/off (`server_settings.events_off`, used by `game.actXml`), announcement (`rl_r_bulletin`), backup, restart (exit code 3, `START-SERVER.bat` loops; `HB_MANAGED=1`) |
 | `db.js` | opens the save: SQLite WAL, health check, backups on start + every 6 h (VACUUM INTO), extra indexes |
 | `schema.js` | base tables (modules create their own with `CREATE TABLE IF NOT EXISTS`) |
-| `data/*.json` | original game tables `{types, rows}` (ninjainfo, equipmentinfo, roundinfo, dropinfo, consumeinfo, petinfo, ...) |
-| `reference/lua-scripts/` | the client's Lua UI (same as `re/obb/script`); `reference/client-endpoints.txt` every endpoint the app calls |
-| `cdn/` | hot-update files the server pushes to every phone (section 7) |
+| `server/data/*.json` | original game tables `{types, rows}` (ninjainfo, equipmentinfo, roundinfo, dropinfo, consumeinfo, petinfo, ...) |
+| `server/reference/lua-scripts/` | the client's Lua UI (same as `re/obb/script`); `server/reference/client-endpoints.txt` every endpoint the app calls |
+| `server/cdn/` | hot-update files the server pushes to every phone (section 7) |
 | `.bat` files | `START-SERVER.bat` (runs the server, restarts it on exit code 3) · `HOST-MY-SERVER.bat` (one-time setup + game file for any address) · `UPDATE.bat` (pulls the newest version, keeps the save) · `OPEN-FIREWALL.bat` (opens port 18080, run as admin) · `INSTALL-WITH-USB.bat` (installs a game file on a phone over adb: USB debugging, `--bypass-low-target-sdk-block` for old files on Android 14+, obb push checked by size; `HB_ADB` / `ANDROID_SERIAL` to pick adb and device) |
 | `tools/dev/` | `check.sh` all checks · `smoke.js` every handler on a temp DB · `fuzz.js` bad input · `exploit.js` cheat check · `realsave.js` every screen for every player of a real save (read-only copy) · `probe.js` call one endpoint · `dev.js` set level / VIP / items on the test account, `relog` · `emu.sh` emulator (restart, tap, shot, log, update) · `boot.sh` / `go.sh` / `survey.sh` quick emulator walks · `restart.sh` dev server on :18081 · `upgrades.js` card upgrade walk-through · `sim_balance.js` balance simulations |
 | `tools/` | `setup_re.py` (+ `setup_from_xapk.py` for a fresh public install) · `armdis.py` disassembler · `build_cdn.py` hot update zip · `patch_apk.py` / `make_game_for.py` game file for an address · `patch_login_smali.py` + `patch_dex.py` account window / billing crash patches (→ `release/classes-revival.dex`) · `patch_tables.py` + `mbs.py` + `export_tables.py` the client's tables.bin · `ccbi.py` .ccbi layouts · `pvrccz.py` sprite sheets (read only: re-encoding breaks them) · `patch_winview.py` / `patch_winanim.py` victory screen patches · `sync_test_folder.sh` · `make_public.py` (public copy, archived) |
 | `release/` | `revival.keystore` (password/alias `revival`; ALWAYS sign with it, never make a new one), `classes-revival.dex`; built `HelloBro-for-*.apk` stay local (git-ignored) |
 | `discord/` | `dc.js` read/post as the bot (token in `discord/.env`, git-ignored) · `guides.js` + `guides/*.md` the guide channels · `layout.js` channel layout · `online.js` + `START-BOT-ONLINE.bat` keeps the bot shown online · `bot.js`/`cli.js`/`agent.js`/`tools.js`/`adapter.js` an AI manager bot (needs a paid API key, not in use) · `test.js`, `test-dc.js` offline tests |
-| docs | `README.md` GitHub front page · `docs/PROGRESS.md` every bug and request with its state · `docs/NEXT-STEPS.md` findings log · `docs/FIXES-<date>.md` plain-words fix days · `docs/BASE-FEATURES.md` Base rules + (ours) values · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/HOT-UPDATE.md` · `docs/BALANCE-SIMULATIONS.md` · `docs/GEAR-REPORT.md` · `docs/history/` old plans and notes (outdated, for reference) · `HOST-YOUR-OWN-SERVER.md` · `PLAY-ON-TAILSCALE.md` |
+| docs | `README.md` GitHub front page · `docs/PROGRESS.md` every bug and request with its state · `docs/NEXT-STEPS.md` findings log · `docs/FIXES-<date>.md` plain-words fix days · `docs/BASE-FEATURES.md` Base rules + (ours) values · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/HOT-UPDATE.md` · `docs/BALANCE-SIMULATIONS.md` · `docs/GEAR-REPORT.md` · `docs/history/` old plans and notes (outdated, for reference) · `docs/HOST-YOUR-OWN-SERVER.md` · `docs/PLAY-ON-TAILSCALE.md` |
 
 ## 5. Running and testing
 - **Two servers:**
@@ -110,7 +114,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 ## 6. Protocol and debugging (how every crash so far was fixed)
 - Client POSTs `/<endpoint>` with `Uid, Session, ServerID, GroupID, Cmd, ...`; reply XML `<root code="0">...</root>`.
   Non-zero code = error tip (`code="5"` with `<message>`, mapped by `errcodes.js`). Accounts auto-create; sessions only checked with `STRICT_SESSIONS=1`.
-- Find the parser: **Lua screen** → grep `reference/lua-scripts` for the endpoint, read every `:find("tag")` (Lua `find` searches
+- Find the parser: **Lua screen** → grep `server/reference/lua-scripts` for the endpoint, read every `:find("tag")` (Lua `find` searches
   recursively). **C++ screen** → `grep -n "'/rl_x_name'" re/all.txt`, find the `onHttpRequestCompleted` of that class
   (`awk 'NR<=L && /^=====/'` to get the function), list `-> 'tag'` strings and `FirstChildElement`/`Attribute` calls.
 - Crash signs in `emu.sh log`: `Fatal signal 11 ... fault addr 0x18/0x0` = C++ read a missing element; `LUA ERROR` = Lua read nil.
@@ -128,8 +132,8 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 - Enable param logging for one endpoint by adding `if (process.env.HB_DEBUG) console.log(...)` and starting with `HB_DEBUG=1`.
 
 ## 7. Game-side changes (hot update)
-The game downloads `cdn/<val>_update.zip` (via `rl_r_version` `<updatechip>`) and unpacks it over its files. To change a game
-file: copy it from `re/obb/<path>` (or `reference/lua-scripts`) to `cdn/src/<same path>` (Lua goes in `cdn/src/script/...`),
+The game downloads `server/cdn/<val>_update.zip` (via `rl_r_version` `<updatechip>`) and unpacks it over its files. To change a game
+file: copy it from `re/obb/<path>` (or `server/reference/lua-scripts`) to `server/cdn/src/<same path>` (Lua goes in `server/cdn/src/script/...`),
 edit, `python -I tools/build_cdn.py 28.0.N` with a **higher** N, `git rm` the previous zip, note it in `docs/HOT-UPDATE.md`.
 Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing. Text and numbers in the
 client's tables go through `tools/patch_tables.py` (tables.bin), layouts through `tools/ccbi.py`; sprite sheets can't be re-encoded.
@@ -159,7 +163,7 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
 - Game files made since 2 Nov 2026 target Android 7 (`tools/patch_targetsdk.py`, run by `patch_apk.py`): Android 14+ refuses the original's target 19.
   Without granted permissions the account window sends `deviceId=""`; `gumplogin.js` then keys the guest by its kept password.
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (friends who host their own;
-  guide in `HOST-YOUR-OWN-SERVER.md`). The owner's public server runs `START-PUBLIC-SERVER.bat` (LOGIN_LOCK, public.db; NOT in git,
+  guide in `docs/HOST-YOUR-OWN-SERVER.md`). The owner's public server runs `START-PUBLIC-SERVER.bat` (LOGIN_LOCK, public.db; NOT in git,
   owner-only: GitHub only offers solo/private hosting + joining ninjaonline).
 - Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
@@ -183,5 +187,5 @@ Left as is: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type
 five-element panel (photo 2666) not found in any v28 layout; first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter).
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
 (never opened), rebate wheel `rl_r_multiple_pay`, opening scene skip, 10-pull zoom, Chartboost ad error. Login: gumplogin.js +
-release/classes-revival.dex (see NEXT-STEPS 2 Nov). Find missing endpoints with: compare `reference/client-endpoints.txt` to
+release/classes-revival.dex (see NEXT-STEPS 2 Nov). Find missing endpoints with: compare `server/reference/client-endpoints.txt` to
 `Object.keys(require('./handlers'))`.

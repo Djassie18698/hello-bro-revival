@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 const root = path.join(__dirname, '..', '..');
-const game = require(path.join(root, 'game'));
+const game = require(path.join(root, 'server', 'game'));
 const T = (n) => game.table(n).rows;
 
 const out = {};
@@ -31,7 +31,7 @@ out.story = {
 };
 
 // ---- 2. Team power a free player can have (the server's own teamStats) -----------------------------------------------------
-const db = new DatabaseSync(':memory:'); require(path.join(root, 'schema'))(db); game.ensure(db);
+const db = new DatabaseSync(':memory:'); require(path.join(root, 'server', 'schema'))(db); game.ensure(db);
 db.prepare("INSERT INTO accounts(uid,username,password) VALUES (1,'sim','')").run();
 db.prepare("INSERT INTO players(uid,server_id,nick,country,card,created) VALUES (1,1,'sim',1,1,0)").run();
 const base = (star) => [...game.ninjas().values()].filter((r) => r[4] === 1 && r[6] === 0 && r[11] === star && r[19] > 0).map((r) => r[0]);
@@ -137,7 +137,7 @@ out.recruits = {
 
 // ---- 5. Gold a free player gets ------------------------------------------------------------------------------------------
 const dropGold = (id) => { const r = T('dropinfo').find((x) => x[0] === id) || []; return (r[10] || 0) * (r[13] || 1); };
-const lua = (f) => fs.readFileSync(path.join(root, 'reference', 'lua-scripts', f), 'utf8');
+const lua = (f) => fs.readFileSync(path.join(root, 'server', 'reference', 'lua-scripts', f), 'utf8');
 const packGold = (f) => [...lua(f).matchAll(/PackData\[(\d+)\]\s*=\s*\{([^}]*)\}/g)].reduce((t, m) => t + [...m[2].matchAll(/_drop\did=(\d+)/g)].reduce((u, x) => u + dropGold(Number(x[1])), 0), 0);
 const scratchEV = [[800, 0.5], [500, 1], [150, 2.5], [50, 8], [20, 18], [5, 22]].reduce((t, [g, p]) => t + (g * p) / 100, 0);
 out.gold = {

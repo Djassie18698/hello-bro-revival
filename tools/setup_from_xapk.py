@@ -23,9 +23,9 @@ obb = zipfile.ZipFile(io.BytesIO(x.read(obb_name)))
 # tables.bin is a zip whose local-header magic was changed from PK to @B>R; put it back.
 raw = obb.read('tables.bin').replace(b'@B>R\x14\x00', b'PK\x03\x04\x14\x00')
 tables = zipfile.ZipFile(io.BytesIO(raw))
-data_dir = os.path.join(root, 'data')
+data_dir = os.path.join(root, 'server', 'data')
 os.makedirs(data_dir, exist_ok=True)
-tmp = os.path.join(root, 'data', '_tmp.dbf')
+tmp = os.path.join(root, 'server', 'data', '_tmp.dbf')
 ok = 0
 for n in tables.namelist():
     if not n.endswith('.dbf'):

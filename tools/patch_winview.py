@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ccbi
 
 SRC = 're/obb/core_combat/NewFightResult_WinView.ccbi'
-DST = 'cdn/src/core_combat/NewFightResult_WinView.ccbi'
+DST = 'server/cdn/src/core_combat/NewFightResult_WinView.ccbi'
 data = ccbi.patch(open(SRC, 'rb').read(), {
     'label_round_getsilver': {'visible': True},
     'label_round_getsilver_pre': {'position': (-5000.0, 22.0, 0)},

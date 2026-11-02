@@ -1,14 +1,14 @@
 // Real-save check: every handler x Cmd for every player of a save, on a throwaway COPY (old data, column migrations).
 // Usage: node tools/dev/realsave.js [save.db]   (default hellobro.db; the copy is deleted afterwards, the save is never written)
 const fs = require('fs'), path = require('path'), { DatabaseSync } = require('node:sqlite');
-const handlers = require('../../handlers');
-const root = path.join(__dirname, '..', '..'), lua = path.join(root, 'reference', 'lua-scripts'), cmds = {};
+const handlers = require('../../server/handlers');
+const root = path.join(__dirname, '..', '..'), lua = path.join(root, 'server', 'reference', 'lua-scripts'), cmds = {};
 const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.lua') ? [path.join(d, e.name)] : []);
 for (const f of walk(lua)) { const t = fs.readFileSync(f, 'utf8'); for (const m of t.matchAll(/GetUrlNormalHeader\([^,]*,\s*(\d+)\s*,\s*"([a-z_0-9]+)"\s*\)/g)) (cmds[m[2]] = cmds[m[2]] || new Set()).add(Number(m[1])); }
 const os = require('os'), src = process.argv[2] || path.join(root, 'hellobro.db'), tmp = path.join(os.tmpdir(), 'hb-realsave-' + process.pid + '.db');
 { const live = new DatabaseSync(src, { readOnly: true }); live.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`); live.close(); } // a consistent copy, WAL included
 const db = new DatabaseSync(tmp);
-require('../../schema')(db);
+require('../../server/schema')(db);
 const players = db.prepare('SELECT p.uid, p.server_id, a.session FROM players p JOIN accounts a ON a.uid=p.uid').all();
 let bad = 0, n = 0; const seen = new Set();
 const SAFE_SKIP = /^rl_w_(reg2|reset)|^xk_w_|admin/;

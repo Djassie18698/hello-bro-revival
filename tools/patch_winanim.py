@@ -7,7 +7,7 @@ import ccbi
 FILES = ['core_combat/RS_WinAnim.ccbi', 'activity/AwardCenterCellCell.ccbi', 'activity/GodRecruitReturn.ccbi', 'activity/SaveTimeView.ccbi',
          'dlg_ui/BuyItemDialogCellView.ccbi', 'sub_ui/CommonRewardCell_cell.ccbi', 'sub_ui/DailyRewardView.ccbi', 'sub_ui/SweepRewardDlgCell_cell.ccbi']
 for f in FILES:
-    src, dst = 're/obb/' + f, 'cdn/src/' + f
+    src, dst = 're/obb/' + f, 'server/cdn/src/' + f
     data = open(src, 'rb').read()
     try:
         data = ccbi.replace_string(data, '大拉面', 'Big Ramen')

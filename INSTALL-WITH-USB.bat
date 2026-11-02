@@ -1,9 +1,9 @@
 @echo off
-rem Installs a Hello Bro game file (.xapk) on an Android phone or tablet over a USB cable (adb).
+rem Installs a Hello Bro game file (.xapk) on an Android phone or tablet from this PC, over a USB cable or Wi-Fi (adb).
 rem Use it when the phone's own XAPK installer gives an error. Drag the .xapk onto this file, or put it in this folder.
 setlocal
 cd /d "%~dp0"
-title Hello Bro - install on a phone or tablet with a USB cable
+title Hello Bro - install on a phone or tablet (USB cable or Wi-Fi)
 
 rem 1. Android's USB tool (adb), one time. HB_ADB = use another adb.exe instead.
 set "ADB=adb"
@@ -56,10 +56,28 @@ if defined WAITALLOW if "%N%"=="0" (
   echo Tap "Allow" on the phone or tablet, then press a key here.
   pause >nul & goto waitdevice
 )
-if "%N%"=="0" (
-  echo No phone or tablet found yet. Do the 3 steps above, then press a key here.
-  pause >nul & goto waitdevice
-)
+if not "%N%"=="0" goto onedevice
+echo No phone or tablet found yet. Do the 3 steps above, then press Enter here.
+echo No cable? Type W and press Enter to connect over Wi-Fi instead.
+set "ANS="
+set /p ANS=
+if /i not "%ANS%"=="W" goto waitdevice
+rem Wi-Fi: Developer options - Wireless debugging (phone and PC on the same Wi-Fi). Pairing is only needed once per PC.
+echo.
+echo On the phone: Developer options - turn on "Wireless debugging" - tap it - "Pair device with pairing code".
+set "PAIR="
+set /p PAIR=Pairing IP address and port shown in that popup (like 192.168.1.20:37123), or just Enter if this PC paired before:
+if not defined PAIR goto wificonnect
+set "CODE="
+set /p CODE=6-digit pairing code:
+"%ADB%" pair %PAIR% %CODE%
+:wificonnect
+echo Now close the popup. The Wireless debugging screen shows "IP address and Port" (another port than the popup).
+set "CONN="
+set /p CONN=That IP address and port:
+if defined CONN "%ADB%" connect %CONN%
+goto waitdevice
+:onedevice
 if not "%N%"=="1" (
   echo More than one device is connected, for example BlueStacks. Close BlueStacks or unplug the other one, then press a key.
   pause >nul & goto waitdevice
@@ -110,5 +128,5 @@ if not "%RSIZE%"=="%LSIZE%" (
 rmdir /s /q "%WORK%" 2>nul
 echo.
 echo Done! Open Hello Bro on the device, tap PLAY, then Confirm when it asks to update.
-echo You can turn USB debugging off again now.
+echo You can turn USB debugging / Wireless debugging off again now.
 pause

@@ -66,7 +66,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   if (u.pathname.endsWith('.do')) return require('./gumplogin').handle(req, resp, parseBody, db); // the APK's account window (gumplogin.js)
   if (u.pathname === '/progress.md') { // the progress page (docs/PROGRESS.md), shown in the control panel's Progress tab
     resp.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store' });
-    return resp.end(require('fs').readFileSync(require('path').join(__dirname, 'docs', 'PROGRESS.md'), 'utf8'));
+    return resp.end(require('fs').readFileSync(require('path').join(__dirname, '..', 'docs', 'PROGRESS.md'), 'utf8'));
   }
   if (u.pathname === '/' || u.pathname === '/panel') { // the control panel
     if (!admin.authorized(req)) { resp.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro"' }); return resp.end('password required'); }
