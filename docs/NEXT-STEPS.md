@@ -914,3 +914,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   id); rl_w_dup with a bad Chap/Round wrote exp NULL (now "no such round"). Exploit check: nothing.
 - Lottery tile in the Event menu shows Chinese 忍村彩票: it is the picture activity21 in ccbResources/activity_btns_2 (sprite sheet; re-encoding broke 28.0.18), left as is.
 - Lottery screen: header/labels 第1期忍村彩票, 本期彩票开奖时间, 领奖截止时间, 一等奖.. are pictures in LotteryTicketView (left); the draw time reads '11Month02Day20Hour30' (ui_lotteryTicketLayer open_time + localizable ui_lottry_month/day/dian/min): candidate for a hot-update tidy.
+- Soul training "up to 3x": LimitTrainSoulView.ccbi's static labels say normal "(Up to 2x)", advanced "(100% up to 3x)" and the batch "(Up to
+  32x)". 32 = 2^5, so five doublings of x2 each (what soultrain.js does) fits the layout. Kept.
+- Card upgrades walked through on a throwaway save (new tools/dev/upgrades.js): level-up, reincarnation (pills), element change (2000 silver +
+  10 pills), potential roll/save, succession (stats move to the twin, 100 gold), sage growth x3, god evolve (Minato -> Minato God),
+  equipment level-up, Eight Gates: all OK. Team screen vs home attack differ by the set bonus (5 five-star cards +3200): by design.
+- New-account check: Card 1/2/3 -> Shikamaru 57 + jutsu 54 / Sakura 56 + 14 / Neji 55 + 12, 50 gold, 18 000 silver, team 1. OK.
+- Timers that still counted to UTC midnight now count to local midnight: country officials, war, Ninja Treasure; tower sweep day key and the
+  monthly sign-in month use the local date.
