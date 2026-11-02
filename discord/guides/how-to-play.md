@@ -47,6 +47,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • Check the **Event** menu and the **Daily Task** list every day for free rewards.
 • **Festivals** (when switched on): win fights for festival items (Christmas Caps and Trees, or Fireworks and Balloons for the Anniversary) and trade them in the Event menu for rare cards.
 • **World Boss** (Event menu): an Akatsuki member invades every day from **14:00 to 14:30**: 10 hits, then a short wait. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
+• **Awards** chest (Home, right side): gifts the server owner sends you. Press **Claim**; they stay 7 days.
 • **Sign-in** (Event menu): log in on days in a row for ramen, Hyourou-gan and silver; from day 7 also 20 gold a day. Missing a day starts again at day 1.
 • **Lottery** and **Wheel of Fortune** open at level 10.
 • Sometimes switched on: **God of Wealth** (invest gold in 8 steps, always get a bit more back), **Flower Worship** (every dollar topped up gives a rose; give a goddess her roses for a rare card), **Month card** (a 4.99 or 9.99 top-up gives 60 or 120 gold a day for 30 days).
