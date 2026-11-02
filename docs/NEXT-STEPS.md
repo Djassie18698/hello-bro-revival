@@ -1013,3 +1013,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   player ("VIP1 +5" = the next level) has 25/25 gold chest opens. Fixed with game.vipRow: gold chests VIP0 25 (was 20 ours, and every VIP
   one level short), arena attacks +1 a level from VIP1 (was from VIP2), mystery shop refreshes 80 + 5 a level (was 75 + 5), high-level soul
   training 3 at VIP0 + 1 a level (VIP0 had none).
+- Brand-new save check (now the second pass of tools/dev/fuzz.js: every handler x Cmd called first on a fresh save): 6 screens crashed
+  because their table is made by another screen: arena ranking (arena), guild ranking (groups), war result (war), border war player /
+  enemy / award claim (border_station). handlers.saveReady makes those tables on the first request of a save. Normal play opened the main
+  screen first, so it showed up only on a new server. Border war clears a day: vipinfo [23] "monument can remove players 20 times" at
+  VIP0, +5 a VIP level (was 10, ours; the reply's nextlv_cleartimes_lmt now shows the next level's number).

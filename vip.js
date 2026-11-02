@@ -8,13 +8,13 @@ const MAX_VIP = 18;
 // Cumulative exp per level; the original thresholds lived on the dead server, these are ours ($1, $10, $30 ... $50000).
 const VIP_EXP = [0, 10, 100, 300, 500, 1000, 2000, 3000, 5000, 8000, 12000, 20000, 30000, 50000, 80000, 120000, 200000, 300000, 500000];
 
-let migrated = false;
+const migrated = new WeakSet(); // saves already checked (one per server, several in the test tools)
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS vipstate (uid INTEGER, server_id INTEGER, level INTEGER, PRIMARY KEY(uid,server_id));
     CREATE TABLE IF NOT EXISTS vipbought (uid INTEGER, server_id INTEGER, gift_id INTEGER, PRIMARY KEY(uid,server_id,gift_id));
     CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)`);
-  if (migrated) return;
-  migrated = true;
+  if (migrated.has(db)) return;
+  migrated.add(db);
   try { db.exec('ALTER TABLE vipstate ADD COLUMN exp INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
   // one time: players made before 30 Oct 2026 12:00 UTC (when everyone was VIP 18) keep it; only new characters start at VIP 0
   if (!db.prepare("SELECT 1 FROM meta WHERE k='vip0'").get()) {

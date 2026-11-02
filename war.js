@@ -111,4 +111,4 @@ function exchange(db, pl, packId) {
   return { xml: game.grantDrop(db, pl, row[6]) };
 }
 
-module.exports = { exchange, msgXml, resultXml, infoXml, attack, revive };
+module.exports = { ensure, exchange, msgXml, resultXml, infoXml, attack, revive };

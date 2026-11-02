@@ -17,7 +17,8 @@ const REWARD = { 1: { exp: 3300, merit: 786 }, 2: { exp: 3300, merit: 786 } };
 const CLEAR_REWARD = { exp: 1650, merit: 393 };
 const DAILY = { 1: 2, 2: 2, 3: 4, 4: 4 }; // award kind -> rewarded times a day: 1 taunt, 2 wander, 3 taunt cleared, 4 wander cleared
 const BREAK_DROPS = [100, 1327, 1325]; // Gold*50, Super Ninja Pill, Reincarnation Pill
-const CLEARS_PER_DAY = 10;
+// clears (sending a stationed enemy home) a day: ORIGINAL vipinfo [23] "monument can remove players 20 times" at VIP0, +5 a VIP level
+const clearsPerDay = (db, pl, next = 0) => game.vipRow(db, pl, next)[23] || 20;
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS border_mon (server_id INTEGER, day TEXT, country INTEGER, hp INTEGER, PRIMARY KEY(server_id, day, country));
@@ -99,8 +100,8 @@ function userXml(db, pl) {
   const s = myStation(db, pl), sc = score(db, pl);
   const end = (t) => (s && s.type === t ? s.start + STAY : 0);
   return '<user_info>' + el('defiance_end_time', end(1)) + el('wander_end_time', end(2)) + el('defiance_exp', REWARD[1].exp) + el('defiance_exploit', REWARD[1].merit) +
-    el('wander_ex', REWARD[2].exp) + el('wander_exploit', REWARD[2].merit) + el('cleartimes_lmt', CLEARS_PER_DAY) + el('cleartimes_left', Math.max(0, CLEARS_PER_DAY - sc.clears)) +
-    el('nextlv_cleartimes_lmt', CLEARS_PER_DAY) + '</user_info>' +
+    el('wander_ex', REWARD[2].exp) + el('wander_exploit', REWARD[2].merit) + el('cleartimes_lmt', clearsPerDay(db, pl)) + el('cleartimes_left', Math.max(0, clearsPerDay(db, pl) - sc.clears)) +
+    el('nextlv_cleartimes_lmt', clearsPerDay(db, pl, 1)) + '</user_info>' +
     '<kill_enemy>' + el('kill_defiance', sc.clears) + el('kill_wander', sc.clears) + '</kill_enemy>' +
     '<user_status>' + el('status', s ? s.type : 0) + el('to_country', s ? s.to_country : -1) + el('remaining_time', s ? s.start + STAY - now() : 0) + '</user_status>' +
     '<clear_info>' + el('last_attack_country', -1) + el('last_clear_enemy_country', -1) + el('last_clear_enemy_uid', '') + '</clear_info>';
@@ -131,7 +132,7 @@ function enemyXml(db, pl, c) {
 // Defender fights a stationed enemy. Win = the enemy is sent home and the defender scores.
 function clear(db, pl, toUid) {
   const sc = score(db, pl);
-  if (sc.clears >= CLEARS_PER_DAY) return { code: 5, msg: 'no clears left today' };
+  if (sc.clears >= clearsPerDay(db, pl)) return { code: 5, msg: 'no clears left today' };
   const st = myStation(db, { server_id: pl.server_id, uid: toUid });
   const enemy = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(toUid, pl.server_id);
   if (!st || !enemy) return { code: 5, msg: 'that enemy already left' };
@@ -187,4 +188,4 @@ function rankXml(db, pl, type) {
     '<rank_list>' + rows.map((r, i) => `<item rank="${i + 1}" nick="${esc(r.nick)}" country="${r.country}" level="${r.level}" score="${r.score}" award="371"/>`).join('') + '</rank_list>';
 }
 
-module.exports = { infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml };
+module.exports = { ensure, infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml };

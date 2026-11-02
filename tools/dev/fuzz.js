@@ -1,5 +1,5 @@
 // Bad-input sweep: calls every handler with every Cmd the game uses, but with missing, zero, negative, huge, text and
-// injection-like parameter values, on a throwaway DB. Reports crashes (exceptions) and non-XML replies.
+// injection-like parameter values, on a throwaway DB, then every handler first thing on a brand-new save. Reports crashes and non-XML replies.
 // Usage: node tools/dev/fuzz.js     (does not touch hellobro.db)
 const os = require('os'), path = require('path'), fs = require('fs');
 const { DatabaseSync } = require('node:sqlite');
@@ -53,4 +53,14 @@ for (const name of Object.keys(handlers)) {
   run(name, { Cmd: String(cs[cs.length - 1]), Uid: '424242', Session: 'x', ServerID: '1' });
 }
 db.close(); try { fs.unlinkSync(tmp); } catch {}
+// every handler x Cmd called FIRST on a brand-new save: finds screens that read a table only another screen creates (a new server)
+for (const name of Object.keys(handlers)) for (const c of new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, ...(cmds[name] || [])])) {
+  const fresh = new DatabaseSync(':memory:');
+  require('../../schema')(fresh);
+  handlers.rl_w_reg2({ db: fresh, params: { ...base, Nick: 'Fresh', Card: 1, Ninja: 55, Country: 1 } });
+  calls++;
+  try { handlers[name]({ db: fresh, params: { ...base, Cmd: String(c), ToUid: '78', Id: '1' }, host: 'localhost:18080', method: 'POST', body: '' }); }
+  catch (e) { const k = name + ' fresh ' + e.message.slice(0, 60); if (!seen.has(k)) { seen.add(k); bad++; console.log('FRESH  ', name, 'Cmd', c, '->', e.message.split('\n')[0]); } }
+  fresh.close();
+}
 console.log(bad ? `${bad} problems in ${calls} calls` : `no crashes in ${calls} calls`);

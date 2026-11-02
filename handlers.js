@@ -56,7 +56,16 @@ const serverXml = (s, tag) =>
 // STRICT_SESSIONS=1 (public server): only rl_w_login2 may change an account's session; every other request
 // must carry the session of the latest login, so a stale or copied session is refused.
 const playerOf = (db, p) => { const acc = accountBySession(db, p); return acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1)); };
+// Tables some side screens read before their feature's main screen made them (arena ranking, guild ranking, war result, border war
+// player / enemy / award): made once per save on the first request, so a brand-new server never answers those with a crash.
+const savesReady = new WeakSet();
+function saveReady(db) {
+  if (savesReady.has(db)) return;
+  savesReady.add(db);
+  game.arenaEnsure(db); require('./guild').ensure(db); require('./war').ensure(db); require('./border').ensure(db);
+}
 function accountBySession(db, p, isLogin = false) {
+  saveReady(db);
   const uid = Number(p.Uin || p.Uid);
   if (!Number.isSafeInteger(uid) || uid <= 0) return null; // only whole positive ids ("1.5" or "-1" crashed the account insert)
   let acc = db.prepare('SELECT * FROM accounts WHERE uid=?').get(uid);
