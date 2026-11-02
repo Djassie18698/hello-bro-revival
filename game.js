@@ -820,6 +820,18 @@ function propAdd(db, uid, sid, id, n) {
   propEnsure(db);
   db.prepare('INSERT INTO props(uid,server_id,prop_id,count) VALUES(?,?,?,?) ON CONFLICT(uid,server_id,prop_id) DO UPDATE SET count=MAX(0,count+excluded.count)').run(uid, sid, id, n);
   if (id === 9996 && n > 0) bumpTask(db, uid, sid, 19, n); // daily task: get 1000 arena reputation
+  if (id === 9994 && n > 0) propAdd(db, uid, sid, WA_TOTAL, n); // W.A. ever earned (the title does not drop when W.A. is spent)
+}
+// W.A. title ("Junior Genin" ... "Supreme Gaiden"): ORIGINAL table playemedal: [9] W.A. needed, [3]-[8] flat attack / defense / chakra added to
+// the team (the client's CPlayerDataMgr::firefly_GetPlayerAttack adds the same). Login sends it as <meritlevel> (was always 0 before
+// 2 Nov 2026, so no title and no bonus). The total counts every W.A. ever earned; older players start from their current W.A. (ours).
+const WA_TOTAL = 9993;
+function meritLevel(db, uid, sid) {
+  const have = propCounts(db, uid, sid);
+  const total = have[WA_TOTAL] || have[9994] || 0;
+  let lv = 0;
+  for (const r of table('playemedal').rows) if (total >= r[9]) lv = r[0];
+  return lv;
 }
 // Buy: kind 'good' (consumeinfo) or 'pack' (giftinfo, opened immediately for coins/gold).
 // Gold prices the original shop showed that differ from consumeinfo (Facebook photos 0080, 0082, 1011, 1757, 2964): Reincarnation Pill 120
@@ -1257,9 +1269,11 @@ function teamStats(db, uid, sid) {
   tot = addStats(tot, bonus);
   const gb = gateBonus(gateLevel(db, uid, sid));
   if (gb.flat) { const g = {}; KEYS.forEach((k) => { g[k] = gb.flat + Math.round((tot[k] || 0) * gb.pct); }); tot = addStats(tot, g); }
+  const medal = table('playemedal').rows.find((r) => r[0] === meritLevel(db, uid, sid));
+  if (medal) tot = addStats(tot, { al: medal[3], ah: medal[4], dl: medal[5], dh: medal[6], cl: medal[7], ch: medal[8] });
   const pb = require('./pet').teamBonus(db, uid, sid); // master + helper pets (required here: pet.js requires this file)
   tot = addStats(tot, { al: pb.attack, ah: pb.attack, dl: pb.defense, dh: pb.defense, cl: pb.chakala, ch: pb.chakala });
-  // Sets, Eight Gates and pets are team-wide: in fights each ninja gets its share (in proportion to its own stats), so the fight
+  // Sets, Eight Gates, the W.A. title and pets are team-wide: in fights each ninja gets its share (in proportion to its own stats), so the fight
   // numbers add up to the team total shown on the Team screen.
   const sum = slots.reduce((t, s) => addStats(t, s), {});
   const fight = slots.map((s) => { const o = { ...s }; KEYS.forEach((k) => { o[k] = sum[k] ? Math.round((s[k] || 0) * (tot[k] || 0) / sum[k]) : s[k]; }); return o; });
@@ -1722,4 +1736,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

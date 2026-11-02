@@ -937,3 +937,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   higher: 1-10 40 %, 11-20 50 %, 21-30 60 %, 31-50 70 %, 51-70 80 %, 71-90 90 %, 91+ 100 % ("Shall"); lower: 1-10 50 %, 11-20 40 %, 21-30
   20 %, 31-40 15 %, 41-50 5 %, 51-80 1 %, 81+ 0 % ("No"). seals.plunder now rolls that (after a won fight) instead of a flat 70 %.
   data/plunderinfo.json re-exported (mbs.py now reads 'i' = signed int; the old export had NaN).
+- W.A. titles were missing: login sent <meritlevel>0, so nobody had a title ("NinjaLv.") or its bonus. ORIGINAL table playemedal: Junior
+  Genin at 500 W.A. (+25 attack/defense/chakra) ... Supreme Gaiden at 3 000 000 (+2550); the client adds the same flat bonus to the team
+  attack (CPlayerDataMgr::firefly_GetPlayerAttack / CActiveTeamMgr::GetAttack). game.meritLevel counts every W.A. ever earned (new prop 9993,
+  starts at the current W.A. for old players) so spending W.A. in the shop does not drop the title; teamStats adds the bonus. Checked in
+  game: 600 W.A. -> "NinjaLv.: Junior Genin", attack 3410 -> 3435. The owner's main account (4010 W.A.) becomes Elite Genin (+150).

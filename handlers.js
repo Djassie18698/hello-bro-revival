@@ -309,7 +309,7 @@ module.exports = {
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: game.spState(db, pl).sp,
       level: pl.level, country: pl.country, maxteammember: game.maxTeam(db, pl), activeTeamId: 0,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
-      caneat: 0, meritlevel: 0, meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
+      caneat: 0, meritlevel: game.meritLevel(db, acc.uid, pl.server_id), meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
       score: pl.exp || 0, viplevel: // <score> is the client's EXP field (CPlayerDataMgr +0xd4); 0 here reset the exp bar on every main page visit
         vip.level(db, acc.uid, pl.server_id), soul: game.propCounts(db, acc.uid, pl.server_id)[9999] || 0, totalm: 0 };
     // Cmd 1302 = login (CLoadInitInfoScene: the client builds its card bag from this). Cmd 1301 = every return to Home / level-up / store:
