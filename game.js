@@ -105,8 +105,10 @@ function cardXml(c) {
 function slotXml(seq, slot, eq = {}, st = {}) {
   const f = { seq: slot + 1, ninjaid: seq, weaponid: eq[1] || 0, armorid: eq[2] || 0, decoratorid: eq[3] || 0, markid: eq[4] || 0,
     ninjintsu1seq: eq[5] || 0, ninjintsu2seq: eq[6] || 0, ninjintsu3seq: eq[7] || 0, ninjintsu4seq: eq[8] || 0,
-    attacklow: st.al || 10, attackhigh: st.ah || 20, defenselow: st.dl || 5, defensehigh: st.dh || 10, chakralow: st.cl || 10, chakrahigh: st.ch || 20, skillsuit: 0 };
+    attacklow: st.al || 10, attackhigh: st.ah || 20, defenselow: st.dl || 5, defensehigh: st.dh || 10, chakralow: st.cl || 10, chakrahigh: st.ch || 20 };
   return '<ninja>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') +
+    // gear / ninjutsu sets on this ninja (CTeamCard reads <skillsuit><item id num/>): the team card shows the set's icon
+    `<skillsuit>${(st.sets || []).map((x) => `<item id="${x.id}" num="${x.num}"/>`).join('')}</skillsuit>` +
     // the card detail screen paints a chain red when its id is in <combinlist> (CNinjaDetailView::SetCombin); readycombinlist = a partner is owned but not in the team
     `<combinlist>${(st.active || []).map((id) => `<combin><combinid>${id}</combinid></combin>`).join('')}</combinlist>` +
     `<readycombinlist>${(st.ready || []).map((id) => `<combin><combinid>${id}</combinid></combin>`).join('')}</readycombinlist></ninja>`;
@@ -1212,18 +1214,50 @@ const fits = (part, id) => { const c = cardWords(id); return part.every((w) => c
 const knownPart = new Map(); // part text -> does any card have that name
 const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) knownPart.set(k, allCards().some((id) => fits(part, id))); return knownPart.get(k); };
 
+// Gear and ninjutsu sets, ORIGINAL table skill_suit_info (the game's "Equip 2 / 3 / 4 pieces" set screen, EquipSuitSubView): type 2 = gear
+// (weapon, armour, trinket, seal ids in [4]-[7]), type 1 = ninjutsu (4 ninjutsu ids). [8]-[25] = attack, defense, chakra, each for 2 / 3 / 4
+// pieces as (flat, share) pairs; [26]-[28] = "Chance of skill +%" for 2 / 3 / 4 pieces (the set screen shows exactly these). Gear sets add
+// their stats to the ninja. Ninjutsu sets: the game adds their values only when a ninjutsu fires in battle; fights here use expected values,
+// so a ninjutsu set adds its skill chance the way an equipped ninjutsu does (chance x 20 % attack, ours). Not applied before 2 Nov 2026.
+function skillSets(equipped) {
+  const out = [];
+  for (const row of table('skill_suit_info').rows) {
+    const want = row.slice(4, 8), kinds = row[3] === 1 ? [6] : [2, 3, 4, 5];
+    const have = new Set(equipped.filter((e) => kinds.includes(e.type)).map((e) => e.ninja_id));
+    const num = want.filter((id) => have.has(id)).length;
+    if (num >= 2) out.push({ row, num });
+  }
+  return out;
+}
+function setBonus(st, sets) {
+  const o = { ...st };
+  for (const { row, num } of sets) {
+    const t = num - 2; // tier 0 / 1 / 2
+    const part = (stat) => [Number(row[8 + stat * 6 + t * 2]) || 0, Number(row[9 + stat * 6 + t * 2]) || 0]; // [flat, share]
+    if (row[3] === 2) [['al', 'ah', 0], ['dl', 'dh', 1], ['cl', 'ch', 2]].forEach(([lo, hi, stat]) => {
+      const [flat, share] = part(stat);
+      o[lo] = Math.round((o[lo] || 0) * (1 + share) + flat); o[hi] = Math.round((o[hi] || 0) * (1 + share) + flat);
+    });
+    const chance = (Number(row[26 + t]) || 0) * 0.2;
+    if (chance) { o.al = Math.round(o.al * (1 + chance)); o.ah = Math.round(o.ah * (1 + chance)); }
+  }
+  return o;
+}
 function teamStats(db, uid, sid) {
   ensure(db);
   const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
   const eqRows = db.prepare('SELECT e.slot, e.kind, c.* FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?').all(uid, sid);
   const slots = team.map((c, i) => {
     let st = ninjaStats(c);
-    for (const e of eqRows.filter((x) => x.slot === i + 1)) {
+    const mine = eqRows.filter((x) => x.slot === i + 1);
+    for (const e of mine) {
       if (e.type === 5) { st = sealBonus(st, e.ninja_id); continue; } // tailed-beast seal: percentage bonus
       if (e.type === 6) { st = ninjutsuBonus(st, e.ninja_id); continue; } // ninjutsu: chance of an extra hit
       st = addStats(st, equipStats(e));
     }
-    return { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st };
+    const sets = skillSets(mine);
+    st = setBonus(st, sets);
+    return { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st, sets: sets.map((x) => ({ id: x.row[0], num: x.num })) };
   });
   // Chains (ninjamatch.json; a card's "Chains" list on its detail screen): cols 3 ninja it belongs to, 5 type, 6-13 partner ninja ids, 14 equipment id,
   // 15 ninjutsu id, 16-18 attack/defence/chakra ratio. Type 1 = the card's own stats grow when ANY partner is in the team, or the equipment / ninjutsu is worn

@@ -957,3 +957,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   Refresh Order, 176 five-star fragments; equal chances, ours). Checked in game: chapter 1 shows 7 rounds + Zabuza, boss win +60 EXP / +39
   silver + fragment, chapter 1 turns red and chapter 2 opens. Accounts that played chapters 2-3 under the old rules keep that progress
   (it shows once chapter 1 is passed).
+- Gear and ninjutsu SETS (skill_suit_info, 13 sets: Six Paths, Technique ... Thunder, Legendary, Hōzuki) were never applied. The game's own
+  set panel (EquipSuitSubView: per 2 / 3 / 4 pieces "Attack+ flat / %, Defense+, Chakra+, Chance of skill+ %") confirmed the columns:
+  [8]-[25] = attack, defense, chakra, each 3 tiers of (flat, share); [26]-[28] = skill chance per tier. game.skillSets/setBonus: gear sets
+  (weapon, armour, trinket, seal on one ninja) add their stats; ninjutsu sets only add their skill chance (expected value, ours; the game
+  counts their stats when a ninjutsu fires). Team slots now send <skillsuit><item id num/></skillsuit>. Checked in game: the Thunder set
+  pieces show the game's "Suit" ribbon and the set panel; team card attack 856-1088.
