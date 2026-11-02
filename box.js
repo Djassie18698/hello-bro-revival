@@ -4,16 +4,17 @@
 // <propuse left golddouble silverdouble copperdouble cashcost>[<award>]</propuse>.
 // ORIGINAL: the prize list of each chest is the client's own boxOpenInfoData.lua (shown with the Detail button), keys are items
 // 22-24 and drop from fights ("Bronze Key" victory card, photo 2500); "chances today to open the treasure chest 75/75, VIP1 +5 times"
-// (photos 2442, 3574). (ours): the weights, key prices in gold, keys from story fights.
+// (photos 2442, 3574); gold price without a key 100 / 50 / 20 and the chance of a double 5 / 10 / 10 % (the game's normalconfig 121-126).
+// (ours): the other weights, keys from story fights.
 const game = require('./game');
 
 // [prize, weight]; prize = { drop } (dropinfo id), { drop, n } (that drop n times), { gold }, { coin }, { prop, n } or 'double'
 const CHESTS = [
-  { prop: 22, gold: 50, items: [[{ gold: 1000 }, 1], [{ drop: 11 }, 2], [{ drop: 10 }, 3], [{ drop: 178 }, 8], [{ drop: 179 }, 8], [{ drop: 180 }, 8], [{ drop: 150 }, 8],
-    [{ coin: 80000 }, 5], [{ coin: 20000 }, 14], [{ drop: 174, n: 5 }, 10], [{ prop: 4, n: 6 }, 12], [{ prop: 6, n: 10 }, 12], ['double', 7]] },
-  { prop: 23, gold: 20, items: [[{ gold: 500 }, 1], [{ drop: 10 }, 2], [{ drop: 17 }, 4], [{ prop: 22, n: 1 }, 6], [{ drop: 181 }, 8], [{ drop: 182 }, 8], [{ drop: 183 }, 8], [{ drop: 20 }, 8],
-    [{ coin: 30000 }, 8], [{ coin: 15000 }, 14], [{ drop: 174, n: 3 }, 10], [{ prop: 4, n: 3 }, 12], [{ prop: 6, n: 5 }, 12], ['double', 6]] },
-  { prop: 24, gold: 5, items: [[{ gold: 100 }, 2], [{ prop: 23, n: 1 }, 10], [{ coin: 5000 }, 30], [{ prop: 3, n: 3 }, 25], [{ prop: 5, n: 3 }, 25], ['double', 8]] },
+  { prop: 22, gold: 100, items: [[{ gold: 1000 }, 1], [{ drop: 11 }, 2], [{ drop: 10 }, 3], [{ drop: 178 }, 8], [{ drop: 179 }, 8], [{ drop: 180 }, 8], [{ drop: 150 }, 8],
+    [{ coin: 80000 }, 5], [{ coin: 20000 }, 14], [{ drop: 174, n: 5 }, 10], [{ prop: 4, n: 6 }, 12], [{ prop: 6, n: 10 }, 12], ['double', 5]] },
+  { prop: 23, gold: 50, items: [[{ gold: 500 }, 1], [{ drop: 10 }, 2], [{ drop: 17 }, 4], [{ prop: 22, n: 1 }, 6], [{ drop: 181 }, 8], [{ drop: 182 }, 8], [{ drop: 183 }, 8], [{ drop: 20 }, 8],
+    [{ coin: 30000 }, 8], [{ coin: 15000 }, 14], [{ drop: 174, n: 3 }, 10], [{ prop: 4, n: 3 }, 12], [{ prop: 6, n: 5 }, 12], ['double', 11]] },
+  { prop: 24, gold: 20, items: [[{ gold: 100 }, 2], [{ prop: 23, n: 1 }, 10], [{ coin: 5000 }, 30], [{ prop: 3, n: 3 }, 25], [{ prop: 5, n: 3 }, 25], ['double', 10]] },
 ];
 
 function ensure(db) {

@@ -878,3 +878,17 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   50 -> a card via <propuse ... ninjaid/ninjabagid/ninjaattr | equipid/equipbagid | skillid/skillbagid> (CItemView reads attributes);
   festival items hidden from the Tool tab off-season. All checked in game. Not done: plunder success text is the client's own (by level; no
   numbers known), Ninja Treasure top prizes (photo shows 16 portraits only), 300-gold recruit gold prizes (client can only show a card).
+
+## The game's own settings table, all 303 rows compared (2 Nov 2026, night; owner: "Yes, do it")
+Applied (normalconfig row numbers): treasure chests without a key 100 / 50 / 20 gold, double chance 5 / 10 / 10 % (121-126); world boss
+dice 25 gold (111), kill +200 reputation (108); war: 10 revives for 30 gold (15/17); Save time bonus roll x1 / 1.2 / 1.4 / 1.6 / 1.8 at
+50/20/15/10/5 % (231-235, the client plays its own crit animation from <ratio>); spar: a loss costs at most 1000 silver (89), the same
+player at most 5 times a day (44); energy refills to max every day at 22:00 (87); money tree 5 shakes, 1 free, 10 gold, 2000 x 1-6 (50-55);
+tower: instant finish 3 gold a round and VIP3 (290/291), 2 resets (296); Millionaire throw 100 gold (135); slot spin 100 gold / 10 points
+(300/301, payouts scaled 10x so the return stays the same). NEW soultrain.js = Eight Gates "Train soul" (rl_w_eight_gate Cmd 3-6; was
+answered with the gate screen): normal 10 000 silver -> 50 souls x3/day, advanced 35 gold -> 70 souls (vipinfo[27] a day), doubling
+5/10/20/30/50 gold at 100/80/60/10/5 % or advanced 7/25/75/150/250 always (2 free a day) (263-283). Needs level 80 (functionconfig 21).
+Checked in game: info, train, both doublings (x4), collect (+200). Advanced "100% up to 3x" (layout text) is played as x2 (ours).
+Kept because photos of the live game show other numbers: cross-server ticket 500 (table 400), secret shop refresh 20 gold / 75+5xVIP
+(table 15 / 150), arena reward time. Already equal: element change 2000, lottery, scratch, growth fund, border war, gates, first top-up x3.
+Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge 30 gold (180), stronger-country help (56).

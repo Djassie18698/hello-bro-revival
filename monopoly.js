@@ -1,13 +1,13 @@
 // Millionaire / Monopoly (activity 17 on the home screen, ui_monopolyLayer.lua). A 20-cell board: each throw (gold)
 // moves 1-3 cells and wins that cell's prize; 10 throws at once is a button too. Steps walked this week count for the
 // step ranking (rl_r_monopoly_rank) with progress rewards (claim any time once reached) and rank rewards (claim for last
-// week's rank). The event runs weekly, Monday to Sunday (UTC). Board, prices and rewards are ours: the originals were
-// server-side and are lost.
+// week's rank). The event runs weekly, Monday to Sunday (UTC). Board and rewards are ours (the originals were server-side and
+// are lost); the throw price is the game's own.
 const game = require('./game');
 
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const COST = 20, LIMIT = 50; // gold per throw, steps needed to appear in the rank rewards
+const COST = 100, LIMIT = 50; // gold per throw (ORIGINAL: the game's normalconfig 135, Millionaire dice 100 gold); steps needed for the rank rewards (ours)
 // [dropid, icon] for the 20 cells, clockwise from the start
 const BOARD = [[506, 'props_036'], [33, 'props_017'], [270, 'props_034'], [98, 'props_037'], [1397, 'props_170'],
   [42, 'props_036'], [1784, 'props_320'], [241, 'props_035'], [36, 'props_017'], [1306, 'props_169'],

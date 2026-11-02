@@ -157,7 +157,8 @@ function stageAward(db, pl, row, coin, exp) {
   return out;
 }
 
-const MT = { perday: 50, low: 1, top: 5, cost: 20, free: 5, start: 5000 };
+// ORIGINAL (the game's normalconfig 50-55): 5 shakes a day, the first free, then 10 gold; silver = 2000 x a random 1-6
+const MT = { perday: 5, low: 1, top: 6, cost: 10, free: 1, start: 2000 };
 function mtree(db, p, shake) {
   const acc = accountBySession(db, p);
   const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
@@ -192,7 +193,9 @@ const topupGold = (db, uid, sid, t) => (hasPaid(db, uid, sid) ? t.gold + t.give 
 
 const MIGRATE_PRICE = 300; // change country, gold (photo 3270)
 // Tower sweep counter: one progress row per day (stage = uses + 1; setStage keeps the max).
-const SWEEP_DAILY = 5;
+const SWEEP_DAILY = 5; // (ours)
+// ORIGINAL (normalconfig 290/291/296): finishing a tower round at once costs 3 gold a round and needs VIP3; 2 tower resets a day
+const SWEEP_GOLD = 3, SWEEP_VIP = 3, TOWER_RESETS = 2;
 const sweepKey = () => 100000 + Math.floor(Date.now() / 86400000);
 const sweepsUsed = (db, uid, sid) => game.getStage(db, uid, sid, sweepKey()) - 1;
 
@@ -359,6 +362,7 @@ module.exports = {
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     const bench = game.benchFight(db, pl, Number(p.ToUid)); // benchmark rival: free, no reward
     if (bench) return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + bench.xml + game.awardFull({}) + '</root>';
+    if (game.sparTooOften(db, pl, Number(p.ToUid))) return '<root code="5"><message>you can spar the same player only 5 times a day</message></root>';
     if (!game.spUse(db, pl)) return '<root code="5"><message>not enough grudge</message></root>';
     const r = game.sparFight(db, pl, Number(p.ToUid));
     game.addExp(db, pl, r.exp);
@@ -671,6 +675,12 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const cmd = Number(p.Cmd);
+    if (cmd >= 3 && cmd <= 6) { // soul training (soultrain.js)
+      const st = require('./soultrain');
+      const r = cmd === 3 ? { xml: st.infoXml(db, pl) } : cmd === 4 ? st.train(db, pl, Number(p.traintype)) : cmd === 5 ? st.double(db, pl, Number(p.multitype)) : { xml: st.collectXml(db, pl) };
+      return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    }
     if (Number(p.Cmd) === 2) {
       const r = game.gateOpen(db, pl);
       if (r.error) return `<root code="${r.code || 5}"><message>${r.error}</message></root>`;
@@ -974,10 +984,13 @@ module.exports = {
       if (have < 1) return '<root code="5"><message>no ramen</message></root>';
       const pay = used >= total ? GOLD : 0;
       if (pay && pl.gold < pay) return '<root code="5"><message>not enough gold</message></root>';
-      game.propAdd(db, pl.uid, sid, RAMEN, -1); game.addExp(db, pl, exp);
-      db.prepare('UPDATE players SET coin=coin+?, gold=gold-? WHERE uid=? AND server_id=?').run(coin, pay, pl.uid, sid);
+      // ORIGINAL bonus roll (normalconfig 231-235): x1 50 %, x1.2 20 %, x1.4 15 %, x1.6 10 %, x1.8 5 % of the exp and silver
+      const roll = Math.random() * 1000, ratio = roll < 500 ? 1 : roll < 700 ? 1.2 : roll < 850 ? 1.4 : roll < 950 ? 1.6 : 1.8;
+      const gotExp = Math.round(exp * ratio), gotCoin = Math.round(coin * ratio);
+      game.propAdd(db, pl.uid, sid, RAMEN, -1); game.addExp(db, pl, gotExp);
+      db.prepare('UPDATE players SET coin=coin+?, gold=gold-? WHERE uid=? AND server_id=?').run(gotCoin, pay, pl.uid, sid);
       db.prepare('INSERT OR REPLACE INTO savetime VALUES (?,?,?,?)').run(pl.uid, sid, today, used + 1);
-      return `<root code="0"><basic><ratio>1</ratio><exp>${exp}</exp><coin>${coin}</coin><remain>${have - 1}</remain></basic></root>`;
+      return `<root code="0"><basic><ratio>${ratio}</ratio><exp>${gotExp}</exp><coin>${gotCoin}</coin><remain>${have - 1}</remain></basic></root>`;
     }
     return `<root code="0"><basic><chapter>${chap}</chapter><round>${round}</round><prop_num>${have}</prop_num><total_trans>${total}</total_trans><used_trans>${Math.min(used, total)}</used_trans><cost_cash>${GOLD}</cost_cash><vip_add>${PER_VIP}</vip_add><exp>${exp}</exp><coin>${coin}</coin><vip_limit>${VIP_MIN}</vip_limit><level_limit>${LEVEL_MIN}</level_limit></basic></root>`;
   },
@@ -999,7 +1012,7 @@ module.exports = {
     return '<root code="0">' + game.awardFull({ cash: 500 }) + '</root>';
   },
 
-  // Money tree: shake for silver. 5 free shakes a day, then 20 gold each; reward = start silver * random multiple (low..top).
+  // Money tree: shake for silver (MT above); reward = start silver * random multiple (low..top).
   rl_r_mtree: ({ db, params: p }) => mtree(db, p, false),
   rl_w_mtree: ({ db, params: p }) => mtree(db, p, true),
 
@@ -1255,7 +1268,7 @@ module.exports = {
       return `<root code="0"><dup_count><total>${SWEEP_DAILY}</total><remain>${Math.max(0, SWEEP_DAILY - used)}</remain><vip>0</vip></dup_count><dup_list>${list}</dup_list></root>`;
     }
     const chaps = [1, 2, 3].map((c) => `<dup><chapid>${c}</chapid><process>${acc ? game.getStage(db, acc.uid, sid, 1000 + c) : 1}</process></dup>`).join('');
-    return `<root code="0"><duplist maxchap="3" current_round="1" remain_reset_count="3" status="0">${chaps}</duplist></root>`;
+    return `<root code="0"><duplist maxchap="3" current_round="1" remain_reset_count="${TOWER_RESETS}" status="0">${chaps}</duplist></root>`;
   },
   rl_w_dup: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
@@ -1267,6 +1280,9 @@ module.exports = {
       const ids = String(p.DupId || '').split('|').map(Number).filter((n) => n >= 1 && n <= 18);
       const used = sweepsUsed(db, pl.uid, sid);
       if (!ids.length || used + ids.length > SWEEP_DAILY) return '<root code="5"><message>no sweeps left</message></root>';
+      if (vip.level(db, pl.uid, sid) < SWEEP_VIP) return `<root code="5"><message>finishing rounds at once needs VIP${SWEEP_VIP}</message></root>`;
+      if (pl.gold < SWEEP_GOLD * ids.length) return '<root code="5"><message>not enough gold</message></root>';
+      db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(SWEEP_GOLD * ids.length, pl.uid, sid);
       let list = '';
       for (const id of ids) {
         const c = Math.ceil(id / 6), r = ((id - 1) % 6) + 1;

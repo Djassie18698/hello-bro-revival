@@ -1,6 +1,7 @@
 // Slot machine ("Super draw"): spend gold per spin, win gold on matching reels, earn points to exchange for packs.
 const game = require('./game');
-const COST = 10, BETS = [1, 2, 5, 10];
+// a spin costs 100 gold and gives 10 points (ORIGINAL: the game's normalconfig 300/301); the bet multiples are (ours)
+const COST = 100, BETS = [1, 2, 5, 10];
 const PACKS = [
   { id: 1, score: 100, coin: 20000 }, { id: 2, score: 300, coin: 80000 }, { id: 3, score: 1000, cash: 500 },
 ];
@@ -25,9 +26,9 @@ function spin(db, pl) {
   const m = st(db, pl), mult = BETS[m.bet], cost = COST * mult;
   if (pl.gold < cost) return { error: 'not enough gold' };
   const pos = [0, 0, 0].map(() => 1 + Math.floor(Math.random() * 5));
-  const win = pos[0] === pos[1] && pos[1] === pos[2] ? 100 * pos[0] * 5 * mult : (pos[0] === pos[1] || pos[1] === pos[2] ? 10 * mult : 0);
+  const win = pos[0] === pos[1] && pos[1] === pos[2] ? 1000 * pos[0] * 5 * mult : (pos[0] === pos[1] || pos[1] === pos[2] ? 100 * mult : 0); // (ours), 10x since the spin went 10 -> 100 gold
   db.prepare('UPDATE players SET gold=gold-?+? WHERE uid=? AND server_id=?').run(cost, win, pl.uid, pl.server_id);
-  db.prepare('UPDATE slot SET score=score+?, last=? WHERE uid=? AND server_id=?').run(mult, win, pl.uid, pl.server_id);
+  db.prepare('UPDATE slot SET score=score+?, last=? WHERE uid=? AND server_id=?').run(10 * mult, win, pl.uid, pl.server_id);
   const m2 = st(db, pl);
   return { xml: basic(m2).replace(/<remain>.*<\/remain>/, `<remain>86400</remain>${el('cash', win)}`) + `<slot>${el('pos1', pos[0])}${el('pos2', pos[1])}${el('pos3', pos[2])}</slot>` + game.awardFull({ cash: win }) };
 }

@@ -21,8 +21,8 @@ const BOSSES = [
   { icon: 'npc17_4', nameicon: 'boss_wt_05' }, // Madara
 ];
 // ORIGINAL (the game's own normalconfig: row 192 10 hits, then row 207 a 75 s wait, row 193 15 gold clears it; player guide photo 3925
-// "10 hits ... wait about 1 min 20 s ... 10 more"). DICE_COST is (ours).
-const FIGHTS_PER_ROUND = 10, CD = 75, DICE_COST = 10, CD_COST = 15;
+// "10 hits ... wait about 1 min 20 s ... 10 more"); the dice costs 25 gold (row 111).
+const FIGHTS_PER_ROUND = 10, CD = 75, DICE_COST = 25, CD_COST = 15;
 const SHOP = [ // reputation shop: [id, name, icon, cost, dropid]
   [1, 'Reincarnation Pill x5', 'props_049', 300, 107], [2, '500 Gold', 'props_073', 800, 371], [3, 'Five-Star Shinobi Card', 'props_015', 3000, 11],
 ];
@@ -68,7 +68,7 @@ function bossWindow() {
 }
 function previewXml(db, pl, b, m) {
   const w = bossWindow(); // closed: inact 0 + seconds until 14:00 (the screen counts down, then reloads); open: seconds until 14:30
-  return '<preview>' + el('resttime', w.rest) + el('inact', w.open && b.hp > 0 ? 1 : 0) + el('lastattackman', esc(b.killer)) + el('lastaward', 500) +
+  return '<preview>' + el('resttime', w.rest) + el('inact', w.open && b.hp > 0 ? 1 : 0) + el('lastattackman', esc(b.killer)) + el('lastaward', 200) +
     el('commwinaward', 20) + el('cost', DICE_COST) + el('commfailaward', 20) + el('level', b.level) + el('cdcost', CD_COST) + el('cdalltime', CD) +
     el('cdallnum', FIGHTS_PER_ROUND) + el('cashaddcost', 15) + el('cashaddonemin', 5) + el('cashaddonemax', 10) + el('coinaddcost', 5000) +
     el('coinaddonemin', 1) + el('coinaddonemax', 3) + el('index', 1) + el('commawardval', m.score) + el('rankawardval', rankAward(rankOf(db, pl))) +
@@ -95,8 +95,8 @@ function fight(db, pl) {
   const dmg = Math.min(b.hp, Math.round(base * (20 + Math.random() * 10) * (m.combo / 100)));
   const hp = b.hp - dmg, killed = hp <= 0;
   // reputation per hit: ORIGINAL normalconfig row 258 = damage / 30 000 (owner chose the original, 2 Nov 2026; was damage / 5000, at least 5);
-  // at least 1 a hit and the 500 kill bonus are (ours)
-  const score = Math.max(1, Math.floor(dmg / 30000)) + (killed ? 500 : 0);
+  // the killing blow adds 200 (normalconfig 108 "Akatsuki kill reward"); at least 1 a hit is (ours)
+  const score = Math.max(1, Math.floor(dmg / 30000)) + (killed ? 200 : 0);
   db.prepare('UPDATE boss SET hp=?, killer=CASE WHEN ? THEN ? ELSE killer END WHERE server_id=? AND day=?').run(hp, killed ? 1 : 0, pl.nick, pl.server_id, day());
   const fights = cdLeft(m) === 0 && m.fights >= FIGHTS_PER_ROUND ? 1 : m.fights + 1;
   db.prepare('UPDATE boss_hits SET dmg=dmg+?, score=score+?, fights=?, last=?, combo=100 WHERE server_id=? AND day=? AND uid=?')

@@ -550,7 +550,16 @@ function battleXml(db, pl, chap, stage, opt = {}) {
 }
 
 // Spar fight against rival ToUid (a real player or a bot). Strength = level + stars of the team; a little luck.
+// Spar the same player at most 5 times a day (normalconfig 44)
+const SPAR_SAME = 5;
+function sparCount(db, pl, toUid) {
+  db.exec('CREATE TABLE IF NOT EXISTS spar_pairs (uid INTEGER, server_id INTEGER, day TEXT, to_uid INTEGER, n INTEGER, PRIMARY KEY(uid, server_id, day, to_uid))');
+  return (db.prepare('SELECT n FROM spar_pairs WHERE uid=? AND server_id=? AND day=? AND to_uid=?').get(pl.uid, pl.server_id, today(), toUid) || { n: 0 }).n;
+}
+function sparTooOften(db, pl, toUid) { return sparCount(db, pl, toUid) >= SPAR_SAME; }
 function sparFight(db, pl, toUid) {
+  sparCount(db, pl, toUid);
+  db.prepare('INSERT INTO spar_pairs VALUES(?,?,?,?,1) ON CONFLICT(uid, server_id, day, to_uid) DO UPDATE SET n=n+1').run(pl.uid, pl.server_id, today(), toUid);
   const rv = rivals(db, pl, 12).find((r) => r.id === toUid) || { id: toUid, level: pl.level, nick: 'Rival', ninja: 5 };
   // bot strength in the same units as a ninja's attack (level 1 shinobi ~ 210): about even at equal level (ours)
   const botAtk = (lv, star) => 60 + lv * 30 + star * 30;
@@ -571,7 +580,8 @@ function sparFight(db, pl, toUid) {
   const rows = table('duelinfo').rows.filter((r) => r[0] === r[2]);
   const d = rows.find((r) => r[0] === rv.level) || rows[rows.length - 1];
   const theirCoin = o ? (o.coin || 0) : 100 + rv.level * 20;
-  const coin = win ? Math.round(theirCoin * d[3]) : -Math.round((pl.coin || 0) * d[4]), exp = win ? d[5] : d[6];
+  // a loss costs at most 1000 silver (normalconfig 89)
+  const coin = win ? Math.round(theirCoin * d[3]) : -Math.min(1000, Math.round((pl.coin || 0) * d[4])), exp = win ? d[5] : d[6];
   const merit = win ? d[7] : d[8];
   propAdd(db, pl.uid, pl.server_id, 9994, merit); // W.A. (war achievements)
   return { win, xml, coin, exp, merit };
@@ -1454,6 +1464,9 @@ function energyTick(db, pl) {
   const max = row[4] || 50, now = Math.floor(Date.now() / 1000);
   const r = db.prepare('SELECT energy, energy_t FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || { energy: max, energy_t: 0 };
   let e = r.energy, t = r.energy_t || now;
+  // ORIGINAL normalconfig 87: every day at 22:00 (server PC time) energy refills to the maximum
+  const d22 = new Date(); d22.setHours(22, 0, 0, 0); let last22 = Math.floor(d22.getTime() / 1000); if (last22 > now) last22 -= 86400;
+  if (e < max && t < last22) { e = max; t = now; }
   if (e < max) { const ticks = Math.floor((now - t) / ENERGY_EVERY); if (ticks > 0) { e = Math.min(max, e + ticks); t = e >= max ? now : t + ticks * ENERGY_EVERY; } } else t = now;
   db.prepare('UPDATE players SET energy=?, energy_t=? WHERE uid=? AND server_id=?').run(e, t, pl.uid, pl.server_id);
   return { energy: e, max, pass: e >= max ? 0 : now - t };
@@ -1685,4 +1698,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

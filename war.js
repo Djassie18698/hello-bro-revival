@@ -71,7 +71,8 @@ function attack(db, pl) {
   // CWarInfoView reads only batter= from <CountryWar>; InitFromXML takes the ROOT, so userinfo/fight/award are root children.
   return { xml: `<CountryWar batter="${win ? 1 : 0}"/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>${fight}${game.awardFull({ coin, exp })}` };
 }
-function revive(db, pl, cost = 20) {
+// buying 10 revives costs 30 gold (normalconfig 15 / 17)
+function revive(db, pl, cost = 30) {
   if (pl.gold < cost) return { error: 'not enough gold' };
   me(db, pl);
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
