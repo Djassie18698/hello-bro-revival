@@ -896,3 +896,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   unlimited free refill. The English v28 stall sign says "Once All Time (0:00~24:00)" and the client sends at any hour, so it is now ONE bowl a
   day at any time (fills energy + grudge). The Chinese rule (normalconfig 46-49 / CRamenView TimeRange constants 12:00-14:00, 18:00-20:00, one
   per window) is behind RAMEN_WINDOWS=1. Checked in game: 88/106 + 2/4 -> 106/106 + 4/4, second bowl refused ("already claimed", 170007).
+- Ramen: owner chose 12:00-14:00 / 18:00-20:00 ("Use 12-14 / 18-20"); now the default, RAMEN_ALLDAY=1 for the English sign's once-a-day rule.
