@@ -963,3 +963,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   (weapon, armour, trinket, seal on one ninja) add their stats; ninjutsu sets only add their skill chance (expected value, ours; the game
   counts their stats when a ninjutsu fires). Team slots now send <skillsuit><item id num/></skillsuit>. Checked in game: the Thunder set
   pieces show the game's "Suit" ribbon and the set panel; team card attack 856-1088.
+- God of Wealth (财神, Event menu "God of Wealth", activity id 4, CLotteryView) built: caishen.js + switch `caishen`. ORIGINAL table
+  wealthactivity (8 steps: invest [3] gold, get [4]-[5] back: 25 -> 30-40 ... 7500 -> 8000-8500), level 10 (normalconfig 183), 7 days (298).
+  The client reads the step from rl_r_activity <activity type="3"><item actid="3" pos> (was always -1 = finished) and invests with
+  rl_w_activity Cmd 9100 ActType 3 ActID 3 SubID; reply <caishen recash/>, the client adds recash - invest. Checked in game: tile shows,
+  "Investing 25 / gain at least 30 / 8 chances", bet -> recash 32, gold 7123 -> 7130, next step 150 / 175 / 7 chances.

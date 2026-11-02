@@ -529,6 +529,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     if (Number(p.ActType) === 9) { const r = require('./dailyevents').streakClaim(db, pl, Number(p.ActID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : r.code ? `<root code="${r.code}"></root>` : '<root code="0">' + r.xml + '</root>'; }
+    if (Number(p.ActType) === 3) { const r = require('./caishen').invest(db, pl, Number(p.SubID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // God of Wealth
     if (Number(p.ActType) === 6) { const r = require('./totalgift').claim(db, pl, Number(p.SubID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (Number(p.ActType) === 10) { const r = limited.discountClaim(db, pl); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (Number(p.ActType) === 7) {
