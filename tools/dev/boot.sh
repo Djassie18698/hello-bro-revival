@@ -1,5 +1,4 @@
-export MSYS_NO_PATHCONV=1; A="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"; D="${HB_EMU:-$(tr -d "
- " < "$(dirname "$0")/emu.device" 2>/dev/null)}"; [ -n "$D" ] || { echo "no emulator address: put the Claude instance in tools/dev/emu.device (see emu.sh)"; exit 1; }
+export MSYS_NO_PATHCONV=1; A="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"; D="${HB_EMU:-$(tr -d '\r\n ' < "$(dirname "$0")/emu.device" 2>/dev/null)}"; [ -n "$D" ] || { echo "no emulator address: put the Claude instance in tools/dev/emu.device (see emu.sh)"; exit 1; }
 timeout 15 "$A" -s $D shell am force-stop com.hello.bro.yo; timeout 15 "$A" -s $D logcat -c
 timeout 15 "$A" -s $D shell monkey -p com.hello.bro.yo -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 13
 timeout 15 "$A" -s $D shell input tap 540 1270; sleep 15
