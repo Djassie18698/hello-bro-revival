@@ -1016,12 +1016,24 @@ module.exports = {
   rl_r_mtree: ({ db, params: p }) => mtree(db, p, false),
   rl_w_mtree: ({ db, params: p }) => mtree(db, p, true),
 
-  // Ramen shop: eating restores energy to full (client sets energy/action to max itself).
+  // Free ramen (CRamenView, the "Noodle" stall on the home map): ORIGINAL English v28 rule = the stall's own sign "Once All Time (0:00~24:00)",
+  // and the client sends the request at any hour: one bowl a day. (The older Chinese rule, normalconfig 46-49 and the TimeRange constants in
+  // CRamenView::InitUI, was 12:00-14:00 and 18:00-20:00; RAMEN_WINDOWS=1 switches to that.) Eating fills energy and grudge to the maximum
+  // (the client sets both to max itself on code 0). Before 2 Nov 2026 this was unlimited.
   rl_w_ramen: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const rp = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
-    if (rp) { const max = (game.table('playerlevel').rows.find((r) => r[1] === rp.level) || [])[4] || 50; db.prepare('UPDATE players SET energy=MAX(energy,?) WHERE uid=? AND server_id=?').run(max, rp.uid, rp.server_id); }
+    if (!rp) return '<root code="3"><message>session expired</message></root>';
+    const d = new Date(), h = d.getHours();
+    const win = !process.env.RAMEN_WINDOWS ? 1 : h >= 12 && h < 14 ? 1 : h >= 18 && h < 20 ? 2 : 0;
+    if (!win) return '<root code="5"><message>the stall is not open now (12:00-14:00 and 18:00-20:00)</message></root>';
+    db.exec('CREATE TABLE IF NOT EXISTS ramen_eat (uid INTEGER, server_id INTEGER, day TEXT, win INTEGER, PRIMARY KEY(uid, server_id, day, win))');
+    const day = new Date(Date.now() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    if (db.prepare('SELECT 1 FROM ramen_eat WHERE uid=? AND server_id=? AND day=? AND win=?').get(rp.uid, rp.server_id, day, win)) return '<root code="5"><message>you have already claimed it today</message></root>';
+    db.prepare('INSERT INTO ramen_eat VALUES(?,?,?,?)').run(rp.uid, rp.server_id, day, win);
+    const max = (game.table('playerlevel').rows.find((r) => r[1] === rp.level) || [])[4] || 50, sp = game.spState(db, rp);
+    db.prepare('UPDATE players SET energy=MAX(energy,?), sp=?, sp_t=? WHERE uid=? AND server_id=?').run(max, sp.max, Math.floor(Date.now() / 1000), rp.uid, rp.server_id);
     return '<root code="0"></root>';
   },
 

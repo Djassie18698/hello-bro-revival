@@ -2,7 +2,8 @@
 A short guide to the game on the revival servers. Not installed yet? See <#1565697833150058507>. Questions? Ask in <#1565697834571927694>.
 
 ## 1. Energy and grudge
-• **Energy** (red bar) is used for training. 1 point comes back every 3 minutes, and a level-up refills it. Out of energy? Eat ramen.
+• **Energy** (red bar) is used for training. 1 point comes back every 3 minutes, a level-up refills it, and it refills to full every day at 22:00. Out of energy? Eat ramen.
+• **Free ramen:** once a day, tap the **Noodle** stall on Home (scroll right) for full energy and grudge.
 • **Grudge** (crossed swords) is used for Spar. 1 point comes back every 2 hours.
 
 ## 2. Training

@@ -892,3 +892,7 @@ Checked in game: info, train, both doublings (x4), collect (+200). Advanced "100
 Kept because photos of the live game show other numbers: cross-server ticket 500 (table 400), secret shop refresh 20 gold / 75+5xVIP
 (table 15 / 150), arena reward time. Already equal: element change 2000, lottery, scratch, growth fund, border war, gates, first top-up x3.
 Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge 30 gold (180), stronger-country help (56).
+- Free ramen (owner: "Yes, add it" to 12-14 / 18-20): the "Noodle" stall on the home map (CRamenView, rl_w_ramen) was answered with an
+  unlimited free refill. The English v28 stall sign says "Once All Time (0:00~24:00)" and the client sends at any hour, so it is now ONE bowl a
+  day at any time (fills energy + grudge). The Chinese rule (normalconfig 46-49 / CRamenView TimeRange constants 12:00-14:00, 18:00-20:00, one
+  per window) is behind RAMEN_WINDOWS=1. Checked in game: 88/106 + 2/4 -> 106/106 + 4/4, second bowl refused ("already claimed", 170007).
