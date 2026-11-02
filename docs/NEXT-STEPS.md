@@ -1029,3 +1029,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   SetShowRandomProp is never called in v28 (dead code), so it cannot be used. functionconfig (feature unlock levels), countrywarhonor (war
   titles), *bookrank (Ninjabook), packtips, sysnotice: read by the client only. ladderconfig/ladderdesc (arena rank rewards): waiting for
   the owner. iapiteminfo has no prices that match the top-up screen (not used).
+- Training "difficulty" (adventure) leftovers: storyinfo = the training chapter titles (+ 15 EXP / silver columns per difficulty) and
+  CListLevelView shows a "Reset <chapter>?" dialog (ReNewLevel.lua, rl_w_adventure 2609) when a chapter's hardLevel > normalconfig 59 (15).
+  CRunLevelView, which would pay those per-difficulty chapter rewards (rl_w_adventure 2605/2606), has empty stubs for its network reply,
+  round data and reward code in v28: the mode is dead. We send hardLevel 0, so the reset dialog never shows. War progress chest
+  (rl_w_warresultnew 8200) only shows with canrequire 1 (never sent; reward lost): now answers a tip instead of an empty reply.

@@ -442,7 +442,9 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     return pl ? '<root code="0">' + war.msgXml(db, pl, Number(p.Cmd) === 7701) + '</root>' : '<root code="3"><message>session expired</message></root>';
   },
-  rl_w_warresultnew: () => '<root code="0"></root>',
+  // War progress chest (CCountryWarProgressDialog::onChestClick, Cmd 8200 -> <award>): only shown when rl_r_warresultnew says canrequire 1,
+  // which it never does (the reward lived on the dead server); a stray click gets a tip instead of an empty reply (the client reads <award>).
+  rl_w_warresultnew: () => '<root code="5"><message>nothing to claim</message></root>',
   // Country officials (War > Country tab): Cmd 7100 seat list + salary state.
   rl_r_countrynew: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
