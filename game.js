@@ -608,7 +608,7 @@ function sparFight(db, pl, toUid) {
   const theirCoin = o ? (o.coin || 0) : 100 + rv.level * 20;
   // a loss costs at most 1000 silver (normalconfig 89)
   const coin = win ? Math.round(theirCoin * d[3]) : -Math.min(1000, Math.round((pl.coin || 0) * d[4])), exp = win ? d[5] : d[6];
-  const merit = win ? d[7] : d[8];
+  const merit = (win ? d[7] : d[8]) * (buffOn(db, pl, BUFF_WA) ? 2 : 1); // War Achievements Increase Pill running: double
   propAdd(db, pl.uid, pl.server_id, 9994, merit); // W.A. (war achievements)
   return { win, xml, coin, exp, merit, rivalLevel: rv.level };
 }
@@ -857,11 +857,13 @@ function propUse(db, pl, goodsId) {
   const row = table('consumeinfo').rows.find((r) => r[1] === goodsId);
   const have = propCounts(db, pl.uid, pl.server_id)[goodsId] || 0;
   if (!row || have < 1) return { error: 'none left' };
-  if (row[7] === 6) { // generic card fragments (consumeinfo 12-17): ORIGINAL item text "Every 50 fragments can synthesise to a ... Card"
-    const need = Math.round(row[8]) || 50;        // [8] = 50
+  if (row[7] === 6 || row[7] === 9) { // card fragments (type 6) and ninja souls (type 9): ORIGINAL item text "Every 50 (40) ... can synthesise to ..."
+    const need = Math.round(row[8]) || 50;        // [8] = 50 (Sage Naruto souls 40)
     if (have < need) return { error: `not enough fragments (${need} needed)` };
     const star = /Five-Star/.test(row[2]) ? 5 : 4, pick = (a) => a[Math.floor(Math.random() * a.length)]; // exactly the card the text names
-    const roll = /Shinobi/.test(row[2]) ? { ninja: pick(pools()[star]) } : /Equipment/.test(row[2]) ? { equip: randomEquip(Math.floor(Math.random() * 3), star, star) }
+    const drop = table('dropinfo').rows.find((x) => x[0] === row[9]) || []; // [9] = the drop: a fixed card (The Fourth Sage 531, Sage Naruto 337 ...) or a random pack (10-15)
+    const roll = drop[12] !== 1 && drop[3] > 0 ? { ninja: drop[3] }
+      : /Shinobi/.test(row[2]) ? { ninja: pick(pools()[star]) } : /Equipment/.test(row[2]) ? { equip: randomEquip(Math.floor(Math.random() * 3), star, star) }
       : { ninjutsu: pick(table('ninjutsuinfo').rows.filter((x) => x[5] === star && x[6] === 1))[0] };
     propAdd(db, pl.uid, pl.server_id, goodsId, -need);
     let card = null; // CItemView reads the new card from <propuse> attributes: ninjaid / equipid / skillid + their bag ids
@@ -880,6 +882,8 @@ function propUse(db, pl, goodsId) {
   let coin = 0, ap = 0, sp = 0;
   if (row[7] === 3) { coin = Math.round(row[8]); db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); }
   if (row[7] === 1) { energyTick(db, pl); db.prepare('UPDATE players SET energy=energy+? WHERE uid=? AND server_id=?').run(Math.round(row[8]), pl.uid, pl.server_id); }
+  if (row[7] === 10 || row[7] === 15) buffAdd(db, pl, row[7], Math.round(row[8]) || 300);
+  if (row[7] === 18) propAdd(db, pl.uid, pl.server_id, GATE_SOUL, (propCounts(db, pl.uid, pl.server_id)[GATE_SOUL] === undefined ? 5000 : 0) + 1000); // Souls Dan: "receive 1000 souls per dan for eight gates"
   if (s) { // Hyourou-gan: [8] = 0.5 / 1 of the maximum grudge (duel points), up to the maximum
     sp = Math.min(s.max, s.sp + Math.max(1, Math.round(s.max * row[8])));
     db.prepare('UPDATE players SET sp=?, sp_t=? WHERE uid=? AND server_id=?').run(sp, sp >= s.max ? Math.floor(Date.now() / 1000) : s.t, pl.uid, pl.server_id);
@@ -889,6 +893,20 @@ function propUse(db, pl, goodsId) {
   // the client (CTradeMgr::UseConsumeItemByID) sets energy = ap and duel points = sp when they are not 0
   return { ap, sp, coin, left: have - 1, limit: lim && { rest: lim.rest - 1, max: lim.max } };
 }
+// Timed pills, ORIGINAL item texts: War Achievements Increase Pill (consumeinfo type 10) "Sparring players can earn double the battle
+// achievements for 5 minutes", Double Exp Pill (type 15) "receiving X2 exp during training in 5 min"; [8] = 300 s. Another pill adds 5 minutes.
+function buffAdd(db, pl, kind, secs) {
+  db.exec('CREATE TABLE IF NOT EXISTS buffs (uid INTEGER, server_id INTEGER, kind INTEGER, until INTEGER, PRIMARY KEY(uid, server_id, kind))');
+  const now = Math.floor(Date.now() / 1000), until = Math.max(now, buffUntil(db, pl, kind)) + secs;
+  db.prepare('INSERT INTO buffs(uid, server_id, kind, until) VALUES(?,?,?,?) ON CONFLICT(uid, server_id, kind) DO UPDATE SET until=excluded.until').run(pl.uid, pl.server_id, kind, until);
+}
+function buffUntil(db, pl, kind) {
+  db.exec('CREATE TABLE IF NOT EXISTS buffs (uid INTEGER, server_id INTEGER, kind INTEGER, until INTEGER, PRIMARY KEY(uid, server_id, kind))');
+  const r = db.prepare('SELECT until FROM buffs WHERE uid=? AND server_id=? AND kind=?').get(pl.uid, pl.server_id, kind);
+  return r ? r.until : 0;
+}
+const buffOn = (db, pl, kind) => buffUntil(db, pl, kind) > Date.now() / 1000;
+const BUFF_WA = 10, BUFF_EXP = 15;
 // Daily uses of ramen (consumeinfo type 1) and Hyourou-gan (type 2): ORIGINAL vipinfo [6] "use 20 ramen daily" and [7] "use 30 Hyourou-gan
 // daily" (row = VIP level + 1, +2 / +3 a VIP level). The item window shows what is left (CTradeMgr rest/max: <propuse rest max>, shoplist <limit>).
 const USE_COL = { 1: 6, 2: 7 };
@@ -1800,4 +1818,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

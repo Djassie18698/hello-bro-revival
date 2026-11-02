@@ -1000,3 +1000,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   [6] ramen 20 (+2 a VIP level) and [7] Hyourou-gan 30 (+3 a VIP level), row = VIP + 1; sent as <propuse rest max> and in rl_r_shoplist
   1600/1601 <limit><actiongoods>/<bingliangwan> (the item window's "Left today" number; it was 0). Photo 4550 ("0/6 ... 30, VIP2 +3")
   = grudge 0/6 and 30 uses left for a VIP1 (33). Checked in game: grudge 0/4 -> 2/4 with a Small one, window shows 44 left at VIP5.
+- Item USE (CItemView::onBtnUseIt switch on consumeinfo [7]): types 1 ramen, 2 Hyourou-gan, 3 Tael, 6 fragments, 9 ninja souls, 10 W.A.
+  Increase Pill, 15 Double Exp Pill and 18 Souls Dan call rl_w_propuse; 5/7/8/12/13/14/16 open a screen, 4 (shields 免战牌) does nothing, 19
+  pet food says "use it in Pets", 11/17/20+ go to itemScriptManager.lua. The server only handled 1/3/6 and ate the rest for nothing. Now:
+  fragments and souls give the card of their own drop ([9]: The Fourth Sage 531, Six Paths Obito 532, Goddess Tsunade 559, Sage Naruto 337,
+  Killer B (Santa) 375, Itachi 285; random packs 10-15 as before; The Fourth Sage fragments used to give a random ninjutsu); Souls Dan
+  +1000 Eight Gates souls ("receive 1000 souls per dan for eight gates"); W.A. pill doubles spar W.A. and Double Exp Pill doubles training
+  EXP for [8] = 300 s (another pill adds 300 s; the client shows no timer). Checked in game: Souls Dan 5200 -> 6200 gate souls, "Used
+  successfully"; Double Exp Pill timer runs. Not checked in game: soul items (the test account has none in the client list yet).

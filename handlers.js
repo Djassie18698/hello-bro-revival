@@ -92,7 +92,7 @@ function trainingFight(db, pl, chap, part, pos, buy) {
     if (pl.gold < game.BOSS_COST) return '<root code="5"><message>not enough gold</message></root>';
     db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(game.BOSS_COST, pl.uid, pl.server_id);
   }
-  const cost = row[22] || 3, exp = row[23] || 6, coin = row[24] || 15;
+  const cost = row[22] || 3, exp = (row[23] || 6) * (game.buffOn(db, pl, game.BUFF_EXP) ? 2 : 1), coin = row[24] || 15; // Double Exp Pill running: x2
   // Not enough energy: code 40004 makes the client open its ramen window (CSectionCellView::onHttpRequestCompleted) so the player can refill.
   if (pl.energy < cost) return '<root code="40004"><message>not enough energy</message></root>';
   // Real enemies for this stage and a real result: my team's power against theirs, with some luck (ours: 0.85-1.15). A lost fight costs the
