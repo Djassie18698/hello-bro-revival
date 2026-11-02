@@ -1136,3 +1136,12 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   tool listed. README: "Where it stands", one line per day in "What changed recently". GitHub description + topics set.
   Training at the end of the story checked: original behaviour (passed stages show Finish; each of the 165 bosses has its own 3 free
   tries a day); explained in how-to-play chapter 2.
+- 2 Nov: Limited Super Ninja built (limitsuper.js, Home button "Super Ninja" = activity 18, switch 'superninja' on by default).
+  Protocol: rl_r_comm Cmd 6 (preview/ninjalist/ranklist/myrank/rewardlist, all rows as attributes), Cmd 7 refresh, free draw rl_w_recruit
+  Cmd 1902 (Lua), gold draws via CCommonPrayDialogView = the SAME request as the premium recruit (Cmd 1900/1901 Type 1 IsSuperAct 0:
+  SetIsActPray isn't bound to Lua) and its open call rl_r_recruit Cmd 2900 Type 1. So the server marks the player "in the event" on Cmd 6/7
+  (30 min) and clears it on rl_r_mainpage / rl_r_shoplist (the Shop sends 1601 when opened, checked). Reply formats = game.pullXml (one:
+  <recruit> + <protect_comming> + <award>; ten: <recruit_list><item><award>). The pray dialog AND the screen label both show the count - 1,
+  so we send pulls-left + 1 for the event (the normal recruit sends pulls-left: its dialog shows one less; not changed). Rank prizes: rounds
+  run back to back (actstatus always 1, Claim says 315005) and settle() mails them to the Awards chest. The reward list cuts text after ~12
+  letters (rows split). Checked in game: open, one draw, sure god (Susa Indra) on the 25th, ten draw, free draw + 8 h timer, ranking.

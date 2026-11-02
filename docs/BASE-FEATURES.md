@@ -119,6 +119,14 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - Daily spending gift (`dailyevents.js`): all tiers and rewards (ours): 100 / 500 / 1000 / 2000 gold a day.
 - Recharge streak (`dailyevents.js`): "$3 a day" is the screen's own text; the 7 daily gifts and the bonus (300 Reincarnation Pills + 200 Souls Dan) are (ours).
 
+## Limited Super Ninja (added 2 Nov 2026, owner's request)
+- `limitsuper.js`, Home button "Super Ninja". The screens and protocol are ORIGINAL; every number is **(ours)** because the dead server decided them:
+  featured card = each of the game's 82 god cards in turn, a new one every hour (owner: "for now"; `ROTATE_HOURS`); a pull costs the premium-recruit
+  price (300 gold, ten for 2800); 4 % for the featured god card, sure on the 25th pull without one (the count carries over); otherwise a 4-5 star
+  premium-recruit card; 1 free pull every 8 hours; 10 points a pull; 3-day ranking rounds (local midnight), prizes mailed to the Awards chest:
+  1st Six Paths Naruto (God) + 1000 gold (needs 600 points, about $300 of free top-ups: $99.99 = 5500 gold), 2nd-3rd Hokage Kakashi (God) + 500 gold,
+  4th-10th 500 gold, 11th-20th 200 gold. The 1st-prize minimum is the screen's own rule ("The MINIMUM for 1st prise is ...").
+
 ## Balancing from the photos (2 Nov 2026, later)
 - Monthly sign-in (`signin.js`): days 1-16 and their VIP x2 marks are ORIGINAL (photos 0516, 1871). (ours): which cards (4-star pack days 4 / 9, 5-star pack day 12), days 17-28 = days 5-16 again with VIP marks +4 (at most v15).
 - Top-up (`handlers.js` TOPUPS): ORIGINAL packages and the first-top-up x3. (ours): $49.99 = 2400 + 300.

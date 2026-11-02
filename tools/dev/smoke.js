@@ -38,6 +38,39 @@ const run = (name, cmd, extra = {}) => {
 };
 run('rl_w_login2', 0); run('rl_w_reg2', 0, { Nick: 'Smoke', Card: 1 });
 for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[name] || [])])) run(name, c);
+// Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
+{
+  const ck = (ok, what) => { if (!ok) { bad++; console.log('SUPER NINJA', what); } };
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  const gold = () => db.prepare('SELECT gold FROM players WHERE uid=77').get().gold;
+  const cards = () => db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77').get().n;
+  db.prepare('UPDATE players SET gold=10000 WHERE uid=77').run();
+  call('rl_r_mainpage', { Cmd: 1301 });
+  db.exec('DELETE FROM superninja; DELETE FROM superninja_me'); // the calls above already pulled (Cmd 1902 is in the Lua)
+  const info = call('rl_r_comm', { Cmd: 6 });
+  for (const t of ['resttime=', 'nexttime=', 'protect=', 'gold="300"', 'actstatus="1"', 'limitscore=', '<ninjalist><item name=', 'ninjiaid=', 'dropid=', '<myrank', '<rewardlist><item rankrange=']) ck(info.includes(t), 'open misses ' + t);
+  ck(/protect_comming="26"/.test(call('rl_r_recruit', { Cmd: 2900, Type: 1 })), 'pray dialog count is not the event count');
+  let g = gold(), c = cards();
+  const one = call('rl_w_recruit', { Cmd: 1900, Type: 1, Free: 0, TwoStars: 0, IsSuperAct: 0 });
+  ck(/<recruit ninjaid="\d+" cost="300"/.test(one) && /<award/.test(one) && gold() === g - 300 && cards() === c + 1, 'one pull: ' + one.slice(0, 120));
+  g = gold(); c = cards();
+  const ten = call('rl_w_recruit', { Cmd: 1901, Type: 1, Free: 0, IsSuperAct: 0 });
+  ck((ten.match(/<item><award/g) || []).length === 10 && gold() === g - 2800 && cards() === c + 10, 'ten pull: ' + ten.slice(0, 120));
+  const free = call('rl_w_recruit', { Cmd: 1902, Type: 1, Free: 1 });
+  ck(/<award/.test(free) && gold() === g - 2800, 'free pull: ' + free.slice(0, 120));
+  ck(/code="80003"/.test(call('rl_w_recruit', { Cmd: 1902, Type: 1, Free: 1 })), 'second free pull was not refused');
+  const ref = call('rl_r_comm', { Cmd: 7 });
+  ck(/rank="1" score="120"/.test(ref) && /<ranklist><item rank="1" nick="[^"]*" score="120"\/>/.test(ref), 'refresh: ' + ref.slice(0, 200));
+  // back Home: the premium recruit is a normal recruit again (no event points)
+  call('rl_r_mainpage', { Cmd: 1301 });
+  call('rl_w_recruit', { Cmd: 1900, Type: 1, Free: 0 });
+  ck(db.prepare('SELECT score FROM superninja WHERE uid=77').get().score === 120, 'a normal recruit after leaving counted for the event');
+  // the round ends: prizes are mailed once (120 points < the 1st-prize minimum, so the leader gets the 2nd prize)
+  db.prepare('UPDATE superninja SET round=round-1').run();
+  require('../../limitsuper').settle(db); require('../../limitsuper').settle(db);
+  const mail = db.prepare("SELECT content, items FROM award_mail WHERE uid=77 AND title='Limited Super Ninja'").all();
+  ck(mail.length === 1 && /#1 with 120 points/.test(mail[0].content) && mail[0].items.includes('1728'), 'round prize mail: ' + JSON.stringify(mail));
+}
 // The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
 {
   const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });

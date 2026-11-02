@@ -7,6 +7,7 @@ const festival = require('./festival');
 const godrecruit = require('./godrecruit');
 const hottreasure = require('./hottreasure');
 const consumption = require('./consumption');
+const limitsuper = require('./limitsuper');
 const limited = require('./limited');
 const signin = require('./signin');
 const stagegift = require('./stagegift');
@@ -319,6 +320,7 @@ module.exports = {
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="4"><message>no character</message></root>';
+    limitsuper.leave(acc.uid, pl.server_id); // back Home: recruits are normal recruits again
     game.ensureStarterTeam(db, acc.uid, pl.server_id, 1);
     { const log = require('./playerlog'); log.day(db, pl.uid, pl.server_id); log.attack(db, pl.uid, pl.server_id); } // progress log
     // Offline server: energy is refilled to the level's maximum on every login.
@@ -353,7 +355,8 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     const type = Number(p.Type || p.RecruitID || 1);
-    const left = pl ? game.recruitState(db, pl, type === 2 ? 2 : 1).toGo : 0; // pulls still needed for the sure 5-star
+    // the Limited Super Ninja screen opens the same pray dialog: its count is the pulls left to the sure god card
+    const left = !pl ? 0 : type === 1 && limitsuper.isOpen(db, pl) ? limitsuper.toGo(db, pl) + 1 : game.recruitState(db, pl, type === 2 ? 2 : 1).toGo; // pulls still needed for the sure 5-star
     return `<root code="0"><recruit protect_comming="${left}" ninjaid="0" cost="0" bagid="0" attr="0"/></root>`;
   },
 
@@ -364,6 +367,13 @@ module.exports = {
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="4"><message>no character</message></root>';
     const count = Number(p.Cmd) === 1901 ? 10 : 1;
+    // Limited Super Ninja (limitsuper.js): Cmd 1902 = its free pull; its gold pulls are premium-recruit requests sent while its screen is open
+    if (Number(p.Cmd) === 1902 || (Number(p.Type) === 1 && Number(p.Free) !== 1 && limitsuper.isOpen(db, pl))) {
+      const r = limitsuper.pull(db, pl, Number(p.Cmd) === 1902 ? 1 : count, Number(p.Cmd) === 1902);
+      if (r.code) return `<root code="${r.code}"></root>`;
+      if (r.error) return '<root code="5"><message>' + r.error + '</message></root>';
+      return '<root code="0">' + game.pullXml(r, Number(p.Cmd) === 1902 ? 1 : count, 1) + '</root>';
+    }
     const res = game.pull(db, pl, Number(p.Type || 2), count, Number(p.Free) === 1);
     if (res.error) return '<root code="5"><message>' + res.error + '</message></root>';
     return '<root code="0">' + game.pullXml(res, count, Number(p.Type || 2)) + '</root>';
@@ -977,6 +987,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
     if (cmd === 5) return '<root code="0">' + require('./flower').infoXml(db, pl) + '</root>'; // Flower Worship info
+    if (cmd === 6 || cmd === 7) { const x = cmd === 6 ? limitsuper.infoXml(db, pl) : limitsuper.refreshXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="312000"></root>'; } // Limited Super Ninja
     if (cmd === 16) { // "49$ gift" on the top-up screen: status 0 not reached, 1 received, 2 can claim; amounts in cents.
       // ORIGINAL (Facebook photos 1332, 1527): Naruto Uzumaki (Attack Card) + 80 Reincarnation Pills + 150 Sage Stone III = drops 1312, 122, 558
       game.actEnsure(db);
@@ -1003,6 +1014,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
+    if (wc === 11) return '<root code="315005"></root>'; // Limited Super Ninja rank prize: rounds run back to back, prizes are mailed (limitsuper.js)
     if (wc === 18) { const r = consumption.claim(db, pl, Number(p.ID)); if (r.code) return `<root code="${r.code}"></root>`; return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 9) { const r = require('./flower').give(db, pl, Number(p.GirlID)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // Flower Worship: give roses
     if (wc === 13) { const r = game.inherit(db, pl, Number(p.SrcCardIndex), Number(p.DstCardIndex)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // succession
@@ -1461,6 +1473,7 @@ module.exports = {
   rl_r_shoplist: ({ db, params: p }) => {
     const shopOwned = (q) => { const a = accountBySession(db, q); return a ? game.propCounts(db, a.uid, Number(q.ServerID || 1)) : {}; };
     const rAcc = accountBySession(db, p), rPl = rAcc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(rAcc.uid, Number(p.ServerID || 1));
+    if (rAcc) limitsuper.leave(rAcc.uid, Number(p.ServerID || 1)); // the shop (normal recruit) is open: its pulls are normal again
     const rec = (id, cost) => {
       const s = rPl ? game.recruitState(db, rPl, id) : { every: 0, last: 0, left: 0 };
       return { recruit_id: id, recruit_yuanbao: cost, recruit_time: s.every, last_recruit_time: s.last, first_yuanbao: 0, free_recruit_time_left: s.left, recruit_limit: 0, cur_recruit_count: 0 };
