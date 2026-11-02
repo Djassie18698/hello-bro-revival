@@ -196,6 +196,9 @@ const MIGRATE_PRICE = 300; // change country, gold (photo 3270)
 const SWEEP_DAILY = 5; // (ours)
 // ORIGINAL (normalconfig 290/291/296): finishing a tower round at once costs 3 gold a round and needs VIP3; 2 tower resets a day
 const SWEEP_GOLD = 3, SWEEP_VIP = 3, TOWER_RESETS = 2;
+const TOWER_CHAPS = 25, TOWER_ROUNDS = 7;
+// open chapters = 1 + chapters passed (process 8), at most 25
+const towerMaxChap = (db, uid, sid) => { let c = 1; while (c < TOWER_CHAPS && game.getStage(db, uid, sid, 1000 + c) > TOWER_ROUNDS) c++; return c; };
 const sweepKey = () => 100000 + Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000); // local day
 const sweepsUsed = (db, uid, sid) => game.getStage(db, uid, sid, sweepKey()) - 1;
 
@@ -1274,7 +1277,9 @@ module.exports = {
       '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.awardFull({ coin: r.win ? 300 : 0 }) + '</root>';
   },
 
-  // Battles / tower ("dup"): Cmd 7000 = chapter list; rl_w_dup Cmd 3100 (Chap, Round) = fight. A chapter has 6 rounds; process = the round to fight next.
+  // Battles / tower ("dup"): Cmd 7000 = chapter list; rl_w_dup Cmd 3100 (Chap, Round) = fight; process = the round to fight next.
+  // ORIGINAL (the client's own rushtower / towerfloor tables and CPlayerDataMgr::firefly_ChapterProcessForward): 25 chapters x 7 rounds; round 7
+  // is the boss; process 8 = chapter passed, and then the next chapter opens. Before 2 Nov 2026 only chapters 1-3 with 6 rounds existed.
   rl_r_dup: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const sid = Number(p.ServerID || 1);
@@ -1283,17 +1288,18 @@ module.exports = {
       return pl ? '<root code="0">' + rankings.towerRankXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
     }
     if (Number(p.Cmd) === 7002) {
-      // Sweep screen: one entry per tower round (3 chapters x 6 rounds, id = (chap-1)*6+round); selectable once cleared.
+      // Sweep screen: one entry per tower round of the open chapters (id = (chap-1)*7+round); selectable once cleared.
       const used = acc ? sweepsUsed(db, acc.uid, sid) : 0;
       let list = '';
-      for (let c = 1; c <= 3; c++) for (let r = 1; r <= 6; r++) {
+      for (let c = 1; c <= (acc ? towerMaxChap(db, acc.uid, sid) : 1); c++) for (let r = 1; r <= TOWER_ROUNDS; r++) {
         const done = acc && game.getStage(db, acc.uid, sid, 1000 + c) > r;
         list += `<dup name="${c}-${r}" selectable="${done ? 1 : 0}"/>`;
       }
       return `<root code="0"><dup_count><total>${SWEEP_DAILY}</total><remain>${Math.max(0, SWEEP_DAILY - used)}</remain><vip>0</vip></dup_count><dup_list>${list}</dup_list></root>`;
     }
-    const chaps = [1, 2, 3].map((c) => `<dup><chapid>${c}</chapid><process>${acc ? game.getStage(db, acc.uid, sid, 1000 + c) : 1}</process></dup>`).join('');
-    return `<root code="0"><duplist maxchap="3" current_round="1" remain_reset_count="${TOWER_RESETS}" status="0">${chaps}</duplist></root>`;
+    const max = acc ? towerMaxChap(db, acc.uid, sid) : 1;
+    const chaps = Array.from({ length: max }, (_, i) => i + 1).map((c) => `<dup><chapid>${c}</chapid><process>${acc ? game.getStage(db, acc.uid, sid, 1000 + c) : 1}</process></dup>`).join('');
+    return `<root code="0"><duplist maxchap="${max}" current_round="1" remain_reset_count="${TOWER_RESETS}" status="0">${chaps}</duplist></root>`;
   },
   rl_w_dup: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
@@ -1302,7 +1308,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     if (Number(p.Cmd) === 3102) {
       // Sweep: DupId = 'id|id|..'; each costs one of the daily sweeps and pays the same reward as winning that round.
-      const ids = String(p.DupId || '').split('|').map(Number).filter((n) => n >= 1 && n <= 18);
+      const ids = String(p.DupId || '').split('|').map(Number).filter((n) => n >= 1 && n <= TOWER_CHAPS * TOWER_ROUNDS);
       const used = sweepsUsed(db, pl.uid, sid);
       if (!ids.length || used + ids.length > SWEEP_DAILY) return '<root code="5"><message>no sweeps left</message></root>';
       if (vip.level(db, pl.uid, sid) < SWEEP_VIP) return `<root code="5"><message>finishing rounds at once needs VIP${SWEEP_VIP}</message></root>`;
@@ -1310,7 +1316,7 @@ module.exports = {
       db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(SWEEP_GOLD * ids.length, pl.uid, sid);
       let list = '';
       for (const id of ids) {
-        const c = Math.ceil(id / 6), r = ((id - 1) % 6) + 1;
+        const c = Math.ceil(id / TOWER_ROUNDS), r = ((id - 1) % TOWER_ROUNDS) + 1;
         if (game.getStage(db, pl.uid, sid, 1000 + c) <= r) return '<root code="5"><message>round not cleared</message></root>';
         const ex = 60 * c, co = 90 * c;
         game.addExp(db, pl, ex);
@@ -1322,7 +1328,7 @@ module.exports = {
       return '<root code="0"><dup_list>' + list + '</dup_list></root>';
     }
     const chap = Number(p.Chap || 1), round = Number(p.Round || 1);
-    if (![1, 2, 3].includes(chap) || !(Number.isInteger(round) && round >= 1 && round <= 6)) return '<root code="5"><message>no such round</message></root>';
+    if (!(Number.isInteger(chap) && chap >= 1 && chap <= towerMaxChap(db, pl.uid, sid)) || !(Number.isInteger(round) && round >= 1 && round <= TOWER_ROUNDS)) return '<root code="5"><message>no such round</message></root>';
     const trow = game.towerRow(chap, round) || [];
     const exp = trow[20] || 60 * chap, coin = trow[21] || 90 * chap; // the round's own reward (towerfloor)
     const tfoes = game.towerFoes(chap, round) || [];
@@ -1338,7 +1344,9 @@ module.exports = {
     festival.dropOnWin(db, pl, 'training'); // battles drop Christmas Caps too
     // Unlike story stages, the tower result screen (tower_layer) does NOT add the round's exp / silver by itself: it shows and adds the award's
     // <exp>/<coin>. They were 0, so it showed 0 / 0 and the top bar lagged until the next login (the server did pay).
-    let towerAward = stageAward(db, pl, [], 0, 0);
+    // Round 7 is the boss: its drop is one of the four the game's "Possibility of boss landing" window shows (rushtower [9]-[12] = fillDropData
+    // 284 Shukaku Seal Card, 285 Recruitment Order, 286 Refresh Order, 288 Five-Star Purple Card Fragment). Which one, equal chances (ours).
+    let towerAward = round === TOWER_ROUNDS ? game.grantDrop(db, pl, [1332, 1285, 1297, 176][Math.floor(Math.random() * 4)]).replace('<award ', '<award type="1" ') : stageAward(db, pl, [], 0, 0);
     const towerDropCoin = Number((towerAward.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
     towerAward = towerAward.replace(/<exp>\d+<\/exp>/, `<exp>${exp}</exp>`).replace(/ coin="\d+"/, ` coin="${coin + towerDropCoin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin + towerDropCoin}</coin>`);
     return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { foes: tfoes.length ? tfoes : undefined, win: true, enemyName: String((game.ninjas().get((trow[4] || 0)) || [])[2] || 'Enemy'), enemyLevel: 10 * chap }) + towerAward + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3)

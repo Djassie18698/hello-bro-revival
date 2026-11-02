@@ -82,6 +82,7 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - **Shinobi training (2 Nov 2026):** 2 Super Ninja Pills or 1 pill + 10 gold (original); 10 times 20 pills or 10 + 80 gold **(ours)**.
 - **Growth Fund (2 Nov 2026):** 500 gold, VIP3, 2500 back at Lv50 150 / 70 150 / 90 200 (original); Lv110 200, 130 250, 150 250, 170 300, 190 300, 210 350, 230 350 **(ours)**.
 - **Save time (2 Nov 2026):** one Big Ramen = ceil(200 / stage energy) fights of the furthest story stage, rounded down to hundreds (fits the original photo exactly); VIP1 and level 80 (original); 2 chances a day per VIP level **(ours)**, then 10 gold (original).
+- **Battles (2 Nov 2026):** ORIGINAL 25 chapters x 7 rounds (the client's rushtower/towerfloor), round 7 the boss, the next chapter opens after it. The boss drop is one of the four the game shows; equal chances (ours).
 - **W.A. titles (2 Nov 2026):** ORIGINAL table playemedal (Junior Genin 500 W.A. +25 ... Supreme Gaiden 3 000 000 +2550 to attack, defense and chakra). (ours): the title follows all W.A. ever earned, so spending W.A. does not lower it.
 - **Plunder (2 Nov 2026):** ORIGINAL fragment chance after a won fight = the game's plunderinfo table by level difference (the same table the "Plunder success rate" label shows), from 100 % ("Shall", rival 91+ levels higher) to 0 % ("No", rival 81+ levels lower).
 - **Spar win draw (2 Nov 2026):** ORIGINAL drop ids (first spar 1284, below level 30 drop 397, otherwise duelinfo drop 27); the star chances inside 397 / 27 are (ours).

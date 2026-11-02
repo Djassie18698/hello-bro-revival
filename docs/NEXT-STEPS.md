@@ -949,3 +949,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   Level-1 ninja food unchanged (75 / 150); a level-1 gear card now gives 250 EXP. Not checked in game (math = client tables).
 - Arena ladder rewards (ladderconfig 2000 ranks -> ladderdesc 7 tiers -> dropinfo packs 159-165: rank 1 '5-star / 4-star equipment, full seal or 300 gold' ... rank 501-1000 '4/3-star equipment or 5000 silver'): shown by CArenaAwardRuleDialogView (Arena rules). Not given by the server; unclear if it was in addition to the photo-confirmed daily silver/reputation. Asked the owner.
 - Server-side checks (2 Nov test round): Akatsuki between two players (create, join, list, hall, store, donate, admin), cross-server battle (ticket, inspire outside the battle refused, fight outside Saturday refused, ranks, point shop), money tree in game (free 2000 silver, then 'continue for 10 gold'), W.A./arena/war/boss awards match what is paid. All OK.
+- Battles (tower) like the original: the client has 25 chapters (rushtower) x 7 rounds (towerfloor), round 7 = the chapter boss (the big
+  portrait, CTowerBossView), process 8 = passed and the next chapter opens (CPlayerDataMgr::firefly_ChapterProcessForward). The server had
+  maxchap 3 and 6 rounds (so the boss could never be fought, chapters 4-25 never opened); this morning's bad-input check had also locked round 7.
+  Now: open chapters = 1 + passed (max 25), rounds 1-7, sweep ids (chap-1)*7+round. Boss drop = one of the 4 the "Possibility of boss
+  landing" window shows (rushtower [9]-[12] = fillDropData 284/285/286/288 -> dropinfo 1332 Shukaku Seal, 1285 Recruitment Order, 1297
+  Refresh Order, 176 five-star fragments; equal chances, ours). Checked in game: chapter 1 shows 7 rounds + Zabuza, boss win +60 EXP / +39
+  silver + fragment, chapter 1 turns red and chapter 2 opens. Accounts that played chapters 2-3 under the old rules keep that progress
+  (it shows once chapter 1 is passed).
