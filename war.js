@@ -20,6 +20,19 @@ function me(db, pl) {
   return db.prepare('SELECT * FROM war WHERE server_id=? AND day=? AND uid=?').get(pl.server_id, day(), pl.uid);
 }
 const enemies = (c) => [1, 2, 3].filter((x) => x !== c);
+// War progress windows (the "?" next to killing number / casualty on the War screen: CWarAttackProgressDialog, rl_r_countryranknew
+// Cmd 4201 kills / 4204 casualties, Country = the side shown; CCountryWarProgressDialog Cmd 4203): today's players of that country by
+// kills (or times attacked), <user><rank/><uid/><nick/><realval/><countryid/></user>; my own kills, rank and merit as <userrank> attributes.
+function progressXml(db, pl, cmd, country) {
+  ensure(db);
+  const col = cmd === 4204 ? 'beattack' : 'kills', c = country || pl.country;
+  const rows = db.prepare(`SELECT w.uid, w.${col} val, p.nick FROM war w JOIN players p ON p.uid=w.uid AND p.server_id=w.server_id
+    WHERE w.server_id=? AND w.day=? AND w.country=? ORDER BY w.${col} DESC, w.score DESC LIMIT 50`).all(pl.server_id, day(), c);
+  const mine = db.prepare('SELECT * FROM war WHERE server_id=? AND day=? AND uid=?').get(pl.server_id, day(), pl.uid) || { kills: 0, beattack: 0, score: 0 };
+  const all = db.prepare(`SELECT uid FROM war WHERE server_id=? AND day=? AND country=? ORDER BY ${col} DESC, score DESC`).all(pl.server_id, day(), pl.country);
+  const users = rows.map((r, i) => `<user>${el('rank', i + 1)}${el('uid', r.uid)}${el('nick', String(r.nick).replace(/[<>&]/g, ''))}${el('realval', r.val)}${el('countryid', c)}</user>`).join('');
+  return `<userrank myscorecount="${mine[col] || 0}" myrank="${all.findIndex((r) => r.uid === pl.uid) + 1}" myscore="${mine.score || 0}"><userlist>${users}</userlist></userrank>`;
+}
 function countryKills(db, sid, c) {
   return (db.prepare('SELECT SUM(kills) n FROM war WHERE server_id=? AND day=? AND country=?').get(sid, day(), c).n) || 0;
 }
@@ -111,4 +124,4 @@ function exchange(db, pl, packId) {
   return { xml: game.grantDrop(db, pl, row[6]) };
 }
 
-module.exports = { ensure, exchange, msgXml, resultXml, infoXml, attack, revive };
+module.exports = { progressXml, ensure, exchange, msgXml, resultXml, infoXml, attack, revive };

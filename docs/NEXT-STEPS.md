@@ -1068,3 +1068,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   its confirm resends with Switch=1, which ends the old station (no reward: that only comes after the full stay) and starts the new one.
   Not enough gold for a taunt now returns 329018 (top-up offer), not enough silver a plain tip. Checked on a test save only (did not find
   the border war entrance in game this round).
+- War progress windows (the "?" next to "killing number" / "casualty" on the War screen = CWarAttackProgressDialog, rl_r_countryranknew
+  4201 kills / 4204 times attacked, Country = the side; CCountryWarProgressDialog 4203) showed the power ranking with no values: they
+  read <userrank myscorecount myrank myscore> + <user><rank/><uid/><nick/><realval/><countryid/></user>. war.progressXml now sends
+  today's war: kills (or casualties) per player of that country, my kills, rank in my country and merit. Checked in game: "Active kills
+  ranking" after one war win: actively killed 1, country ranking 1, achievement earned 10, list row Ninja5613 1.

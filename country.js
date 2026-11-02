@@ -66,6 +66,7 @@ function salary(db, pl) {
 // War > Ranking: Individuals (power ranking, all countries or one) and Nations (wins/losses, king = Hokage nick).
 function rankXml(db, pl, cmd, countryFilter) {
   ensure(db);
+  if (cmd === 4201 || cmd === 4203 || cmd === 4204) return require('./war').progressXml(db, pl, cmd, countryFilter); // war progress windows
   if (cmd !== 4200) {
     const rows = db.prepare('SELECT uid, nick, country FROM players WHERE server_id=?' + (countryFilter ? ' AND country=?' : ''))
       .all(...[pl.server_id].concat(countryFilter ? [countryFilter] : [])).map((r) => ({ ...r, power: Math.round(power(db, r.uid, pl.server_id)) }))
