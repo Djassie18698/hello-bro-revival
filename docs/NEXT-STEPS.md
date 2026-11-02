@@ -1024,3 +1024,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   150 gold, 15 Sage Stone III, 5 Super Ninja Pills, the chapter's boss gear), fillDropData [4] [6] [8] for the icons. <award> is a bit mask
   (the client: claimed = (award >> id) & 1); rankings.towerClaim checks floors (= the Copy progress number) and pays all three drops.
   Checked in game: 7-floor row Claim -> Kubikiribocho + 50 gold + 10 Sage Stone III, row shows "Claimed".
+- Unused game tables checked (server never read them): tower_reward -> built (Battles floor rewards). ninjiasoulconfig = an 8-prize roll in
+  the recruit reveal box (Itachi soul x1-4, 2000 / 5000 silver, 10 / 50 gold; CDialogShowBox::InitRandomPropsUI) but its switch
+  SetShowRandomProp is never called in v28 (dead code), so it cannot be used. functionconfig (feature unlock levels), countrywarhonor (war
+  titles), *bookrank (Ninjabook), packtips, sysnotice: read by the client only. ladderconfig/ladderdesc (arena rank rewards): waiting for
+  the owner. iapiteminfo has no prices that match the top-up screen (not used).
