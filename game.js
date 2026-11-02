@@ -134,7 +134,8 @@ const TEAM2_LEVEL = 100;
 const USED = { team: 'team', equipped: 'equipped' }, WAITING = { team: 'team_alt', equipped: 'equipped_alt' };
 const activeTeam = (db, uid, sid) => { ensure(db); return (db.prepare('SELECT active_team FROM players WHERE uid=? AND server_id=?').get(uid, sid) || {}).active_team || 0; };
 const lineup = (db, uid, sid, idx) => ((Number(idx) === 1) === (activeTeam(db, uid, sid) === 1) ? USED : WAITING);
-const inLineup = (db, seq) => !!(db.prepare('SELECT 1 FROM team WHERE seq=?').get(seq) || db.prepare('SELECT 1 FROM team_alt WHERE seq=?').get(seq));
+// a card in use: in either team, or worn by a ninja of either team (feeding, refining, succession and donating skip these)
+const inLineup = (db, seq) => ['team', 'team_alt', 'equipped', 'equipped_alt'].some((t) => db.prepare(`SELECT 1 FROM ${t} WHERE seq=?`).get(seq));
 function activateTeam(db, pl, idx) {
   ensure(db);
   idx = Number(idx) === 1 ? 1 : 0;
@@ -1070,7 +1071,7 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
   // The material is either another copy of the same card (consumed) or a reincarnation pill (free on this server).
   if (b) {
     if (a.seq === b.seq || a.type !== b.type || a.ninja_id !== b.ninja_id) return { error: 'cards must match' };
-    if (inLineup(db, b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped_alt WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
+    if (inLineup(db, b.seq)) return { error: 'material card is in use' };
   }
   if ((a.newlife || 0) >= NEWLIFE_MAX(a.type)) return { error: 'already at the highest rebirth' };
   const next = (a.newlife || 0) + 1;
