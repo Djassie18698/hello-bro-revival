@@ -1566,7 +1566,8 @@ function arenaFight(db, pl, toRank) {
 }
 
 // Grudge (SP, the spar stamina shown "10/3" in the top bar): max = playerlevel column 3, one point back every 2 hours (the client's own
-// timer shows "next grudge 01:59:55" at pass time 0 -> 2 h; (ours) assumption), a spar costs 1. players.sp = -1 means full.
+// timer shows "next grudge 01:59:55" at pass time 0; ORIGINAL normalconfig 10 "seconds to recover one spar point" = 7200), a spar costs 1.
+// players.sp = -1 means full.
 const SP_EVERY = 2 * 3600;
 function spState(db, pl) {
   ensure(db);
