@@ -677,7 +677,8 @@ module.exports = {
     game.bumpTask(db, pl.uid, pl.server_id, 13); // daily task: recharge
     vip.addExp(db, pl.uid, pl.server_id, t.rmb / 10); // cents / 10 = dollars x 10
     limited.logTopup(db, pl.uid, pl.server_id, gold, t.rmb);
-    require('./monthcard').onTopup(db, pl, t.rmb); // $4.99 / $9.99 = month card (when switched on)
+    require('./monthcard').onTopup(db, pl, t.rmb);
+    require('./flower').onTopup(db, pl, t.rmb); // roses for Flower Worship (1 a dollar, while it runs) // $4.99 / $9.99 = month card (when switched on)
     // <viplevel>: the hot-updated top-up screen (28.0.9) sets the new level right away
     return '<root code="0">' + game.awardFull({ cash: gold }) + el('viplevel', vip.level(db, pl.uid, pl.server_id)) + '</root>';
   },
@@ -928,6 +929,7 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
+    if (cmd === 5) return '<root code="0">' + require('./flower').infoXml(db, pl) + '</root>'; // Flower Worship info
     if (cmd === 16) { // "49$ gift" on the top-up screen: status 0 not reached, 1 received, 2 can claim; amounts in cents.
       // ORIGINAL (Facebook photos 1332, 1527): Naruto Uzumaki (Attack Card) + 80 Reincarnation Pills + 150 Sage Stone III = drops 1312, 122, 558
       game.actEnsure(db);
@@ -955,6 +957,7 @@ module.exports = {
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
     if (wc === 18) { const r = consumption.claim(db, pl, Number(p.ID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
+    if (wc === 9) { const r = require('./flower').give(db, pl, Number(p.GirlID)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // Flower Worship: give roses
     if (wc === 13) { const r = game.inherit(db, pl, Number(p.SrcCardIndex), Number(p.DstCardIndex)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // succession
     if (wc === 8) { const r = require('./groupbuy').buy(db, pl, Number(p.LimitPackID)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 10) { const r = game.mergeChips(db, pl, Number(p.ChipBagID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }

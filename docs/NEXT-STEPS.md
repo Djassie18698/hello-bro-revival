@@ -980,3 +980,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   = the client's keeplogin_info.lua (day 1: 2 small ramen + 2 small Hyourou-gan + 500 silver ... day 7/8+: 20 gold + 2 big ramen + 3 big
   Hyourou-gan). State = rl_r_activity <activity type="5" desc="conlogin" condays got>, claim = rl_w_activity ActType 5 ActID 1 SubID day.
   A missed day restarts at day 1 (ours). Checked in game: tile shows, "Continuous Login: Day 1", Claim -> reward pop-up.
+- Flower Worship (goddess event "nvshen", Event menu activity id 15, ui_nvshenLayer.lua) built: flower.js, Server-tab switch "Flower Worship"
+  (off by default, runs 7 days from switch-on). ORIGINAL: 1 rose per $ topped up (game text ui_nvshen_description), the 5 goddesses' rewards
+  (same text), favourability 0/1 and the rose prices Mei 40 / Hinata 24 / Konan 95 (photos 1240, 3864, 4543). (ours): Tsunade and Sakura
+  95 roses, a goddess can be won again. Protocol: rl_r_comm Cmd 5 (<preview open myflower resttime/> + <itemlist><item> ninja_id/name/icon/
+  flowers/alllikenum/own_like/index + <awardlist>), rl_w_comm Cmd 9 GirlID (<preview currsat currflower/> + <award>; code 320002 = not enough
+  roses, the client opens Top-up). Item index must equal the picture the layout starts with (sprite_avtor_N = nvshen_meinvN), else names and
+  prices land on the wrong goddess. Roses = prop 9992. Checked in game: screen, Mei "Given 40 flowers", gift -> Gaara + Silver Key*3, roses
+  45 -> 5, too few roses -> Top-up window.
