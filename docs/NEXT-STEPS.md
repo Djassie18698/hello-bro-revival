@@ -1051,3 +1051,10 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
 - Level-up: CPlayerLevelUp::requestActivity calls rl_r_newbie_pay Cmd 3; <on_off>1</on_off> in the reply makes the client re-read the
   event red dots (Lua readActivityNewsData). Now sent; checked in game (level 120 -> 121: rl_r_activity + rl_r_paypack follow, no errors).
   Plunder preview "plundertip" is built by the client itself (Markinfo name + string 0x31/0x32), nothing to send.
+- Akatsuki leader screens (Manage > deport / apply / membership, Setup) got empty replies (rl_w_group_admin had only Cmd 1/8/9). Now:
+  2 member list (<member_list> + <pos>), 3 expel (Members = JSON uid list; the chieftain selecting himself disbands -> <dismiss_group>1),
+  5 promote / demote (PositionAction 1 / 2; promoting a vice chieftain = abdicate), 6 / 7 settings (minlevel, minfightscore, desc; now
+  checked when someone joins), 10 / 4 approval list (empty: joining is instant here), rl_r_group_comm 4 "Akatsukis I applied to"
+  (empty). Positions 0 ordinary, 1 team leader, 2 vice chieftain, 3 chieftain (localizable OrgTitleName). Who may do what is (ours).
+  Checked in game: membership list, Promotion (ordinary -> team leader), Setup shows and saves ("modify succeed"), no Lua errors.
+  Found by a new check: every find("tag") a Lua screen reads vs the tags our code sends (scratchpad luatags.js).

@@ -5,6 +5,7 @@ const CREATE_COST = 789; // matches the "Fund" the create dialog shows
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY AUTOINCREMENT, server_id INTEGER, name TEXT, desc TEXT, leader_uid INTEGER, level INTEGER DEFAULT 1, score INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS group_members (uid INTEGER, server_id INTEGER, group_id INTEGER, pos INTEGER DEFAULT 0, score INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id))`);
+  for (const c of ['minlevel INTEGER DEFAULT 1', 'minfight INTEGER DEFAULT 0']) { try { db.exec(`ALTER TABLE groups ADD COLUMN ${c}`); } catch (e) { /* already there */ } }
 }
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const el = (n, v) => `<${n}>${v}</${n}>`;
@@ -34,8 +35,8 @@ function detailXml(db, pl, gid) {
   const mine = myGroup(db, pl.uid, pl.server_id);
   const js = mine ? (mine.id === g.id ? 2 : 3) : 0;
   return '<group_info>' + el('name', esc(g.name)) + el('level', g.level) + el('curcount', count(db, g.id)) + el('totalcount', maxMembers(g)) +
-    el('leader', esc(leaderName(db, g))) + el('score', g.score) + el('rank', rank(db, g)) + el('desc', esc(g.desc)) + el('minlevel', 1) +
-    el('minfightscore', 0) + el('join_status', js) + '</group_info>';
+    el('leader', esc(leaderName(db, g))) + el('score', g.score) + el('rank', rank(db, g)) + el('desc', esc(g.desc)) + el('minlevel', g.minlevel || 1) +
+    el('minfightscore', g.minfight || 0) + el('join_status', js) + '</group_info>';
 }
 
 function create(db, pl, name, desc) {
@@ -57,8 +58,65 @@ function join(db, pl, gid) {
   const g = db.prepare('SELECT * FROM groups WHERE id=?').get(gid);
   if (!g) return { error: 'no such group' };
   if (count(db, gid) >= maxMembers(g)) return { error: 'this Akatsuki is full' };
+  if (pl.level < (g.minlevel || 1)) return { error: `this Akatsuki takes players from level ${g.minlevel}` };
+  if (g.minfight > 0) { const t = require('./game').teamStats(db, pl.uid, pl.server_id).total; if (t.ah + t.dh < g.minfight) return { error: `this Akatsuki needs a fighting power of ${g.minfight}` }; }
   db.prepare('INSERT INTO group_members(uid,server_id,group_id,pos) VALUES(?,?,?,0)').run(pl.uid, pl.server_id, gid);
   return { id: gid };
+}
+
+// ---- Leader screens (rl_w_group_admin). Positions: 0 member, 1 team leader, 2 vice chieftain, 3 chieftain (localizable OrgTitleName).
+// Members comes as a JSON list of uids. (ours): who may do what (the original rules were server-side): the chieftain and vice chieftains
+// expel members below them; the chieftain promotes up to vice chieftain, a vice chieftain up to team leader; promoting a vice chieftain
+// hands the chieftain's place over (the client asks "abdicate?" first); the chieftain expelling himself disbands the Akatsuki.
+const uidsOf = (list) => (String(list || '').match(/\d+/g) || []).map(Number);
+const memberOf = (db, gid, uid) => db.prepare('SELECT * FROM group_members WHERE group_id=? AND uid=?').get(gid, uid);
+function expel(db, pl, list) {
+  const g = myGroup(db, pl.uid, pl.server_id);
+  if (!g) return { error: 'no group' };
+  const me = memberOf(db, g.id, pl.uid);
+  const uids = uidsOf(list);
+  if (me.pos === 3 && uids.includes(pl.uid)) { // disband
+    db.prepare('DELETE FROM group_members WHERE group_id=?').run(g.id);
+    db.prepare('DELETE FROM groups WHERE id=?').run(g.id);
+    return { disbanded: true };
+  }
+  if (me.pos < 2) return { error: 'only the chieftain and vice chieftains can expel' };
+  for (const uid of uids) {
+    const m = memberOf(db, g.id, uid);
+    if (m && m.pos < me.pos) db.prepare('DELETE FROM group_members WHERE group_id=? AND uid=?').run(g.id, uid);
+  }
+  return {};
+}
+function setPositions(db, pl, list, action) {
+  const g = myGroup(db, pl.uid, pl.server_id);
+  if (!g) return { error: 'no group' };
+  const me = memberOf(db, g.id, pl.uid);
+  for (const uid of uidsOf(list)) {
+    const m = memberOf(db, g.id, uid);
+    if (!m || uid === pl.uid || m.pos >= me.pos) continue;
+    if (Number(action) === 2) { db.prepare('UPDATE group_members SET pos=MAX(0, pos-1) WHERE group_id=? AND uid=?').run(g.id, uid); continue; }
+    if (m.pos === 2 && me.pos === 3) { // abdicate
+      db.prepare('UPDATE group_members SET pos=3 WHERE group_id=? AND uid=?').run(g.id, uid);
+      db.prepare('UPDATE group_members SET pos=2 WHERE group_id=? AND uid=?').run(g.id, pl.uid);
+      db.prepare('UPDATE groups SET leader_uid=? WHERE id=?').run(uid, g.id);
+      break;
+    }
+    if (m.pos + 1 < me.pos) db.prepare('UPDATE group_members SET pos=pos+1 WHERE group_id=? AND uid=?').run(g.id, uid);
+  }
+  return {};
+}
+// Settings (ui_orgSettingLayer): who may join (minimum level and fighting power) and the description
+function settingsXml(db, pl) {
+  const g = myGroup(db, pl.uid, pl.server_id);
+  return g ? `<group_info>${el('minlevel', g.minlevel || 1)}${el('minfightscore', g.minfight || 0)}${el('desc', esc(g.desc))}</group_info>` : null;
+}
+function saveSettings(db, pl, p) {
+  const g = myGroup(db, pl.uid, pl.server_id);
+  if (!g) return { error: 'no group' };
+  if (memberOf(db, g.id, pl.uid).pos < 2) return { error: 'only the chieftain and vice chieftains can change this' };
+  const lv = Math.max(1, Math.min(300, Math.floor(Number(p.MinLevel) || 1))), fight = Math.max(0, Math.min(99999999, Math.floor(Number(p.MinFightScore) || 0)));
+  db.prepare('UPDATE groups SET minlevel=?, minfight=?, desc=? WHERE id=?').run(lv, fight, String(p.Desc == null ? g.desc : p.Desc).slice(0, 200), g.id);
+  return {};
 }
 
 function quit(db, pl) {
@@ -299,4 +357,4 @@ function donateCards(db, pl, kind, bagJson) {
   db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(fund, g.id);
   return {};
 }
-module.exports = { constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };
+module.exports = { expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };

@@ -870,6 +870,7 @@ module.exports = {
     if (cmd === 6) { const r = guild.join(db, pl, Number(p.GroupId)); return r.error ? bad(r.error) : '<root code="0"></root>'; }
     if (cmd === 9) { const g = guild.myGroup(db, pl.uid, pl.server_id); return g ? `<root code="0">${guild.buildingsXml(db, g)}</root>` : bad('no group'); }
     if (cmd === 10) { guild.quit(db, pl); return '<root code="0"></root>'; }
+    if (cmd === 4) return '<root code="0"><group_list></group_list></root>'; // Akatsukis I applied to: joining is instant, so none
     return `<root code="0">${guild.listXml(db, pl)}</root>`;
   },
   rl_w_group_admin: ({ db, params: p }) => {
@@ -879,6 +880,17 @@ module.exports = {
     if (Number(p.Cmd) === 1) { const x = guild.adminXml(db, pl); return x ? `<root code="0">${x}</root>` : '<root code="5"><message>no group</message></root>'; }
     if (Number(p.Cmd) === 8) { const grp = guild.myGroup(db, pl.uid, pl.server_id); return grp ? `<root code="0">${guild.constructXml(db, grp)}</root>` : '<root code="5"><message>no group</message></root>'; }
     if (Number(p.Cmd) === 9) { const r = guild.constructUp(db, pl, Number(p.ConstructID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0">${r.xml}</root>`; }
+    const cmd = Number(p.Cmd), bad = (m) => `<root code="5"><message>${m}</message></root>`;
+    const members = () => guild.adminXml(db, pl) || '<member_list></member_list><pos>0</pos>';
+    // 2 member list (expel / officer screens), 3 expel (Members) -> <dismiss_group> + list, 5 promote / demote (Members, PositionAction 1 / 2)
+    if (cmd === 2) return `<root code="0">${members()}</root>`;
+    if (cmd === 3) { const r = guild.expel(db, pl, p.Members); return r.error ? bad(r.error) : `<root code="0"><dismiss_group>${r.disbanded ? 1 : 0}</dismiss_group>${r.disbanded ? '<member_list></member_list>' : members()}</root>`; }
+    if (cmd === 5) { const r = guild.setPositions(db, pl, p.Members, p.PositionAction); return r.error ? bad(r.error) : `<root code="0">${members()}</root>`; }
+    // 6 / 7 settings (minimum level, fighting power, description)
+    if (cmd === 6) { const x = guild.settingsXml(db, pl); return x ? `<root code="0">${x}</root>` : bad('no group'); }
+    if (cmd === 7) { const r = guild.saveSettings(db, pl, p); return r.error ? bad(r.error) : '<root code="0"></root>'; }
+    // 10 / 4 applications to approve: joining is instant here, so there are none
+    if (cmd === 10 || cmd === 4) return '<root code="0"><audit_list></audit_list></root>';
     return '<root code="0"></root>';
   },
 
