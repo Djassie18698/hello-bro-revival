@@ -1139,7 +1139,7 @@ function secretBought(db, pl) {
 }
 function secretXml(db, pl) {
   const soul = soulOf(db, pl), bought = secretBought(db, pl), st = secretState(db, pl);
-  const total = 75 + 5 * require('./vip').level(db, pl.uid, pl.server_id);
+  const total = vipRow(db, pl)[22] || 80; // shown refreshes a day, same as secretRefresh
   const esc = (t) => String(t).replace(/[<>&]/g, '');
   const cards = secretPicks(db, pl).map((r) => `<item><card>${el('id', r[0])}${el('type', r[3])}${el('subtype', r[4])}${el('name', esc(r[2]))}${el('icon', r[5])}${el('num', r[6])}${el('cost', r[8])}${el('costtype', r[7])}${el('status', bought.has(r[0]) ? 1 : 0)}${el('itemid', r[5])}${el('attacktype', 0)}</card></item>`).join('');
   const left = SECRET_EVERY - (Math.floor(Date.now() / 1000) % SECRET_EVERY);
