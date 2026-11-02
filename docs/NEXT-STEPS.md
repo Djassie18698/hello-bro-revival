@@ -1146,3 +1146,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   run back to back (actstatus always 1, Claim says 315005) and settle() mails them to the Awards chest. The reward list cuts text after ~12
   letters (rows split). Checked in game: open, one draw, sure god (Susa Indra) on the 25th, ten draw, free draw + 8 h timer, ranking.
 - 2 Nov: the bot went offline (its window was closed). Started again; discord/BOT-AUTOSTART.bat adds / removes a Windows Startup shortcut to START-BOT-ONLINE.bat (minimized). Claude can't make that shortcut itself (blocked as persistence), the owner double-clicks it.
+- 2 Nov (later): Super Ninja ranking now per featured card (one round = 1 hour, owner): 1st = that hour's god card, 2nd-3rd 300 gold,
+  4th-10th 100 gold, every prize needs 50 points (a lone free draw never pays). Countdown = to the next card (the client shows mm:ss and
+  "activity over" at 0 until reopened). Draws unchanged (owner: "keep as is for now"). NOTE: FINDINGS-PHOTOS has the original rules
+  (headliner = 1st prize only, every 10th draw a sure 5-star, 10-30 points, min 240-480, free draw daily, 3-day event): check the photo
+  findings FIRST before choosing (ours) numbers.

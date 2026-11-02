@@ -47,7 +47,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 ## 8. Events and VIP
 • Check the **Event** menu and the **Daily Task** list every day for free rewards.
 • **Festivals** (when switched on): win fights for festival items (Christmas Caps and Trees, or Fireworks and Balloons for the Anniversary) and trade them in the Event menu for rare cards.
-• **Super Ninja** (Home): a new god card every hour. Gold draw 300 (10 for 2800), a free draw every 8 hours, and the 25th draw is always the god card. Every draw is 10 points; every 3 days the top 20 get prizes in the **Awards** chest (1st needs 600 points).
+• **Super Ninja** (Home): a new god card every hour. Gold draw 300 (10 for 2800), a free draw every 8 hours, and the 25th draw is always the god card. Every draw is 10 points. **Every hour** the ranking pays out in the **Awards** chest: 1st wins that hour's god card, 2nd-3rd 300 gold, 4th-10th 100 gold (you need at least 50 points).
 • **World Boss** (Event menu): an Akatsuki member invades every day from **14:00 to 14:30**: 10 hits, then a short wait. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
 • **Awards** chest (Home, right side): gifts the server owner sends you. Press **Claim**; they stay 7 days.
 • **Sign-in** (Event menu): log in on days in a row for ramen, Hyourou-gan and silver; from day 7 also 20 gold a day. Missing a day starts again at day 1.

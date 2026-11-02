@@ -120,12 +120,14 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - Recharge streak (`dailyevents.js`): "$3 a day" is the screen's own text; the 7 daily gifts and the bonus (300 Reincarnation Pills + 200 Souls Dan) are (ours).
 
 ## Limited Super Ninja (added 2 Nov 2026, owner's request)
-- `limitsuper.js`, Home button "Super Ninja". The screens and protocol are ORIGINAL; every number is **(ours)** because the dead server decided them:
-  featured card = each of the game's 82 god cards in turn, a new one every hour (owner: "for now"; `ROTATE_HOURS`); a pull costs the premium-recruit
-  price (300 gold, ten for 2800); 4 % for the featured god card, sure on the 25th pull without one (the count carries over); otherwise a 4-5 star
-  premium-recruit card; 1 free pull every 8 hours; 10 points a pull; 3-day ranking rounds (local midnight), prizes mailed to the Awards chest:
-  1st Six Paths Naruto (God) + 1000 gold (needs 600 points, about $300 of free top-ups: $99.99 = 5500 gold), 2nd-3rd Hokage Kakashi (God) + 500 gold,
-  4th-10th 500 gold, 11th-20th 200 gold. The 1st-prize minimum is the screen's own rule ("The MINIMUM for 1st prise is ...").
+- `limitsuper.js`, Home button "Super Ninja". The screens and protocol are ORIGINAL; the numbers are **(ours, owner's choice "for now", 2 Nov 2026)**:
+  featured card = each of the game's 82 god cards in turn, a new one every hour (`ROTATE_HOURS`); a draw costs 300 gold (ten for 2800, original 300
+  from the photos); 4 % for the featured god card, sure on the 25th draw without one (the count carries over); otherwise a 4-5 star premium-recruit
+  card; 1 free draw every 8 hours; 10 points a draw; the ranking pays out every hour into the Awards chest: 1st = that hour's god card,
+  2nd-3rd 300 gold, 4th-10th 100 gold, every prize needs 50 points (the screen's "The MINIMUM for 1st prise is 50").
+  ORIGINAL from the photos (FINDINGS-PHOTOS lines 63, 93, 158, 183, 211, 271, 380, 475, 513, 543-556), not used yet by the owner's choice: the headliner
+  was only the 1st prize (draws gave normal 4-5 star cards), every 10th draw a sure five-star purple card ("Recruit N more will get one", N 0-9),
+  10-30 points a draw, minimum for 1st 240-480, free draw once a day, a 3-day event, prize cards for ranks 1 / 2-3 / 3-5 / 6-10.
 
 ## Balancing from the photos (2 Nov 2026, later)
 - Monthly sign-in (`signin.js`): days 1-16 and their VIP x2 marks are ORIGINAL (photos 0516, 1871). (ours): which cards (4-star pack days 4 / 9, 5-star pack day 12), days 17-28 = days 5-16 again with VIP marks +4 (at most v15).

@@ -160,7 +160,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Discord: #updates for every update, #announcement for big news |
 | ✅ | Big test round (2 Nov morning): Battles 25 chapters + boss + floor rewards, Spar win card, W.A. titles, set bonuses, plunder chances, Hyourou-gan, item USE, VIP limits, Arena exchange, Team 2, battle reports, friend messages, Akatsuki leader tools, war rankings, Ninja Treasure top list, red dots, Award Center, shop bags, VIP gifts / wheel / prize packs give what they say; new tests (bad input, cheats, new and real saves) |
 | ✅ | Events: login streak, God of Wealth, Month card, Flower Worship (switches) |
-| ✅ | **Limited Super Ninja** ("Super Ninja" button on Home, 2 Nov): every god card takes a turn, a new one every hour; 300 gold a pull (ten 2800), 1 free pull every 8 hours, sure god card on the 25th pull; points ranking in 3-day rounds with prizes in the Awards chest (1st needs 600 points, about $300 of top-ups). All numbers are ours |
+| ✅ | **Limited Super Ninja** ("Super Ninja" button on Home, 2 Nov): a new god card every hour; 300 gold a draw (ten 2800), 1 free draw every 8 hours, sure god card on the 25th draw; the ranking pays out every hour (1st = that hour's god card, 2nd-3rd 300 gold, 4th-10th 100 gold, every prize needs 50 points). Numbers are ours for now (the photos show the original rules, see BASE-FEATURES) |
 
 ## Still to build
 

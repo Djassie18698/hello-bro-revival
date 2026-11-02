@@ -65,11 +65,13 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   call('rl_r_mainpage', { Cmd: 1301 });
   call('rl_w_recruit', { Cmd: 1900, Type: 1, Free: 0 });
   ck(db.prepare('SELECT score FROM superninja WHERE uid=77').get().score === 120, 'a normal recruit after leaving counted for the event');
-  // the round ends: prizes are mailed once (120 points < the 1st-prize minimum, so the leader gets the 2nd prize)
+  // the hour ends: prizes are mailed once; 1st place (120 points, the minimum is 50) wins that hour's god card
   db.prepare('UPDATE superninja SET round=round-1').run();
-  require('../../limitsuper').settle(db); require('../../limitsuper').settle(db);
+  const ls = require('../../limitsuper'), round = db.prepare('SELECT round FROM superninja WHERE uid=77').get().round;
+  const god = ls.godList()[round % ls.godList().length];
+  ls.settle(db); ls.settle(db);
   const mail = db.prepare("SELECT content, items FROM award_mail WHERE uid=77 AND title='Limited Super Ninja'").all();
-  ck(mail.length === 1 && /#1 with 120 points/.test(mail[0].content) && mail[0].items.includes('1728'), 'round prize mail: ' + JSON.stringify(mail));
+  ck(mail.length === 1 && /#1 with 120 points/.test(mail[0].content) && mail[0].items.includes(`"dropid":${god.drop}`), 'round prize mail: ' + JSON.stringify(mail));
 }
 // The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
 {

@@ -10,13 +10,14 @@
 //    open (Cmd 6 / 7) and treats their pulls as event pulls until they go Home or to the Shop (rl_r_mainpage / rl_r_shoplist).
 //  - rl_w_comm Cmd 11 = claim the rank prize after the event (actstatus 2). Not used: rounds run back to back and the prizes are mailed
 //    to the Awards chest when a round ends.
-// Everything the dead server decided is lost, so all numbers here are (ours), owner's request 2 Nov 2026:
+// Everything the dead server decided is lost, so all numbers here are (ours), owner's requests 2 Nov 2026 (the owner remembers the god
+// cards only came as rank prizes in the original; the draws giving them too is the owner's choice "for now"):
 //  - every god card of the game (82) takes a turn as the featured ninja, a new one every ROTATE_HOURS (1 for now) on the hour;
 //  - a pull costs what the premium recruit costs (300 gold, ten for 2800); FEATURED_PCT % for the featured god card, sure on the PITY-th
 //    pull without one (the count carries over to the next featured card); otherwise a premium-recruit card (4-5 star);
 //  - one free pull every FREE_EVERY seconds; every pull (free too) scores SCORE points;
-//  - rankings run in ROUND_DAYS-day rounds (local midnight); the 1st prize needs LIMIT_SCORE points, about 300 dollars of (free) top-ups
-//    spent on pulls ($99.99 = 5500 gold, so ~16 500 gold = ~59 pulls = ~590 points). Below it the leader gets the 2nd prize.
+//  - the ranking is per featured card (one round = ROTATE_HOURS): when it ends, 1st place wins that god card; every prize needs
+//    LIMIT_SCORE points (so a free pull alone never pays gold), below it there is no prize.
 const game = require('./game');
 const settings = require('./settings');
 
@@ -24,22 +25,20 @@ const ROTATE_HOURS = 1;
 const FEATURED_PCT = 4, PITY = 25;
 const FREE_EVERY = 8 * 3600;
 const SCORE = 10;
-const ROUND_DAYS = 3;
-const LIMIT_SCORE = 600;
+const LIMIT_SCORE = 50;
 const RANK_SHOWN = 20;
-// [from rank, to rank, label, gold, dropinfo ids, the card's name in short lines (the reward list cuts text after ~12 letters)]
+// [from rank, to rank, label, gold, god card of the round] (the reward list cuts text after ~12 letters)
 const PRIZES = [
-  [1, 1, '1st', 1000, [1686], ['Six Paths', 'Naruto (God)']], // Six Paths Naruto (God)
-  [2, 3, '2nd-3rd', 500, [1728], ['Hokage', 'Kakashi(God)']], // Hokage Kakashi (God)
-  [4, 10, '4th-10th', 500, []],
-  [11, 20, '11th-20th', 200, []],
+  [1, 1, '1st', 0, true],
+  [2, 3, '2nd-3rd', 300, false],
+  [4, 10, '4th-10th', 100, false],
 ];
 
 const now = () => Math.floor(Date.now() / 1000);
 const local = (t = now()) => t - new Date(t * 1000).getTimezoneOffset() * 60; // seconds on the local clock
-const roundOf = (t = now()) => Math.floor(local(t) / (ROUND_DAYS * 86400));
-const roundEnd = (r) => { const end = (r + 1) * ROUND_DAYS * 86400; return end + new Date(end * 1000).getTimezoneOffset() * 60; };
 const slotOf = (t = now()) => Math.floor(local(t) / (ROTATE_HOURS * 3600));
+const roundOf = slotOf; // one ranking round per featured card
+const roundEnd = (r) => { const end = (r + 1) * ROTATE_HOURS * 3600; return end + new Date(end * 1000).getTimezoneOffset() * 60; };
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 let gods = null;
@@ -54,7 +53,8 @@ function godList() {
   }
   return gods;
 }
-const featured = (t = now()) => { const g = godList(); return g[slotOf(t) % g.length]; };
+const godOf = (slot) => { const g = godList(); return g[slot % g.length]; };
+const featured = (t = now()) => godOf(slotOf(t));
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS superninja (uid INTEGER, server_id INTEGER, round INTEGER, score INTEGER DEFAULT 0, at INTEGER DEFAULT 0,
@@ -76,7 +76,7 @@ function board(db, sid, round = roundOf()) {
     WHERE s.server_id=? AND s.round=? AND s.score>0 ORDER BY s.score DESC, s.at ASC`).all(sid, round);
 }
 function prizeFor(rank, score) {
-  if (rank === 1 && score < LIMIT_SCORE) rank = 2; // "The MINIMUM for 1st prise is ..."
+  if (score < LIMIT_SCORE) return null; // "The MINIMUM for 1st prise is ..." (for every prize here)
   return PRIZES.find(([a, b]) => rank >= a && rank <= b);
 }
 
@@ -92,15 +92,14 @@ function settle(db) {
       for (const { server_id: sid } of db.prepare('SELECT DISTINCT server_id FROM superninja WHERE round=?').all(round)) {
         board(db, sid, round).forEach((r, i) => {
           const p = prizeFor(i + 1, r.score);
-          if (p) require('./awardcenter').send(db, { uid: r.uid, server_id: sid }, 'Limited Super Ninja', `You finished #${i + 1} with ${r.score} points. Your prize: ${prizeText(p)}.`, { gold: p[3], drops: p[4] });
+          const god = godOf(round);
+          if (p) require('./awardcenter').send(db, { uid: r.uid, server_id: sid }, 'Limited Super Ninja', `You finished #${i + 1} with ${r.score} points in the ${god.name} hour. Your prize: ${p[4] ? god.name : p[3] + ' gold'}.`, { gold: p[3], drops: p[4] ? [god.drop] : [] });
         });
       }
       db.exec('RELEASE superninja');
     } catch (e) { db.exec('ROLLBACK TO superninja'); db.exec('RELEASE superninja'); throw e; }
   }
 }
-const dropName = (id) => { const r = game.table('dropinfo').rows.find((x) => x[0] === id); return r ? String(r[2]) : ''; };
-const prizeText = (p) => [...p[4].map(dropName), p[3] ? p[3] + ' gold' : ''].filter(Boolean).join(' + ');
 
 function myRank(db, pl) {
   const b = board(db, pl.server_id);
@@ -126,8 +125,8 @@ function infoXml(db, pl) {
   return `<preview resttime="${roundEnd(roundOf()) - t}" nexttime="${freeLeft(db, pl)}" protect="${toGo(db, pl) + 1}" gold="${game.COST[1]}" status="0" actstatus="1" limitscore="${LIMIT_SCORE}"/>` +
     '<ninjalist>' + next.map(({ g, s }) => `<item name="${esc(s ? `Next ${hhmm(s)}: ${g.name}` : `Now: ${g.name}`)}" ninjiaid="${g.id}" attr="3" dropid="${g.drop}"/>`).join('') + '</ninjalist>' +
     rankRows(m.board) + `<myrank rank="${m.rank || '-'}" score="${m.score}"/>` +
-    '<rewardlist>' + [...PRIZES.flatMap((p) => p[5] ? [...p[5].map((line) => [p[2], line]), [p[2], `+ ${p[3]} gold`]] : [[p[2], `${p[3]} gold`]]),
-      ['New god', ROTATE_HOURS === 1 ? 'every hour' : `every ${ROTATE_HOURS} hours`], ['Points', `${SCORE} a pull`], ['Round', `${ROUND_DAYS} days`], ['Prizes', 'in Awards']]
+    '<rewardlist>' + [...PRIZES.flatMap((p) => p[4] ? [[p[2], 'the god card'], [p[2], 'of this hour']] : [[p[2], `${p[3]} gold`]]),
+      ['Every prize', `${LIMIT_SCORE}+ points`], ['Points', `${SCORE} a draw`], ['Paid out', ROTATE_HOURS === 1 ? 'every hour' : `every ${ROTATE_HOURS} hours`], ['Prizes', 'in Awards']]
       .map(([a, b]) => `<item rankrange="${esc(a)}" dropinfo="${esc(b)}"/>`).join('') + '</rewardlist>';
 }
 function refreshXml(db, pl) {
