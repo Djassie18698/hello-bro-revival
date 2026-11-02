@@ -1034,3 +1034,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   CRunLevelView, which would pay those per-difficulty chapter rewards (rl_w_adventure 2605/2606), has empty stubs for its network reply,
   round data and reward code in v28: the mode is dead. We send hardLevel 0, so the reset dialog never shows. War progress chest
   (rl_w_warresultnew 8200) only shows with canrequire 1 (never sent; reward lost): now answers a tip instead of an empty reply.
+- Arena Exchange tab: the reply to rl_x_sport_ext Cmd 1 was code 1 (the tab showed "Successfully purchased" and reputation 0) and buys
+  had no limits. Now <renown_value> + <renown><ritem><id/><dayget/><totalget/></ritem></renown> (CHILD elements; attributes crash at
+  0x18). Values = times LEFT, -1 = no limit of that kind: the row shows "Total Exchange N Times" if totalget is not -1, else "Today's
+  Exchange N Times", and greys its button at 0. ORIGINAL limits exchange_award [4] total (Sasuke, Naruto, seals, kunai: once ever) and [5]
+  a day (pills 2, Sage Stone I 4); the server enforces both. Checked in game: reputation shows, Development Dan 2 -> 1 -> 0 left and greys.
+  Found by a new check: every reply tag a C++ screen reads vs every tag our code sends (scratchpad tags.py).

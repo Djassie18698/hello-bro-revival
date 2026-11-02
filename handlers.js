@@ -1092,12 +1092,22 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
+    // Exchange limits, ORIGINAL exchange_award: [4] times ever ("Total Exchange 1 Times"), [5] times a day ("Today's Exchange 2 Times"),
+    // 0 = no limit; the client shows them with the counts from Cmd 1 (<ritem>).
+    db.exec('CREATE TABLE IF NOT EXISTS arena_exchange (uid INTEGER, server_id INTEGER, id INTEGER, day TEXT, dayget INTEGER, totalget INTEGER, PRIMARY KEY(uid, server_id, id))');
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const got = (id) => { const r = db.prepare('SELECT * FROM arena_exchange WHERE uid=? AND server_id=? AND id=?').get(pl.uid, pl.server_id, id); return { day: r && r.day === today ? r.dayget : 0, total: r ? r.totalget : 0 }; };
     if (cmd === 2) {
       const row = game.table('exchange_award').rows.find((r) => r[0] === Number(p.Exchg));
       if (!row) return '<root code="5"><message>bad item</message></root>';
+      const g = got(row[0]);
+      if (row[4] > 0 && g.total >= row[4]) return `<root code="5"><message>this can only be exchanged ${row[4]} time(s)</message></root>`;
+      if (row[5] > 0 && g.day >= row[5]) return '<root code="5"><message>no exchanges of this left today</message></root>';
       const rep = game.propCounts(db, pl.uid, pl.server_id)[9996] || 0;
       if (rep < row[6]) return '<root code="5"><message>not enough reputation</message></root>';
       game.propAdd(db, pl.uid, pl.server_id, 9996, -row[6]);
+      db.prepare('INSERT INTO arena_exchange(uid, server_id, id, day, dayget, totalget) VALUES(?,?,?,?,?,?) ON CONFLICT(uid, server_id, id) DO UPDATE SET day=excluded.day, dayget=excluded.dayget, totalget=excluded.totalget')
+        .run(pl.uid, pl.server_id, row[0], today, g.day + 1, g.total + 1);
       return '<root code="0">' + game.grantDrop(db, pl, row[7]) + '</root>';
     }
     if (cmd === 3) {
@@ -1110,9 +1120,12 @@ module.exports = {
       db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
       return '<root code="0">' + game.awardFull({ coin }) + '</root>';
     }
-    // Cmd 1: the client treats a code-0 reply as a reward to show (and crashes without one); the list itself comes
-    // from the client's exchange_award table, so answer "nothing to collect".
-    return '<root code="1"></root>';
+    // Cmd 1 = the Exchange tab (CArenaListView): <renown_value> (my reputation) + <renown><ritem><id/><dayget/><totalget/></ritem></renown>; the items
+    // themselves come from the client's exchange_award table. (The old code-1 answer showed the tip "Successfully purchased".)
+    // child elements (CArenaListView::AddExchgData); the values are the times LEFT, -1 = no limit of that kind: the row shows "Total
+    // Exchange N Times" when totalget is not -1, else "Today's Exchange N Times", and greys its button at 0 (COpponentCardView::initExchange)
+    const items = game.table('exchange_award').rows.map((r) => { const g = got(r[0]); return '<ritem>' + el('id', r[0]) + el('dayget', r[5] > 0 ? Math.max(0, r[5] - g.day) : -1) + el('totalget', r[4] > 0 ? Math.max(0, r[4] - g.total) : -1) + '</ritem>'; }).join('');
+    return `<root code="0"><renown_value>${game.propCounts(db, pl.uid, pl.server_id)[9996] || 0}</renown_value><renown>${items}</renown></root>`;
   },
 
   // World boss (fightBossView.lua). Cmd 1 info, 3 dice, 4 claim rank award, 6 hero ranking, 7 exchange, 8 boss hp, 10 clear cd, 11 fight feed.
