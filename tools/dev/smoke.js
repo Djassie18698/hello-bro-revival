@@ -105,6 +105,22 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   if (!/<award dropid="159"/.test(top) || !/<coin>25000<\/coin>/.test(top) || !(/<card>/.test(top) || /<cash>300<\/cash>/.test(top))) { bad++; console.log('ARENA rank 1 claim:', top.slice(0, 200)); }
   if (!/code="5"/.test(claim())) { bad++; console.log('ARENA second claim the same day was paid'); }
 }
+// Create screen: the game sends the chosen ninja's own id (Neji 55 / Sakura 56 / Shikamaru 57); the new player starts with that one.
+for (const pick of [55, 56, 57]) {
+  const uid = 900 + pick, p = { ...base, Uid: String(uid), Session: 's' + uid };
+  handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } });
+  handlers.rl_w_reg2({ db, params: { ...p, Cmd: 0, Nick: 'Pick' + pick, Card: pick } });
+  const got = db.prepare('SELECT c.ninja_id FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.slot=0').get(uid);
+  if (!got || got.ninja_id !== pick) { bad++; console.log('STARTER pick', pick, 'gave', got && got.ninja_id); }
+}
+// Starter gift: after a level-up (Cmd 3) <on_off>1 also opens the gift, so only while it is unclaimed.
+{
+  const lv = () => handlers.rl_r_newbie_pay({ db, params: { ...base, Cmd: 3 } });
+  db.prepare('DELETE FROM stagegift WHERE uid=77').run();
+  const before = lv();
+  handlers.rl_r_newbie_pay({ db, params: { ...base, Cmd: 2 } });
+  if (!/<on_off>1</.test(before) || /<on_off>1</.test(lv())) { bad++; console.log('STARTER GIFT level-up popup', before.slice(0, 60), lv().slice(0, 60)); }
+}
 // The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
 {
   const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });

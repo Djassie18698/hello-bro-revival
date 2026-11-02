@@ -23,4 +23,4 @@ function claim(db, pl) {
   return { xml: game.mergeAwards(GIFT.map((id) => game.grantDrop(db, pl, id)).filter(Boolean)) };
 }
 
-module.exports = { ensure, infoXml, claim };
+module.exports = { ensure, infoXml, claim, claimed: (db, pl) => (ensure(db), claimed(db, pl)) };

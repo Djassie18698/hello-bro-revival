@@ -78,7 +78,7 @@ function ensureStarterTeam(db, uid, sid, pick) {
   ensure(db);
   const have = db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=? AND server_id=?').get(uid, sid).n;
   if (have > 0) return;
-  const nid = STARTERS[pick] || 57;
+  const nid = STARTER_JUTSU[pick] ? pick : STARTERS[pick] || 57; // the create screen sends the ninja id itself (55/56/57)
   const seq = giveCard(db, uid, sid, nid);
   db.prepare('INSERT OR REPLACE INTO team(uid,server_id,slot,seq) VALUES(?,?,?,?)').run(uid, sid, 0, seq);
   const jutsu = giveCard(db, uid, sid, STARTER_JUTSU[nid], 6);

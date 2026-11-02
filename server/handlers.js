@@ -676,9 +676,11 @@ module.exports = {
       const r = stagegift.claim(db, pl);
       return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
     }
-    // Cmd 3 = after a level-up (CPlayerLevelUp::requestActivity): <on_off>1 makes the client re-read the event red dots (readActivityNewsData),
-    // so a new Level-up Gift shows at once
-    return '<root code="0">' + (Number(p.Cmd) === 3 ? '<on_off>1</on_off>' : '') + stagegift.infoXml(db, pl) + '</root>';
+    // Cmd 3 = after a level-up (CPlayerLevelUp::requestActivity): <on_off>1 makes the client re-read the event red dots (readActivityNewsData)
+    // AND sets the flag that opens this gift when the level-up window closes (CPlayerLevelUp::OnClicked -> createStageGiftLayer).
+    // So only while the gift is still unclaimed, else it pops up after every level-up showing "already claimed".
+    const offer = Number(p.Cmd) === 3 && require('./settings').eventOn(db, 31) && !stagegift.claimed(db, pl);
+    return '<root code="0">' + (offer ? '<on_off>1</on_off>' : '') + stagegift.infoXml(db, pl) + '</root>';
   },
   rl_got: () => '<root code="0"></root>',
   rl_r_ky_checkorder: () => '<root code="0"></root>',
