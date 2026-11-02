@@ -988,3 +988,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   roses, the client opens Top-up). Item index must equal the picture the layout starts with (sprite_avtor_N = nvshen_meinvN), else names and
   prices land on the wrong goddess. Roses = prop 9992. Checked in game: screen, Mei "Given 40 flowers", gift -> Gaara + Silver Key*3, roses
   45 -> 5, too few roses -> Top-up window.
+- Succession price: the client shows and charges cost_cash + add_attack + add_defense (ui_ninjaInheritLayer, comment "gold + training
+  values"); we sent the trained points as 0. Now add_attack/add_defense = the card's trained attack/defense (pot_att/pot_def) and cost_cash
+  = 50 x (level - 1) (ours: photo 4440 shows 2450 for a level-50 card with training 0/0; was 50 + 50 a rebirth + 50 per 3 growth = 200).
+  ninjaupgrade's last column (2450 at level 49) is m_sellprice, not a succession price. The v28 card view still has no Succession button.
+- Flower Worship photos 3863/4709 show two later runs with other reward lists (both cut off; Boruto is not in v28): kept the list
+  written in the game itself.

@@ -1028,11 +1028,13 @@ function potentialSave(db, pl, seq) {
 // ---- Succession (inherit) -------------------------------------------------------------------
 // ui_ninjaInheritLayer (Backpack card > Succession). ORIGINAL rule (the screen's own text, photo 2016): "Succession card level,
 // reincarnation, and growth points will be completely transferred to the inheritance card"; only cards of the same quality; "after
-// succession is complete, succession card will become a level 0 foundation card". Price (ours): 50 gold per rebirth and per 3 growth
-// levels + 50 (cost_cash; the client adds add_attack + add_defense, sent as 0).
-const inheritCost = (c) => 50 + 50 * (c.newlife || 0) + 50 * Math.floor((c.starlevel || 0) / 3);
+// succession is complete, succession card will become a level 0 foundation card". Price = cost_cash + trained attack + trained defense
+// (ORIGINAL: the client's own sum, "gold + training values"). cost_cash (ours) = 50 x (level - 1): fits the only photo (4440: level 50,
+// growth 9, 1 rebirth, training 0/0 -> 2450 gold).
+const inheritBase = (c) => 50 * Math.max(0, (c.level || 1) - 1);
+const inheritCost = (c) => inheritBase(c) + (c.pot_att || 0) + (c.pot_def || 0);
 function inheritInfoXml(c) {
-  return `<basic>${el('cost_cash', c ? inheritCost(c) : 0)}${el('level', c ? c.level : 1)}${el('star', c ? c.starlevel || 0 : 0)}${el('newlife', c ? c.newlife || 0 : 0)}<add_attack>0</add_attack><add_defense>0</add_defense></basic>`;
+  return `<basic>${el('cost_cash', c ? inheritBase(c) : 0)}${el('level', c ? c.level : 1)}${el('star', c ? c.starlevel || 0 : 0)}${el('newlife', c ? c.newlife || 0 : 0)}${el('add_attack', c ? c.pot_att || 0 : 0)}${el('add_defense', c ? c.pot_def || 0 : 0)}</basic>`;
 }
 function inheritCardAward(c) {
   return `<award dropid="1" coin="0"><cardlist><card>${el('id', c.ninja_id)}${el('type', 1)}${el('num', 1)}${el('attri', c.attri || 1)}${el('bagIndex', c.seq)}${el('level', c.level)}${el('newlife', c.newlife || 0)}${el('starlevel', c.starlevel || 0)}</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>`;
