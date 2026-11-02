@@ -164,6 +164,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Invitation code (Settings): only a friend's game ID counts, once per player (any word used to give 500 gold again and again) |
 | ✅ | Soul Disenchant checked again in the game: 4-star cards give 150 souls, 5-star 1000, purple 5-star / god 2000; 3-star cards give 0 (the game's own table) |
 | ✅ | Ninja Treasure: "Top Rewards" shows the 16 original big prizes (photo 4335) and every board hides one of them; gold and silver squares show their real amount |
+| ✅ | No more 30 000 free starter souls for new players (owner: original); souls come from Soul Disenchant. Players who already got them keep them |
 
 ## Still to build
 

@@ -1196,8 +1196,8 @@ function inherit(db, pl, srcSeq, dstSeq) {
 const SOUL = 9999; // props id used for ninja souls
 function soulOf(db, pl) {
   const c = propCounts(db, pl.uid, pl.server_id);
-  if (c[SOUL] === undefined) { propAdd(db, pl.uid, pl.server_id, SOUL, 30000); return 30000; } // starter souls for the offline server
-  return c[SOUL];
+  // Owner, 2 Nov 2026: no starter souls (we gave 30 000; no photo shows any). Souls come from Soul Disenchant; players who already got them keep them.
+  return c[SOUL] || 0;
 }
 // Mystery shop (secret_shop rows: [id, id, name, type, subtype, itemid, num, costtype, cost, weight, dropid]): 6 rows picked by weight
 // from everything the original sold - ninjas, ninja fragments, pet fragments, grain, nostrum, sage stones, reincarnation pills.

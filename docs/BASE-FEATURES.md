@@ -75,6 +75,7 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - The 3-chest boss stages of the Ninja Test (5, 10, 15) have not been played in game yet.
 
 - **Ninja Treasure (2 Nov 2026):** refresh 100 gold, board every 2 h, explore 35 / 70 / 300 / 320 / 1000 (original), 1000 after the 5th **(ours)**. Top Rewards = the 16 original big prizes (photo 4335: Six Paths Obito, Sasuke, Hinata, Fourth Sage, Obito, Jiraiya, Killer B, Tsunade (God), Madara, Choji, Indra, Hashirama, Shisui, Itachi, Sakura, Bashosen); every board hides exactly one of them among its 9 prizes **(ours)**, so clearing a whole board (5725 gold) always gives one.
+- **Ninja souls (2 Nov 2026):** new players start with 0 (we used to give 30 000); souls come from Soul Disenchant (4-star 150, 5-star 1000, purple 5-star / god 2000, 3-star 0: the game's refinery_info).
 - **Invitation code (2 Nov 2026):** type the game ID of the friend who invited you (Settings shows your own ID above the box); 500 gold, once per player **(ours)**.
 - **Arena daily reward (2 Nov 2026):** 26 000 - 1000 x rank silver for ranks 1-10 (original), then -60 a rank **(ours)**, at least 2000 (original); reputation = silver / 5 (original).
 - **Treasure chests (2 Nov 2026):** prize lists original; weights, gold price without a key (50 / 20 / 5), 25 + 5 x VIP gold-chest opens a day and 8% key drops in story fights **(ours)**.
