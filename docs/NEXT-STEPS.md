@@ -1110,3 +1110,12 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   ("not implemented yet"). VIP2 had no Kurama Seal, VIP6/7/8/9/11/14-17 no ninjutsu (Amaterasu, Tsukuyomi, Susanoo, Shinra Tensei ...),
   VIP12 no Ten-Tails Seal. They now use game.grantDrop like everything else. Checked in game: VIP2 gift -> Kurama Seal card, VIP6 gift ->
   Amaterasu (5-star ninjutsu card), no errors. (The VIP2 text says 10 Large Ramen; the game's own drop 1395 gives 5: kept.)
+- Random packs checked one by one against their own text (all 337 dropinfo packs): equipFromText read "chance of X-Star ..." in ANY pack
+  text, so "One,Two-Star Shinobi Card" (drop 16 = 20 % of normal story stage wins) gave 1-2 star gear, "Shinobi Pack III" gave gear and
+  the ninjutsu packs ("Ninjitsu", the game's spelling) gave gear; seal packs ("Tailed Beast Seal Fragment" x5 / x3 in the gold / silver
+  treasure chests, "Seal fragments", "Complete Tail-Beast Seal", "Tail Beast Seal") gave a random shinobi. Now: equipFromText only for
+  equipment texts; /Ninj[ui]tsu/; seal fragment packs give a random fragment of any seal (props 20000 + markinfo id, shown in the award
+  as a seal card with the fragment's id and bagIndex 0: the reward screen shows "Seal fragments: X Seal Fragment N", the Seal tab stays
+  clean), complete seal packs a random tailed-beast seal 1-9 (ours: equal; Ten-Tails only from its own drops). Only mixed packs differ
+  now (26 "Card and Seal", 219/220 one of shinobi / gold). Checked in game via the Award Center: drop 174 -> Ten Tails Seal Fragment 5,
+  drop 16 -> Moegi (1-star shinobi).

@@ -347,6 +347,7 @@ function awardXml(c) {
 // that star; "One, Two-Star" = 1-2. The slot is the one the text names (weapon / armor / trinket), else random. null = not a gear pack text.
 const STAR_WORD = { One: 1, Two: 2, Three: 3, Four: 4, Five: 5 };
 function equipFromText(t) {
+  if (!/equipment|weapon|armou?r|trinket/i.test(t)) return null; // shinobi / ninjutsu / seal pack texts use the same "chance of X-Star" words
   const slotOf = /weapon/i.test(t) ? 0 : /armor/i.test(t) ? 1 : /trinket/i.test(t) ? 2 : Math.floor(Math.random() * 3);
   const w = (re) => { const m = re.exec(t); return m ? STAR_WORD[m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()] : 0; };
   const top = w(/chance (?:to get|to grant|of) (One|Two|Three|Four|Five)-Star/i), mid = w(/(?:higher|great) chance (?:to win |to grant |of )?(One|Two|Three|Four|Five)-Star/i);
@@ -366,6 +367,15 @@ function rollPack(r) {
   const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);
   const exact = equipFromText(t);
   if (exact) return { equip: exact };
+  // Tailed-beast seal packs ("Seal fragments", "Tailed Beast Seal Fragment" in the treasure chests, "Complete Tail-Beast Seal", "Tail
+  // Beast Seal"): a random fragment of any seal (markmerge), or a random complete tailed-beast seal 1-9 (ours: equal chances; the
+  // Ten-Tails Seal only comes from its own fixed drops). Before 2 Nov 2026 these gave a random shinobi.
+  if (/seal/i.test(t) && !/card|shinobi|ninj[ui]tsu|equipment|weapon|armou?r|trinket|gold/i.test(t)) {
+    const merges = table('markmerge').rows;
+    if (/fragment/i.test(t)) { const frags = merges.flatMap((m) => m.slice(3, 9).filter((x) => x > 0)); return { sealFrag: frags[Math.floor(Math.random() * frags.length)] }; }
+    const seals = merges.map((m) => m[0]).filter((id) => id >= 1 && id <= 9);
+    return { seal: seals[Math.floor(Math.random() * seals.length)] };
+  }
   // Spar win draws (handlers rl_w_pvp): dropinfo 397 "Equipment and Ninjutsu before Lv.20" and 27 "Drop from Equipment, Seal". The real
   // chances were server-side and are lost; (ours): mostly 2-3 star gear or ninjutsu (397) / 3-star gear (27), rarely 4, very rarely 5 stars.
   if (r[0] === 397 || r[0] === 27) {
@@ -376,10 +386,10 @@ function rollPack(r) {
   const gearSlot = /Weapon/.test(t) ? 0 : /Armou?r/.test(t) ? 1 : /Trinket|Accessor|Ornament/.test(t) ? 2 : -1; // "One, Two-Star Weapon Card" etc.
   if (gearSlot >= 0 && !/Equipment/.test(t)) return { equip: low ? randomEquip(gearSlot, 1, 2) : three ? randomEquip(gearSlot, 3, 3) : randomEquip(gearSlot, 3, /Five-Star/.test(t) ? 5 : 4) };
   if (/Equipment/.test(t)) return low ? { equip: randomEquip(Math.floor(Math.random() * 3), 1, 2) } : three ? { equip: randomEquip(Math.floor(Math.random() * 3), 3, 3) } : { equip: randomEquip(Math.floor(Math.random() * 3), star) };
-  if (low && !/Ninjutsu/.test(t)) { const pool = pools()[1 + Math.floor(Math.random() * 2)]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
-  if (three && !/Ninjutsu/.test(t)) { const pool = pools()[3]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
+  if (low && !/Ninj[ui]tsu/i.test(t)) { const pool = pools()[1 + Math.floor(Math.random() * 2)]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
+  if (three && !/Ninj[ui]tsu/i.test(t)) { const pool = pools()[3]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
   if (/Gold/.test(t) && Math.random() < 0.3) return { cash: Number((t.match(/(\d+) Gold/) || [0, 300])[1]) };
-  if (/Ninjutsu/.test(t)) { // a real ninjutsu card of the star the pack names (was a 30000 silver placeholder)
+  if (/Ninj[ui]tsu/i.test(t)) { // a real ninjutsu card of the star the pack names (was a 30000 silver placeholder)
     const want = /Five-Star/.test(t) ? [5] : /Four-Star/.test(t) ? [4] : /Three-Star/.test(t) ? [3] : /One,\s*Two/.test(t) ? [1, 2] : [3, 4];
     const pool = table('ninjutsuinfo').rows.filter((x) => want.includes(x[5]) && x[6] === 1);
     if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] };
@@ -413,6 +423,7 @@ function grantDrop(db, pl, dropId) {
   const n = r[13] || 1;
   const cards = [], props = [];
   let coin = 0, cash = 0, soul = 0, chips = 0;
+  const sealFrags = [];
   // drop type 1 = random pack. "X-Star ... Card" packs carry one example card in col 3/4; roll a random card of that kind instead
   // of always giving the example (Aburame Torune every time, GitHub #4).
   const pack = r[12] === 1 && !(r[7] > 0) && (!(r[3] > 0) || /Star/.test(String(r[2]))) ? rollPack(r) : null;
@@ -420,6 +431,8 @@ function grantDrop(db, pl, dropId) {
   if (ninja > 0) for (let i = 0; i < n; i++) cards.push({ type: 1, id: ninja, seq: giveCard(db, pl.uid, pl.server_id, ninja) });
   else if (equip > 0) for (let i = 0; i < n; i++) { const seq = giveEquip(db, pl.uid, pl.server_id, equip); if (seq) cards.push({ type: db.prepare('SELECT type FROM cards WHERE seq=?').get(seq).type, id: equip, seq }); }
   else if (pack && pack.ninjutsu) cards.push({ type: 6, id: pack.ninjutsu, seq: giveCard(db, pl.uid, pl.server_id, pack.ninjutsu, 6) });
+  else if (pack && pack.seal) for (let i = 0; i < n; i++) cards.push({ type: 5, id: pack.seal, seq: giveCard(db, pl.uid, pl.server_id, pack.seal, 5) });
+  else if (pack && pack.sealFrag) { propAdd(db, pl.uid, pl.server_id, 20000 + pack.sealFrag, n); sealFrags.push({ id: pack.sealFrag, num: n }); } // seals.js FRAG
   else if (pack) { cash = pack.cash || 0; coin = pack.coin || 0; }
   else if (r[7] > 0) { propAdd(db, pl.uid, pl.server_id, r[7], n); props.push({ id: r[7], num: n }); }
   else if (r[10] > 0) cash = r[10] * n;
@@ -436,9 +449,12 @@ function grantDrop(db, pl, dropId) {
   const AWARD_TYPE = { 1: 1, 2: 2, 3: 2, 4: 2, 5: 5, 6: 4 };
   const cardXml = cards.map((c) => '<card>' + el('id', c.id) + el('type', AWARD_TYPE[c.type] || c.type) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
   const propXml = props.map((x) => '<prop>' + el('id', x.id) + el('num', x.num) + '</prop>').join('');
+  // seal fragments are shown as seal cards with the fragment's markinfo id (picture + name "Shukaku Seal Fragment 1"); they are kept as
+  // props 20000 + id, which the seal screens read from the server
+  const fragXml = sealFrags.map((x) => '<card>' + el('id', x.id) + el('type', 5) + el('num', x.num) + el('attri', 0) + el('bagIndex', 0) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
   // Lua award screens count one fragment per <chipitem>, so repeat it n times with num="1".
   const chipXml = `<chipitem id="${r[8]}" num="1"/>`.repeat(chips);
-  return `<award dropid="${dropId}" coin="${coin}"><cardlist>${cardXml}</cardlist><proplist>${propXml}</proplist><chipbag>${chipXml}</chipbag>` +
+  return `<award dropid="${dropId}" coin="${coin}"><cardlist>${cardXml}${fragXml}</cardlist><proplist>${propXml}</proplist><chipbag>${chipXml}</chipbag>` +
     `${el('coin', coin)}${el('cash', cash)}<exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action>${el('soul', soul)}</award>`;
 }
 // (conf item 31 = stage gift stays off: its button icon ccbResources/activity_icon_11.png is not in the v28 OBB,
