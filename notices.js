@@ -43,4 +43,34 @@ function op(db, pl, opCode, id) {
   else db.prepare('UPDATE fight_notice SET status=1 WHERE id=? AND to_uid=? AND server_id=?').run(Number(id), pl.uid, pl.server_id);
 }
 
-module.exports = { record, listXml, op };
+// ---- Friend messages (News > Friend tab, CFriendMsgCellView). A message left from the friend chat (rl_w_friend Msg + ToUid) is a
+// "Friend notification" (subtype 3, Struct_String_Menu 21) with the sender's card and the text; its dialog marks it read
+// (rl_w_msg 2902 Op Index). Listed by rl_r_msg Cmd 1801 (<msglist><msg> child elements, like the fight notices).
+function mailEnsure(db) {
+  db.exec('CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, to_uid INTEGER, from_nick TEXT, text TEXT, ts INTEGER)');
+  for (const c of ['from_uid INTEGER DEFAULT 0', 'status INTEGER DEFAULT 0']) { try { db.exec(`ALTER TABLE mail ADD COLUMN ${c}`); } catch (e) { /* already there */ } }
+}
+function sendMail(db, from, toUid, text) {
+  mailEnsure(db);
+  db.prepare('INSERT INTO mail(to_uid, from_nick, from_uid, text, ts) VALUES(?,?,?,?,?)').run(toUid, from.nick, from.uid, String(text).slice(0, 200), Math.floor(Date.now() / 1000));
+  db.prepare(`DELETE FROM mail WHERE to_uid=? AND id NOT IN (SELECT id FROM mail WHERE to_uid=? ORDER BY id DESC LIMIT ${KEEP})`).run(toUid, toUid);
+}
+function friendXml(db, pl) {
+  mailEnsure(db);
+  const rows = db.prepare(`SELECT m.*, p.level, p.country FROM mail m LEFT JOIN players p ON p.uid=m.from_uid AND p.server_id=?
+    WHERE m.to_uid=? ORDER BY m.id DESC`).all(pl.server_id, pl.uid);
+  return '<msglist>' + rows.map((r) => {
+    const card = db.prepare('SELECT ninja_id, newlife FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot LIMIT 1').get(r.from_uid, pl.server_id) || {};
+    const star = ((game.ninjas().get(card.ninja_id) || [])[11]) || 1;
+    return '<msg>' + el('subtype', 3) + el('fromnick', esc(r.from_nick)) + el('fromuid', r.from_uid || 0) + el('fromninja', card.ninja_id || 5) +
+      el('firstninjastar', star) + el('fromcountry', r.country || 1) + el('fromlevel', r.level || 1) + el('iTime', r.ts) + el('ID', r.id) +
+      el('iStatus', r.status || 0) + el('text', esc(`${r.from_nick}: ${r.text}`)) + // the cell shows no name, so it leads the text el('newlife', card.newlife || 0) + '</msg>';
+  }).join('') + '</msglist>';
+}
+function mailOp(db, pl, opCode, id) {
+  mailEnsure(db);
+  if (Number(opCode) === 1) db.prepare('DELETE FROM mail WHERE id=? AND to_uid=?').run(Number(id), pl.uid);
+  else db.prepare('UPDATE mail SET status=1 WHERE id=? AND to_uid=?').run(Number(id), pl.uid);
+}
+
+module.exports = { record, listXml, op, sendMail, friendXml, mailOp };

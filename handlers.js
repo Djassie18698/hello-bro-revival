@@ -477,17 +477,13 @@ module.exports = {
   },
 
   // Mailbox / notices (nothing yet), scrolling bulletin, activity list (no events), lucky wheel info.
-  // Mailbox: Cmd 1802 = system notices (a welcome message), 1800 fights / 1801 friends stay empty.
-  // Mailbox (Cmd 1802): welcome note + messages other players sent with the friend "Communicate" button (rl_w_friend Msg).
+  // News screen: Cmd 1800 battle reports, 1801 friend messages (notices.js), 1802 the System note (the Server Manager's announcement).
   rl_r_msg: ({ db, params: p }) => {
     if (Number(p.Cmd) === 1800) { const a = accountBySession(db, p), pl = a && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(a.uid, Number(p.ServerID || 1)); return '<root code="0">' + (pl ? require('./notices').listXml(db, pl, p.Page) : '<msglist></msglist>') + '</root>'; } // fight notices
+    if (Number(p.Cmd) === 1801) { const a = accountBySession(db, p), pl = a && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(a.uid, Number(p.ServerID || 1)); return '<root code="0">' + (pl ? require('./notices').friendXml(db, pl) : '<msglist></msglist>') + '</root>'; } // friend messages
     if (Number(p.Cmd) !== 1802) return '<root code="0"><msglist></msglist></root>';
     const S = require('./settings'); // the announcement from the Server Manager is the System note
-    const acc = accountBySession(db, p);
-    db.exec('CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, to_uid INTEGER, from_nick TEXT, text TEXT, ts INTEGER)');
-    const mails = acc ? db.prepare('SELECT * FROM mail WHERE to_uid=? ORDER BY id DESC LIMIT 50').all(acc.uid) : [];
-    const items = mails.map((m) => `<msg><iTime>${m.ts}</iTime><ID>${m.id + 1}</ID><iStatus>1</iStatus><text>${esc(m.from_nick + ': ' + m.text)}</text></msg>`).join('');
-    return `<root code="0"><msglist>${items}<msg><iTime>${S.newsAt(db)}</iTime><ID>1</ID><iStatus>1</iStatus><text>${esc(S.news(db))}</text></msg></msglist></root>`;
+    return `<root code="0"><msglist><msg><iTime>${S.newsAt(db)}</iTime><ID>1</ID><iStatus>1</iStatus><text>${esc(S.news(db))}</text></msg></msglist></root>`;
   },
   // Diligence gift (limited.js): Cmd 1 list, Cmd 2 AwardID claim
   rl_r_multiple_task: ({ db, params: p }) => {
@@ -1070,6 +1066,7 @@ module.exports = {
   rl_w_msg: ({ db, params: p }) => {
     const a = accountBySession(db, p), pl = a && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(a.uid, Number(p.ServerID || 1));
     if (pl && Number(p.Cmd) === 2901) require('./notices').op(db, pl, p.Op, p.Index);
+    if (pl && Number(p.Cmd) === 2902) require('./notices').mailOp(db, pl, p.Op, p.Index); // friend message read / delete
     return '<root code="0"></root>';
   },
 
@@ -1301,8 +1298,7 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (pl && p.Msg && Number(p.ToUid)) {
-      db.exec('CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, to_uid INTEGER, from_nick TEXT, text TEXT, ts INTEGER)');
-      db.prepare('INSERT INTO mail(to_uid,from_nick,text,ts) VALUES(?,?,?,?)').run(Number(p.ToUid), pl.nick, String(p.Msg).slice(0, 200), Math.floor(Date.now() / 1000));
+      require('./notices').sendMail(db, pl, Number(p.ToUid), p.Msg); // shows in the friend's News > Friend tab
     }
     return '<root code="0"></root>';
   },

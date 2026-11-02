@@ -1096,3 +1096,6 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   itself). Checked in game: SageStone Bag 1000 gold -> Sage Stone III 42 -> 142. Ninjutsu / Skill bags stay refused: UseGiftPackItem
   only knows retobj types 1-5 (item, shinobi, weapon, trinket, armor) and an empty item reply crashed the game (fault 0x0), so they
   cannot be shown. Bag 22 (一尾印记包) drops fragments, also refused as before.
+- Friend messages (left from the friend chat, rl_w_friend Msg + ToUid) now show in News > Friend as "Friend notification" (subtype 3,
+  rl_r_msg 1801: same <msg> fields as the battle reports + <text>) with the sender's card; the text starts with the sender's name (the cell
+  shows none). Manage -> Confirm marks it read (rl_w_msg 2902 Op Index). Before, they were plain lines in the System tab. Checked in game.
