@@ -975,3 +975,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   Hot update 28.0.31: the screen adds <month recash> to the top bar (the original line was commented out). Checked in game: "Claim" shown
   after a $4.99 top-up, claim +60 gold, second claim the same day refused; after relog the button does nothing (the original screen never
   greys it).
+- Not built (needs invented rewards): the server-opening level / power ranking events (levelRank_business, fightRank_business; <conf><opentype>, rank awards come from the server and are lost; normalconfig 99/100 = 7 days after server start + 1 day to claim). Our server has run for weeks, so a 'new server' race makes little sense.
