@@ -897,3 +897,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   day at any time (fills energy + grudge). The Chinese rule (normalconfig 46-49 / CRamenView TimeRange constants 12:00-14:00, 18:00-20:00, one
   per window) is behind RAMEN_WINDOWS=1. Checked in game: 88/106 + 2/4 -> 106/106 + 4/4, second bowl refused ("already claimed", 170007).
 - Ramen: owner chose 12:00-14:00 / 18:00-20:00 ("Use 12-14 / 18-20"); now the default, RAMEN_ALLDAY=1 for the English sign's once-a-day rule.
+- Recruit window (owner, 2 Nov): "stays on Free recruitment, Recruit 17 doesn't go down, can pull free 20 times, gives God cards".
+  The server already charged 300 after the free pull; the window never redrew. CCommonPrayDialogView::onHttpRequestCompleted (pull reply)
+  only calls InitUI when root > protect_comming > protect_comming (NESTED, same name, text) exists; then it redraws the count and swaps
+  "Free recruitment this time" for the price. Now sent (plus protect_comming="" on <recruit>). The window shows value-1 ("Recruit N-1 more",
+  value 1 = "this one is the five-star"), matching our toGo. The 10-pull branch (recruit_list) never redraws in v28: the count updates on
+  reopening. Recruit pools (rollOne -> recruitPools): only classic cards (ids < 2000), ATK AND DEF (ninjainfo [6] 0/1); the later premium
+  cards with God versions (Teenager Naruto, Goddess Sakura, Susa..., 48 five-stars) and DEF were wrong (DEF was never given). Checked in
+  game: free pull 18->17 + price shown, paid pull, 5-star resets to 19.

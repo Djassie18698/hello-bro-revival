@@ -182,6 +182,16 @@ function pools() {
   }
   return byStar;
 }
+// Recruit pools (owner, 2 Nov 2026): only the classic cards, both the ATK and the DEF version (ninjainfo [6] 0 / 1). The later premium cards
+// (ids 2000+: Teenager Naruto, Goddess Sakura, Susa ..., the ones that also have a God version) come from events, not from recruiting.
+let recruitByStar = null;
+function recruitPools() {
+  if (!recruitByStar) {
+    recruitByStar = {};
+    for (const r of ninjas().values()) if (r[4] === 1 && r[0] < 2000 && (r[6] === 0 || r[6] === 1)) (recruitByStar[r[11]] = recruitByStar[r[11]] || []).push(r[0]);
+  }
+  return recruitByStar;
+}
 function rollOne(type, forceStar) {
   try { const f = Number(fs.readFileSync(path.join(__dirname, 'force_ninja.txt'), 'utf8')); if (f) return f; } catch {} // debugging aid
   const rates = RATES[type] || RATES[2];
@@ -190,7 +200,7 @@ function rollOne(type, forceStar) {
   let star = Number(Object.keys(rates)[0]);
   for (const [s, w] of Object.entries(rates)) { if ((x -= w) < 0) { star = Number(s); break; } }
   if (forceStar) star = Math.max(star, forceStar);
-  const pool = pools()[star] || pools()[3];
+  const pool = recruitPools()[star] || recruitPools()[3];
   return pool[Math.floor(Math.random() * pool.length)];
 }
 // Free recruits (owner/friend: in the original the blue 150-gold recruit was free once every 8 hours and the purple 300-gold one once every 24).
@@ -255,7 +265,7 @@ function pull(db, pl, type, count, free) {
   db.prepare(`INSERT INTO recruit_state(uid,server_id,type,last_free,pity) VALUES(?,?,?,?,?)
     ON CONFLICT(uid,server_id,type) DO UPDATE SET last_free=excluded.last_free, pity=excluded.pity`).run(pl.uid, pl.server_id, type, free ? Math.floor(Date.now() / 1000) : st.last, pity);
   if (type === 1) bumpTask(db, pl.uid, pl.server_id, 14, count); // daily task: 1-in-10000 recruit
-  return { cost, got };
+  return { cost, got, toGo: FREE_EVERY[type] ? Math.max(1, PITY - pity) : 0 };
 }
 function awardXml(c) {
   if (c.award) return c.award; // a gold prize: the game's own drop row (its Rewards card shows the gold picture and "Gold*500")
@@ -372,7 +382,13 @@ function pullXml(res, count, type = 0) {
   if (count === 1) {
     const c = res.got[0];
     // costprop = recruitment orders used (CItemView takes it off item 30, so the "orders left" count updates without leaving the shop)
-    return `<recruit ninjaid="${c.ninja || 0}" cost="${res.cost}" bagid="${c.seq || 0}" attr="0" costprop="${type === 3 ? 1 : 0}"/>` + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
+    // The new "Recruit N more" count: CCommonPrayDialogView reads root > protect_comming > protect_comming (a NESTED tag of the same name,
+    // text) and only then redraws itself (InitUI): the count and "Free recruitment this time" -> the gold price. The open-window request
+    // (rl_r_recruit) reads it as <recruit protect_comming="">, so it goes on <recruit> too. only when it is there does CCommonPrayDialogView redraw itself
+    // after a pull (InitUI), which also turns "Free recruitment this time" into the gold price. Without it the window kept the old count
+    // and the free label, and looked like every pull was free (the server did charge).
+    return `<recruit ninjaid="${c.ninja || 0}" cost="${res.cost}" bagid="${c.seq || 0}" attr="0" costprop="${type === 3 ? 1 : 0}"${res.toGo ? ` protect_comming="${res.toGo}"` : ''}/>` +
+      (res.toGo ? `<protect_comming><protect_comming>${res.toGo}</protect_comming></protect_comming>` : '') + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
   }
   return '<recruit_list>' + res.got.map((c) => '<item>' + awardXml(c) + '</item>').join('') + '</recruit_list>';
 }
