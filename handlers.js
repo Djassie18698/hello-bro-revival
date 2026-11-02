@@ -1240,7 +1240,7 @@ module.exports = {
   }),
 
   // Ninja Treasure board (sudoku.js, activity 24). rl_w_sudoku: Cmd 1 reroll, 2 one search, 3 buy all.
-  rl_r_sudoku: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: sudoku.infoXml(db, pl) })),
+  rl_r_sudoku: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: Number(p.Cmd) === 2 ? sudoku.topXml() : sudoku.infoXml(db, pl) })), // Cmd 2 = Top Level Rewards window
   rl_w_sudoku: (c) => borderCall(c, (db, pl, p) => {
     const cmd = Number(p.Cmd);
     return tearRes(cmd === 1 ? sudoku.refresh(db, pl) : cmd === 3 ? sudoku.buyAll(db, pl) : sudoku.search(db, pl));

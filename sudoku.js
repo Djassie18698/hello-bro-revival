@@ -40,6 +40,14 @@ const remainingCost = (cells) => { let g = gotCount(cells), t = 0; for (const c 
 function costsXml(cells) {
   return el('refresh_cash', REFRESH_CASH) + el('lottery_cash', cost(gotCount(cells))) + el('total_cash', remainingCost(cells));
 }
+// "Top Level Rewards" window (ui_ninjaTrasureTopViewLayer, rl_r_sudoku Cmd 2): <mibao_info> holding one <item index drop_id/> per prize
+// (the Lua reads the children of the first <mibao_info>), shown 4 a row.
+// It lists the prizes the board can really give (POOL), best first. (The original's list on photo 4335 had 16 cards; changing the
+// pool to that would change the rewards, so it is not done.)
+function topXml() {
+  const rank = (id) => { const r = game.table('dropinfo').rows.find((x) => x[0] === id) || []; return r[3] ? 0 : r[7] === 13 ? 1 : r[10] ? 2 : r[7] ? 3 : 4; };
+  return '<mibao_info>' + POOL.slice().sort((a, b) => rank(a) - rank(b)).map((id, i) => `<item index="${i + 1}" drop_id="${id}"/>`).join('') + '</mibao_info>';
+}
 function infoXml(db, pl, reroll) {
   const b = board(db, pl, reroll);
   const midnight = (() => { const m = new Date(); m.setHours(24, 0, 0, 0); return Math.round((m - Date.now()) / 1000); })();
@@ -77,4 +85,4 @@ function buyAll(db, pl) {
   return { xml: game.mergeAwards(awards) };
 }
 
-module.exports = { infoXml, refresh, search, buyAll };
+module.exports = { topXml, infoXml, refresh, search, buyAll };

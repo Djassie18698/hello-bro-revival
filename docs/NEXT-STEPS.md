@@ -1058,3 +1058,7 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   (empty). Positions 0 ordinary, 1 team leader, 2 vice chieftain, 3 chieftain (localizable OrgTitleName). Who may do what is (ours).
   Checked in game: membership list, Promotion (ordinary -> team leader), Setup shows and saves ("modify succeed"), no Lua errors.
   Found by a new check: every find("tag") a Lua screen reads vs the tags our code sends (scratchpad luatags.js).
+- Ninja Treasure "Top Rewards" window was empty: rl_r_sudoku Cmd 2 must return <mibao_info><item index drop_id/>...</mibao_info> (the
+  Lua xml find() returns the FIRST element and # counts its children). Now lists the 14 prizes the board really uses (sudoku.POOL), best
+  first. Checked in game. The original top list (photo 4335: 16 cards incl. Six Paths Obito, Fourth Sage, Indra, Hashirama...) would
+  change the prize pool: not done, asked the owner.
