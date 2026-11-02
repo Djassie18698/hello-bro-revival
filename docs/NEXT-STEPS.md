@@ -862,3 +862,11 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   todayall/resttime/restbatter; rl_w_sportpack (Cmd 8301, CArenaCdDialogView) clears the cooldown for 30 gold. Checked in game: after 3
   fights the built-in "Countdown to battle 00:09:xx" overlay with "Eliminate CD" appears, "Spend 30 gold to remove cool-down?" -> gold
   3660 -> 3630, challenges 22/25. Buying extra attacks (restpack, BtnPurchase) is not built (restpack 0).
+- From the second full photo pass (commit b125397): World boss now uses the game's own normalconfig numbers: 10 hits a round (row 192),
+  then a 75 s wait (row 207), 15 gold clears it (row 193); shown values everyone's reward 20 on win and loss (109/110), gold inspire 15 for
+  +5..10 (194-197), silver inspire 5000 for +1..3 (198-201). Server check: cdallnum 10, cdrestnum 9 after one hit. The boss screen's
+  "Number of challenges: 00" is label_cd_time (the cooldown, format 3); label_pk_limit (n/10) is hidden in the original layout.
+  NOT changed (need the owner or more data): boss reputation per hit (original normalconfig 258 = damage / 30 000, ours damage / 5000:
+  original would give 6x less; asked), boss hours 12:30-13:00 (normalconfig 106/107, ours all day), succession price (one photo: 2450
+  gold for 5-star Lv50 growth 9 rebirth 1, ours 200; one point is not enough for a formula), Save time "round N" (photos 2212 and 4035
+  fit different stage rules), Hyourou-gan "Left today 0/6, VIP2 +3" (vipinfo says 30/33 uses; which limit is unclear).

@@ -20,7 +20,9 @@ const BOSSES = [
   { icon: 'npc16_4', nameicon: 'boss_wt_07' }, // Obito
   { icon: 'npc17_4', nameicon: 'boss_wt_05' }, // Madara
 ];
-const FIGHTS_PER_ROUND = 5, CD = 600, DICE_COST = 10, CD_COST = 20;
+// ORIGINAL (the game's own normalconfig: row 192 10 hits, then row 207 a 75 s wait, row 193 15 gold clears it; player guide photo 3925
+// "10 hits ... wait about 1 min 20 s ... 10 more"). DICE_COST is (ours).
+const FIGHTS_PER_ROUND = 10, CD = 75, DICE_COST = 10, CD_COST = 15;
 const SHOP = [ // reputation shop: [id, name, icon, cost, dropid]
   [1, 'Reincarnation Pill x5', 'props_049', 300, 107], [2, '500 Gold', 'props_073', 800, 371], [3, 'Five-Star Shinobi Card', 'props_015', 3000, 11],
 ];
@@ -54,12 +56,14 @@ const rankAward = (rank) => (rank === 1 ? 1000 : rank <= 3 ? 600 : rank <= 10 ? 
 function cdLeft(m) { return m.fights >= FIGHTS_PER_ROUND ? Math.max(0, m.last + CD - Math.floor(Date.now() / 1000)) : 0; }
 function fightsLeft(m) { return cdLeft(m) > 0 ? 0 : FIGHTS_PER_ROUND - (m.fights % FIGHTS_PER_ROUND || (m.fights && cdLeft(m) === 0 ? 0 : 0)); }
 
+// shown values from normalconfig: everyone's reward 20 on a win and on a loss (rows 109/110), gold inspire 15 gold for +5..10 (194-197),
+// silver inspire 5000 silver for +1..3 (198-201)
 function previewXml(db, pl, b, m) {
   const secsToMidnight = 86400 - (Math.floor(Date.now() / 1000) % 86400);
   return '<preview>' + el('resttime', secsToMidnight) + el('inact', b.hp > 0 ? 1 : 0) + el('lastattackman', esc(b.killer)) + el('lastaward', 500) +
-    el('commwinaward', 20) + el('cost', DICE_COST) + el('commfailaward', 5) + el('level', b.level) + el('cdcost', CD_COST) + el('cdalltime', CD) +
-    el('cdallnum', FIGHTS_PER_ROUND) + el('cashaddcost', 20) + el('cashaddonemin', 10) + el('cashaddonemax', 100) + el('coinaddcost', 20000) +
-    el('coinaddonemin', 5) + el('coinaddonemax', 50) + el('index', 1) + el('commawardval', m.score) + el('rankawardval', rankAward(rankOf(db, pl))) +
+    el('commwinaward', 20) + el('cost', DICE_COST) + el('commfailaward', 20) + el('level', b.level) + el('cdcost', CD_COST) + el('cdalltime', CD) +
+    el('cdallnum', FIGHTS_PER_ROUND) + el('cashaddcost', 15) + el('cashaddonemin', 5) + el('cashaddonemax', 10) + el('coinaddcost', 5000) +
+    el('coinaddonemin', 1) + el('coinaddonemax', 3) + el('index', 1) + el('commawardval', m.score) + el('rankawardval', rankAward(rankOf(db, pl))) +
     el('hurtawardval', 0) + el('commaward', m.claimed) + '</preview>';
 }
 function infoXml(db, pl) {
