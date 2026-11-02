@@ -16,7 +16,7 @@ const FIRST16 = [
 ];
 const DAYS = [...FIRST16, ...FIRST16.slice(4).map((r) => [...r.slice(0, 4), r[4] ? Math.min(15, r[4] + 4) : 0])];
 const shownNum = (r) => (r[0] === 'drop' ? (game.table('dropinfo').rows.find((x) => x[0] === r[1]) || [])[13] || 1 : r[1]);
-const ym = () => new Date().toISOString().slice(0, 7);
+const ym = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 7); // local month
 
 function ensure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS monthsign (uid INTEGER, server_id INTEGER, ym TEXT, day INTEGER, PRIMARY KEY(uid,server_id,ym,day))');

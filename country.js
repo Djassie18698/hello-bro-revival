@@ -25,7 +25,7 @@ function infoXml(db, pl) {
   const list = seats(db, pl).map((s) => `<offical>${el('id', s.seat)}${el('nick', esc(s.nick))}${el('uid', s.uid)}</offical>`).join('');
   const seat = mySeat(db, pl);
   const got = db.prepare('SELECT 1 FROM salary WHERE uid=? AND server_id=? AND day=?').get(pl.uid, pl.server_id, day());
-  const midnight = 86400 - (Math.floor(Date.now() / 1000) % 86400);
+  const midnight = (() => { const m = new Date(); m.setHours(24, 0, 0, 0); return Math.round((m - Date.now()) / 1000); })() // seconds to local midnight;
   return `<display>0</display><pack>${el('canget', seat && !got ? 1 : 0)}${el('resttime', seat && !got ? 0 : midnight)}</pack>${el('resttime', midnight)}` +
     `<officallist>${list}</officallist><decllist><has_decl>0</has_decl><allicountry></allicountry><oppecountry></oppecountry></decllist>` +
     '<timeinfo><begin>0</begin><end>0</end></timeinfo>';

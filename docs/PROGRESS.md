@@ -146,6 +146,18 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Fights show 3 different enemy ninjas (a real player's own team) instead of the same card 3 times |
 | ✅ | Errors show a fitting message (they all said "Your energy level is full") |
 | ✅ | Reward pop-ups now also show Souls; every reward always lands in the bag even when the pop-up shows fewer items |
+| ✅ | War open all day, the War clock counts down to midnight (game update 28.0.27) |
+| ✅ | Victory screen shows the silver you win (game update 28.0.26) |
+| ✅ | Daily task chests: the original 6 at 30 / 80 / 120 / 160 / 210 / 250; daily reset at local midnight |
+| ✅ | Anniversary festival and the second-year Christmas list (control panel switches); Fireworks / Balloon items (28.0.28) |
+| ✅ | Arena: 25 challenges a day (+1 per VIP from VIP2), 10-minute cooldown after 3, Eliminate CD 30 gold |
+| ✅ | World Boss: 14:00-14:30, 10 hits then 75 s, original reputation and silver |
+| ✅ | Recharge streak days 1-3 + 7-day bonus original; 50 generic fragments make a card |
+| ✅ | The game's own settings table: Save time bonus roll, Spar limits, 22:00 energy refill, Money Tree, chests, tower, Millionaire, slot |
+| ✅ | Eight Gates soul training (new) |
+| ✅ | Free ramen 12:00-14:00 and 18:00-20:00 |
+| ✅ | Recruit window updates after every pull; recruits give classic ATK / DEF cards only |
+| ✅ | Discord: #updates for every update, #announcement for big news |
 
 ## Still to build
 

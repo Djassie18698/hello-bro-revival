@@ -28,7 +28,7 @@ function power(db, uid, sid) { const t = game.teamStats(db, uid, sid).total; ret
 function infoXml(db, pl) {
   const m = me(db, pl), pw = power(db, pl.uid, pl.server_id);
   const rank = db.prepare('SELECT COUNT(*)+1 n FROM war WHERE server_id=? AND day=? AND score>?').get(pl.server_id, day(), m.score).n;
-  const midnight = 86400 - (Math.floor(Date.now() / 1000) % 86400);
+  const midnight = (() => { const m = new Date(); m.setHours(24, 0, 0, 0); return Math.round((m - Date.now()) / 1000); })();
   const opp = enemies(pl.country);
   const allies = `<allicountry><allicountryid>${pl.country}</allicountryid></allicountry>`;
   const opps = `<oppecountry>${opp.map((c) => `<oppecountryid>${c}</oppecountryid>`).join('')}</oppecountry>`;

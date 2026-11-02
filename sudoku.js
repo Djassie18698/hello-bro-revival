@@ -42,7 +42,7 @@ function costsXml(cells) {
 }
 function infoXml(db, pl, reroll) {
   const b = board(db, pl, reroll);
-  const midnight = 86400 - (now() % 86400);
+  const midnight = (() => { const m = new Date(); m.setHours(24, 0, 0, 0); return Math.round((m - Date.now()) / 1000); })();
   const cells = b.cells.map((c, i) => `<cell index="${i}" drop_id="${c.id}" got_award="${c.got}" drop_num="${num(c.id)}"/>`).join('');
   return '<basic>' + el('remain_time', 6 * 86400 + midnight) + el('refresh_time', Math.max(0, REFRESH_SECS - (now() - b.made))) + '</basic>' +
     costsXml(b.cells) + `<cell_info>${cells}</cell_info>`;

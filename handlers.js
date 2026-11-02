@@ -196,7 +196,7 @@ const MIGRATE_PRICE = 300; // change country, gold (photo 3270)
 const SWEEP_DAILY = 5; // (ours)
 // ORIGINAL (normalconfig 290/291/296): finishing a tower round at once costs 3 gold a round and needs VIP3; 2 tower resets a day
 const SWEEP_GOLD = 3, SWEEP_VIP = 3, TOWER_RESETS = 2;
-const sweepKey = () => 100000 + Math.floor(Date.now() / 86400000);
+const sweepKey = () => 100000 + Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000); // local day
 const sweepsUsed = (db, uid, sid) => game.getStage(db, uid, sid, sweepKey()) - 1;
 
 const tearRes = (r) => (r.error ? { code: 5, msg: r.error } : { code: 0, xml: r.xml });
