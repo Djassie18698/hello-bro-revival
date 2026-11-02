@@ -125,6 +125,7 @@ Current: **28.0.32** (28.0.32 golden Chōji card name in English (`tools/patch_t
   (local clone `C:\Users\dj199\hello-bro-public`), rebuilt with `python -I tools/make_public.py C:/Users/dj199/hello-bro-public`
   (it refuses game files, keystores, the owner's IPs/uids) and pushed after features change.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU** — use this link everywhere (README badge, issue template, repo homepage).
+- Discord bot online (green dot): `discord/START-BOT-ONLINE.bat` runs `online.js` (gateway connection only, no intents, auto-reconnect; owner asked 2 Nov 2026).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
   write the text to a file first). Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
   START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update; was #announcements) · #faq.

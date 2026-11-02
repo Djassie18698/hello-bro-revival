@@ -1127,3 +1127,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   CShowTipView) reads Struct_String_Menu; some Lua screens (treasure chests, Ninja Test, wheel, monthly sign-in, Flower Worship, item
   buy dialog ...) read text.lua text_config[code] instead, a code missing there is a Lua error. Every code errcodes.js can send exists in
   text.lua except 480007 / 520002, which only Akatsuki screens get (they use ShowErrorTip): fine.
+- 2 Nov: Discord bot shown online: discord/online.js + START-BOT-ONLINE.bat (gateway connection with presence only).
