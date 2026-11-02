@@ -4,7 +4,8 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 ## 1. Energy and grudge
 • **Energy** (red bar) is used for training. 1 point comes back every 3 minutes, a level-up refills it, and it refills to full every day at 22:00. Out of energy? Eat ramen.
 • **Free ramen:** between **12:00-14:00** and again **18:00-20:00**, tap the **Noodle** stall on Home (scroll right) for full energy and grudge. (Its sign says "0:00~24:00", ignore that.)
-• **Grudge** (crossed swords) is used for Spar. 1 point comes back every 2 hours.
+• **Grudge** (crossed swords) is used for Spar. 1 point comes back every 2 hours. A **Hyourou-gan** refills half (Small) or all (Big) of it.
+• Ramen and Hyourou-gan can be used 20 and 30 times a day, a few more per VIP level.
 
 ## 2. Training
 • Story stages give EXP and silver. Each stage needs a few clears before the next one opens.
@@ -15,6 +16,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • More team slots open as you level up (level 2, 6, 15, 30 ...) and clear story stages.
 • Every card has an **element**: Water beats Fire, Fire beats Wind, Wind beats Thunder, Thunder beats Earth, Earth beats Water. Hitting the weak element does **15% more** ("Restrain" on the result screen).
 • Give each ninja a weapon, armor, trinket, seal and ninjutsu. Gear makes the biggest difference.
+• From level 100 the **Team 2** tab opens: build a second line-up (it may use the same cards) and press **Activate** to fight with it.
 
 ## 4. Getting cards and gear
 • **Recruit** (Shop): the blue recruit is free every 8 hours, the purple one every 24 hours. After 20 purple pulls a 5-star card is guaranteed.
@@ -23,7 +25,9 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 
 ## 5. Fighting other players
 • **Spar** (bottom bar): win EXP, silver and war achievements.
-• **Arena** (Home, from level 25): climb the ranks for daily silver and reputation. 25 challenges a day (+1 per VIP level from VIP2); after every 3 there is a 10-minute wait, or pay 30 gold to skip it.
+• **Arena** (Home, from level 25): climb the ranks for daily silver and reputation. 25 challenges a day (+1 per VIP level); after every 3 there is a 10-minute wait, or pay 30 gold to skip it. Spend reputation in the **Exchange** tab (some items once ever, pills twice a day).
+• **Battles** (Home): 25 chapters of 7 rounds, the 7th is the chapter boss. **Ranking > Achievement** pays a reward every 7 floors.
+• **News**: the Battle tab shows who sparred or plundered you (press **Revenge** to fight back), the Friend tab shows messages from friends.
 • **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight.
 • Real players fight with their **whole team**. Bots bring about as many cards as you do, and every enemy card's stats vary a little each fight. Watching a fight or pressing **Skip** always gives the same result.
 
