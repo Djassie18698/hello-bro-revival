@@ -22,3 +22,4 @@ for (const pl of players) for (const name of Object.keys(handlers)) {
 }
 db.close(); try { fs.unlinkSync(tmp); } catch {}
 console.log(players.length, 'players,', bad ? bad + ' crashes in ' + n : 'no crashes in ' + n + ' calls');
+process.exit(bad ? 1 : 0);

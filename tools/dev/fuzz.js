@@ -64,3 +64,4 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, 1, 2, 3, 4
   fresh.close();
 }
 console.log(bad ? `${bad} problems in ${calls} calls` : `no crashes in ${calls} calls`);
+process.exit(bad ? 1 : 0);
