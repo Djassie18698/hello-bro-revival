@@ -2,7 +2,7 @@
 usage: python -I tools/make_game_for.py <address>        e.g. 192.168.1.20  or  100.64.12.34
 Looks for a Hello Bro .xapk in this folder or in Downloads (the one from the Releases page), points its app at
 <address>, signs it with release/revival.keystore (needs a JDK) and writes HelloBro-for-<address>.xapk here."""
-import glob, os, subprocess, sys, zipfile
+import glob, os, re, subprocess, sys, zipfile
 
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 addr = sys.argv[1].strip()
@@ -31,6 +31,9 @@ os.remove(base)
 out = os.path.join(root, f'HelloBro-for-{safe}.xapk')
 with zipfile.ZipFile(src) as zi, zipfile.ZipFile(out, 'w', zipfile.ZIP_STORED) as zo:
     for i in zi.infolist():
-        zo.writestr(i, open(apk, 'rb').read() if i.filename == 'com.hello.bro.yo.apk' else zi.read(i.filename))
+        data = open(apk, 'rb').read() if i.filename == 'com.hello.bro.yo.apk' else zi.read(i.filename)
+        if i.filename == 'manifest.json':   # the app now targets Android 7 (tools/patch_targetsdk.py): installers read it here too
+            data = re.sub(rb'("target_sdk_version":\s*)"19"', rb'\1"24"', data)
+        zo.writestr(i, data)
 print('\nDONE:', out)
 print('Give this file to everyone who plays on your server (drag it onto BlueStacks).')

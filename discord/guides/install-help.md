@@ -11,6 +11,7 @@ Questions? Ask in <#1565697834571927694>.
 5. Tap **Confirm** if it asks to download an update, press **START**, then pick your nation and your ninja.
 
 ## 2. Android phone
+**Android 14 or newer** (most phones and tablets from 2023 on): you need a game file made on or after 2 Nov 2026. Older files are refused with an error ("app not installed" or "built for an older version"). Ask your server owner for a new one, or make it again with HOST-MY-SERVER.bat.
 1. Download the same .xapk. Open it with a zip app (it's a zip file).
 2. Install `com.hello.bro.yo.apk` from it (allow "install unknown apps" if asked).
 3. Copy `Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb` to the same folder on your phone: `Android/obb/com.hello.bro.yo/`

@@ -62,22 +62,25 @@ function askGumptech(path, form) {
   });
 }
 
+// Phones on Android 14+ need the app to target Android 7 (tools/patch_targetsdk.py); then Android hides the phone ID and the account
+// window sends deviceId="" (getDeviceId throws). Such a guest is kept by its secret password instead: device = 'pw:' + sha256(passwd).
+const pwDevice = (pw) => 'pw:' + crypto.createHash('sha256').update(String(pw)).digest('hex');
 async function quickLogin(db, p) {
-  const dev = String(p.deviceId || '');
+  const dev = String(p.deviceId || '') || (p.passwd ? pwDevice(p.passwd) : '');
   if (!dev) return { code: FAIL };
   let row = db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev);
   if (row) return check(p.passwd || '', row.pwhash) ? answer(db, row) : { code: BAD_PWD, msg: 'this phone is linked to another password' };
   // first time on this server: a phone that played before keeps its old account number if Gumptech still knows it
+  if (dev.startsWith('pw:')) return { code: NO_USER }; // a phone without an ID only gets a guest from /quick/reg.do
   const old = process.env.HB_NO_GUMPTECH ? null : await askGumptech('/quick/login.do', { deviceId: dev, appId: p.appId || '10015', passwd: p.passwd || '' });
   const uid = account(db, old ? Number(old.userId) : 0, 'guest');
   db.prepare("INSERT INTO logins(kind,device,pwhash,uid,created) VALUES('quick',?,?,?,?)").run(dev, hash(p.passwd || ''), uid, now());
   return answer(db, db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev));
 }
 function quickReg(db, p) {
-  const dev = String(p.deviceId || '');
-  if (!dev) return { code: FAIL };
-  let row = db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev);
   const pw = crypto.randomBytes(6).toString('hex'); // the phone keeps this and sends it with every guest login
+  const dev = String(p.deviceId || '') || pwDevice(pw);
+  let row = db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev);
   if (row) db.prepare('UPDATE logins SET pwhash=? WHERE id=?').run(hash(pw), row.id); // the game was reinstalled on this phone
   else {
     const uid = account(db, 0, 'guest');

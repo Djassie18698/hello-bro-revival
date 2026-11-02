@@ -114,6 +114,22 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     if (!cards.length || miss) { bad++; console.log('LOGIN DATA', cards.length ? `${miss} card(s) without <${f}>` : 'no cards'); break; }
   }
 }
-try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
-console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
-process.exit(bad ? 1 : 0);
+// Account window on Android 14+ (the app targets Android 7, so the phone ID is hidden): PLAY sends deviceId="" and must still make a
+// guest, and the kept password must log that same guest in again.
+(async () => {
+  const gump = require('../../gumplogin');
+  const call = async (url, form) => {
+    let out = '';
+    await gump.handle({ method: 'POST', url }, { writeHead() {}, end(s) { out = s; } }, async () => new URLSearchParams(form).toString(), db);
+    return JSON.parse(out);
+  };
+  const reg = await call('/quick/reg.do', { deviceId: '', appId: '10015' });
+  const again = reg.passwd && await call('/quick/login.do', { deviceId: '', appId: '10015', passwd: reg.passwd });
+  const wrong = await call('/quick/login.do', { deviceId: '', appId: '10015', passwd: 'nope' });
+  if (reg.code !== 100000 || !again || again.code !== 100000 || again.userId !== reg.userId || wrong.code === 100000) {
+    bad++; console.log('LOGIN without a phone ID:', JSON.stringify({ reg: reg.code, again: again && again.code, wrong: wrong.code }));
+  }
+  try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
+  console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
+  process.exit(bad ? 1 : 0);
+})();

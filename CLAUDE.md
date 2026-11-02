@@ -156,6 +156,8 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
 - Release `tailscale-play` on the repo: `HelloBro-base-host-your-own.xapk` (base game + OBB; HOST-MY-SERVER.bat patches it for any address)
   and `HelloBro-ninjaonline.xapk` (the owner's public server ninjaonline.duckdns.org:18080). A new game file is needed only when the
   app itself changes (login, dex); everything else goes through the hot update.
+- Game files made since 2 Nov 2026 target Android 7 (`tools/patch_targetsdk.py`, run by `patch_apk.py`): Android 14+ refuses the original's target 19.
+  Without granted permissions the account window sends `deviceId=""`; `gumplogin.js` then keys the guest by its kept password.
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (friends who host their own;
   guide in `HOST-YOUR-OWN-SERVER.md`). The owner's public server runs `START-PUBLIC-SERVER.bat` (LOGIN_LOCK, public.db; NOT in git,
   owner-only: GitHub only offers solo/private hosting + joining ninjaonline).

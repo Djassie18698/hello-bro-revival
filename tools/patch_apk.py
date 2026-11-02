@@ -2,6 +2,8 @@
 usage: python patch_apk.py <original.apk> <out.apk> <host:port> [patched classes.dex]
 Needs a JDK (keytool + jarsigner) on PATH. No downloads."""
 import json, os, subprocess, sys, zipfile, tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import patch_targetsdk
 
 src, out, host = sys.argv[1:4]
 dex = sys.argv[4] if len(sys.argv) > 4 else None   # optional patched classes.dex
@@ -19,6 +21,8 @@ with zipfile.ZipFile(src) as zi, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED)
         data = json.dumps(cfg, indent=1).encode() if it.filename in patched else zi.read(it.filename)
         if dex and it.filename == 'classes.dex':
             data = open(dex, 'rb').read()
+        if it.filename == 'AndroidManifest.xml':
+            data = patch_targetsdk.patch(data, 24)   # Android 15 refuses apps that target below 24 (the game targets 19)
         zo.writestr(it, data)
 ks = os.path.join(os.path.dirname(os.path.abspath(out)), "revival.keystore")
 if not os.path.exists(ks):
