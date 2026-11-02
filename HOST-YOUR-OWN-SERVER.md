@@ -18,7 +18,7 @@ Windows PC and play on it with friends. It takes about 15 minutes.
 ## 3. Set up (one time)
 Double-click **HOST-MY-SERVER.bat**. It:
 1. installs Node.js, Python and Java if they're missing (if it installs something, close the window and run it again),
-2. picks up your Tailscale address automatically, or asks you for one,
+2. suggests this PC's home-network address (press Enter: works for this PC and phones on the same Wi-Fi), shows your Tailscale address too if you have it (only needed for friends elsewhere), or lets you type one,
 3. makes **HelloBro-for-YOUR-ADDRESS.xapk** in the folder. This is the game that connects to *your* server,
 4. opens port 18080 in the Windows firewall (click Yes when Windows asks).
 

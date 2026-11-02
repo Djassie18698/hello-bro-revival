@@ -15,18 +15,16 @@ where node >nul 2>nul && where python >nul 2>nul && where jarsigner >nul 2>nul |
 
 echo.
 echo == 2/4 Your server address ==
+rem This PC's own network address (home Wi-Fi or cable) is the default: it works for BlueStacks on this PC and phones on the same Wi-Fi.
+rem Tailscale is only an option, for friends elsewhere (Tailscale not required).
 set ADDR=
-for /f %%i in ('tailscale ip -4 2^>nul') do if not defined ADDR set ADDR=%%i
-if defined ADDR (
-  echo Tailscale found: your address is %ADDR%
-  set /p NEWADDR=Press Enter to use it, or type another address:
-) else (
-  rem playing alone or on the same Wi-Fi: this PC's own network address works (BlueStacks on this PC reaches it too)
-  for /f %%i in ('powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway } | Select-Object -First 1).IPv4Address.IPAddress"') do if not defined ADDR set ADDR=%%i
-  call echo Playing alone or on the same Wi-Fi? Just press Enter to use this PC's address %%ADDR%%.
-  echo For friends elsewhere type their way in: their Tailscale IP like 100.x.x.x.
-  set /p NEWADDR=Address:
-)
+set TSADDR=
+for /f %%i in ('powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.InterfaceAlias -notmatch 'Tailscale' } | Select-Object -First 1).IPv4Address.IPAddress"') do if not defined ADDR set ADDR=%%i
+for /f %%i in ('tailscale ip -4 2^>nul') do if not defined TSADDR set TSADDR=%%i
+if defined ADDR echo This PC on your home network: %ADDR%   (for this PC and phones or tablets on the same Wi-Fi)
+if defined TSADDR echo Tailscale (optional):         %TSADDR%   (only for friends elsewhere who also use Tailscale)
+echo.
+if defined ADDR (set /p NEWADDR=Press Enter to use %ADDR%, or type another address: ) else (set /p NEWADDR=Address: )
 if defined NEWADDR set ADDR=%NEWADDR%
 if not defined ADDR (echo No address given. & pause & exit /b)
 

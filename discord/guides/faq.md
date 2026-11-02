@@ -10,7 +10,8 @@ If you host your own server and the game can't connect after you updated it, mak
 5. Open the game and tap **Confirm** if it asks to download an update.
 
 ## 2. The game won't install on my phone or tablet
-Android 14 and newer refuse game files made before 2 Nov 2026. Make a new game file with **HOST-MY-SERVER.bat** (it now works on new Android) and install that. Uninstall the old Hello Bro first.
+Android 14 and newer refuse game files made before 2 Nov 2026. Run **UPDATE.bat**, then make a new game file with **HOST-MY-SERVER.bat** and install that. Uninstall the old Hello Bro first.
+Still an error? Install it from a PC with a USB cable: **INSTALL-WITH-USB.bat** (see #install-help, chapter 2). That works for every game file.
 
 ## 3. How do I update my own server?
 1. Close the server window.

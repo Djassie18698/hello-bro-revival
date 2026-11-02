@@ -17,6 +17,12 @@ Questions? Ask in <#1565697834571927694>.
 3. Copy `Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb` to the same folder on your phone: `Android/obb/com.hello.bro.yo/`
 4. Open the game and continue at step 4 of chapter 1.
 
+**Still won't install? Use a USB cable and a PC** (works for every game file, also older ones on new Android):
+1. On the phone: Settings > About phone > Software information, tap **Build number** 7 times. Then Settings > Developer options: turn on **USB debugging**.
+2. Connect the phone to the PC with a USB cable, tap **Allow** on the phone.
+3. On the PC, in the server folder: drag the .xapk onto **INSTALL-WITH-USB.bat** (or put the .xapk in that folder and double-click it). It installs the game and its data. Close BlueStacks first.
+4. If Google Play Protect says "unsafe app blocked": tap **More details > Install anyway**.
+
 ## 3. Your account and another device
 Tapping **PLAY** makes an account tied to that device.
 To keep it when you switch device: tap **Change** on the start screen > **Login with Gumptech** > **Signup**, and choose a name and password.
