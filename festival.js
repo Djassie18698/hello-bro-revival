@@ -11,9 +11,12 @@ const game = require('./game');
 const settings = require('./settings');
 
 const CAP = 38, TREE = 39;
+// Anniversary items: not in v28's own item table; hot update 28.0.28 adds them to consumeinfo (tables.bin) as 40 / 41 with the game's
+// unused pictures props_343 (fireworks) and props_344 (balloons). Prices ORIGINAL (photo 3817): Fireworks 100 gold, Balloon 140 gold.
+const FIREWORK = 40, BALLOON = 41;
 const THEMES = {
   christmas: {
-    event: 'xmas', name: 'Merry Christmas',
+    event: 'xmas', name: 'Merry Christmas', a: CAP, b: TREE,
     // [exchange id, caps, trees, limit per event, reward]; reward = { drop } (a dropinfo id) or { prop, n, show } (n of an item, `show` = a
     // dropinfo id of that item for the icon)
     trades: [
@@ -29,7 +32,7 @@ const THEMES = {
     ],
   },
   newyear: {
-    event: 'newyear', name: 'Happy New Year',
+    event: 'newyear', name: 'Happy New Year', a: CAP, b: TREE,
     trades: [
       [1, 30, 0, 30, { prop: 8, n: 15, show: 250 }],
       [2, 0, 25, 30, { drop: 108 }],
@@ -39,11 +42,27 @@ const THEMES = {
       [6, 350, 350, 1, { drop: 1868 }],                   // Kaguya for New Year (God)
     ],
   },
+  // ORIGINAL (photos 3720, 3722, 3732, 3774, 3809, "Anniversary", 12.16-12.20): Fireworks from training/battles, Balloons from spar; the
+  // costs, limits and the Anniversary Sasuke card are from the photos. (ours): "10 crystals" = Sage Stone III, "5 purple orbs" = Development
+  // Dan, the fragment = Anniversary Sasuke (DEF) (the anniversary mail gave a (D) fragment), "armour" = Sage Robe (the pack next to the sword).
+  anniversary: {
+    event: 'anniv', name: 'Anniversary', a: FIREWORK, b: BALLOON,
+    trades: [
+      [1, 0, 20, 50, { drop: 380 }],                      // 10 Sage Stone III
+      [2, 30, 0, 40, { drop: 107 }],                      // 5 Reincarnation Pills
+      [3, 40, 35, 30, { drop: 1531 }],                    // 5 Development Dan
+      [4, 45, 40, 30, { drop: 1719 }],                    // 5 Souls Dan
+      [5, 35, 30, 30, { drop: 1836 }],                    // 1 Anniversary Sasuke (DEF) fragment
+      [6, 230, 180, 3, { drop: 1798 }],                   // Seven-star Sword
+      [7, 200, 170, 3, { drop: 1799 }],                   // Sage Robe
+      [8, 550, 500, 1, { drop: 1832 }],                   // Anniversary Sasuke (ATK)
+    ],
+  },
 };
 const DROP = { chance: 0.6, max: 2 }; // (ours) per won fight: 60% chance of 1-2 items
 // ORIGINAL (photo 3627, Christmas Buy): Christmas Cap 80 gold / Christmas Tree 100 gold (= consumeinfo price), at most 700 caps and
 // 600 trees per event. The New Year run uses the same limits (ours).
-const SHOP_LIMIT = { [CAP]: 700, [TREE]: 600 };
+const SHOP_LIMIT = { [CAP]: 700, [TREE]: 600, [FIREWORK]: 700, [BALLOON]: 600 }; // anniversary limits not shown: same as Christmas (ours)
 
 const ensure = (db) => db.exec(`CREATE TABLE IF NOT EXISTS festival_use (uid INTEGER, server_id INTEGER, kind TEXT, id INTEGER, day TEXT, n INTEGER,
   PRIMARY KEY(uid, server_id, kind, id, day))`);
@@ -71,14 +90,15 @@ function dates(db, t) {
 function dropOnWin(db, pl, where) {
   if (!theme(db) || Math.random() >= DROP.chance) return 0;
   const n = 1 + Math.floor(Math.random() * DROP.max);
-  game.propAdd(db, pl.uid, pl.server_id, where === 'training' ? CAP : TREE, n);
+  const t = theme(db);
+  game.propAdd(db, pl.uid, pl.server_id, where === 'training' ? t.a : t.b, n);
   return n;
 }
 
-function prop(id, quality, db, pl, d) {
+function prop(id, ab, quality, db, pl, d) {
   const r = item(id);
-  return `<prop${id === CAP ? 'A' : 'B'}><prop_id>${id}</prop_id><prop_icon>${r[3]}</prop_icon><prop_num>${game.propCounts(db, pl.uid, pl.server_id)[id] || 0}</prop_num>` +
-    `<prop_quality>${quality}</prop_quality>` + Object.entries(d).map(([k, v]) => `<${k}>${v}</${k}>`).join('') + `</prop${id === CAP ? 'A' : 'B'}>`;
+  return `<prop${ab}><prop_id>${id}</prop_id><prop_icon>${r[3]}</prop_icon><prop_num>${game.propCounts(db, pl.uid, pl.server_id)[id] || 0}</prop_num>` +
+    `<prop_quality>${quality}</prop_quality>` + Object.entries(d).map(([k, v]) => `<${k}>${v}</${k}>`).join('') + `</prop${ab}>`;
 }
 
 function infoXml(db, pl) {
@@ -93,11 +113,11 @@ function infoXml(db, pl) {
     // result icon: fragment = type 5 with the piece id, item = type 2 with the consumeinfo id, ninjutsu card = type 1, shinobi card = type 1
     const [type, goods, num] = rw.prop ? [2, rw.prop, rw.n] : r[8] ? [5, r[8], r[13]] : r[7] ? [2, r[7], r[13]] : r[5] ? [1, r[5], 1] : [1, r[3], r[13] || 1];
     return `<exchange exchange_id="${id}" remain_times="${Math.max(0, times - used(db, pl, 'ex', id))}" total_times="${times}">` +
-      `<need><a_id>${a ? CAP : 0}</a_id><a_num>${a}</a_num><b_id>${b ? TREE : 0}</b_id><b_num>${b}</b_num></need>` +
+      `<need><a_id>${a ? t.a : 0}</a_id><a_num>${a}</a_num><b_id>${b ? t.b : 0}</b_id><b_num>${b}</b_num></need>` +
       `<changed><a_id>${drop}</a_id><a_num>${num}</a_num><a_goods>${goods}</a_goods><a_type>${type}</a_type><b_id>0</b_id><b_num>0</b_num><b_goods>0</b_goods><b_type>0</b_type></changed>` +
       '</exchange>';
   }).join('');
-  return `<activity><act_id>44</act_id><act_name>${t.name}</act_name>${prop(CAP, 4, db, pl, d)}${prop(TREE, 5, db, pl, d)}</activity><exchange_list>${rows}</exchange_list>`;
+  return `<activity><act_id>44</act_id><act_name>${t.name}</act_name>${prop(t.a, 'A', 4, db, pl, d)}${prop(t.b, 'B', 5, db, pl, d)}</activity><exchange_list>${rows}</exchange_list>`;
 }
 
 function trade(db, pl, exId) {
@@ -109,9 +129,9 @@ function trade(db, pl, exId) {
   const [, a, b, times, rw] = row;
   if (used(db, pl, 'ex', exId) >= times) return { error: 'no trades left for this event' };
   const have = game.propCounts(db, pl.uid, pl.server_id);
-  if ((have[CAP] || 0) < a || (have[TREE] || 0) < b) return { error: 'not enough festival items' };
-  if (a) game.propAdd(db, pl.uid, pl.server_id, CAP, -a);
-  if (b) game.propAdd(db, pl.uid, pl.server_id, TREE, -b);
+  if ((have[t.a] || 0) < a || (have[t.b] || 0) < b) return { error: 'not enough festival items' };
+  if (a) game.propAdd(db, pl.uid, pl.server_id, t.a, -a);
+  if (b) game.propAdd(db, pl.uid, pl.server_id, t.b, -b);
   use(db, pl, 'ex', exId);
   if (rw.prop) {
     game.propAdd(db, pl.uid, pl.server_id, rw.prop, rw.n);
@@ -122,10 +142,11 @@ function trade(db, pl, exId) {
 
 function shopXml(db, pl) {
   ensure(db);
-  return '<prop_info>' + [CAP, TREE].map((id) => `<prop prop_id="${id}" prop_yuanbao="${item(id)[4] || 0}" prop_yinzi="0" prop_icon="${item(id)[3]}"` +
+  const t = theme(db) || THEMES.christmas;
+  return '<prop_info>' + [t.a, t.b].map((id) => `<prop prop_id="${id}" prop_yuanbao="${item(id)[4] || 0}" prop_yinzi="0" prop_icon="${item(id)[3]}"` +
     ` total_times="${SHOP_LIMIT[id]}" remain_times="${Math.max(0, SHOP_LIMIT[id] - used(db, pl, 'buy', id))}"/>`).join('') + '</prop_info>';
 }
-const isItem = (id) => id === CAP || id === TREE;
+const isItem = (id) => [CAP, TREE, FIREWORK, BALLOON].includes(id);
 function buy(db, pl, id) {
   if (!theme(db)) return { error: 'the festival is over' };
   ensure(db);

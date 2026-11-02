@@ -849,3 +849,9 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   before 01:00 showed yesterday's points and the claim after 01:00 was refused ("points not reached" -> code 8000 "Parameter error").
   Now all 26 day keys use the server PC's local date (reset at local 00:00, as the game says), and "not reached" maps to "Insufficient
   materials". Checked in game: 30-point chest claimed, 5000 silver.
+- Anniversary festival built (owner: "Build it"): festival.js theme `anniversary` (switch `anniv`), items 40/41 added to the client's
+  consumeinfo by hot update 28.0.28 (tools/patch_tables.py can now append rows: `table:+[json row]`). festival.js now takes each theme's
+  item pair (t.a / t.b) instead of the fixed Christmas ids. Checked in game: screen title "Anniversary", fireworks/balloon icons, exchange
+  20 Balloons -> 10 Sage Stone III paid, Buy window 100 / 140 gold with 700 / 600 limits, buying 1 Fireworks works. The Event menu button still
+  reads "Merry Christmas" (client label for event 44). The unused item pictures props_340-383 include other later-version holiday art
+  (scratch sheet in the session scratchpad); only 343/344 are used.
