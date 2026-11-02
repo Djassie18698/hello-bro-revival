@@ -48,4 +48,7 @@ function claim(db, pl, card) {
   return { xml: `<month recash="${CARDS[card].gold}"/>` }; // hot update 28.0.31 makes the screen add it to the top bar
 }
 
-module.exports = { onTopup, itemXml, claim };
+// claimable cards today (the Event menu red dot)
+const claimable = (db, pl) => (on(db) ? Object.keys(CARDS).filter((k) => { const r = active(db, pl, Number(k)); return r && r.last !== today(); }).length : 0);
+
+module.exports = { claimable, onTopup, itemXml, claim };

@@ -162,4 +162,4 @@ function msgs(db, pl, importantFrom, normalFrom) {
   return `<import_msg>${q(1, importantFrom).map(it).join('')}</import_msg><normal_msg>${q(0, normalFrom).map(it).join('')}</normal_msg>`;
 }
 
-module.exports = { infoXml, fight, bossInfo, dice, clearCd, exchange, heroXml, claim, msgs };
+module.exports = { bossWindow, infoXml, fight, bossInfo, dice, clearCd, exchange, heroXml, claim, msgs };

@@ -266,8 +266,18 @@ module.exports = {
       `<updatechip><version val="${man.val}"/>${cdn}<filelist>${files}</filelist><ptfilelist></ptfilelist></updatechip></root>`;
   },
 
-  // Activity / event badges (Lua side). Nothing running.
-  rl_r_trackpoint: () => '<root code="0"><activity></activity><display>0</display></root>',
+  // Event red dots (mainActivity / reloadActivityData readActivityNewsData): <activity> holds one <item actid display count period/> per
+  // feature (activity_config.activityTipConfig: 5 world boss, 8 cumulative top-up, 9 Flower Worship, 14 group buy, 19 month card ...);
+  // display 1 + count = how many things wait; period changes per event run (the client lights 9/13/14 once per new period).
+  rl_r_trackpoint: ({ db, params: p }) => {
+    const a = accountBySession(db, p), pl = a && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(a.uid, Number(p.ServerID || 1));
+    if (!pl) return '<root code="0"><activity></activity><display>0</display></root>';
+    const S = require('./settings'), tip = (id, n, period = 0) => `<item actid="${id}" display="${n > 0 ? 1 : 0}" count="${n}" period="${period}"/>`;
+    const heap = game.payHeapState(db, pl, Math.floor(vip.progress(db, pl.uid, pl.server_id).exp / 10)).filter((x) => x.state === 0).length;
+    const items = tip(8, heap) + tip(19, require('./monthcard').claimable(db, pl)) + tip(5, S.eventOn(db, 12) && require('./boss').bossWindow().open ? 1 : 0) +
+      (S.eventOn(db, 'flower') ? tip(9, 1, S.switchedOnAt(db, 'flower')) : '') + (S.eventOn(db, 'groupbuy') ? tip(14, 1, S.switchedOnAt(db, 'groupbuy')) : '');
+    return `<root code="0"><activity>${items}</activity><display>0</display></root>`;
+  },
 
   // Client device report (analytics) - accept and ignore.
   rl_w_report: () => '<root code="0"></root>',

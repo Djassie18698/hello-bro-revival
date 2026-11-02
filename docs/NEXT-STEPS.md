@@ -1084,3 +1084,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   ("Ignore") / Op 2 read, Index = ID; Revenge = an ordinary spar. Texts are the game's own (Struct_String_Menu 26-34). The defender loses
   nothing here (ours), so the reports say "you lost 0 silver" / "failed to steal". 30 kept per player (ours). Checked in game: three
   reports (spar won / plunder / spar lost) with the right texts, Ignore removes one, Revenge starts the spar.
+- Event red dots: rl_r_trackpoint (mainActivity / reloadActivityData readActivityNewsData, also CWarDefaultView) now answers
+  <activity><item actid display count period/>...</activity> for what the server knows (activity_config.activityTipConfig): 8
+  cumulative top-up steps ready to claim, 19 month cards to claim today, 5 world boss open now, 9 Flower Worship and 14 group buy while
+  switched on (period = the switch-on time, so a new run lights the tile again). Others (roulette, mora, monopoly, war award ...) are
+  left out = the client keeps its default. Checked in game: no errors; the News button shows "1" for an unread battle report.
