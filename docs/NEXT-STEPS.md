@@ -932,3 +932,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
 - Battles (tower) win showed EXP 0 / silver 0 and the top bar lagged until relog (server paid 58 / 87). The tower result screen does not add
   the round reward itself (story stages do): the award now carries <exp>/<coin> = the round's own reward (+ any drop silver). Checked in
   game: +58 / +87 shown, top bar 1172 / 22197 = server. First in-game tower fight ever (rl_w_dup had never been called in the replies log).
+- Plunder chance ORIGINAL: the game's plunderinfo table (700 rows, col [1] = level difference, [2] = chance, [3] = label) is what the
+  client's "Plunder success rate" label reads (CPlunderCardView::InitUI, key = rival lv - my lv, 0 -> 1, negative -> 300 - diff). Rival
+  higher: 1-10 40 %, 11-20 50 %, 21-30 60 %, 31-50 70 %, 51-70 80 %, 71-90 90 %, 91+ 100 % ("Shall"); lower: 1-10 50 %, 11-20 40 %, 21-30
+  20 %, 31-40 15 %, 41-50 5 %, 51-80 1 %, 81+ 0 % ("No"). seals.plunder now rolls that (after a won fight) instead of a flat 70 %.
+  data/plunderinfo.json re-exported (mbs.py now reads 'i' = signed int; the old export had NaN).

@@ -608,7 +608,7 @@ function sparFight(db, pl, toUid) {
   const coin = win ? Math.round(theirCoin * d[3]) : -Math.min(1000, Math.round((pl.coin || 0) * d[4])), exp = win ? d[5] : d[6];
   const merit = win ? d[7] : d[8];
   propAdd(db, pl.uid, pl.server_id, 9994, merit); // W.A. (war achievements)
-  return { win, xml, coin, exp, merit };
+  return { win, xml, coin, exp, merit, rivalLevel: rv.level };
 }
 
 // Player exp -> level (playerlevel.dbf col 2 = exp needed to leave that level).

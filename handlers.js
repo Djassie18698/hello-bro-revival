@@ -371,7 +371,7 @@ module.exports = {
     if (r.win) { game.bumpTask(db, pl.uid, pl.server_id, 6); festival.dropOnWin(db, pl, 'spar'); }
     // Plunder (Chip = seal fragment id): a win usually steals the fragment.
     const chip = Number(p.Chip) || 0;
-    const got = chip && seals.plunder(db, pl, chip, r.win);
+    const got = chip && seals.plunder(db, pl, chip, r.win, r.rivalLevel);
     // The fragment is stored on the server; the seal list re-reads counts (rl_r_markchip) when it is shown again.
     // The victory reward draw shows the award's dropid as the card you pick. ORIGINAL drops (the game's own tables): the first spar ever
     // drops 1284 (normalconfig 182), below level 30 drop 397 (normalconfig 113/114), otherwise duelinfo [10] = 27 "Drop from Equipment, Seal".

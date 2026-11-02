@@ -24,11 +24,20 @@ function merge(db, pl, markId) {
   const seq = Number(db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id) VALUES(?,?,5,?)').run(pl.uid, pl.server_id, markId).lastInsertRowid);
   return { xml: `<markchip bagid="${seq}"/>` };
 }
-// Plunder a fragment: win chance from team power vs the rival; on a win the fragment is taken.
-function plunder(db, pl, fragId, win) {
+// Plunder a fragment: the fight must be won, then the fragment is taken with the ORIGINAL chance from the game's plunderinfo table, picked
+// by level difference exactly like the client's "Plunder success rate" label (CPlunderCardView::InitUI: key = rival level - my level;
+// 0 -> 1, negative -> 300 - diff): e.g. a rival 1-10 levels higher 40 %, 21-30 higher 60 %, 91+ higher 100 % ("Shall"); 1-10 lower 50 %,
+// 21-30 lower 20 %, 41-50 lower 5 %, 81+ lower 0 % ("No"). Was a flat 70 % (ours) before 2 Nov 2026.
+function plunderChance(myLevel, rivalLevel) {
+  let key = rivalLevel - myLevel;
+  key = key === 0 ? 1 : key < 0 ? 300 - key : key;
+  const row = game.table('plunderinfo').rows.find((r) => r[0] === key);
+  return row ? Number(row[3]) : 0;
+}
+function plunder(db, pl, fragId, win, rivalLevel) {
   if (!merges().some((r) => fragIds(r).includes(fragId))) return false;
-  if (win && Math.random() < 0.7) { game.propAdd(db, pl.uid, pl.server_id, FRAG + fragId, 1); return true; }
+  if (win && Math.random() < plunderChance(pl.level, rivalLevel == null ? pl.level : rivalLevel)) { game.propAdd(db, pl.uid, pl.server_id, FRAG + fragId, 1); return true; }
   return false;
 }
 
-module.exports = { listXml, merge, plunder, FRAG };
+module.exports = { listXml, merge, plunder, plunderChance, FRAG };

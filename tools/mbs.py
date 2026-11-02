@@ -12,6 +12,7 @@ def parse(path):
         for t in types:
             if t=='u': row.append(struct.unpack_from('<I',d,p)[0]); p+=4
             elif t=='f': row.append(round(struct.unpack_from('<f',d,p)[0],4)); p+=4
+            elif t=='i': row.append(struct.unpack_from('<i',d,p)[0]); p+=4  # signed int (plunderinfo level difference)
             else:
                 off,ln=struct.unpack_from('<IH',d,p); p+=6
                 row.append(d[off:off+ln].decode('utf8','replace'))
