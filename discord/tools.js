@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const DOC_OK = /^(README[^/]*|FRIENDS-README\.txt|PROTOCOL-NOTES\.txt|SATURDAY-CHECKLIST\.txt|PLAN\.md|docs\/[^/]+\.md|public-template\/.+\.(md|bat|txt))$/i;
+const DOC_OK = /^(README[^/]*|docs\/(history\/)?[^/]+\.(md|txt)|public-template\/.+\.(md|bat|txt))$/i;
 const LIMIT = 2000;
 
 function secretProblem(text) {
@@ -95,7 +95,7 @@ function makeTools({ discord, log = () => {}, dry = false }) {
         return write(`delete message ${message_id} in #${ch.name}`, async () => { await discord.remove(ch, message_id); return 'deleted'; });
       }),
     T('list_repo_docs', 'List the project documentation files you may read (README, guides, notes). Use these as the source of truth when writing tutorials.', {}, [], async () => JSON.stringify(listDocs())),
-    T('read_repo_doc', 'Read one project documentation file listed by list_repo_docs.', { path: { type: 'string', description: 'e.g. README.txt or docs/HOT-UPDATE.md' } }, ['path'],
+    T('read_repo_doc', 'Read one project documentation file listed by list_repo_docs.', { path: { type: 'string', description: 'e.g. README.md or docs/HOT-UPDATE.md' } }, ['path'],
       async ({ path: p }) => {
         const rel = String(p).replace(/^\/+/, '');
         if (rel.includes('..') || !DOC_OK.test(rel)) throw new Error('that file is not readable (use list_repo_docs)');

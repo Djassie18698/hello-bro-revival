@@ -1128,3 +1128,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   buy dialog ...) read text.lua text_config[code] instead, a code missing there is a Lua error. Every code errcodes.js can send exists in
   text.lua except 480007 / 520002, which only Akatsuki screens get (they use ShowErrorTip): fine.
 - 2 Nov: Discord bot shown online: discord/online.js + START-BOT-ONLINE.bat (gateway connection with presence only).
+- 2 Nov: repo clean-up for the bug-fix phase. Old notes moved to docs/history/ (PLAN.md, PROTOCOL-NOTES.txt, README.txt ->
+  README-old.txt, SATURDAY-CHECKLIST.txt, FRIENDS-README.txt, MASTER-PLAN.md, PROJECT-NOTES.md); removed MAKE-FRIEND-APK.bat
+  (HOST-MY-SERVER.bat does it), PUBLISH.bat, docs/OPEN-ISSUES.md (PROGRESS.md), the two Oct game apks in release/ (old login) and
+  tools/__pycache__ (now git-ignored). sync_test_folder.sh now also deletes files removed from git (remembers .synced-commit) and
+  only syncs the Locked Server folder (the Fresh-Test folder is gone). CLAUDE.md rewritten: bug-fix loop (section 2), every module and
+  tool listed. README: "Where it stands", one line per day in "What changed recently". GitHub description + topics set.
+  Training at the end of the story checked: original behaviour (passed stages show Finish; each of the 165 bosses has its own 3 free
+  tries a day); explained in how-to-play chapter 2.

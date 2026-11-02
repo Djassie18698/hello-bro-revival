@@ -31,7 +31,7 @@ for d, _, files in os.walk(tmpl):
     for f in files:
         full = os.path.join(d, f)
         put(os.path.relpath(full, tmpl), full)
-put('docs/ROADMAP.md', os.path.join(root, 'docs', 'MASTER-PLAN.md'))
+put('docs/ROADMAP.md', os.path.join(root, 'docs', 'history', 'MASTER-PLAN.md'))
 put('docs/HOT-UPDATE.md')
 put('docs/BASE-FEATURES.md')
 

@@ -8,8 +8,9 @@
 
 ![server](https://img.shields.io/badge/server-Node.js-3c873a?style=for-the-badge)
 ![game](https://img.shields.io/badge/game-Android%20v28.0-blue?style=for-the-badge)
-![status](https://img.shields.io/badge/status-playable%20%26%20testing-orange?style=for-the-badge)
-![repo](https://img.shields.io/badge/repo-public-brightgreen?style=for-the-badge)
+![status](https://img.shields.io/badge/status-playable%20%C2%B7%20bug%20fixing-brightgreen?style=for-the-badge)
+![bug lists](https://img.shields.io/badge/bug%20lists%201--4-48%20fixed-success?style=for-the-badge)
+![update](https://img.shields.io/badge/game%20update-28.0.32-informational?style=for-the-badge)
 
 **Goal: play exactly like the original, with friends, for free.**
 
@@ -20,6 +21,13 @@
 *Report bugs, get help installing, and play with the community.*
 
 </div>
+
+---
+
+## 📍 Where it stands
+
+**Every screen of the game works.** All four bug lists are done (48 fixed, 2 can't be fixed from the server), and new
+reports are fixed as they come in. Fixes reach your game by themselves: tap **Confirm** when it asks for an update.
 
 ---
 
@@ -83,11 +91,9 @@ Or add a comment with a screenshot and one line to the running lists:
 
 - [Bugfix List 1](https://github.com/Djassie18698/hello-bro-revival/issues/2)
 - [Bugfix List 2](https://github.com/Djassie18698/hello-bro-revival/issues/3)
-- [Bugfix List 3](https://github.com/Djassie18698/hello-bro-revival/issues/4) · [Bugfix List 4](https://github.com/Djassie18698/hello-bro-revival/issues/5)
+- [Bugfix List 3](https://github.com/Djassie18698/hello-bro-revival/issues/4) · [Bugfix List 4](https://github.com/Djassie18698/hello-bro-revival/issues/5) · [Bugfix List 5](https://github.com/Djassie18698/hello-bro-revival/issues/6) (new reports go here)
 
 📋 **What's fixed and what's still open:** [docs/PROGRESS.md](docs/PROGRESS.md) (also the **Progress** tab of the control panel).
-
-What is still open is listed in [`docs/OPEN-ISSUES.md`](docs/OPEN-ISSUES.md).
 
 A good report says **where** it happened, the **taps**, what **should** happen, what **did** happen, and a **screenshot**.
 
@@ -95,27 +101,13 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
-- **2 Nov 2026 (morning, part 2):** the **second team** (Team 2 tab from level 100, Activate), **battle reports** in News (who sparred or plundered you, with Revenge), Battles **floor rewards**, the Arena **Exchange** tab with its real limits, **Akatsuki leader tools** (expel, promote, settings), **war rankings**, Ninja Treasure **Top Rewards**, event **red dots**, an **Award Center** to send gifts from the control panel, friend messages in News, shop item bags that give what they say; items that did nothing now work (**Hyourou-gan**, Souls Dan, Double EXP / W.A. pills, named fragments), **VIP limits** follow the game's VIP table, and the succession price follows the game. Checked with new tests on brand-new and real saves. See
-  [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
-- **2 Nov 2026 (morning test round):** **Battles** has all **25 chapters** with the chapter boss, the **Spar win** card is a real reward, **W.A. titles** and **equipment set bonuses** work, plunder uses the game's real chances, the recruit window updates after every pull, free **ramen** at 12-14 and 18-20, and new events: **Sign-in** login streak (on), **God of Wealth**, **Month card** and **Flower Worship** (control-panel switches, off until switched on). Checked against 3 692 broken requests and a cheat test. Game updates 28.0.29-28.0.31. See
-  [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
-- **2 Nov 2026 (night):** the **Anniversary festival** (original list from the photos: Fireworks from training, Balloons from spar, 100 / 140 gold, trade for Anniversary Sasuke), **daily task chests** like the original (6 chests at 30-250 points), daily things reset at **local midnight**, **War open all day** with a working clock, and the Victory screen shows the **silver** you win. Game updates 28.0.26-28.0.28. See
-  [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
-- **1 Nov 2026 (night):** fights scale: real players bring their **whole team**, bots about as many cards as you, every enemy card **varies** each fight, and watching or skipping a fight gives the same result; story bosses stay hard. Discord tidied up with chaptered guides:
-  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 12).
-- **1 Nov 2026 (evening):** the **cross-server battle** works (the "Cross" building on Home: ticket, Saturday ladder fights, points every second, rankings and the point shop), shop purchases show at once (item counts and gear bags), gear packs give what their text says:
-  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 11). Game update 28.0.23.
-- **1 Nov 2026 (later):** **elements in fights** (Water > Fire > Wind > Thunder > Earth > Water, +15 %, "Restrain" on the result screen), real players fight with their **real team** in spar / arena / war, and every fix that was only tested on a save is now **checked in the game**:
-  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md) (section 10).
-- **2 Nov 2026 (evening):** a **Player log** tab in the control panel (levels, team attack over time, chapters reached per player); Akatsuki, war, spar, Element Change, evolve and border war checked in the game; balance simulations (`docs/BALANCE-SIMULATIONS.md`).
-- **2 Nov 2026 (later):** **real login**: the game's account window now logs in on our own server (no more Gumptech), remembers your phone (Play as guest) and can sign up a name + password to move to another phone; the official public server **ninjaonline** (game file on the Releases page), and a guide for solo playthroughs. Needs the new game file from the Releases page.
-- **2 Nov 2026:** all ~3 580 photos of the original game read; Save time, Ninja Test, arena rewards, Ninja Treasure, secret shop refresh and shop prices now use the original numbers, new **Growth Fund**, **change country**, **Great gift for total recharge** and **Time limited GiftPack** with the original rewards, daily spending gift and recharge streak; monthly sign-in, top-up packages, Akatsuki, country war, spar and Element Change balanced to the original photos:
-  [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
-- **1 Nov 2026:** holiday and limited events (**Christmas** with the original trades, New Year, God Recruit, Hot Treasure, Gold spending, Diligence gift, Limited discount, Lottery), card stats exactly like the game, a **team builder**, everything in one **control panel**, the ramen window when out of energy, new **Server Manager** (events on/off, announcement, who is online, backups, restart), rebirth up to 8, sage growth with the original chances, Shinobi training crash fixed,
-  chapters open after the last boss, a **Join Discord** button in the game's Settings and the Discord link in the top banner, chains for God cards, soul refinery, Akatsuki buildings, admin edits item amounts, quicker return to Home, long ninja names fit their box:
-  [**`docs/FIXES-2026-11-01.md`**](docs/FIXES-2026-11-01.md).
-- **31 Oct 2026:** the big fix day (training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more):
-  [**`docs/FIXES-2026-10-31.md`**](docs/FIXES-2026-10-31.md).
+| Day | What |
+|---|---|
+| **2 Nov 2026** | Big test round with no new bugs found. The **second team** (Team 2, from level 100), **battle reports** and friend messages in News, all **25 Battles chapters** with floor rewards, the Arena **Exchange** with its real limits, **Akatsuki leader tools**, **war rankings**, an **Award Center** to send gifts from the control panel, the **Anniversary festival**, daily task chests like the original, **War open all day**, the real **silver** on the Victory screen, **real login** (play as guest or sign up to move phones), the public server **ninjaonline**, and new events (Sign-in streak, God of Wealth, Month card, Flower Worship). Items, gift packs and VIP gifts give what their text says. The Discord bot now shows as online. [Full list](docs/FIXES-2026-11-02.md) |
+| **1 Nov 2026** | The **cross-server battle**, **elements in fights** (Water > Fire > Wind > Thunder > Earth > Water), real players fight with their real team, holiday and limited events (Christmas, New Year, God Recruit, Hot Treasure, Lottery and more), card stats exactly like the game, the **team builder** and one **control panel**, Server Manager, rebirth up to 8, sage growth with the original chances, a **Join Discord** button in the game's Settings. [Full list](docs/FIXES-2026-11-01.md) |
+| **31 Oct 2026** | The big fix day: training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more. [Full list](docs/FIXES-2026-10-31.md) |
+
+Every fix one by one, and what is still open: [**docs/PROGRESS.md**](docs/PROGRESS.md).
 
 ---
 
@@ -130,7 +122,9 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 | `reference/lua-scripts/` | the game's own screens (read-only reference) |
 | `cdn/` | hot updates the server pushes to every phone |
 | `tools/` | test, build and emulator helpers |
-| `docs/` | notes: [`NEXT-STEPS.md`](docs/NEXT-STEPS.md) (technical log), [`BASE-FEATURES.md`](docs/BASE-FEATURES.md), [`HOT-UPDATE.md`](docs/HOT-UPDATE.md) |
+| `docs/` | [`PROGRESS.md`](docs/PROGRESS.md) (every bug and its state), `FIXES-<date>.md` (plain-words fix days), [`NEXT-STEPS.md`](docs/NEXT-STEPS.md) (technical log), [`BASE-FEATURES.md`](docs/BASE-FEATURES.md), [`HOT-UPDATE.md`](docs/HOT-UPDATE.md), `history/` (old plans) |
+| `discord/` | the Discord bot: guides, channel layout, keep-online |
+| `.bat` files | `HOST-MY-SERVER.bat` (setup), `START-SERVER.bat` (run), `UPDATE.bat` (get the newest fixes), `OPEN-FIREWALL.bat` |
 | `CLAUDE.md` | start-here guide for the AI helper that maintains the project |
 
 ---
@@ -140,7 +134,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 - This repository is **public** and shared with friends. It also contains the game files and the signing key, so nothing personal or secret may ever be put in it.
 - `hellobro.db` is the save of **your** server; it is never uploaded.
 - Top-ups cost nothing, but they count for VIP and the top-up rewards.
-- Some things are still open (opening scene skip, 10-pull zoom, silver shown on the victory card). See the last chapter of the fix document.
+- A few things live inside the game app itself and can't be changed from the server (opening scene skip, the 10-pull zoom). They are listed in [docs/PROGRESS.md](docs/PROGRESS.md).
 
 <div align="center">
 

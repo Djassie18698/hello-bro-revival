@@ -22,3 +22,7 @@ release/HelloBro-for-*.apk
 START-PUBLIC-SERVER.bat
 public.db
 tools/dev/emu.account
+
+# Python caches
+__pycache__/
+*.pyc

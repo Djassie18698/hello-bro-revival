@@ -18,10 +18,10 @@ const { fakeAdapter, realAdapter } = require('./adapter');
   const discord = fakeAdapter();
   const tools = makeTools({ discord });
   const run = (name, input) => tools.find((t) => t.def.name === name).run(input);
-  assert(JSON.parse(await run('list_repo_docs', {})).includes('README.txt'));
+  assert(JSON.parse(await run('list_repo_docs', {})).includes('README.md'));
   for (const bad of ['hellobro.db', 'release/revival.keystore', 'CLAUDE.md', '../.git/config', 'discord/.env', 'docs/../hellobro.db'])
     await assert.rejects(() => run('read_repo_doc', { path: bad }), /not readable/, bad);
-  assert((await run('read_repo_doc', { path: 'README.txt' })).length > 50);
+  assert((await run('read_repo_doc', { path: 'README.md' })).length > 50);
 
   // --- refused posts never reach Discord
   await assert.rejects(() => run('post_message', { channel: 'tutorial', content: 'join 10.0.0.1' }), /refused/);
@@ -34,7 +34,7 @@ const { fakeAdapter, realAdapter } = require('./adapter');
 
   // --- full agent loop with a scripted fake Claude
   const script = [
-    { stop_reason: 'tool_use', content: [{ type: 'thinking', thinking: '', signature: 'x' }, { type: 'tool_use', id: 't1', name: 'read_channel', input: { channel: 'tutorial' } }, { type: 'tool_use', id: 't2', name: 'read_repo_doc', input: { path: 'README.txt' } }] },
+    { stop_reason: 'tool_use', content: [{ type: 'thinking', thinking: '', signature: 'x' }, { type: 'tool_use', id: 't1', name: 'read_channel', input: { channel: 'tutorial' } }, { type: 'tool_use', id: 't2', name: 'read_repo_doc', input: { path: 'README.md' } }] },
     { stop_reason: 'tool_use', content: [{ type: 'tool_use', id: 't3', name: 'post_message', input: { channel: '#tutorial', content: '**How to install**\n1. Download the game\n2. Follow README' } }] },
     { stop_reason: 'tool_use', content: [{ type: 'tool_use', id: 't4', name: 'post_message', input: { channel: 'tutorial', content: 'server at 8.8.8.8' } }] },
     { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Posted the install tutorial in #tutorial.' }] },

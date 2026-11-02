@@ -5,147 +5,182 @@ You are continuing a hobby project: a replacement server for the dead mobile gam
 The owner (Djassie, GitHub `Djassie18698`) is **not a developer**: give click-by-click steps, ready-made `.bat` files, short
 answers. Goal: the game plays **exactly like the original**, with friends, for free (top-ups cost nothing), with an admin page.
 
+**Phase (since 2 Nov 2026): bug fixing.** Every screen of the game works; what comes in now is mostly bug reports from the owner
+and players. Section 2 is the bug-fix loop. New features only on the owner's request.
+
 Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings). Don't re-read everything else up front.
 
 ## 1. Rules (the owner asked for all of these)
 1. **Keep it original.** Unlock levels, starting cards, VIP, stage clears, prices: take them from the game's own data
    (`data/*.json`), Lua (`reference/lua-scripts/`) or the C++ disassembly. If the original number is lost (it lived on the dead
    server), choose one, mark it `(ours)` in a code comment and in `docs/BASE-FEATURES.md`. Don't "improve" or hand out freebies.
+   "Is this normal?" questions: check the game's own code first; often the answer is "yes, the original did that" (e.g. finished
+   story stages show Finish and only bosses can be replayed).
 2. **After every working change**, in this order:
-   `sh tools/dev/check.sh` (smoke + bad input + cheat + real-save checks; non-zero on any problem) `&& git add -A && git commit && git push` → `sh tools/sync_test_folder.sh` (copies the push into
-   `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on; keeps its save) → tell the owner to restart
-   their server (never stop or start it yourself while they may be playing; ask first). Then post a short plain-words note of the update in Discord #updates (owner's request, 1 Nov 2026; #faq has the "can't connect after an update -> make a new game file with HOST-MY-SERVER.bat" post). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
-   "Internal Server Error": just push again.
+   `sh tools/dev/check.sh` (smoke + bad input + cheat + real-save checks; non-zero on any problem) `&& git add -A && git commit && git push` →
+   `sh tools/sync_test_folder.sh` (copies the push into `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on;
+   keeps its save, removes files deleted from git) → tell the owner to restart their server (never stop or start it yourself while they
+   may be playing; ask first). Then post a short plain-words note of the update in Discord #updates (owner's request, 1 Nov 2026).
+   Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` is **PUBLIC on purpose** (owner's decision on 31 Oct 2026: it is shared with several people and this is easier).
    It still holds game files and the signing keystore, so never add anything secret to it: no tokens, passwords, personal data, `discord/.env`.
-   `hellobro.db` (the save) and `re/` are never committed. A public code-only copy is built by `tools/make_public.py`.
-4. **Emulator:** only the BlueStacks instance named **"Claude"** (Android 11; "App Player 5" is gone). Its adb address is not fixed:
+   `hellobro.db` (the save), `public.db`, `START-PUBLIC-SERVER.bat` and `re/` are never committed.
+4. **Emulator:** only the BlueStacks instance named **"Claude"** (Android 11). Its adb address is not fixed:
    the owner starts it, then run `HD-Adb.exe devices`, ask which entry is "Claude", and save it in `tools/dev/emu.device`
    (one line, e.g. `emulator-5564`; or set `HB_EMU`). `emu.sh` refuses to run without it so it never hits the owner's own
    game instances. Never touch any other BlueStacks instance (the owner tests there) and never use the Multi-Instance Manager.
-5. Keep working through the open list (section 9) without asking at every step; ask only for real decisions
-   (e.g. "original vs. free"). Explain what changed in plain words; say what is not verified in game.
+5. Keep working through open bugs without asking at every step; ask only for real decisions (e.g. "original vs. free").
+   Explain what changed in plain words; say what is not verified in game.
 6. Update this file when a rule, path or the open list changes. Append findings to `docs/NEXT-STEPS.md`.
-7. **Every big milestone or change** also updates the GitHub front page `README.md` (the "What works" table and the "What changed recently"
-   section) and gets a plain-words entry in a dated `docs/FIXES-<date>.md` (new file per big fix day, same layout as `docs/FIXES-2026-10-31.md`).
-   Small fixes only need `docs/NEXT-STEPS.md`. The owner approved the README look on 31 Oct 2026: keep that style.
-8. Bug lists live in GitHub issues #2 (list 1), #3 (list 2), #4 (list 3), #5 (list 4): after fixing something, post a short status comment there (write the text to a
-   file in the scratchpad and use `gh issue comment N --body-file`; `/tmp` paths failed once).
+7. **Big changes** (a new feature, a day with many fixes) also update the GitHub front page `README.md` ("What works" table and
+   "What changed recently", newest first, one short line per day) and get a plain-words entry in a dated `docs/FIXES-<date>.md`
+   (same layout as `docs/FIXES-2026-10-31.md`). Small fixes only need `docs/PROGRESS.md` + `docs/NEXT-STEPS.md`.
+   The owner approved the README look on 31 Oct 2026: keep that style.
+8. Balance: the owner keeps it as is (`docs/BALANCE-SIMULATIONS.md`); don't change rates or prices without asking.
 
-## 2. First-time setup in a new session (5 minutes)
+## 2. Fixing a bug (the usual job now)
+1. **Where reports come from:** the owner in chat; GitHub issues #2 (list 1), #3 (list 2), #4 (list 3), #5 (list 4), #6 (list 5, still
+   empty) and new issues from the Bug report template (`gh issue list`); Discord #bugs-and-issues and #support
+   (`cd discord && node --env-file=.env dc.js read bugs-and-issues`). Never reply in Discord chat channels.
+2. **Add a row** to `docs/PROGRESS.md` (⏳) under its list, and keep the Summary counts matching the rows.
+3. **Reproduce:** `node tools/dev/probe.js <endpoint> <Cmd> k=v` against a test save, or in the game on the Claude emulator
+   (section 5). `emu.sh log` shows crashes and the server's replies. Real player data: `node tools/dev/realsave.js <copy of save>`.
+4. **Find the cause** (section 6: which Lua or C++ code reads the reply). Fix it in the server if at all possible; a game-side
+   change goes through a hot update (section 7). Something inside the C++ app that no reply can change is 🚫 "not possible".
+5. **Guard it:** add a check to `tools/dev/smoke.js` (normal use), `fuzz.js` (bad input) or `exploit.js` (cheating) so it can't
+   come back. Run `sh tools/dev/check.sh`.
+6. **Check in the game** when it shows on screen (✅); if only checked on a save, mark 🧪 and say so.
+7. Ship it (rule 2), set the PROGRESS row to ✅/🧪, add a line to `docs/NEXT-STEPS.md`, and comment on the GitHub issue it came from
+   (write the text to a file in the scratchpad, `gh issue comment N --body-file <file>`; `/tmp` paths failed once).
+   If players will notice it, also update `discord/guides/how-to-play.md` or `faq.md` and apply it (section 9).
+
+## 3. First-time setup in a new session (5 minutes)
 - Work in `C:\Users\dj199\Desktop\HelloBroServer` (main repo). Git Bash: use short paths, `cd /c/Users/dj199/...`
   (Windows programs fail from very long working directories). Don't put backslashes in Python heredocs; write a script file.
 - `pip install pyelftools capstone` (once), then `python -I tools/setup_re.py`: makes `re/libgame.so`, `re/obb/` (the
   original game files: Lua, ccbi, xml, images) and `re/all.txt` (44 MB disassembly of every C++ function with string and
   symbol hints, ~1 minute). It needs a Hello Bro `.xapk` (Desktop has `HelloBro-Tailscale-100.111.115.0.xapk`, the release has `HelloBro-base-host-your-own.xapk`; otherwise it
   downloads it from the `tailscale-play` release with `gh`).
-- Tools on this PC: Node 24 (`node:sqlite`), Python 3.12, JDK 21 (jarsigner), `gh` (logged in), BlueStacks adb at
+- Tools on this PC: Node 24 (`node:sqlite`, built-in WebSocket), Python 3.12 (no PIL), JDK 21 (jarsigner), `gh` (logged in), BlueStacks adb at
   `C:\Program Files\BlueStacks_nxt\HD-Adb.exe`.
 
-## 3. Map of the repo
+## 4. Map of the repo
 | Path | What |
 |---|---|
-| `server.js` | HTTP server on :18080 (rewrites `<root` to `<RENLONG`, %20-encodes raw spaces, rate limit, `/admin`, `/cdn/`) |
+| `server.js` | HTTP server on :18080 (rewrites `<root` to `<RENLONG`, %20-encodes raw spaces, rate limit, `/admin`, `/cdn/`, `/progress.md`) |
 | `handlers.js` | one function per client endpoint (`rl_r_*` read, `rl_w_*` write, `rl_x_*` mixed, `xk_*` login/directory) |
-| `game.js` | core: cards, team/stats, gear, sets, drops (`grantDrop`), gacha, training, fights (`battleXml`), shop, props |
-| feature modules | `totalgift` total-recharge gifts · `dailyevents` daily spending + recharge streak · `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `crosswar` cross-server battle · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` · `mora` · `slot` · `signin` · `rankings` · `stagegift` · `drops` · `keeplogin` Sign-in login streak · `caishen` God of Wealth · `monthcard` Month card · `flower` Flower Worship · `notices` News battle reports + friend messages · `awardcenter` Awards chest mail (control panel) · Team 2 = `team_alt`/`equipped_alt` in game.js |
+| `game.js` | core: cards, team/stats, gear, sets, drops (`grantDrop`), gacha, training, fights (`battleXml`), shop, props; Team 2 = `team_alt`/`equipped_alt` |
+| `errcodes.js` | turns code-5 refusals into the codes the game's own tip table knows (else every refusal reads "Your energy level is full") |
+| feature modules | `totalgift` total-recharge gifts · `dailyevents` daily spending + recharge streak · `consumption` gold spending gifts · `exam` Ninja Test · `tupo` Breakthrough · `pet` Pets · `monopoly` Millionaire · `tear` national treasure · `sudoku` Ninja Treasure · `sevenday` 7-day goals · `boss` world boss · `crosswar` cross-server battle · `war` country war · `country` officials · `border` border war · `seals` plunder/seals · `guild` Akatsuki · `vip` · `wheel` Lucky Wheel · `mora` · `slot` · `signin` monthly sign-in · `keeplogin` Sign-in login streak · `rankings` · `stagegift` · `drops` gift-pack drops · `caishen` God of Wealth · `monthcard` Month card · `flower` Flower Worship · `notices` News battle reports + friend messages · `awardcenter` Awards chest mail · `festival` festival trades (Christmas, Anniversary ...) · `godrecruit` God Recruit · `hottreasure` Hot Treasure · `limited` Diligence gift, Limited discount, Lottery · `scratch` scratch card · `box` treasure chests · `groupbuy` group purchase · `growthfund` Growth Fund · `soultrain` Eight Gates soul training |
 | `playerlog.js` / `playerlog.html` | progress log per player (level-ups, team attack changes of 2 %+, new stages / chapters, VIP, login days); control panel tab "Player log" = /admin/playerlog |
 | `gumplogin.js` | the APK's account window (Play / Login / Signup, *.do paths) on our server; `LOGIN_LOCK=1` = only its sessions count |
-| `admin.js` | admin page (players keyed "uid:server_id", server 1 = main, 2-4 = starter slots from the login region list): give gold/items/cards, set level/VIP, inventory edits, **team editor** (`/admin/api/team`, `setteam`: whole team + 8 gear slots in one transaction), **Award Center mail** (`sendmail`, awardcenter.js), **reset a player** |
-| `panel.html` | the control panel at `/`, `/admin`, `/manager`: tabs Server / Players & items / Team builder; it embeds `/manager?embed=1` and `/admin?embed=1` (iframes, postMessage {tab}/{goto}) |
+| `admin.js` / `admin.html` | admin page (players keyed "uid:server_id", server 1 = main, 2-4 = starter slots from the login region list): give gold/items/cards, set level/VIP, inventory edits, **team editor** (`/admin/api/team`, `setteam`: whole team + 8 gear slots in one transaction, Team 2 too), **Award Center mail** (`sendmail`), **reset a player** |
+| `panel.html` | the control panel at `/`, `/admin`, `/manager`: tabs Server / Players & items (with an Award Center sub-tab) / Team builder / Player log / Progress; it embeds `/manager?embed=1` and `/admin?embed=1` (iframes, postMessage {tab}/{goto}) |
 | `manager.js`/`manager.html`/`settings.js` | Server Manager `/manager`: status, online players, live log, events on/off (`server_settings.events_off`, used by `game.actXml`), announcement (`rl_r_bulletin`), backup, restart (exit code 3, `START-SERVER.bat` loops; `HB_MANAGED=1`) |
 | `db.js` | opens the save: SQLite WAL, health check, backups on start + every 6 h (VACUUM INTO), extra indexes |
 | `schema.js` | base tables (modules create their own with `CREATE TABLE IF NOT EXISTS`) |
 | `data/*.json` | original game tables `{types, rows}` (ninjainfo, equipmentinfo, roundinfo, dropinfo, consumeinfo, petinfo, ...) |
-| `reference/lua-scripts/` | the client's Lua UI (same as `re/obb/script`) |
-| `cdn/` | hot-update files the server pushes to every phone (section 6) |
-| `tools/` | `smoke.js`, `emu.sh`, `restart.sh`, `probe.js` (in `tools/dev/`), `setup_re.py`, `armdis.py`, `build_cdn.py`, `patch_apk.py`, `make_game_for.py`, `sync_test_folder.sh`, `make_public.py` |
-| `release/` | patched apks + `revival.keystore` (password/alias `revival`; ALWAYS sign with it, never make a new one) |
-| `discord/` | `dc.js` posts to the owner's Discord (token in `discord/.env`, git-ignored) |
-| docs | `README.md` GitHub front page · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/FIXES-2026-10-31.md` plain-words list of the big fix day · `docs/NEXT-STEPS.md` findings log · `docs/BASE-FEATURES.md` Base rules · `docs/HOT-UPDATE.md` · `docs/PROJECT-NOTES.md` early history · `docs/MASTER-PLAN.md` old roadmap · `HOST-YOUR-OWN-SERVER.md` · `PLAY-ON-TAILSCALE.md` |
+| `reference/lua-scripts/` | the client's Lua UI (same as `re/obb/script`); `reference/client-endpoints.txt` every endpoint the app calls |
+| `cdn/` | hot-update files the server pushes to every phone (section 7) |
+| `.bat` files | `START-SERVER.bat` (runs the server, restarts it on exit code 3) · `HOST-MY-SERVER.bat` (one-time setup + game file for any address) · `UPDATE.bat` (pulls the newest version, keeps the save) · `OPEN-FIREWALL.bat` (opens port 18080, run as admin) |
+| `tools/dev/` | `check.sh` all checks · `smoke.js` every handler on a temp DB · `fuzz.js` bad input · `exploit.js` cheat check · `realsave.js` every screen for every player of a real save (read-only copy) · `probe.js` call one endpoint · `dev.js` set level / VIP / items on the test account, `relog` · `emu.sh` emulator (restart, tap, shot, log, update) · `boot.sh` / `go.sh` / `survey.sh` quick emulator walks · `restart.sh` dev server on :18081 · `upgrades.js` card upgrade walk-through · `sim_balance.js` balance simulations |
+| `tools/` | `setup_re.py` (+ `setup_from_xapk.py` for a fresh public install) · `armdis.py` disassembler · `build_cdn.py` hot update zip · `patch_apk.py` / `make_game_for.py` game file for an address · `patch_login_smali.py` + `patch_dex.py` account window / billing crash patches (→ `release/classes-revival.dex`) · `patch_tables.py` + `mbs.py` + `export_tables.py` the client's tables.bin · `ccbi.py` .ccbi layouts · `pvrccz.py` sprite sheets (read only: re-encoding breaks them) · `patch_winview.py` / `patch_winanim.py` victory screen patches · `sync_test_folder.sh` · `make_public.py` (public copy, archived) |
+| `release/` | `revival.keystore` (password/alias `revival`; ALWAYS sign with it, never make a new one), `classes-revival.dex`; built `HelloBro-for-*.apk` stay local (git-ignored) |
+| `discord/` | `dc.js` read/post as the bot (token in `discord/.env`, git-ignored) · `guides.js` + `guides/*.md` the guide channels · `layout.js` channel layout · `online.js` + `START-BOT-ONLINE.bat` keeps the bot shown online · `bot.js`/`cli.js`/`agent.js`/`tools.js`/`adapter.js` an AI manager bot (needs a paid API key, not in use) · `test.js`, `test-dc.js` offline tests |
+| docs | `README.md` GitHub front page · `docs/PROGRESS.md` every bug and request with its state · `docs/NEXT-STEPS.md` findings log · `docs/FIXES-<date>.md` plain-words fix days · `docs/BASE-FEATURES.md` Base rules + (ours) values · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/HOT-UPDATE.md` · `docs/BALANCE-SIMULATIONS.md` · `docs/GEAR-REPORT.md` · `docs/history/` old plans and notes (outdated, for reference) · `HOST-YOUR-OWN-SERVER.md` · `PLAY-ON-TAILSCALE.md` |
 
-## 4. Running and testing
-- **Two servers exist, only one can run (both use port 18080):**
-  - the **test server** the owner plays on: `C:\Users\dj199\Desktop\HelloBro-Fresh-Test\HelloBroServer` (its own `hellobro.db`).
-    Restart it after a sync (PowerShell): stop the process listening on 18080 and its parent cmd, then
-    `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
-  - the dev server in the main repo: `bash tools/dev/restart.sh` (port **18081**, so the owner can play on 18080 at the same time; logs `%TEMP%\hb\server.log`). The Claude emulator runs `release/HelloBro-for-127.0.0.1-18081.apk` and reaches it through `adb reverse` (`emu.sh restart` sets it up). Test login: `tools/dev/emu.account` (git-ignored), account 55501235. `node tools/dev/dev.js` sets level / VIP / gold / items / SQL on the test account and `relog` restarts the game. The main repo's
+## 5. Running and testing
+- **Two servers:**
+  - the **play server** the owner uses: `C:\Users\dj199\Desktop\Hello Bro Locked Server` (its own `hellobro.db`, port 18080).
+    Only the owner starts and stops it (rule 2). Restart (only when asked, PowerShell): stop the process listening on 18080 and its
+    parent cmd, then `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
+  - the **dev server** in the main repo: `bash tools/dev/restart.sh` (port **18081**, so the owner can play on 18080 at the same time;
+    logs `%TEMP%\hb\server.log`). The Claude emulator runs `release/HelloBro-for-127.0.0.1-18081.apk` and reaches it through
+    `adb reverse` (`emu.sh restart` sets it up). Test login: `tools/dev/emu.account` (git-ignored), account 55501235.
+    `node tools/dev/dev.js` sets level / VIP / gold / items / SQL on the test account and `relog` restarts the game. The main repo's
     `hellobro.db` holds the owner's main account `22079117` (Ninja78277, level 80, VIP 18) and a friend `22078671`.
-- Tests without the game: `node tools/dev/smoke.js` (calls every handler on a temp DB), `node tools/dev/fuzz.js` (bad input + every screen on a brand-new save), `node tools/dev/exploit.js` (cheat check), `node tools/dev/realsave.js [save.db]` (every screen for every player on a read-only copy of a real save), `node tools/dev/probe.js <endpoint> <Cmd> k=v`,
-  or a small node script with `new DatabaseSync(':memory:')` + `require('./schema')(db)` + `handlers.rl_w_login2/rl_w_reg2`.
+- Tests without the game: `sh tools/dev/check.sh` runs them all; or `probe.js`, or a small node script with
+  `new DatabaseSync(':memory:')` + `require('./schema')(db)` + `handlers.rl_w_login2/rl_w_reg2`.
 - In the game: `sh tools/dev/emu.sh restart` → wait ~20 s → `emu.sh update` if "confirm update?" shows → `emu.sh tap 540 1270`
   (START) → `emu.sh shot` and view `re/s.png`. Screen is portrait 1080x1920. Bottom bar y=1860: Home 85, Team 270, Backpack 447,
   Training 630, Spar 805, Shop 980. Base building 530,1215. `emu.sh log` shows crashes/Lua errors/missing nodes/server replies.
-  BlueStacks sometimes opens an ad page that eats taps: `emu.sh back`, then relaunch.
-- The game server address inside the app is fixed at build time: test apk/xapk use `100.111.115.0:18080` (owner's Tailscale IP).
+  BlueStacks sometimes opens an ad page that eats taps: `emu.sh back`, then relaunch. A dialog left open (e.g. Save time) also
+  eats taps: close it first. Don't relaunch the game for every check; walk between screens when you can.
 
-## 5. Protocol and debugging (how every crash so far was fixed)
+## 6. Protocol and debugging (how every crash so far was fixed)
 - Client POSTs `/<endpoint>` with `Uid, Session, ServerID, GroupID, Cmd, ...`; reply XML `<root code="0">...</root>`.
-  Non-zero code = error tip (`code="5"` with `<message>`). Accounts auto-create; sessions only checked with `STRICT_SESSIONS=1`.
+  Non-zero code = error tip (`code="5"` with `<message>`, mapped by `errcodes.js`). Accounts auto-create; sessions only checked with `STRICT_SESSIONS=1`.
 - Find the parser: **Lua screen** → grep `reference/lua-scripts` for the endpoint, read every `:find("tag")` (Lua `find` searches
   recursively). **C++ screen** → `grep -n "'/rl_x_name'" re/all.txt`, find the `onHttpRequestCompleted` of that class
   (`awk 'NR<=L && /^=====/'` to get the function), list `-> 'tag'` strings and `FirstChildElement`/`Attribute` calls.
-- Crash signs in `emu.sh log`: `Fatal signal 11 ... fault addr 0x18/0x0` = C++ read a missing element; `this is no node:X` =
-  element X missing; `LUA ERROR` = Lua read nil. **Return every field the parser reads.** Attribute vs child element matters
-  per endpoint. Empty lists can crash too (shop needs ≥1 entry).
+- Crash signs in `emu.sh log`: `Fatal signal 11 ... fault addr 0x18/0x0` = C++ read a missing element; `LUA ERROR` = Lua read nil.
+  `this is no node:X` at the END of a list is harmless (tinyxml looking for the next sibling); elsewhere it means element X is missing.
+  **Return every field the parser reads.** Attribute vs child element matters per endpoint. Empty lists can crash too (shop needs ≥1 entry).
+- Error tips: C++ screens (ShowErrorTip) read the code's text from Struct_String_Menu; some Lua screens read `text.lua`
+  `text_config[code]` instead (a missing code there is a Lua error); some screens only show their own codes (e.g. total-recharge
+  314000/314002/314004, gold spending 580001/580002).
 - Known traps: award needs `dropid` ≠ 0 (else the card list is skipped); list rows often must be attributes; `<master_pet>` in
   fights needs both `<id>` and `<pet_id>` (only send it with a real pet); `CFightResultData::InitFromXML` reads
   `<userinfo>`/`<fight>`/`<award>` as **root** children; a feature's conf item with a missing icon (stage gift id 31,
   `activity_icon_11.png`) blanks the whole home event column; the client reads item counts only from `rl_r_shoplist` Cmd 1601
-  and the VIP level only at login (top-up reply carries `<viplevel>`); every `/rl_...` the C++ calls now has a handler.
+  and the VIP level only at login (top-up reply carries `<viplevel>`); training sends one `<stage pos>` per part and draws every
+  earlier row as "Finish" (C++ CSectionCellView); every `/rl_...` the C++ calls has a handler.
 - Enable param logging for one endpoint by adding `if (process.env.HB_DEBUG) console.log(...)` and starting with `HB_DEBUG=1`.
 
-## 6. Game-side changes (hot update)
+## 7. Game-side changes (hot update)
 The game downloads `cdn/<val>_update.zip` (via `rl_r_version` `<updatechip>`) and unpacks it over its files. To change a game
 file: copy it from `re/obb/<path>` (or `reference/lua-scripts`) to `cdn/src/<same path>` (Lua goes in `cdn/src/script/...`),
 edit, `python -I tools/build_cdn.py 28.0.N` with a **higher** N, `git rm` the previous zip, note it in `docs/HOT-UPDATE.md`.
-Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing.
-Current: **28.0.32** (28.0.32 golden Chōji card name in English (`tools/patch_tables.py` edits text columns too); 28.0.31 month card claim shows the gold; 28.0.30 "Big Ramen" label on the victory draw; 28.0.29 lottery draw time format; 28.0.28 Fireworks/Balloon items 40/41 added to consumeinfo for the Anniversary festival; 28.0.27 War open all day: tables.bin normalconfig rows 7/8 = 0/86400 via `tools/patch_tables.py`; 28.0.26 victory screen shows the real silver; 28.0.25 refused top-up shows why; 28.0.24 7-day Claim button greys out properly; 28.0.23 Score Ranking pop-up fix; 28.0.22 cross-server battle talks to our server; 28.0.21 $49 gift shows the Naruto card; 28.0.20 7-day goals Claim says why it fails; 28.0.18 "Proceed" button reverted: re-encoded sprite sheets break, `tools/pvrccz.py` only reads them; 28.0.17 team screen names fit their box, `tools/ccbi.py` patches .ccbi layouts; 28.0.16 limited discount opens from the Event menu; 28.0.15 (festival screen icons fixed; (Settings has a Join Discord button; 28.0.10 English 7-day goals; earlier: top-up/VIP screen, 7-day goals in Event menu, tutorial off via `home/userguideConfig.xml` levels moved to
-900+, original pet screens).
+Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing. Text and numbers in the
+client's tables go through `tools/patch_tables.py` (tables.bin), layouts through `tools/ccbi.py`; sprite sheets can't be re-encoded.
+Current: **28.0.32** (golden Chōji card name in English). The full list is in `docs/HOT-UPDATE.md`.
 
-## 7. Data model cheat sheet
+## 8. Data model cheat sheet
 - `cards.type`: 1 ninja (ninja_id = ninjainfo id) · 2 weapon · 3 armor · 4 trinket (ninja_id = equipmentinfo id) · 5 seal
   (markinfo) · 6 ninjutsu (ninjutsuinfo). Extra columns: level, exp, starlevel (sage growth), newlife, pot_*, breaklvl, attri.
 - `team(slot 0-based, seq)`; slots open by `newcardinfo` rows (`game.maxTeam`). `equipped(slot 1-based, kind)`: kind 1 weapon,
-  2 armor, 3 trinket, 4 seal, 5-8 ninjutsu.
+  2 armor, 3 trinket, 4 seal, 5-8 ninjutsu. Team 2: `team_alt` / `equipped_alt` (from level 100). Equipped cards count as in use.
 - `props(prop_id,count)`: consumeinfo ids, plus 9999 souls, 9998 gate souls, 9997 gate level, 9996 arena reputation,
   9995 boss reputation, 9994 war merit, 20000+id seal fragments, 30000+piece_info id card/pet fragments (`game.CHIP_BASE`).
 - `progress(chap, stage)`: chap 1-19 training chapters (stage = next open stage), 1000+ tower, 100000+day sweeps.
-  `stage_clears` counts clears per stage (roundinfo [42] clears needed, [38] boss, [43] boss tries/day).
+  `stage_clears` counts clears per stage (roundinfo [42] clears needed, [38] boss, [43] boss tries/day). Bosses: 3 free tries a day
+  each (`BOSS_FREE`), then 10 gold (`BOSS_COST`); 165 boss stages of 1234.
 - dropinfo row: [3] ninja, [4] equipment, [5] ninjutsu, [6] seal, [7] prop, [8] fragment, [9] souls, [10] gold, [11] silver,
-  [12]=1 random pack, [13] amount, [14] pet. `game.grantDrop(db, pl, dropId)` handles all and returns the `<award>` XML.
+  [12]=1 random pack (contents read from its text), [13] amount, [14] pet. `game.grantDrop(db, pl, dropId)` handles all and returns the `<award>` XML.
 - roundinfo: [4] chapter, [2] stage in chapter, [22] energy cost, [23] exp, [24] silver.
 - New player (original): chosen ninja (Neji 55 / Shikamaru 57 / Sakura 56) + its ninjutsu, 50 gold, 18 000 silver, VIP 0.
   VIP exp = $ topped up × 10, thresholds in `vip.js` (ours). Accounts made before 30 Oct 2026 kept VIP 18.
+- Daily things reset at local midnight; energy refills at 22:00; free ramen 12-14 and 18-20.
 
-## 8. Releases and sharing
-- Release `tailscale-play` on the repo: `HelloBro-base-host-your-own.xapk` (base game + OBB; HOST-MY-SERVER.bat patches it for any address) and `HelloBro-ninjaonline.xapk` (the owner's public server ninjaonline.duckdns.org:18080).
-- `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (used by friends who
-  host their own; guide in `HOST-YOUR-OWN-SERVER.md`). Public code-only repo (ARCHIVED by the owner on 2 Nov 2026, read-only: do not rebuild or push it): `Djassie18698/hello-bro-revival-public`
-  (local clone `C:\Users\dj199\hello-bro-public`), rebuilt with `python -I tools/make_public.py C:/Users/dj199/hello-bro-public`
-  (it refuses game files, keystores, the owner's IPs/uids) and pushed after features change.
-- **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU** — use this link everywhere (README badge, issue template, repo homepage).
-- Discord bot online (green dot): `discord/START-BOT-ONLINE.bat` runs `online.js` (gateway connection only, no intents, auto-reconnect; owner asked 2 Nov 2026).
+## 9. Releases, sharing and Discord
+- Release `tailscale-play` on the repo: `HelloBro-base-host-your-own.xapk` (base game + OBB; HOST-MY-SERVER.bat patches it for any address)
+  and `HelloBro-ninjaonline.xapk` (the owner's public server ninjaonline.duckdns.org:18080). A new game file is needed only when the
+  app itself changes (login, dex); everything else goes through the hot update.
+- `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (friends who host their own;
+  guide in `HOST-YOUR-OWN-SERVER.md`). The owner's public server runs `START-PUBLIC-SERVER.bat` (LOGIN_LOCK, public.db; NOT in git,
+  owner-only: GitHub only offers solo/private hosting + joining ninjaonline).
+- Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
+- **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
-  write the text to a file first). Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
-  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update; was #announcements) · #faq.
+  write the text to a file first). The bot shows online while `START-BOT-ONLINE.bat` runs on the owner's PC (a minimized window).
+  Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
+  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update) · #faq ("can't connect after an update -> make a new game file with HOST-MY-SERVER.bat").
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
   #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
   Guides (#welcome, #install-help, #how-to-play, #faq) are built from `discord/guides/<channel>.md` ("## " = one chapter, contents with jump links on top):
-  edit the file, then `node --env-file=.env guides.js <channel> apply` (replaces only the bot's own posts there).
-  Keep it updated: new feature -> #updates + how-to-play.md; new app or release -> #announcement; install/update change -> install-help.md / faq.md. Never reply in chat channels.
+  edit the file, then `node --env-file=.env guides.js <channel>` (dry run) and `... <channel> apply` (replaces only the bot's own posts there).
+  Keep it updated: new feature or visible fix -> #updates + how-to-play.md; new app or release -> #announcement; install/update change -> install-help.md / faq.md. Never reply in chat channels.
 
-## 9. Open work (update this list)
-Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
-Checked in game on 1 Nov 2026 (dev server): team slot unlocks, VIP refresh after top-up, Ninja Test boss chests.
-Cross-server battle: built 1 Nov (crosswar.js, hot update 28.0.22/23; see NEXT-STEPS).
-Checked in game later on 1 Nov: every 🧪 row of PROGRESS.md (none left), element restrain (built), real rivals, arena teammates.
-Smaller open items: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
-five-element panel (photo 2666, per-element atk/def/chakra/ninjutsu %) not found in any v28 layout;
-first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter; replay and Skip give the same result);
-arena ladder rank rewards (ladderconfig/ladderdesc, shown in Arena rules) not given: asked the owner whether they come on top of the daily silver;
-event 18 "Limited Super Ninja" (limit_superninja/*.lua, rl_r_comm Cmd 6/7, rl_w_recruit 1900/1902, rank rewards rl_w_comm Cmd 11) not built: pool, price and rank rewards came from the server and are lost (all would be ours);
-Balance: owner keeps it as is
-(docs/BALANCE-SIMULATIONS.md); don't change rates without asking.
+## 10. Open work (update this list)
+Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible;
+the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.
+State on 2 Nov 2026: bug lists 1-4 all done (48 ✅, 2 🚫), no 🧪 rows left, GitHub issue #6 (list 5) still empty.
+Waiting on the owner: arena ladder rank rewards (ladderconfig/ladderdesc, shown in Arena rules) not given: do they come on top of the
+daily silver?; event 18 "Limited Super Ninja" (limit_superninja/*.lua, rl_r_comm Cmd 6/7, rl_w_recruit 1900/1902, rank rewards
+rl_w_comm Cmd 11) not built: pool, price and rank rewards came from the server and are lost (all would be ours).
+Left as is: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
+five-element panel (photo 2666) not found in any v28 layout; first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter).
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
-(never opened), rebate wheel `rl_r_multiple_pay`. Login: gumplogin.js + release/classes-revival.dex (see NEXT-STEPS 2 Nov); the owner's public server ninjaonline.duckdns.org runs START-PUBLIC-SERVER.bat (LOGIN_LOCK, public.db; NOT in git, owner-only by request: GitHub only offers solo/private hosting + joining ninjaonline). Find more with: compare `reference/client-endpoints.txt` to `Object.keys(require('./handlers'))`.
+(never opened), rebate wheel `rl_r_multiple_pay`, opening scene skip, 10-pull zoom, Chartboost ad error. Login: gumplogin.js +
+release/classes-revival.dex (see NEXT-STEPS 2 Nov). Find missing endpoints with: compare `reference/client-endpoints.txt` to
+`Object.keys(require('./handlers'))`.

@@ -11,6 +11,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • Story stages give EXP and silver. Each stage needs a few clears before the next one opens.
 • **Bosses** have 3 free tries a day, then 10 gold a try. They are hard on purpose: lost? Make your team stronger and come back.
 • From VIP 1 and level 80, **Save time** (the EXP clock on Home) turns a Big Ramen into EXP and silver.
+• **Finished the story?** Passed stages show **Finish** and can't be played again (same as the original game). But every boss has its **own** 3 free tries a day (165 bosses in total), so you can go back to any part and fight its boss again. Energy is the real limit.
 
 ## 3. Your team and elements
 • More team slots open as you level up (level 2, 6, 15, 30 ...) and clear story stages.
