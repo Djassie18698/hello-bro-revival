@@ -1153,3 +1153,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   findings FIRST before choosing (ours) numbers.
 - 2 Nov (later): Super Ninja draws switched to the original rules from the photos (owner): no god card from draws, 25 % five-star (ours, 10x ~3.5 five-stars like photos 2469/2470), every 10th draw a sure five-star, free draw once a day; labels 'Prize: X' / 'At 17:00: X'. Checked in game: 10x = 4 purple + 6 blue.
 - 2 Nov (later): Super Ninja reward list = only the prize rows (1st God card / 2nd-3rd 300 gold / 4th-10th 100 gold); the info rows looked odd (owner).
+- 2 Nov (later): top-up limit ('paylimit') now OFF by default on private servers, ON by default when LOGIN_LOCK=1 (the public server); the control-panel switch still overrides. Neither the dev save nor the Locked Server save had it set by hand. faq.md updated.
