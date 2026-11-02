@@ -993,6 +993,18 @@ const packSilver = (r) => PACK_SILVER[r[0]] ?? r[5];
 function packBuy(db, pl, packId) {
   const g = table('giftinfo').rows.find((r) => r[0] === packId);
   if (!g) return { error: 'no such pack' };
+  // giftinfo [7] = 2: a bag of items, [8] = the item (consumeinfo id), [9] = how many (Rāmen Bag 10 / 50 Rāmen (L), Tael Bag 10 taels,
+  // SageStone Bag 100 stones). ORIGINAL (the bags' own texts). The client adds them itself from <retobj type="1" id count>.
+  // Before 2 Nov 2026 [8] was read as a drop id: a Rāmen Bag gave 10 Chōji cards, a Tael Bag a random ninja.
+  if (g[7] === 2) {
+    const item = Math.round(g[8]), count = Math.max(1, Math.round(g[9]) || 1);
+    if (!table('consumeinfo').rows.some((r) => r[1] === item)) return { error: 'this pack is not available on the revival server yet' };
+    const costG = g[4], costS = packSilver(g);
+    if (pl.gold < costG || pl.coin < costS) return { error: 'not enough gold' };
+    db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
+    propAdd(db, pl.uid, pl.server_id, item, count);
+    return { costG, costS, item, n: count };
+  }
   const drop = table('dropinfo').rows.find((r) => r[0] === Math.round(g[8]));
   if (!drop) return { error: 'this pack is not available on the revival server yet' };
   const name = String(g[2]).toLowerCase();
@@ -1001,6 +1013,9 @@ function packBuy(db, pl, packId) {
   let give; // () => [type, id, seq]
   if (drop[3] && ninjas().has(drop[3])) give = () => [1, drop[3], giveCard(db, pl.uid, pl.server_id, drop[3])];
   else if (drop[4] && equipRows().some((r) => r[0] === drop[4] && r[5] === 3)) give = () => [2, drop[4], giveEquip(db, pl.uid, pl.server_id, drop[4])];
+  // Ninjutsu / Skill bags stay closed: the client's package code (CTradeMgr::UseGiftPackItem) only knows items, shinobi and gear
+  // (retobj type 1-5); any ninjutsu reply crashed the game (checked 2 Nov 2026), so a buyer would pay without seeing the card.
+  else if (drop[5] && /ninjutsu|ninjitsu|skill/.test(name)) return { error: 'this pack is not available on the revival server yet' };
   else if (/weapon|armor|trinket/.test(name)) {
     const slot = /weapon/.test(name) ? 0 : /armor/.test(name) ? 1 : 2;
     const minStar = /4☆/.test(name) ? 3 : 2;

@@ -744,6 +744,7 @@ module.exports = {
     if (Number(p.Cmd) === 1701) {
       const r = game.packBuy(db, pl, Number(p.Packageid));
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+      if (r.item) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(1, r.item, r.n)}</root>`; // a bag of items
       // CTradeMgr::LoadTradeInfo reads <retobj>, <bagid bagid="a|b"/> and <attr attr=".."/> as ROOT children (next to <shopbuy>);
       // UseGiftPackItem then adds every bagid as a card of retobj type, so the items show at once (was: only after re-login)
       return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(RETOBJ_TYPE[r.type] || 2, r.ninja, r.n)}<bagid bagid="${r.seq}"/><attr attr="${r.attrs}"/></root>`;

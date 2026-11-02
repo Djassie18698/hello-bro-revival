@@ -1090,3 +1090,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   switched on (period = the switch-on time, so a new run lights the tile again). Others (roulette, mora, monopoly, war award ...) are
   left out = the client keeps its default. Checked in game: no errors; the News button shows "1" for an unread battle report.
 - errcodes.js: more refusals now show a fitting game text instead of "Parameter error" (already collected/opened, Akatsuki full / name taken / authority, cooldowns, boss defeated, cross-server registration/battle time, morale boosts, free recruit not ready, maximum level, stage cleared, grudge full, exchange limits, daily item use limit, nothing to claim). Codes checked: only the client's text table uses them (no special handling).
+- Shop gift packs checked one by one (Shop > Giftpack): the item bags (giftinfo [7] = 2: Rāmen Bag S/L 10 / 50 Rāmen (L), Tael Bag S/L 10
+  taels, SageStone I / SageStone Bag 100 stones) read [8] as a drop id, so a Rāmen Bag gave 10 Chōji cards, a Tael Bag one random ninja and
+  the SageStone Bag failed. Now they give [9] x item [8] and reply <retobj type="1" id count/> (CTradeMgr::UseGiftPackItem adds items
+  itself). Checked in game: SageStone Bag 1000 gold -> Sage Stone III 42 -> 142. Ninjutsu / Skill bags stay refused: UseGiftPackItem
+  only knows retobj types 1-5 (item, shinobi, weapon, trinket, armor) and an empty item reply crashed the game (fault 0x0), so they
+  cannot be shown. Bag 22 (一尾印记包) drops fragments, also refused as before.
