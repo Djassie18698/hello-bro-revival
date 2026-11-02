@@ -107,12 +107,21 @@ function userXml(db, pl) {
     '<clear_info>' + el('last_attack_country', -1) + el('last_clear_enemy_country', -1) + el('last_clear_enemy_uid', '') + '</clear_info>';
 }
 // Station in an enemy country (attackType 1 provoke = gold, 2 wander = silver). Damages the monument right away.
-function attack(db, pl, type, to) {
+// Already stationed (ui_borderWarAttackLayer): same country -> 329012 "already attacking this country"; another one -> 329020 with
+// <basic country status has_award min_time/> (+ <award exp merit/>), the client asks "switch?" and resends with Switch=1, which ends the
+// old station (its reward only comes after the full stay, so has_award is 0 while it runs) and starts the new one.
+function attack(db, pl, type, to, sw) {
   ensure(db);
   if (!Number.isInteger(to) || to === myCountry(pl) || to < 0 || to > 4 || (type !== 1 && type !== 2)) return { code: 5, msg: 'pick an enemy country' };
-  if (myStation(db, pl)) return { code: 329018, xml: userXml(db, pl) };
+  const st = myStation(db, pl);
+  if (st && st.to_country === to) return { code: 329012 };
+  if (st && !sw) {
+    const r = REWARD[st.type] || REWARD[2];
+    return { code: 329020, xml: `<basic>${el('country', st.to_country)}${el('status', st.type)}${el('has_award', 0)}${el('min_time', now() - st.start)}</basic><award>${el('exp', r.exp)}${el('merit', r.merit)}</award>` };
+  }
   const cost = type === 1 ? PROVOKE_GOLD : WANDER_SILVER, col = type === 1 ? 'gold' : 'coin';
-  if (pl[col] < cost) return { code: 5, msg: 'not enough ' + (type === 1 ? 'gold' : 'silver') };
+  if (pl[col] < cost) return type === 1 ? { code: 329018 } : { code: 5, msg: 'not enough silver' }; // 329018 = not enough gold (the client offers a top-up)
+  if (st) db.prepare('UPDATE border_station SET start=0 WHERE rowid=(SELECT rowid FROM border_station WHERE server_id=? AND uid=? ORDER BY start DESC LIMIT 1)').run(pl.server_id, pl.uid);
   db.prepare(`UPDATE players SET ${col}=${col}-? WHERE uid=? AND server_id=?`).run(cost, pl.uid, pl.server_id);
   const dmg = type === 1 ? PROVOKE_HP : WANDER_HP;
   const before = hp(db, pl.server_id, to);

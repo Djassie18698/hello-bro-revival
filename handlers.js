@@ -1178,7 +1178,7 @@ module.exports = {
   // Border war / Boundary Monument (border.js). All Lua screens; Country = the country being viewed (0-4).
   rl_r_frontiers_war_info: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: border.infoXml(db, pl, Number.isInteger(Number(p.Country)) && p.Country !== undefined ? Number(p.Country) : pl.country, Number(p.Cmd)) })),
   rl_r_frontiers_war_user_info: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: border.userXml(db, pl) })),
-  rl_r_frontiers_war_attack: (c) => borderCall(c, (db, pl, p) => border.attack(db, pl, Number(p.Cmd), Number(p.ToCountry))),
+  rl_r_frontiers_war_attack: (c) => borderCall(c, (db, pl, p) => border.attack(db, pl, Number(p.Cmd), Number(p.ToCountry), Number(p.Switch) === 1)),
   rl_r_frontiers_war_enemy_info: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: border.enemyXml(db, pl, p.Country !== undefined ? Number(p.Country) : pl.country) })),
   rl_r_frontiers_war_clear: (c) => borderCall(c, (db, pl, p) => border.clear(db, pl, Number(p.ToUid))),
   rl_r_frontiers_war_award_info: (c) => borderCall(c, (db, pl, p) => ({ code: 0, xml: Number(p.Cmd) === 1 ? border.dailyXml(db, pl) : border.awardInfoXml(db, pl) })),

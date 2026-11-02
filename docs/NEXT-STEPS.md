@@ -1062,3 +1062,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   Lua xml find() returns the FIRST element and # counts its children). Now lists the 14 prizes the board really uses (sudoku.POOL), best
   first. Checked in game. The original top list (photo 4335: 16 cards incl. Six Paths Obito, Fourth Sage, Indra, Hashirama...) would
   change the prize pool: not done, asked the owner.
+- Border war: attacking while already stationed answered 329018 (= "not enough gold": the client showed that tip and opened the top-up
+  window). Now like ui_borderWarAttackLayer expects: same country -> 329012 "already attacking this country"; another country -> 329020
+  + <basic country status has_award min_time/><award exp merit/> so the "switch target?" dialog (ui_borderWarChangeAttackDlg) shows;
+  its confirm resends with Switch=1, which ends the old station (no reward: that only comes after the full stay) and starts the new one.
+  Not enough gold for a taunt now returns 329018 (top-up offer), not enough silver a plain tip. Checked on a test save only (did not find
+  the border war entrance in game this round).
