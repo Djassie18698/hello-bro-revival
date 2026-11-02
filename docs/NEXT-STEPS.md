@@ -1048,3 +1048,6 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   need no change), team_alt / equipped_alt = the other; players.active_team; game.activateTeam swaps them in one transaction. Cards in
   either line-up count as "in use" (feeding, refining, succession, donating). Checked in game (test account set to level 120): Team 2
   tab, add Naruto, Activate -> tick on Team 2, Team 1 keeps Shikamaru + gear, after a restart Home shows Naruto.
+- Level-up: CPlayerLevelUp::requestActivity calls rl_r_newbie_pay Cmd 3; <on_off>1</on_off> in the reply makes the client re-read the
+  event red dots (Lua readActivityNewsData). Now sent; checked in game (level 120 -> 121: rl_r_activity + rl_r_paypack follow, no errors).
+  Plunder preview "plundertip" is built by the client itself (Markinfo name + string 0x31/0x32), nothing to send.
