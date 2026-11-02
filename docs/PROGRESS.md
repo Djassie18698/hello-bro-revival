@@ -165,7 +165,8 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Soul Disenchant checked again in the game: 4-star cards give 150 souls, 5-star 1000, purple 5-star / god 2000; 3-star cards give 0 (the game's own table) |
 | ✅ | Ninja Treasure: "Top Rewards" shows the 16 original big prizes (photo 4335) and every board hides one of them; gold and silver squares show their real amount |
 | ✅ | No more 30 000 free starter souls for new players (owner: original); souls come from Soul Disenchant. Players who already got them keep them |
-| 🧪 | Arena: the daily reward now also gives the ladder prize from the Arena Rules window (ranks 1-1000: gear, a full seal, gold or silver), on top of the daily silver (owner). Checked on a test save; the emulator was closed, not seen in the game yet |
+| ✅ | Arena: the daily reward now also gives the ladder prize from the Arena Rules window (ranks 1-1000: gear, a full seal, gold or silver), on top of the daily silver (owner). Seen in the game: rank 3 got 23 000 silver + 4600 reputation + a 5-star Sword of Totsuka (the prize goes to the backpack; the pop-up only lists silver and reputation) |
+| ✅ | Arena: the daily reward could never be claimed in the game (no Claim button). Your own row is now in the Compete list with a **Claim** button (once a day, any time until midnight), then "Claimed" |
 
 ## Still to build
 

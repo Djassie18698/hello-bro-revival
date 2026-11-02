@@ -14,7 +14,7 @@ new bug reports. This list says who does what. Tick a box (`[x]`) when it's done
 - [x] **Arena ladder rewards:** answered: yes, on top (built 2 Nov).
 - [x] **Eight Gates starter souls:** answered: keep the 5000.
 - [x] **Super Ninja:** answered: stays hourly for now. Tell me when you want the original 3-day event.
-- [ ] **Check in the game:** claim the Arena daily reward. You should now also get a ladder prize if you are in the top 1000.
+- [x] **Check in the game:** Arena daily reward: Claude checked it on the emulator (2 Nov). The Claim button is on your own row in the Compete list.
 
 ### Keep doing
 - [ ] Play and write down anything odd. Put it in **GitHub issue #6** (bug list 5, still empty) or tell me in chat. A screenshot helps.
@@ -29,7 +29,7 @@ new bug reports. This list says who does what. Tick a box (`[x]`) when it's done
 
 ### Ready to do when you say so
 - [ ] Fix every new bug from issue #6, Discord or chat (test it, push, sync, post in #updates).
-- [x] Arena ladder rewards: built 2 Nov (still to see in the game).
+- [x] Arena ladder rewards: built 2 Nov and seen in the game (with the new Claim button).
 - [ ] Super Ninja: switch it to the original 3-day event when you say so.
 - [ ] Close issues #2-#5 with an "all done" comment.
 

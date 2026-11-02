@@ -97,7 +97,11 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const none = claim();
   if (/dropid="16\d"/.test(none)) { bad++; console.log('ARENA ladder pack paid without a ladder place:', none.slice(0, 100)); }
   db.exec("DELETE FROM rank_claims WHERE board='arena'"); db.prepare('DELETE FROM arena WHERE rank=1').run(); db.prepare('INSERT INTO arena(rank, uid) VALUES(1, 77)').run();
+  // the Compete list carries the player's own row (<host>1) with the claim button: no countdown, dayrewardstat 0 before / 1 after the claim
+  const pl77 = db.prepare('SELECT * FROM players WHERE uid=77').get(), list = () => require('../../game').arenaListXml(db, pl77);
+  if (!/<host>1<\/host>/.test(list()) || !/<rewardtimeleft>0<\/rewardtimeleft>/.test(list()) || !/<dayrewardstat>0</.test(list())) { bad++; console.log('ARENA list has no claimable own row'); }
   const top = claim();
+  if (!/<dayrewardstat>1</.test(list())) { bad++; console.log('ARENA list does not show the claim as done'); }
   if (!/<award dropid="159"/.test(top) || !/<coin>25000<\/coin>/.test(top) || !(/<card>/.test(top) || /<cash>300<\/cash>/.test(top))) { bad++; console.log('ARENA rank 1 claim:', top.slice(0, 200)); }
   if (!/code="5"/.test(claim())) { bad++; console.log('ARENA second claim the same day was paid'); }
 }

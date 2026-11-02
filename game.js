@@ -1609,18 +1609,28 @@ function teammateXml(db, uid, sid, first, withFirst, level) { // withFirst: the 
   ids = ids.slice(0, withFirst ? 4 : 3);
   return '<teammate>' + ids.map((id) => `<mate>${el('ninja', id)}${el('firstninjastar', (ninjas().get(id) || [])[11] || 1)}</mate>`).join('') + '</teammate>';
 }
+// Daily rank reward state on the player's own row: rewardtimeleft > 0 shows a countdown, then dayrewardstat 0 = the claim button (with
+// timeleft = time left to claim), 1 = "already claimed". Before 2 Nov 2026 we always sent a 1-hour countdown, so the button never showed.
+// Claimable once a day, any time (ours: the original's claim window time is not known for sure).
+const arenaToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+function arenaClaimed(db, pl) {
+  db.exec('CREATE TABLE IF NOT EXISTS rank_claims (uid INTEGER, server_id INTEGER, board TEXT, key TEXT, PRIMARY KEY(uid,server_id,board,key))');
+  return !!db.prepare("SELECT 1 FROM rank_claims WHERE uid=? AND server_id=? AND board='arena' AND key=?").get(pl.uid, pl.server_id, arenaToday());
+}
+const arenaClaimLeft = () => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); return Math.max(1, Math.round((m - n) / 1000)); };
 function arenaListXml(db, pl) {
   const my = arenaJoin(db, pl), use = arenaUse(db, pl);
   const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank').all();
   const idx = rows.findIndex((r) => r.uid === pl.uid);
-  const targets = rows.slice(Math.max(0, idx - 6), idx).concat(rows.slice(idx + 1, idx + 4)).filter((r) => r.uid !== pl.uid);
+  // the player's own row goes in the list too, marked <host>1 (COpponentCardView::initArena): it carries the daily reward button
+  const targets = rows.slice(Math.max(0, idx - 6), idx + 4);
   const esc = (t) => String(t).replace(/[<>&"]/g, '');
   const opp = targets.map((r) => {
     const o = arenaInfo(db, r.uid), rw = arenaReward(r.rank);
-    return `<user>${el('id', r.uid)}${el('rank', r.rank)}${el('nick', esc(o.nick))}${el('level', o.level)}${el('ninja', o.ninja)}${el('country', o.country)}${el('firstninjastar', o.star)}${el('newlife', 0)}${el('winexp', 20)}${el('wincoin', 300)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('failexp', 5)}${el('failcoin', 50)}${el('host', 0)}${teammateXml(db, r.uid, pl.server_id, o.ninja, false, o.level)}</user>`;
+    return `<user>${el('id', r.uid)}${el('rank', r.rank)}${el('nick', esc(o.nick))}${el('level', o.level)}${el('ninja', o.ninja)}${el('country', o.country)}${el('firstninjastar', o.star)}${el('newlife', 0)}${el('winexp', 20)}${el('wincoin', 300)}${el('rewardcoin', rw.coin)}${el('rewardrenown', rw.renown)}${el('failexp', 5)}${el('failcoin', 50)}${el('host', r.uid === pl.uid ? 1 : 0)}${teammateXml(db, r.uid, pl.server_id, o.ninja, false, o.level)}</user>`;
   }).join('');
   const renown = propCounts(db, pl.uid, pl.server_id)[9996] || 0;
-  return `<sport><my>${el('rank', my)}${el('renown', renown)}${el('rewardtimeleft', 3600)}${el('timeleft', 3600)}${el('dayrewardstat', 0)}${el('todayresttime', arenaPerDay(db, pl) - use.fights)}${el('todayall', arenaPerDay(db, pl))}${el('resttime', use.rest)}${el('restbatter', ARENA.perBatch - use.batch)}${el('restpack', 0)}</my></sport><oppe>${opp}</oppe>`;
+  return `<sport><my>${el('rank', my)}${el('renown', renown)}${el('rewardtimeleft', 0)}${el('timeleft', arenaClaimLeft())}${el('dayrewardstat', arenaClaimed(db, pl) ? 1 : 0)}${el('todayresttime', arenaPerDay(db, pl) - use.fights)}${el('todayall', arenaPerDay(db, pl))}${el('resttime', use.rest)}${el('restbatter', ARENA.perBatch - use.batch)}${el('restpack', 0)}</my></sport><oppe>${opp}</oppe>`;
 }
 function arenaRankXml(db) {
   const rows = db.prepare('SELECT rank, uid FROM arena ORDER BY rank LIMIT 50').all();

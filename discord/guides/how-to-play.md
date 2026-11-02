@@ -26,7 +26,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 
 ## 5. Fighting other players
 • **Spar** (bottom bar): win EXP, silver and war achievements.
-• **Arena** (Home, from level 25): climb the ranks for daily silver and reputation. 25 challenges a day (+1 per VIP level); after every 3 there is a 10-minute wait, or pay 30 gold to skip it. Ranks 1-1000 also get a **ladder prize** with the daily reward (gear, a seal, gold or silver: see the Arena Rules). Spend reputation in the **Exchange** tab (some items once ever, pills twice a day).
+• **Arena** (Home, from level 25): climb the ranks for daily silver and reputation. 25 challenges a day (+1 per VIP level); after every 3 there is a 10-minute wait, or pay 30 gold to skip it. Claim the daily reward with the **Claim** button on your own row in the Compete list (once a day, until midnight). Ranks 1-1000 also get a **ladder prize** with it (gear, a seal, gold or silver: see the Arena Rules); it goes to your backpack. Spend reputation in the **Exchange** tab (some items once ever, pills twice a day).
 • **Battles** (Home): 25 chapters of 7 rounds, the 7th is the chapter boss. **Ranking > Achievement** pays a reward every 7 floors.
 • **News**: the Battle tab shows who sparred or plundered you (press **Revenge** to fight back), the Friend tab shows messages from friends.
 • **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight.
