@@ -756,7 +756,7 @@ module.exports = {
     }
     const r = game.propUse(db, pl, Number(p.Goodsid));
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-    return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="99" max="99"${r.card ? ' ' + r.card.attr : ''}/></root>`;
+    return `<root code="0"><propuse ap="${r.ap}" sp="${r.sp || 0}" yinzi="${r.coin}" left="${r.left}"${r.limit ? ` rest="${r.limit.rest}" max="${r.limit.max}"` : ''}${r.card ? ' ' + r.card.attr : ''}/></root>`;
   },
 
   // Scratch card (scratch.js): Cmd 1700 info, 1701 scratch one card. The reply is the whole document (attributes on the root).
@@ -1414,13 +1414,15 @@ module.exports = {
     }));
     // Cmd 1600 (sent at login) is ALSO read for the goods list (CTradeMgr::onHttpRequestCompleted: LoadGiftPackInfo, then LoadConsumInfo, then
     // the recruit info). Without goods there the client knew no items until the shop was opened, and the ramen buy window crashed (nil item).
+    const lim = (kind, tag) => { const l = rPl ? game.useLimit(db, rPl, kind) : { max: 0, rest: 0 }; return `<${tag}><total>${l.max}</total><rest>${l.rest}</rest></${tag}>`; }; // daily ramen / Hyourou-gan uses left
+    const limits = '<limit>' + lim(1, 'actiongoods') + lim(2, 'bingliangwan') + '</limit>';
     if (Number(p.Cmd) === 1600) {
       const packs = game.table('giftinfo').rows.map((r, k) => ({
         package_id: r[0], package_name: esc(r[2]), package_icon: r[3], package_yuanbao: r[4], package_yinzi: game.packSilver(r), package_show: 1,
         package_function: r[7], package_function_value1: n(r[8]), package_function_value2: n(r[9]), package_function_value3: n(r[10]), package_function_value4: n(r[11]),
       }));
-      return '<root code="0"><shoplist>' + rows('packages', packs) + rows('goods', goods) + rows('recruit', recruits) + '</shoplist></root>';
+      return '<root code="0"><shoplist>' + rows('packages', packs) + rows('goods', goods) + rows('recruit', recruits) + limits + '</shoplist></root>';
     }
-    return '<root code="0"><shoplist>' + rows('goods', goods) + rows('recruit', recruits) + '<limit><actiongoods><total>0</total><rest>0</rest></actiongoods><bingliangwan><total>0</total><rest>0</rest></bingliangwan></limit></shoplist></root>';
+    return '<root code="0"><shoplist>' + rows('goods', goods) + rows('recruit', recruits) + limits + '</shoplist></root>';
   },
 };

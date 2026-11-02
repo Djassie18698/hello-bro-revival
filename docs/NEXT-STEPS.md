@@ -994,3 +994,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   ninjaupgrade's last column (2450 at level 49) is m_sellprice, not a succession price. The v28 card view still has no Succession button.
 - Flower Worship photos 3863/4709 show two later runs with other reward lists (both cut off; Boruto is not in v28): kept the list
   written in the game itself.
+- Hyourou-gan did nothing: the server took the pill but never restored grudge (duel points), and replied sp="0" (the client,
+  CTradeMgr::UseConsumeItemByID, sets energy = ap and duel points = sp only when they are not 0). Now consumeinfo type 2 adds [8] x the
+  level's maximum grudge (Small 50 %, Big 100 %, up to the maximum; refused when full) and sends the new total. Daily uses ORIGINAL vipinfo
+  [6] ramen 20 (+2 a VIP level) and [7] Hyourou-gan 30 (+3 a VIP level), row = VIP + 1; sent as <propuse rest max> and in rl_r_shoplist
+  1600/1601 <limit><actiongoods>/<bingliangwan> (the item window's "Left today" number; it was 0). Photo 4550 ("0/6 ... 30, VIP2 +3")
+  = grudge 0/6 and 30 uses left for a VIP1 (33). Checked in game: grudge 0/4 -> 2/4 with a Small one, window shows 44 left at VIP5.

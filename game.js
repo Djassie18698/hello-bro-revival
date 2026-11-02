@@ -870,13 +870,35 @@ function propUse(db, pl, goodsId) {
     else if (roll.ninjutsu) card = { attr: `skillid="${roll.ninjutsu}" skillbagid="${giveCard(db, pl.uid, pl.server_id, roll.ninjutsu, 6)}"` };
     return { ap: 0, coin: 0, left: have - need, card };
   }
+  const lim = USE_COL[row[7]] ? useLimit(db, pl, row[7]) : null;
+  if (lim && lim.rest <= 0) return { error: 'no uses left today (a higher VIP level gives more)' };
+  const s = row[7] === 2 ? spState(db, pl) : null;
+  if (s && s.sp >= s.max) return { error: 'your grudge is already full' };
   propAdd(db, pl.uid, pl.server_id, goodsId, -1);
-  let coin = 0, ap = 0;
+  if (lim) db.prepare('INSERT INTO prop_uses(uid, server_id, kind, day, used) VALUES(?,?,?,?,?) ON CONFLICT(uid, server_id, kind) DO UPDATE SET day=excluded.day, used=excluded.used')
+    .run(pl.uid, pl.server_id, row[7], today(), lim.used + 1);
+  let coin = 0, ap = 0, sp = 0;
   if (row[7] === 3) { coin = Math.round(row[8]); db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); }
   if (row[7] === 1) { energyTick(db, pl); db.prepare('UPDATE players SET energy=energy+? WHERE uid=? AND server_id=?').run(Math.round(row[8]), pl.uid, pl.server_id); }
+  if (s) { // Hyourou-gan: [8] = 0.5 / 1 of the maximum grudge (duel points), up to the maximum
+    sp = Math.min(s.max, s.sp + Math.max(1, Math.round(s.max * row[8])));
+    db.prepare('UPDATE players SET sp=?, sp_t=? WHERE uid=? AND server_id=?').run(sp, sp >= s.max ? Math.floor(Date.now() / 1000) : s.t, pl.uid, pl.server_id);
+  }
   const now = db.prepare('SELECT energy, coin FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
   if (row[7] === 1) ap = now.energy; // the ramen dialog SETS the energy to <propuse ap> (BuyRemenDlg: SetBodyValue(ap)): send the new total
-  return { ap, coin, left: have - 1 };
+  // the client (CTradeMgr::UseConsumeItemByID) sets energy = ap and duel points = sp when they are not 0
+  return { ap, sp, coin, left: have - 1, limit: lim && { rest: lim.rest - 1, max: lim.max } };
+}
+// Daily uses of ramen (consumeinfo type 1) and Hyourou-gan (type 2): ORIGINAL vipinfo [6] "use 20 ramen daily" and [7] "use 30 Hyourou-gan
+// daily" (row = VIP level + 1, +2 / +3 a VIP level). The item window shows what is left (CTradeMgr rest/max: <propuse rest max>, shoplist <limit>).
+const USE_COL = { 1: 6, 2: 7 };
+function useLimit(db, pl, kind) {
+  db.exec('CREATE TABLE IF NOT EXISTS prop_uses (uid INTEGER, server_id INTEGER, kind INTEGER, day TEXT, used INTEGER, PRIMARY KEY(uid, server_id, kind))');
+  const vl = require('./vip').level(db, pl.uid, pl.server_id);
+  const max = (table('vipinfo').rows.find((r) => r[0] === vl + 1) || [])[USE_COL[kind]] || 0;
+  const r = db.prepare('SELECT day, used FROM prop_uses WHERE uid=? AND server_id=? AND kind=?').get(pl.uid, pl.server_id, kind);
+  const used = r && r.day === today() ? r.used : 0;
+  return { max, used, rest: Math.max(0, max - used) };
 }
 
 // Small EXP-card bags: ORIGINAL (Facebook photo 2695) Ninja Bag (S) and Weapon Bag (S) cost 2000 silver (the game's table says 2800); the
@@ -1778,4 +1800,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
