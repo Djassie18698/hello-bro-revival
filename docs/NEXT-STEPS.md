@@ -845,3 +845,7 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
 - Festival shop: ORIGINAL limit per event, 700 Christmas Caps / 600 Christmas Trees (photo 3627); was 10 a day (ours).
 - Not changed (needs more info or owner): recruit pity (photo 4435 shows "Recruit 2 more" only; server PITY 20 stays), second-year Christmas
   exchange list and Anniversary event (12.16-12.20, Fireworks/Balloon) not built, world boss time (later 12:30 vs earlier 14:00).
+- Daily chest "Parameter error" (owner, 2 Nov 01:04): every daily reset used the UTC date, so days flipped at 01:00 Dutch time; a screen opened
+  before 01:00 showed yesterday's points and the claim after 01:00 was refused ("points not reached" -> code 8000 "Parameter error").
+  Now all 26 day keys use the server PC's local date (reset at local 00:00, as the game says), and "not reached" maps to "Insufficient
+  materials". Checked in game: 30-point chest claimed, 5000 silver.

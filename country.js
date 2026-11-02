@@ -6,7 +6,7 @@ const game = require('./game');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const SALARY = { 1: 3000, 2: 1500, 3: 1500, 4: 800, 5: 800, 6: 800, 7: 800 }; // gold per day
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS officials (server_id INTEGER, country INTEGER, seat INTEGER, uid INTEGER, PRIMARY KEY(server_id, country, seat));

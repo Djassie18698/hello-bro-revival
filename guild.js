@@ -157,7 +157,7 @@ const boosted = (db, g) => { const b = 1 + 0.1 * constructLevels(db, g)[4]; retu
 function ensureHall(db) {
   db.exec('CREATE TABLE IF NOT EXISTS group_checkin (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, name TEXT, taskname TEXT, ts INTEGER, uid INTEGER, day TEXT)');
 }
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 function logXml(db, gid) {
   const rows = db.prepare('SELECT * FROM group_checkin WHERE group_id=? ORDER BY id DESC LIMIT 20').all(gid);
   return '<checkin_log>' + rows.map((r) => `<log checkin_name="${esc(r.name)}" taskname="${esc(r.taskname)}" checkin_time="${r.ts}"/>`).join('') + '</checkin_log>';

@@ -163,7 +163,7 @@ function mtree(db, p, shake) {
   const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
   if (!pl) return '<root code="3"><message>session expired</message></root>';
   db.exec('CREATE TABLE IF NOT EXISTS mtree (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER DEFAULT 0, last INTEGER DEFAULT 0, PRIMARY KEY(uid,server_id))');
-  const day = new Date().toISOString().slice(0, 10);
+  const day = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   let m = db.prepare('SELECT * FROM mtree WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
   if (!m) { db.prepare('INSERT INTO mtree(uid,server_id,day) VALUES(?,?,?)').run(pl.uid, pl.server_id, day); m = { day, used: 0, last: 0 }; }
   if (m.day !== day) { m.day = day; m.used = 0; }
@@ -966,7 +966,7 @@ module.exports = {
     const exp = Math.floor((fights * (row[23] || 0)) / 100) * 100, coin = Math.floor((fights * (row[24] || 0)) / 100) * 100;
     const have = game.propCounts(db, pl.uid, sid)[RAMEN] || 0;
     db.exec('CREATE TABLE IF NOT EXISTS savetime (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER, PRIMARY KEY(uid, server_id))');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const st = db.prepare('SELECT * FROM savetime WHERE uid=? AND server_id=?').get(pl.uid, sid);
     const vipLv = vip.level(db, pl.uid, sid), used = st && st.day === today ? st.used : 0, total = PER_VIP * vipLv;
     if (Number(p.Cmd) === 2) {
@@ -1043,7 +1043,7 @@ module.exports = {
     }
     if (cmd === 3) {
       db.exec('CREATE TABLE IF NOT EXISTS rank_claims (uid INTEGER, server_id INTEGER, board TEXT, key TEXT, PRIMARY KEY(uid,server_id,board,key))');
-      const ok = db.prepare('INSERT OR IGNORE INTO rank_claims VALUES(?,?,?,?)').run(pl.uid, pl.server_id, 'arena', new Date().toISOString().slice(0, 10)).changes;
+      const ok = db.prepare('INSERT OR IGNORE INTO rank_claims VALUES(?,?,?,?)').run(pl.uid, pl.server_id, 'arena', new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)).changes;
       if (!ok) return '<root code="5"><message>already claimed today</message></root>';
       const r = db.prepare('SELECT rank FROM arena WHERE uid=?').get(pl.uid);
       const rank = r ? r.rank : 999, { coin, renown: rep } = game.arenaReward(rank); // same as the list shows

@@ -3,7 +3,7 @@ const game = require('./game');
 const drops = require('./drops');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const COST = 50, SCORE = 10, JACKPOT_START = 5000;
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 function ensure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS wheel (uid INTEGER, server_id INTEGER, score INTEGER DEFAULT 0, free_day TEXT DEFAULT "", jackpot INTEGER DEFAULT 0, PRIMARY KEY(uid,server_id))');

@@ -11,7 +11,7 @@ const settings = require('./settings');
 
 const RUN_DAYS = 7;
 const now = () => Math.floor(Date.now() / 1000);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const dayStart = () => Math.floor(Date.parse(today() + 'T00:00:00Z') / 1000);
 const dayEnd = () => dayStart() + 86400 - now();
 const runLeft = (db, id) => Math.max(0, (settings.switchedOnAt(db, id) || now()) + RUN_DAYS * 86400 - now());

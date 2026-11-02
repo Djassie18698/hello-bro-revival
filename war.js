@@ -5,7 +5,7 @@
 const game = require('./game');
 
 const el = (n, v) => `<${n}>${v}</${n}>`;
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const MAX_ALIVE = 10;
 
 function ensure(db) {

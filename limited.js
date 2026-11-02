@@ -11,7 +11,7 @@ const settings = require('./settings');
 const vip = require('./vip');
 
 const now = () => Math.floor(Date.now() / 1000);
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const runLeft = (db, id, days = 14) => Math.max(3600, (settings.switchedOnAt(db, id) || now()) + days * 86400 - now());
 const dropRow = (id) => game.table('dropinfo').rows.find((x) => x[0] === id) || [];
 const dropName = (id) => String(dropRow(id)[2] || '').replace(/[<>&"]/g, '');

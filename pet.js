@@ -15,7 +15,7 @@ const SLOT_LV = [1, 80, 100, 120, 140, 160, 180, 200]; // original unlock levels
 function trainCfg(r) {
   return { gen: r[20], genCrit: r[21], spe: r[22], speCost: r[23], speCrit: r[24], genCost: r[25], genAdd: r[26], genCap: r[27] };
 }
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS pets (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, server_id INTEGER, pet_id INTEGER,

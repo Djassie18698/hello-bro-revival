@@ -10,7 +10,7 @@ const RULES = [
   [/already (claimed|signed|redeemed|received)/i, 170007],    // "You have already claimed, unable to claim again"
   [/sold out/i, 319001],                                      // "It is sold out"
   [/(event|festival) (is|has) (over|ended|expired)|has expired/i, 312000], // "This event has ended"
-  [/not enough|insufficient|no .* left|choose .*card/i, 277], // "Insufficient materials"
+  [/not enough|insufficient|no .* left|choose .*card|not reached/i, 277], // "Insufficient materials"
   [/not (open|available|unlocked)|first|upgrade|level|VIP/i, 166], // "Currently not open"
 ];
 function fix(xml) {

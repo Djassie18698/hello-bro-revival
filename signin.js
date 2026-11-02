@@ -24,7 +24,7 @@ function ensure(db) {
   try { db.exec('ALTER TABLE monthsign ADD COLUMN copies INTEGER NOT NULL DEFAULT 1'); } catch (e) { /* already there */ }
 }
 // One slot opens per calendar day, in order: the next unsigned slot is open only if nothing was signed today (owner: every slot showed as claimable).
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const rows = (db, pl) => new Map(db.prepare('SELECT day, copies FROM monthsign WHERE uid=? AND server_id=? AND ym=?').all(pl.uid, pl.server_id, ym()).map((r) => [r.day, r.copies]));
 function nextOpen(db, pl, done) {
   if (db.prepare('SELECT 1 FROM monthsign WHERE uid=? AND server_id=? AND ym=? AND date=?').get(pl.uid, pl.server_id, ym(), todayStr())) return 0;

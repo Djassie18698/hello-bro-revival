@@ -593,7 +593,8 @@ function addExp(db, pl, exp) {
 }
 
 // ---- Daily tasks -----------------------------------------------------------------------------
-const today = () => new Date().toISOString().slice(0, 10);
+// "today" everywhere = the server PC's local date, so daily things reset at local midnight like the game says ("reset at 00:00") (was UTC = 01:00 in NL)
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // Daily task chests. ORIGINAL (Facebook photos 0175, 1328, 4107, 4211): a 250-point bar with exactly 6 chests at 30 / 80 / 120 / 160 / 210 / 250;
 // the 250 chest = 30 000 silver + 100 gold + 10 Reincarnation Pills + 1 Killer B fragment. The contents of the other chests are (ours). dropinfo ids.
 const DAILY_TOTAL = 250;
@@ -997,7 +998,7 @@ const SECRET_EVERY = 2 * 3600, SECRET_GOLD = 20, REFRESH_ORDER = 31;
 const secretSlot = () => Math.floor(Date.now() / 1000 / SECRET_EVERY);
 function secretState(db, pl) {
   db.exec('CREATE TABLE IF NOT EXISTS secret_state (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER, seed INTEGER, PRIMARY KEY(uid, server_id))');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const r = db.prepare('SELECT * FROM secret_state WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || { day: today, used: 0, seed: 0 };
   if (r.day !== today) { r.day = today; r.used = 0; }
   return r;
@@ -1511,7 +1512,7 @@ function stageState(db, pl, chap, stage) {
   stageEnsure(db);
   const row = stageRow(chap, stage) || [];
   const r = db.prepare('SELECT * FROM stage_clears WHERE uid=? AND server_id=? AND chap=? AND stage=?').get(pl.uid, pl.server_id, chap, stage);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   // stages opened before clears were counted are already done
   const done = !r && getStage(db, pl.uid, pl.server_id, chap) > stage ? clearsNeeded(row) : 0;
   const used = r && r.boss_day === today ? r.boss_used : 0;
@@ -1519,7 +1520,7 @@ function stageState(db, pl, chap, stage) {
 }
 function stageCleared(db, pl, chap, stage) {
   stageEnsure(db);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const prev = stageState(db, pl, chap, stage);
   const row = stageRow(chap, stage) || [];
   const used = row[38] ? BOSS_FREE - prev.bossLeft + 1 : 0;
@@ -1530,7 +1531,7 @@ function stageCleared(db, pl, chap, stage) {
 // A lost boss fight still uses one of the day's tries (clears stay as they were).
 function stageTried(db, pl, chap, stage) {
   stageEnsure(db);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const prev = stageState(db, pl, chap, stage);
   const row = stageRow(chap, stage) || [];
   if (!row[38]) return prev;
@@ -1591,7 +1592,7 @@ function unlockAll(db, pl) {
   const lv = table('playerlevel').rows;
   const top = lv[lv.length - 1];
   db.prepare('UPDATE players SET level=?, exp=0, energy=MAX(energy,?) WHERE uid=? AND server_id=?').run(top[1], top[4] || 0, pl.uid, pl.server_id);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const put = db.prepare(`INSERT INTO stage_clears(uid,server_id,chap,stage,clears,boss_day,boss_used) VALUES(?,?,?,?,?,?,0)
     ON CONFLICT DO UPDATE SET clears=MAX(clears, excluded.clears)`);
   for (let chap = 1; chap <= 19; chap++) {

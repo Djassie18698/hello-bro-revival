@@ -14,7 +14,7 @@ const el = (k, v) => `<${k}>${v}</${k}>`;
 function ensure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS scratch (uid INTEGER, server_id INTEGER, day TEXT, used_free INTEGER, PRIMARY KEY(uid, server_id))');
 }
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 function freeLeft(db, pl) {
   ensure(db);
   const r = db.prepare('SELECT * FROM scratch WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);

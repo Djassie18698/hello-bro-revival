@@ -27,7 +27,7 @@ function attack(db, uid, sid) {
 // First request of the day = a login day.
 function day(db, uid, sid) {
   const prev = last(db, uid, sid, 'login');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   if (!prev || prev.detail !== today) note(db, uid, sid, 'login', 0, today);
 }
 

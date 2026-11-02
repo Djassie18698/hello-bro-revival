@@ -12,7 +12,7 @@ const MAIN = [1643, 1];                                   // Goddess Sakura (God
 const SEMI = [[1719, 4], [108, 6], [239, 6], [1673, 4]];  // 5 Souls Dan, 10 Reincarnation Pills, 20 Sage Stone III, 200 Development Dan
 const REST = [[250, 30], [252, 20], [107, 15], [1716, 15], [1717, 9]]; // 1-2 Sage Stone III, 5 Reincarnation Pills, 1-2 Souls Dan
 
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const ensure = (db) => db.exec('CREATE TABLE IF NOT EXISTS hottreasure (uid INTEGER, server_id INTEGER, day TEXT, free_used INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id))');
 function freeLeft(db, pl) {
   ensure(db);

@@ -7,7 +7,7 @@ const game = require('./game');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const now = () => Math.floor(Date.now() / 1000);
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // ORIGINAL (Facebook photos 0540, 0666): monument HP 300; per day 2 taunt rewards, 2 wander rewards, 4 taunt-clear and 4 wander-clear
 // rewards; "At Thunder wandered 2 time(s), reward received: EXP 6600, merit 1572" = 3300 + 786 a wander; breaking a country's border
 // = special award Gold*50 + Super Ninja Pill + Reincarnation Pill. (ours): taunts pay like wanders, a clear pays half, the damage a

@@ -5,7 +5,7 @@ const game = require('./game');
 
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const RAIDS = 5, SILVER_EACH = 3000; // the client's own text says 3000 silver per treasure
 
 function ensure(db) {

@@ -20,7 +20,7 @@ function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS boxopen (uid INTEGER, server_id INTEGER, day TEXT, gold_opened INTEGER DEFAULT 0,
     d1 INTEGER DEFAULT 0, d2 INTEGER DEFAULT 0, d3 INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id))`);
 }
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 function state(db, pl) {
   ensure(db);
   let r = db.prepare('SELECT * FROM boxopen WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);

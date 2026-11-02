@@ -4,7 +4,7 @@ const game = require('./game');
 
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const day = () => new Date().toISOString().slice(0, 10);
+const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // The Akatsuki boss of each level, in turn: portrait (ninjainfo icon) + its name picture boss_wt_NN (ccbResources/activity_05: 01 Hidan,
 // 02 Zetsu, 03 Kakuzu, 04 Sasori, 05 Madara, 06 Kisame, 07 Obito, 08 Nagato, 09 Konan, 10 Itachi, 11 Deidara). The old props_xxx names were
 // coin pictures the screen couldn't find, so it kept its default "Deidara" over any boss. ORIGINAL bosses seen: Kakuzu, Sasori (photos 1222,
