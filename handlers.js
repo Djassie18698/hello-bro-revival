@@ -1086,7 +1086,8 @@ module.exports = {
     return '<root code="0"></root>';
   },
 
-  // Invitation code (settings): any non-empty code pays 500 gold, once per code per player.
+  // Invitation code (settings): the code is the game ID of the friend who invited you (another player on this server); it pays 500
+  // gold (ours), once per player. Before 2 Nov 2026 any new word paid 500 gold again and again.
   rl_w_invitecode: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
@@ -1094,7 +1095,9 @@ module.exports = {
     const code = String(p.Code || '').trim();
     if (!code) return '<root code="5"><message>empty code</message></root>';
     db.exec('CREATE TABLE IF NOT EXISTS invites (uid INTEGER, server_id INTEGER, code TEXT, PRIMARY KEY(uid,server_id,code))');
-    if (db.prepare('SELECT 1 FROM invites WHERE uid=? AND server_id=? AND code=?').get(pl.uid, pl.server_id, code)) return '<root code="5"><message>code already used</message></root>';
+    if (db.prepare('SELECT 1 FROM invites WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id)) return '<root code="5"><message>you already used an invitation code</message></root>';
+    const friend = /^\d+$/.test(code) && Number(code) !== pl.uid && db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(Number(code), pl.server_id);
+    if (!friend) return '<root code="5"><message>enter the game ID of the friend who invited you</message></root>';
     db.prepare('INSERT INTO invites VALUES(?,?,?)').run(pl.uid, pl.server_id, code);
     db.prepare('UPDATE players SET gold=gold+500 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
     return '<root code="0">' + game.awardFull({ cash: 500 }) + '</root>';
