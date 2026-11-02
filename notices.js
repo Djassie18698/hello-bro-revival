@@ -64,7 +64,7 @@ function friendXml(db, pl) {
     const star = ((game.ninjas().get(card.ninja_id) || [])[11]) || 1;
     return '<msg>' + el('subtype', 3) + el('fromnick', esc(r.from_nick)) + el('fromuid', r.from_uid || 0) + el('fromninja', card.ninja_id || 5) +
       el('firstninjastar', star) + el('fromcountry', r.country || 1) + el('fromlevel', r.level || 1) + el('iTime', r.ts) + el('ID', r.id) +
-      el('iStatus', r.status || 0) + el('text', esc(`${r.from_nick}: ${r.text}`)) + // the cell shows no name, so it leads the text el('newlife', card.newlife || 0) + '</msg>';
+      el('iStatus', r.status || 0) + el('text', esc(`${r.from_nick}: ${r.text}`)) + /* the cell shows no name, so it leads the text */ el('newlife', card.newlife || 0) + '</msg>';
   }).join('') + '</msglist>';
 }
 function mailOp(db, pl, opCode, id) {
