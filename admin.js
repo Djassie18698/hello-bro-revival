@@ -396,6 +396,13 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (req.method === 'POST') {
     let b;
     try { b = JSON.parse(await readBody(req)); } catch { return json(res, { ok: false, error: 'bad json' }); }
+    // Award Center mail (awardcenter.js): to one player or (b.all) everyone; the player claims it in the game ("Receive" on Home)
+    if (u.pathname === '/admin/api/sendmail') {
+      const to = b.all ? 'all' : findPlayer(db, b.uid);
+      if (!to) return json(res, { ok: false, error: 'no such player' });
+      const r = require('./awardcenter').send(db, to, b.title, b.content, { gold: Number(b.gold) || 0, silver: Number(b.silver) || 0, renown: Number(b.renown) || 0 });
+      return json(res, r.error ? { ok: false, error: r.error } : { ok: true, sent: r.sent });
+    }
     const pl = findPlayer(db, b.uid);
     if (!pl) return json(res, { ok: false, error: 'no such player' });
     if (u.pathname === '/admin/api/give') {

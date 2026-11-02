@@ -187,6 +187,7 @@ html.embed .wrap{padding-top:18px}
         <button class="tab" data-v="bulk">📦 Give everything</button>
         <button class="tab" data-v="inv">🎒 Inventory</button>
         <button class="tab" data-v="team">🛡️ Team editor</button>
+        <button class="tab" data-v="mail">📬 Award Center</button>
         <button class="tab" data-v="danger">⚠️ Reset</button>
       </nav>
 
@@ -206,6 +207,22 @@ html.embed .wrap{padding-top:18px}
         <div class="note" style="margin-top:18px;justify-content:space-between;align-items:center">
           <div>🔓 <b>Unlock everything</b>: top player level, every training chapter and stage cleared, every team slot open, all Battles rounds cleared.</div>
           <button class="btn purple" onclick="unlockAll()">Unlock everything</button>
+        </div>
+      </section>
+
+      <section class="panel view" id="v-mail">
+        <h3>Send a gift to the Award Center</h3>
+        <p class="hint">The player gets a message in the game (the <b>Receive</b> button on Home) and claims it there. It stays 7 days.</p>
+        <div class="row"><input class="in" id="m-title" placeholder="Title (e.g. Thanks for playing!)" maxlength="40" style="flex:1;min-width:220px"></div>
+        <div class="row"><input class="in" id="m-text" placeholder="Message" maxlength="300" style="flex:1;min-width:220px"></div>
+        <div class="row">
+          <label class="hint" style="margin:0">💰 Gold <input type="number" id="m-gold" value="0" min="0" style="width:110px"></label>
+          <label class="hint" style="margin:0">🪙 Silver <input type="number" id="m-silver" value="0" min="0" style="width:120px"></label>
+          <label class="hint" style="margin:0">🏆 Arena reputation <input type="number" id="m-renown" value="0" min="0" style="width:110px"></label>
+        </div>
+        <div class="row">
+          <button class="btn" onclick="sendMail(false)">Send to this player</button>
+          <button class="btn purple" onclick="sendMail(true)">Send to everyone</button>
         </div>
       </section>
 
@@ -334,6 +351,12 @@ async function unlockAll() {
   if (!sel || !confirm('Unlock everything for ' + current().nick + '? This cannot be undone (a backup is made at every server start).')) return;
   const r = await api('unlockall', { uid: sel });
   toast(r.ok ? 'Unlocked: level ' + r.level + ', ' + r.slots + ' team slots<br><small>Close the game completely and open it again.</small>' : r.error, r.ok); loadPlayers();
+}
+async function sendMail(all) {
+  if (!all && !sel) return toast('Pick a player first', false);
+  if (all && !confirm('Send this gift to every player?')) return;
+  const r = await api('sendmail', { uid: sel, all, title: $('m-title').value, content: $('m-text').value, gold: +$('m-gold').value || 0, silver: +$('m-silver').value || 0, renown: +$('m-renown').value || 0 });
+  toast(r.ok ? 'Sent to <b>' + r.sent + '</b> player' + (r.sent === 1 ? '' : 's') : r.error, r.ok);
 }
 async function give(field, amount) {
   if (!sel) return toast('Pick a player first', false);

@@ -1100,3 +1100,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   rl_r_msg 1801: same <msg> fields as the battle reports + <text>) with the sender's card; the text starts with the sender's name (the cell
   shows none). Manage -> Confirm marks it read (rl_w_msg 2902 Op Index). Before, they were plain lines in the System tab. Checked in game.
 - Chinese text check over every game table (data/*.json): visible ones fixed (golden Chōji card name via 28.0.32; Giftpack bag 22 "一尾印记包" -> "Shukaku Seal Bag" in data/giftinfo.json, the server sends package names so no game update needed). Not visible (left): mystery shop rows 217-241 (filtered), suit_info 49-56 (duplicates of 41-48, never win), ninjamatch 1292-1307 (cards 2073/2076/2079 don't exist), wheelconfig/wheelpackconfig (no screen reads them), vip_gift 101/102 (filtered), functionconfig names (tips are English), dropinfo internal names, normalconfig labels.
+- Award Center built (the "Awards" chest on Home, ui_awardCenterLayer; was always empty): awardcenter.js + control panel tab "Award
+  Center" (admin /admin/api/sendmail): send gold / silver / arena reputation with a title and message to one player or everyone. ORIGINAL
+  protocol rl_x_award_msg: Cmd 1 <expiry>7</expiry><msglist><msg><id/><ts/><title/><content/><awards><item type dropid/></awards></msg>,
+  Cmd 2 MsgID / Cmd 3 claim (<award>); item type 1 = drop (gold goes as the game's gold-only drops, e.g. 2500 = 2000 + 500), 2 = silver,
+  3 = reputation. Kept 7 days. Checked in game: message shows like the original, Claim -> reward card Gold*250, top bar updates on the
+  next screen change.

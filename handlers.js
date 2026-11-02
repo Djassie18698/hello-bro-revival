@@ -609,8 +609,12 @@ module.exports = {
     return '<root code="0">' + r.xml + '</root>';
   },
 
-  // Misc event-center screens with no content yet.
-  rl_x_award_msg: () => '<root code="0"><expiry>7</expiry><msglist></msglist></root>',
+  // Award Center ("Receive" on Home, awardcenter.js): Cmd 1 list, Cmd 2 MsgID claim one, Cmd 3 claim all
+  rl_x_award_msg: (c) => borderCall(c, (db, pl, p) => {
+    const ac = require('./awardcenter'), cmd = Number(p.Cmd);
+    if (cmd === 2 || cmd === 3) { const r = ac.claim(db, pl, cmd === 2 ? Number(p.MsgID) : 0); return r.error ? { code: 5, msg: r.error } : { code: 0, xml: r.xml }; }
+    return { code: 0, xml: ac.listXml(db, pl) };
+  }),
   // VIP gift shop (VipListView.lua) and free top-up reward.
   rl_r_vipshop: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
