@@ -10,7 +10,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 
 | | Fixed | Test save only | To do | Not possible |
 |---|---|---|---|---|
-| Bug list 1 | 16 | 0 | 0 | 3 |
+| Bug list 1 | 17 | 0 | 0 | 2 |
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
@@ -37,7 +37,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | 🚫 | Opening scene can't be skipped | Inside the game app |
 | 🚫 | No orange-card zoom on 10 pulls | Inside the game app (owner: skip) |
 | ✅ | Victory screen shows silver 0 | The win screen had two silver numbers on the same spot: the real one was hidden and the visible one was never filled. Game update 28.0.26 shows the real one (Spar win checked in game) |
-| 🚫 | The two extra cards next to a drop have Chinese names | Picked by the game from its own table |
+| ✅ | The two extra cards next to a drop have Chinese names | The Chinese "大拉面" was the layout's default label: it reads "Big Ramen" now (28.0.30). The card you pick after a Spar win is now a real reward (it was always empty) |
 
 ## Bug list 2
 

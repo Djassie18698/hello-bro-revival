@@ -364,6 +364,7 @@ module.exports = {
     if (bench) return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + bench.xml + game.awardFull({}) + '</root>';
     if (game.sparTooOften(db, pl, Number(p.ToUid))) return '<root code="5"><message>you can spar the same player only 5 times a day</message></root>';
     if (!game.spUse(db, pl)) return '<root code="5"><message>not enough grudge</message></root>';
+    const firstSpar = !db.prepare('SELECT 1 FROM spar_pairs WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
     const r = game.sparFight(db, pl, Number(p.ToUid));
     game.addExp(db, pl, r.exp);
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(r.coin, pl.uid, pl.server_id);
@@ -372,7 +373,19 @@ module.exports = {
     const chip = Number(p.Chip) || 0;
     const got = chip && seals.plunder(db, pl, chip, r.win);
     // The fragment is stored on the server; the seal list re-reads counts (rl_r_markchip) when it is shown again.
-    const award = game.awardFull({ coin: r.coin, exp: r.exp, merit: r.merit });
+    // The victory reward draw shows the award's dropid as the card you pick. ORIGINAL drops (the game's own tables): the first spar ever
+    // drops 1284 (normalconfig 182), below level 30 drop 397 (normalconfig 113/114), otherwise duelinfo [10] = 27 "Drop from Equipment, Seal".
+    // Before 2 Nov 2026 a win sent dropid 0, so the picked card was always an empty "Big Ramen" and gave nothing.
+    let award = game.awardFull({ coin: r.coin, exp: r.exp, merit: r.merit });
+    if (r.win) {
+      const duel = game.table('duelinfo').rows.find((x) => x[0] === x[2] && x[0] === pl.level) || [];
+      const drop = game.grantDrop(db, pl, firstSpar ? 1284 : pl.level < 30 ? 397 : duel[10] || 27);
+      if (drop) {
+        const dropCoin = Number((drop.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
+        award = drop.replace(/coin="\d+"/, `coin="${r.coin + dropCoin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${r.coin + dropCoin}</coin>`)
+          .replace(/<exp>\d+<\/exp>/, `<exp>${r.exp}</exp>`).replace(/<merit>\d+<\/merit>/, `<merit>${r.merit}</merit>`);
+      }
+    }
     return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
   },
 

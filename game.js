@@ -300,6 +300,15 @@ function rollPack(r) {
   const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);
   const exact = equipFromText(t);
   if (exact) return { equip: exact };
+  // Spar win draws (handlers rl_w_pvp): dropinfo 397 "Equipment and Ninjutsu before Lv.20" and 27 "Drop from Equipment, Seal". The real
+  // chances were server-side and are lost; (ours): mostly 2-3 star gear or ninjutsu (397) / 3-star gear (27), rarely 4, very rarely 5 stars.
+  if (r[0] === 397 || r[0] === 27) {
+    const x = Math.random() * 100, st = r[0] === 397 ? (x < 60 ? 2 : x < 95 ? 3 : 4) : (x < 80 ? 3 : x < 98 ? 4 : 5);
+    if (r[0] === 397 && Math.random() < 0.3) { const pool = table('ninjutsuinfo').rows.filter((q) => q[5] === st && q[6] === 1); if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] }; }
+    return { equip: randomEquip(Math.floor(Math.random() * 3), st, st) };
+  }
+  const gearSlot = /Weapon/.test(t) ? 0 : /Armou?r/.test(t) ? 1 : /Trinket|Accessor|Ornament/.test(t) ? 2 : -1; // "One, Two-Star Weapon Card" etc.
+  if (gearSlot >= 0 && !/Equipment/.test(t)) return { equip: low ? randomEquip(gearSlot, 1, 2) : three ? randomEquip(gearSlot, 3, 3) : randomEquip(gearSlot, 3, /Five-Star/.test(t) ? 5 : 4) };
   if (/Equipment/.test(t)) return low ? { equip: randomEquip(Math.floor(Math.random() * 3), 1, 2) } : three ? { equip: randomEquip(Math.floor(Math.random() * 3), 3, 3) } : { equip: randomEquip(Math.floor(Math.random() * 3), star) };
   if (low && !/Ninjutsu/.test(t)) { const pool = pools()[1 + Math.floor(Math.random() * 2)]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
   if (three && !/Ninjutsu/.test(t)) { const pool = pools()[3]; if (pool && pool.length) return { ninja: pool[Math.floor(Math.random() * pool.length)] }; }
@@ -384,9 +393,8 @@ function pullXml(res, count, type = 0) {
     // costprop = recruitment orders used (CItemView takes it off item 30, so the "orders left" count updates without leaving the shop)
     // The new "Recruit N more" count: CCommonPrayDialogView reads root > protect_comming > protect_comming (a NESTED tag of the same name,
     // text) and only then redraws itself (InitUI): the count and "Free recruitment this time" -> the gold price. The open-window request
-    // (rl_r_recruit) reads it as <recruit protect_comming="">, so it goes on <recruit> too. only when it is there does CCommonPrayDialogView redraw itself
-    // after a pull (InitUI), which also turns "Free recruitment this time" into the gold price. Without it the window kept the old count
-    // and the free label, and looked like every pull was free (the server did charge).
+    // (rl_r_recruit) reads it as <recruit protect_comming="">, so it goes on <recruit> too. Without it the window kept the old count and
+    // the free label, and looked like every pull was free (the server did charge).
     return `<recruit ninjaid="${c.ninja || 0}" cost="${res.cost}" bagid="${c.seq || 0}" attr="0" costprop="${type === 3 ? 1 : 0}"${res.toGo ? ` protect_comming="${res.toGo}"` : ''}/>` +
       (res.toGo ? `<protect_comming><protect_comming>${res.toGo}</protect_comming></protect_comming>` : '') + awardXml(c); // <award> is a SIBLING of <recruit> (children of the root)
   }

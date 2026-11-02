@@ -206,6 +206,16 @@ def patch(data, changes):
     return data
 
 
+def replace_string(data, old, new):
+    """Swap one entry of the file's string table (every label that uses it changes). Strings are big-endian length + utf-8."""
+    o, n = old.encode('utf-8'), new.encode('utf-8')
+    key = bytes([len(o) >> 8, len(o) & 255]) + o
+    assert data.count(key) == 1, 'string not found exactly once'
+    data = data.replace(key, bytes([len(n) >> 8, len(n) & 255]) + n)
+    parse(data)  # must still read back
+    return data
+
+
 def walk(n, depth=0):
     yield n, depth
     for c in n['children']:

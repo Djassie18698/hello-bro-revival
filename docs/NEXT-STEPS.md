@@ -922,3 +922,10 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
 - New-account check: Card 1/2/3 -> Shikamaru 57 + jutsu 54 / Sakura 56 + 14 / Neji 55 + 12, 50 gold, 18 000 silver, team 1. OK.
 - Timers that still counted to UTC midnight now count to local midnight: country officials, war, Ninja Treasure; tower sweep day key and the
   monthly sign-in month use the local date.
+- Spar victory draw: the card you pick showed an empty "大拉面" and gave nothing. Cause: the win award had dropid 0 (the draw shows the award's
+  drop as your pick; the two other cards are client fillers, fillDropData). Now ORIGINAL drops from the game's tables: first spar ever 1284
+  (normalconfig 182, "One, Two-Star Weapon Card"), below level 30 drop 397 (normalconfig 113/114), else duelinfo [10] = 27 ("Drop from
+  Equipment, Seal"). (ours): 397 = 2-star 60 % / 3 35 % / 4 5 % gear or ninjutsu, 27 = 3-star 80 % / 4 18 % / 5 2 % gear. rollPack now
+  turns "Weapon/Armor/Trinket Card" packs into that slot's gear (1284 gave a shinobi). Checked in game: picked card = 4-star Scroll of Seal.
+  Also hot update 28.0.30: RS_WinAnim.ccbi / BuyItemDialogCellView.ccbi default label "大拉面" -> "Big Ramen" (tools/patch_winanim.py,
+  tools/ccbi.py replace_string); the filler ramen card now reads "Big Ramen".
