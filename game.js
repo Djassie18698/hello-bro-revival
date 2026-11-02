@@ -989,7 +989,7 @@ function useLimit(db, pl, kind) {
 // armor / trinket / skill bags (ours) the same. The rest keeps the giftinfo price (Ninja Bag (L) 13 000 and SageStone bags match the photos).
 const PACK_SILVER = { 1: 2000, 3: 2000, 4: 2000, 5: 2000, 6: 2000 };
 const packSilver = (r) => PACK_SILVER[r[0]] ?? r[5];
-// Gift packs: only packs whose drop row gives ninja cards work (equipment/ninjutsu cards are not implemented yet).
+// Gift packs (Shop > Giftpack): item bags give their items, card bags shinobi / gear; ninjutsu bags stay refused (the client crashes on them).
 function packBuy(db, pl, packId) {
   const g = table('giftinfo').rows.find((r) => r[0] === packId);
   if (!g) return { error: 'no such pack' };
