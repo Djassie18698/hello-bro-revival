@@ -319,7 +319,7 @@ module.exports = {
     // breaks if the client is told about a later chapter).
     const cur = game.furthestChapter(db, acc.uid, pl.server_id);
     const f = { uid: acc.uid, nick: pl.nick, cash: pl.gold, coin: pl.coin, curaction: pl.energy, cursp: game.spState(db, pl).sp,
-      level: pl.level, country: pl.country, maxteammember: game.maxTeam(db, pl), activeTeamId: 0,
+      level: pl.level, country: pl.country, maxteammember: game.maxTeam(db, pl), activeTeamId: gs.active,
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: game.meritLevel(db, acc.uid, pl.server_id), meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
       score: pl.exp || 0, viplevel: // <score> is the client's EXP field (CPlayerDataMgr +0xd4); 0 here reset the exp bar on every main page visit
@@ -329,8 +329,8 @@ module.exports = {
     // the "Loading for you, Master" wait) and the fragment bag are left out there.
     const full = Number(p.Cmd) !== 1301;
     return '<root code="0"><user>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</user>' + (full ? gs.cards : '') +
-      gs.suitlist + '<defensesuitlist></defensesuitlist>' + (full ? game.chipbagXml(db, acc.uid, pl.server_id) : '') +
-      gs.ninjalist + '<defenseninjalist></defenseninjalist>' +
+      gs.suitlist + gs.defensesuitlist + (full ? game.chipbagXml(db, acc.uid, pl.server_id) : '') +
+      gs.ninjalist + gs.defenseninjalist +
       `<chapinfo currentchap="${cur.chap}" currentstage="${game.stagePart(cur.chap, cur.stage).part}"/>` +
       // the scrolling banner at the top of the home screen (CDefaultMainMenu -> CMainMenu::InitAnnounceMsg; '|' separates messages); text from the Server Manager.
       // Only ONCE per login, on the first home visit (Cmd 1301; the login call 1302 ignores it): every <horninfo> makes the client add another
@@ -800,14 +800,23 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    // Cmd 2310 = "Activate" (CMyGroupView::onBtnActiveTeam, ActiveId 0 / 1): reply <activeid> + the used team's attack / defense / chakra
+    if (Number(p.Cmd) === 2310) {
+      const r = game.activateTeam(db, pl, Number(p.ActiveId));
+      if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+      const t = game.stateXml(db, pl.uid, pl.server_id).totals;
+      return `<root code="0">${el('activeid', Number(p.ActiveId) === 1 ? 1 : 0)}${el('attactlow', t.al)}${el('attacthigh', t.ah)}${el('defenselow', t.dl)}${el('defensehigh', t.dh)}${el('chakralow', t.cl)}${el('chakrahigh', t.ch)}</root>`;
+    }
+    const teamId = Number(p.TeamId) === 1 ? 1 : 0; // the team tab being edited (0 = Team 1, 1 = Team 2)
+    if (teamId === 1 && pl.level < game.TEAM2_LEVEL) return `<root code="5"><message>the second team opens at level ${game.TEAM2_LEVEL}</message></root>`;
+    const t = game.lineup(db, pl.uid, pl.server_id, teamId);
     const kind = Number(p.Cmd) - 2300;
-    if (kind >= 1 && kind <= 8) game.equip(db, pl, Number(p.Seq), kind, Number(p.NewID) || 0);
+    if (kind >= 1 && kind <= 8) game.equip(db, pl, Number(p.Seq), kind, Number(p.NewID) || 0, t);
     if (kind === 0) {
-      const err = game.teamSwap(db, pl, Number(p.OldID) || 0, Number(p.NewID) || 0);
+      const err = game.teamSwap(db, pl, Number(p.OldID) || 0, Number(p.NewID) || 0, t);
       if (err) return `<root code="5"><message>${err}</message></root>`;
     }
-    const gs = game.stateXml(db, pl.uid, pl.server_id);
-    return `<root code="0"><teamid>${Number(p.TeamId) || 0}</teamid>${gs.suitlist}${gs.ninjalist}</root>`;
+    return '<root code="0">' + game.teamReplyXml(db, pl.uid, pl.server_id, teamId) + '</root>';
   },
 
   // Secret (soul) shop: Cmd 1 list, 2 refresh, 4 buy (Soul=row id), 5 soul value of cards.
@@ -831,8 +840,8 @@ module.exports = {
       const total = cards.reduce((t, c) => t + val(c), 0);
       if (cmd === 5) return `<root code="0"><total_val>${total}</total_val><card_list>${cards.map((c) => `<card><bagid>${c.seq}</bagid><lianhun_val>${val(c)}</lianhun_val></card>`).join('')}</card_list></root>`;
       if (!cards.length) return '<root code="5"><message>choose cards first</message></root>';
-      if (cards.some((c) => db.prepare('SELECT 1 FROM team WHERE uid=? AND server_id=? AND seq=?').get(pl.uid, pl.server_id, c.seq))) return '<root code="5"><message>take the card out of the team first</message></root>';
-      for (const c of cards) { db.prepare('DELETE FROM equipped WHERE uid=? AND server_id=? AND seq=?').run(pl.uid, pl.server_id, c.seq); db.prepare('DELETE FROM cards WHERE seq=?').run(c.seq); }
+      if (cards.some((c) => game.inLineup(db, c.seq))) return '<root code="5"><message>take the card out of the team first</message></root>';
+      for (const c of cards) { for (const t of ['equipped', 'equipped_alt']) db.prepare(`DELETE FROM ${t} WHERE uid=? AND server_id=? AND seq=?`).run(pl.uid, pl.server_id, c.seq); db.prepare('DELETE FROM cards WHERE seq=?').run(c.seq); }
       game.propAdd(db, pl.uid, pl.server_id, 9999, total);
       game.bumpTask(db, pl.uid, pl.server_id, 7, cards.length); // daily task: refine cards
       return `<root code="0"><award dropid="1" coin="0"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>${total}</soul></award></root>`;
@@ -1182,7 +1191,7 @@ module.exports = {
   // (CMyGroupView); an unknown reply there crashed the game.
   rl_r_ninjalist: (c) => borderCall(c, (db, pl) => {
     const gs = game.stateXml(db, pl.uid, pl.server_id);
-    return { code: 0, xml: el('activeTeamId', 0) + gs.suitlist + gs.ninjalist + '<defensesuitlist></defensesuitlist><defenseninjalist></defenseninjalist>' };
+    return { code: 0, xml: el('activeTeamId', gs.active) + gs.suitlist + gs.ninjalist + gs.defensesuitlist + gs.defenseninjalist };
   }),
   rl_r_bagage: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: game.stateXml(db, pl.uid, pl.server_id).cards })),
   // Campaign chapter/round info (CListLevelView / CRunLevelView, CPlayerDataMgr::InitRoundInfoFromXML), from Training progress.

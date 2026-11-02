@@ -268,7 +268,8 @@ function cardStar(c) {
 function donatable(db, pl, kind) {
   const types = KIND_TYPES[kind] || [0];
   return db.prepare(`SELECT * FROM cards WHERE uid=? AND server_id=? AND type IN (${types.join(',')})
-    AND seq NOT IN (SELECT seq FROM team WHERE uid=? AND server_id=?) AND seq NOT IN (SELECT seq FROM equipped WHERE uid=? AND server_id=?)`)
+    AND seq NOT IN (SELECT seq FROM team WHERE uid=? AND server_id=?) AND seq NOT IN (SELECT seq FROM equipped WHERE uid=? AND server_id=?)
+    AND seq NOT IN (SELECT seq FROM team_alt) AND seq NOT IN (SELECT seq FROM equipped_alt)`)
     .all(pl.uid, pl.server_id, pl.uid, pl.server_id, pl.uid, pl.server_id).filter((c) => cardStar(c) >= 4);
 }
 function cardListXml(db, pl, kind) {

@@ -1040,3 +1040,11 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   Exchange N Times", and greys its button at 0. ORIGINAL limits exchange_award [4] total (Sasuke, Naruto, seals, kunai: once ever) and [5]
   a day (pills 2, Sage Stone I 4); the server enforces both. Checked in game: reputation shows, Development Dan 2 -> 1 -> 0 left and greys.
   Found by a new check: every reply tag a C++ screen reads vs every tag our code sends (scratchpad tags.py).
+- Second team line-up built (it IS in v28: Team screen tabs "Team 1 / Team 2", Activate, Detail). ORIGINAL rules = the screen's Detail
+  text + normalconfig 211 (100): Team 2 opens at level 100, may use any card (also ones in Team 1), Activate picks the used line-up (tick).
+  Client: index 0 = <ninjalist>/<suitlist>, 1 = <defenseninjalist>/<defensesuitlist> (login, rl_r_ninjalist), <activeTeamId>; every
+  edit sends TeamId (reply <teamid> + that team's <suitlist><ninjalist>, CMyGroupCardView), Activate = rl_w_ninjalist 2310 ActiveId ->
+  <activeid> + attactlow..chakrahigh as root children. Server: team / equipped = the USED line-up (so fights, rankings, rivals, arena
+  need no change), team_alt / equipped_alt = the other; players.active_team; game.activateTeam swaps them in one transaction. Cards in
+  either line-up count as "in use" (feeding, refining, succession, donating). Checked in game (test account set to level 120): Team 2
+  tab, add Naruto, Activate -> tick on Team 2, Team 1 keeps Shikamaru + gear, after a restart Home shows Naruto.

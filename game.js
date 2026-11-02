@@ -36,7 +36,16 @@ function ensure(db) {
       PRIMARY KEY (uid, server_id, slot, kind)
     );
     CREATE INDEX IF NOT EXISTS cards_owner ON cards(uid, server_id);
+    CREATE TABLE IF NOT EXISTS team_alt (
+      uid INTEGER NOT NULL, server_id INTEGER NOT NULL, slot INTEGER NOT NULL, seq INTEGER NOT NULL,
+      PRIMARY KEY (uid, server_id, slot)
+    );
+    CREATE TABLE IF NOT EXISTS equipped_alt (
+      uid INTEGER NOT NULL, server_id INTEGER NOT NULL, slot INTEGER NOT NULL, kind INTEGER NOT NULL, seq INTEGER NOT NULL,
+      PRIMARY KEY (uid, server_id, slot, kind)
+    );
   `);
+  try { db.exec('ALTER TABLE players ADD COLUMN active_team INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN sp INTEGER NOT NULL DEFAULT -1'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN energy_t INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN sp_t INTEGER NOT NULL DEFAULT 0'); } catch {}
@@ -114,12 +123,47 @@ function slotXml(seq, slot, eq = {}, st = {}) {
     `<readycombinlist>${(st.ready || []).map((id) => `<combin><combinid>${id}</combinid></combin>`).join('')}</readycombinlist></ninja>`;
 }
 
-// Equip (kind 1 weapon, 2 armor, 3 trinket, 4 seal, 5-8 ninjutsu slots) a card onto the ninja in team slot (1-based).
-function equip(db, pl, slot, kind, newSeq) {
+// ---- Second team line-up ("Team 2" tab on the team screen) -------------------------------------------------------------------
+// ORIGINAL (the screen's own Detail text, normalconfig 211 = 100): "When the second team line-up has reached level 100, it is activated";
+// it can use every shinobi, ninjutsu and equipment, also ones in Team 1; "activate team" picks the line-up that is used, only one at a
+// time, the used one has a tick. The client: team index 0 = Team 1 (<ninjalist>/<suitlist>), 1 = Team 2 (<defenseninjalist>/
+// <defensesuitlist>), activeTeamId = the used one; every edit sends TeamId, Activate sends rl_w_ninjalist 2310 ActiveId.
+// Here the tables team / equipped always hold the USED line-up (fights, stats and every other screen read them), the other one waits in
+// team_alt / equipped_alt; activating swaps the two.
+const TEAM2_LEVEL = 100;
+const USED = { team: 'team', equipped: 'equipped' }, WAITING = { team: 'team_alt', equipped: 'equipped_alt' };
+const activeTeam = (db, uid, sid) => { ensure(db); return (db.prepare('SELECT active_team FROM players WHERE uid=? AND server_id=?').get(uid, sid) || {}).active_team || 0; };
+const lineup = (db, uid, sid, idx) => ((Number(idx) === 1) === (activeTeam(db, uid, sid) === 1) ? USED : WAITING);
+const inLineup = (db, seq) => !!(db.prepare('SELECT 1 FROM team WHERE seq=?').get(seq) || db.prepare('SELECT 1 FROM team_alt WHERE seq=?').get(seq));
+function activateTeam(db, pl, idx) {
   ensure(db);
-  db.prepare('DELETE FROM equipped WHERE uid=? AND server_id=? AND kind=? AND seq=?').run(pl.uid, pl.server_id, kind, newSeq);
-  if (!newSeq) db.prepare('DELETE FROM equipped WHERE uid=? AND server_id=? AND slot=? AND kind=?').run(pl.uid, pl.server_id, slot, kind);
-  else db.prepare('INSERT OR REPLACE INTO equipped(uid,server_id,slot,kind,seq) VALUES(?,?,?,?,?)').run(pl.uid, pl.server_id, slot, kind, newSeq);
+  idx = Number(idx) === 1 ? 1 : 0;
+  if (idx === 1 && pl.level < TEAM2_LEVEL) return { error: `the second team opens at level ${TEAM2_LEVEL}` };
+  if (idx === activeTeam(db, pl.uid, pl.server_id)) return {};
+  if (!db.prepare('SELECT 1 FROM team_alt WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id)) return { error: 'put a shinobi in that team first' };
+  db.exec('BEGIN');
+  try {
+    for (const [a, b] of [['team', 'team_alt'], ['equipped', 'equipped_alt']]) {
+      db.exec(`CREATE TEMP TABLE IF NOT EXISTS swap_${a} AS SELECT * FROM ${a} WHERE 0`);
+      db.prepare(`INSERT INTO swap_${a} SELECT * FROM ${a} WHERE uid=? AND server_id=?`).run(pl.uid, pl.server_id);
+      db.prepare(`DELETE FROM ${a} WHERE uid=? AND server_id=?`).run(pl.uid, pl.server_id);
+      db.prepare(`INSERT INTO ${a} SELECT * FROM ${b} WHERE uid=? AND server_id=?`).run(pl.uid, pl.server_id);
+      db.prepare(`DELETE FROM ${b} WHERE uid=? AND server_id=?`).run(pl.uid, pl.server_id);
+      db.prepare(`INSERT INTO ${b} SELECT * FROM swap_${a}`).run();
+      db.exec(`DELETE FROM swap_${a}`);
+    }
+    db.prepare('UPDATE players SET active_team=? WHERE uid=? AND server_id=?').run(idx, pl.uid, pl.server_id);
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+  return {};
+}
+
+// Equip (kind 1 weapon, 2 armor, 3 trinket, 4 seal, 5-8 ninjutsu slots) a card onto the ninja in team slot (1-based) of line-up t.
+function equip(db, pl, slot, kind, newSeq, t = USED) {
+  ensure(db);
+  db.prepare(`DELETE FROM ${t.equipped} WHERE uid=? AND server_id=? AND kind=? AND seq=?`).run(pl.uid, pl.server_id, kind, newSeq);
+  if (!newSeq) db.prepare(`DELETE FROM ${t.equipped} WHERE uid=? AND server_id=? AND slot=? AND kind=?`).run(pl.uid, pl.server_id, slot, kind);
+  else db.prepare(`INSERT OR REPLACE INTO ${t.equipped}(uid,server_id,slot,kind,seq) VALUES(?,?,?,?,?)`).run(pl.uid, pl.server_id, slot, kind, newSeq);
 }
 
 // Team slots open like the original (newcardinfo row N = slot N): a player level from the text ("reach level 6",
@@ -137,12 +181,12 @@ function maxTeam(db, pl) {
 }
 // Team > card > Change (rl_w_ninjalist Cmd 2300): OldID = card leaving (0 for an empty slot), NewID = card joining.
 // A card already in the team trades places with the old one. Team slots are 0-based, at most maxTeam ninjas.
-function teamSwap(db, pl, oldSeq, newSeq) {
+function teamSwap(db, pl, oldSeq, newSeq, t = USED) {
   ensure(db);
   const card = db.prepare('SELECT seq FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(newSeq, pl.uid, pl.server_id);
   if (!card) return 'no such ninja';
-  const team = db.prepare('SELECT slot, seq FROM team WHERE uid=? AND server_id=? ORDER BY slot').all(pl.uid, pl.server_id);
-  const set = (slot, seq) => db.prepare('INSERT OR REPLACE INTO team(uid,server_id,slot,seq) VALUES(?,?,?,?)').run(pl.uid, pl.server_id, slot, seq);
+  const team = db.prepare(`SELECT slot, seq FROM ${t.team} WHERE uid=? AND server_id=? ORDER BY slot`).all(pl.uid, pl.server_id);
+  const set = (slot, seq) => db.prepare(`INSERT OR REPLACE INTO ${t.team}(uid,server_id,slot,seq) VALUES(?,?,?,?)`).run(pl.uid, pl.server_id, slot, seq);
   const from = team.find((t) => t.seq === oldSeq), there = team.find((t) => t.seq === newSeq);
   if (from) { set(from.slot, newSeq); if (there) set(there.slot, oldSeq); return null; }
   if (there) return null; // already in the team
@@ -150,19 +194,33 @@ function teamSwap(db, pl, oldSeq, newSeq) {
   set(team.length ? Math.max(...team.map((t) => t.slot)) + 1 : 0, newSeq);
   return null;
 }
+// One line-up as the client reads it: suits = <item id type/> list, slots = <ninja> list (t = USED or WAITING tables)
+function lineupXml(db, uid, sid, t) {
+  let team = db.prepare(`SELECT seq FROM ${t.team} WHERE uid=? AND server_id=? ORDER BY slot`).all(uid, sid);
+  if (process.env.HB_TEAM_SLOTS !== undefined) team = team.slice(0, Number(process.env.HB_TEAM_SLOTS)); // debugging aid
+  const ts = teamStats(db, uid, sid, t);
+  const eqRows = db.prepare(`SELECT slot, kind, seq FROM ${t.equipped} WHERE uid=? AND server_id=?`).all(uid, sid);
+  const eqOf = (slot) => Object.fromEntries(eqRows.filter((r) => r.slot === slot).map((r) => [r.kind, r.seq]));
+  return { ts, suits: ts.suits.map((r) => `<item id="${r[0]}" type="${r[2]}"/>`).join(''), slots: team.map((x, i) => slotXml(x.seq, i, eqOf(i + 1), (ts.slots[i] || {}))).join('') };
+}
+// The team-edit reply for line-up idx (CMyGroupCardView reads <teamid> and loads <suitlist>/<ninjalist> into that team)
+function teamReplyXml(db, uid, sid, idx) {
+  const l = lineupXml(db, uid, sid, lineup(db, uid, sid, idx));
+  return `<teamid>${Number(idx) === 1 ? 1 : 0}</teamid><suitlist>${l.suits}</suitlist><ninjalist>${l.slots}</ninjalist>`;
+}
 function stateXml(db, uid, sid) {
   ensure(db);
   const cards = db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=? ORDER BY seq').all(uid, sid);
-  let team = db.prepare('SELECT seq FROM team WHERE uid=? AND server_id=? ORDER BY slot').all(uid, sid);
-  if (process.env.HB_TEAM_SLOTS !== undefined) team = team.slice(0, Number(process.env.HB_TEAM_SLOTS)); // debugging aid
-  const ts = teamStats(db, uid, sid);
-  const eqRows = db.prepare('SELECT slot, kind, seq FROM equipped WHERE uid=? AND server_id=?').all(uid, sid);
-  const eqOf = (slot) => Object.fromEntries(eqRows.filter((r) => r.slot === slot).map((r) => [r.kind, r.seq]));
+  const used = lineupXml(db, uid, sid, USED), waiting = lineupXml(db, uid, sid, WAITING), active = activeTeam(db, uid, sid);
+  const t1 = active === 1 ? waiting : used, t2 = active === 1 ? used : waiting;
   return {
-    suitlist: '<suitlist>' + ts.suits.map((r) => `<item id="${r[0]}" type="${r[2]}"/>`).join('') + '</suitlist>',
-    totals: ts.total,
+    active,
+    suitlist: '<suitlist>' + t1.suits + '</suitlist>',
+    totals: used.ts.total, // the used line-up's attack / defense (top bar, rankings)
     cards: cards.map(cardXml).join(''),
-    ninjalist: '<ninjalist>' + team.map((t, i) => slotXml(t.seq, i, eqOf(i + 1), (ts.slots[i] || {}))).join('') + '</ninjalist>',
+    ninjalist: '<ninjalist>' + t1.slots + '</ninjalist>',
+    defensesuitlist: '<defensesuitlist>' + t2.suits + '</defensesuitlist>',
+    defenseninjalist: '<defenseninjalist>' + t2.slots + '</defenseninjalist>',
   };
 }
 
@@ -953,7 +1011,7 @@ function packBuy(db, pl, packId) {
 function strengthen(db, pl, srcSeq, eatSeqs) {
   const src = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(srcSeq, pl.uid, pl.server_id);
   if (!src) return { error: 'card not found' };
-  const eat = eatSeqs.filter((q) => q !== srcSeq && !db.prepare('SELECT 1 FROM team WHERE seq=?').get(q))
+  const eat = eatSeqs.filter((q) => q !== srcSeq && !inLineup(db, q))
     .map((q) => db.prepare('SELECT seq, type, level FROM cards WHERE seq=? AND uid=? AND server_id=?').get(q, pl.uid, pl.server_id)).filter(Boolean);
   // ORIGINAL (the client's CPlayerNinja/CPlayerWeapon/...::firefly_ExpCost and GetNeedSilver): every eaten card gives [3] EXP and costs
   // [4] silver from its OWN kind's upgrade table at its level (ninjaupgrade, equipupgrade, markupgrade, ninjutsuupgrade); the card that
@@ -1007,7 +1065,7 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
   // The material is either another copy of the same card (consumed) or a reincarnation pill (free on this server).
   if (b) {
     if (a.seq === b.seq || a.type !== b.type || a.ninja_id !== b.ninja_id) return { error: 'cards must match' };
-    if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
+    if (inLineup(db, b.seq) || db.prepare('SELECT 1 FROM equipped WHERE seq=?').get(b.seq) || db.prepare('SELECT 1 FROM equipped_alt WHERE seq=?').get(b.seq)) return { error: 'material card is in use' };
   }
   if ((a.newlife || 0) >= NEWLIFE_MAX(a.type)) return { error: 'already at the highest rebirth' };
   const next = (a.newlife || 0) + 1;
@@ -1287,10 +1345,10 @@ function setBonus(st, sets) {
   }
   return o;
 }
-function teamStats(db, uid, sid) {
+function teamStats(db, uid, sid, t = USED) {
   ensure(db);
-  const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
-  const eqRows = db.prepare('SELECT e.slot, e.kind, c.* FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?').all(uid, sid);
+  const team = db.prepare(`SELECT t.slot, c.* FROM ${t.team} t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot`).all(uid, sid);
+  const eqRows = db.prepare(`SELECT e.slot, e.kind, c.* FROM ${t.equipped} e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?`).all(uid, sid);
   const slots = team.map((c, i) => {
     let st = ninjaStats(c);
     const mine = eqRows.filter((x) => x.slot === i + 1);
@@ -1810,7 +1868,7 @@ function godSynth(db, pl, attSeq, defSeq) {
   const b = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(defSeq, pl.uid, pl.server_id);
   if (!a || !b || a.seq === b.seq) return { error: 'cards missing' };
   const god = godOf(b.ninja_id) || godOf(a.ninja_id); if (!god) return { error: 'no evolution for this card' };
-  for (const c of [a, b]) if (db.prepare('SELECT 1 FROM team WHERE seq=?').get(c.seq)) return { error: 'remove cards from the team first' };
+  for (const c of [a, b]) if (inLineup(db, c.seq)) return { error: 'remove cards from the team first' };
   if ((propCounts(db, pl.uid, pl.server_id)[34] || 0) < GOD_COST) return { error: 'Insufficient evolution pills' };
   propAdd(db, pl.uid, pl.server_id, 34, -GOD_COST);
   db.prepare('DELETE FROM cards WHERE seq IN (?,?)').run(a.seq, b.seq);
@@ -1821,4 +1879,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
