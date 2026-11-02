@@ -158,6 +158,8 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Free ramen 12:00-14:00 and 18:00-20:00 |
 | ✅ | Recruit window updates after every pull; recruits give classic ATK / DEF cards only |
 | ✅ | Discord: #updates for every update, #announcement for big news |
+| ✅ | Big test round (2 Nov morning): Battles 25 chapters + boss + floor rewards, Spar win card, W.A. titles, set bonuses, plunder chances, Hyourou-gan, item USE, VIP limits, Arena exchange, Team 2, battle reports, friend messages, Akatsuki leader tools, war rankings, Ninja Treasure top list, red dots, Award Center, shop bags, VIP gifts / wheel / prize packs give what they say; new tests (bad input, cheats, new and real saves) |
+| ✅ | Events: login streak, God of Wealth, Month card, Flower Worship (switches) |
 
 ## Still to build
 
