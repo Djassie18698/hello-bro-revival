@@ -1119,3 +1119,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   clean), complete seal packs a random tailed-beast seal 1-9 (ours: equal; Ten-Tails only from its own drops). Only mixed packs differ
   now (26 "Card and Seal", 219/220 one of shinobi / gold). Checked in game via the Award Center: drop 174 -> Ten Tails Seal Fragment 5,
   drop 16 -> Moegi (1-star shinobi).
+  Lucky Wheel checked in game after the switch: free spin -> Gold*210 card, no errors.
