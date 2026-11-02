@@ -6,6 +6,7 @@
 const EVENTS = [
   { id: 1, pos: 1, type: 2, icon: '🎁', name: 'Login rewards', desc: 'A gift for every day a player logs in.' },
   { id: 2, pos: 2, type: 2, icon: '⬆️', name: 'Level-up rewards', desc: 'Gifts at levels 10, 20, 30 and up.' },
+  { id: 14, pos: 3, type: 2, icon: '📆', name: 'Login streak', desc: 'Log in on days in a row for the original rewards: ramen, Hyourou-gan and silver, and 20 gold a day from day 7.' },
   { id: 41, pos: 3, type: 2, icon: '📅', name: 'Monthly sign-in', desc: 'Sign in every day of the month for rewards.' },
   { id: 47, pos: 8, type: 2, icon: '🗓️', name: '7-day goals', desc: 'Goals for the first 7 days of a new character.' },
   { id: 12, pos: 6, type: 2, icon: '👹', name: 'World boss', desc: 'Everyone fights one big boss together.' },

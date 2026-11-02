@@ -82,6 +82,7 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - **Shinobi training (2 Nov 2026):** 2 Super Ninja Pills or 1 pill + 10 gold (original); 10 times 20 pills or 10 + 80 gold **(ours)**.
 - **Growth Fund (2 Nov 2026):** 500 gold, VIP3, 2500 back at Lv50 150 / 70 150 / 90 200 (original); Lv110 200, 130 250, 150 250, 170 300, 190 300, 210 350, 230 350 **(ours)**.
 - **Save time (2 Nov 2026):** one Big Ramen = ceil(200 / stage energy) fights of the furthest story stage, rounded down to hundreds (fits the original photo exactly); VIP1 and level 80 (original); 2 chances a day per VIP level **(ours)**, then 10 gold (original).
+- **Login streak (2 Nov 2026, Sign-in tile):** ORIGINAL day 1-8 rewards from the client's keeplogin_info.lua. (ours): missing a day starts again at day 1.
 - **Month card (2 Nov 2026, switch `monthcard`, off by default):** ORIGINAL $4.99 = 60 gold a day, $9.99 = 120 a day, for 30 days. (ours): a free top-up of exactly that price activates it.
 - **God of Wealth (2 Nov 2026, switch `caishen`):** ORIGINAL table wealthactivity: 8 steps, invest 25 / 150 / ... / 7500 gold and get 30-40 / 175-185 / ... / 8000-8500 back; level 10, 7 days. (ours): uniform return inside each range, one round per event run.
 - **Gear / ninjutsu sets (2 Nov 2026):** ORIGINAL table skill_suit_info, the bonuses the game's own set panel shows for 2 / 3 / 4 pieces. (ours): ninjutsu sets only add their skill chance (as an expected value), because fights are worked out from stats.

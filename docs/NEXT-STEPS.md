@@ -976,3 +976,7 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   after a $4.99 top-up, claim +60 gold, second claim the same day refused; after relog the button does nothing (the original screen never
   greys it).
 - Not built (needs invented rewards): the server-opening level / power ranking events (levelRank_business, fightRank_business; <conf><opentype>, rank awards come from the server and are lost; normalconfig 99/100 = 7 days after server start + 1 day to claim). Our server has run for weeks, so a 'new server' race makes little sense.
+- Login streak ("Sign-in" tile = keepLoginView, activity id 14) built: keeplogin.js, Server-tab switch "Login streak" (on). ORIGINAL rewards
+  = the client's keeplogin_info.lua (day 1: 2 small ramen + 2 small Hyourou-gan + 500 silver ... day 7/8+: 20 gold + 2 big ramen + 3 big
+  Hyourou-gan). State = rl_r_activity <activity type="5" desc="conlogin" condays got>, claim = rl_w_activity ActType 5 ActID 1 SubID day.
+  A missed day restarts at day 1 (ours). Checked in game: tile shows, "Continuous Login: Day 1", Claim -> reward pop-up.
