@@ -1,4 +1,5 @@
-export MSYS_NO_PATHCONV=1; A="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"; D=127.0.0.1:5595
+export MSYS_NO_PATHCONV=1; A="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"; D="${HB_EMU:-$(tr -d "
+ " < "$(dirname "$0")/emu.device" 2>/dev/null)}"; [ -n "$D" ] || { echo "no emulator address: put the Claude instance in tools/dev/emu.device (see emu.sh)"; exit 1; }
 # usage: go.sh name x,y x,y ...   (launches only if game isn't focused on its own activity)
 n=$1; shift
 "$A" -s $D logcat -c

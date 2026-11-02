@@ -1,4 +1,5 @@
-export MSYS_NO_PATHCONV=1; A="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"; D=127.0.0.1:5595
+export MSYS_NO_PATHCONV=1; A="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"; D="${HB_EMU:-$(tr -d "
+ " < "$(dirname "$0")/emu.device" 2>/dev/null)}"; [ -n "$D" ] || { echo "no emulator address: put the Claude instance in tools/dev/emu.device (see emu.sh)"; exit 1; }
 H=$TEMP/hb
 for t in "$@"; do
   name=${t%%:*}; xy=${t#*:}; x=${xy%,*}; y=${xy#*,}
