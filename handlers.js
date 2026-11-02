@@ -76,7 +76,7 @@ function accountBySession(db, p, isLogin = false) {
 }
 
 
-// Training stage fight: always a win for now; rewards come from roundinfo (cols: 22 energy cost, 23 exp, 24 coins).
+// Training stage fight: rewards come from roundinfo (cols: 22 energy cost, 23 exp, 24 coins).
 // Training stage: roundinfo row with [4] = chapter and [2] = stage number in it. [42] = clears needed before the next
 // stage opens (the "Progress 0/2" on screen), [38] = boss stage, [43] = boss tries per day ("Challenges left").
 function trainingFight(db, pl, chap, part, pos, buy) {

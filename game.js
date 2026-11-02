@@ -910,10 +910,12 @@ const BUFF_WA = 10, BUFF_EXP = 15;
 // Daily uses of ramen (consumeinfo type 1) and Hyourou-gan (type 2): ORIGINAL vipinfo [6] "use 20 ramen daily" and [7] "use 30 Hyourou-gan
 // daily" (row = VIP level + 1, +2 / +3 a VIP level). The item window shows what is left (CTradeMgr rest/max: <propuse rest max>, shoplist <limit>).
 const USE_COL = { 1: 6, 2: 7 };
+// The vipinfo row of a player: VIP level + 1, like every screen of the game reads it (ui_vipRightInfoView shows VIP L from row L + 1;
+// CommonBuyItemDialog, boxOpenActivityView, ui_secretShopLayer use viplevel + 1). So VIP0 = row 1 ("open gold chest 25 times" ...).
+const vipRow = (db, pl) => { const v = require('./vip').level(db, pl.uid, pl.server_id); return table('vipinfo').rows.find((r) => r[0] === v + 1) || table('vipinfo').rows[table('vipinfo').rows.length - 1]; };
 function useLimit(db, pl, kind) {
   db.exec('CREATE TABLE IF NOT EXISTS prop_uses (uid INTEGER, server_id INTEGER, kind INTEGER, day TEXT, used INTEGER, PRIMARY KEY(uid, server_id, kind))');
-  const vl = require('./vip').level(db, pl.uid, pl.server_id);
-  const max = (table('vipinfo').rows.find((r) => r[0] === vl + 1) || [])[USE_COL[kind]] || 0;
+  const max = vipRow(db, pl)[USE_COL[kind]] || 0;
   const r = db.prepare('SELECT day, used FROM prop_uses WHERE uid=? AND server_id=? AND kind=?').get(pl.uid, pl.server_id, kind);
   const used = r && r.day === today() ? r.used : 0;
   return { max, used, rest: Math.max(0, max - used) };
@@ -1145,7 +1147,7 @@ function secretXml(db, pl) {
 }
 // Refresh button: a Refresh Order if the player has one, else 20 gold. Code 325006 = the client's "only N refreshes a day" tip.
 function secretRefresh(db, pl) {
-  const st = secretState(db, pl), total = 75 + 5 * require('./vip').level(db, pl.uid, pl.server_id);
+  const st = secretState(db, pl), total = vipRow(db, pl)[22] || 80; // ORIGINAL vipinfo [22] "refresh the mystery shop 80 times daily" at VIP0, +5 a level
   if (st.used >= total) return { code: 325006 };
   if ((propCounts(db, pl.uid, pl.server_id)[REFRESH_ORDER] || 0) > 0) propAdd(db, pl.uid, pl.server_id, REFRESH_ORDER, -1);
   else if (pl.gold < SECRET_GOLD) return { error: 'not enough gold' };
@@ -1521,9 +1523,9 @@ function arenaRankXml(db) {
 }
 // Arena limits, ORIGINAL (the game's own normalconfig: row 18 a cooldown after 3 attacks, row 19 25 attacks a day, row 20 cooldown 600 s,
 // row 22 clearing the cooldown costs 30 gold; player guide photo 3924 "3 hits and a cool down of 10 minutes"). VIP adds attacks: the arena screen
-// says "VIP2 +1 times" and vipinfo [21] is 20 at VIP1, +1 a level, so a day = 25 + vipinfo[21] - 20. Buying extra attacks is not built.
+// says "VIP2 +1 times" and vipinfo [21] is 20 at VIP0, +1 a level, so a day = 25 + vipinfo[21] - 20. Buying extra attacks is not built.
 const ARENA = { perBatch: 3, perDay: 25, cd: 600, cdCost: 30 };
-const arenaPerDay = (db, pl) => { const v = require('./vip').level(db, pl.uid, pl.server_id); return ARENA.perDay + Math.max(0, ((table('vipinfo').rows.find((r) => r[0] === v) || [])[21] || 20) - 20); };
+const arenaPerDay = (db, pl) => ARENA.perDay + Math.max(0, (vipRow(db, pl)[21] || 20) - 20);
 function arenaUse(db, pl) {
   db.exec('CREATE TABLE IF NOT EXISTS arena_use (uid INTEGER, server_id INTEGER, day TEXT, fights INTEGER DEFAULT 0, batch INTEGER DEFAULT 0, cd_until INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, day))');
   db.prepare('INSERT OR IGNORE INTO arena_use(uid, server_id, day) VALUES(?,?,?)').run(pl.uid, pl.server_id, today());
@@ -1818,4 +1820,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

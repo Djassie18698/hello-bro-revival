@@ -1008,3 +1008,8 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   +1000 Eight Gates souls ("receive 1000 souls per dan for eight gates"); W.A. pill doubles spar W.A. and Double Exp Pill doubles training
   EXP for [8] = 300 s (another pill adds 300 s; the client shows no timer). Checked in game: Souls Dan 5200 -> 6200 gate souls, "Used
   successfully"; Double Exp Pill timer runs. Not checked in game: soul items (the test account has none in the client list yet).
+- VIP table rows were read one level too low. The game reads vipinfo at row VIP level + 1 everywhere (ui_vipRightInfoView shows VIP L from
+  row L + 1; CommonBuyItemDialog, boxOpenActivityView, ui_secretShopLayer use viplevel + 1), so VIP0 = row 1. Photo 3574 agrees: a VIP0
+  player ("VIP1 +5" = the next level) has 25/25 gold chest opens. Fixed with game.vipRow: gold chests VIP0 25 (was 20 ours, and every VIP
+  one level short), arena attacks +1 a level from VIP1 (was from VIP2), mystery shop refreshes 80 + 5 a level (was 75 + 5), high-level soul
+  training 3 at VIP0 + 1 a level (VIP0 had none).

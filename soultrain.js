@@ -1,13 +1,12 @@
 // Soul training (Eight Gates > "Train soul", ui_limitTrainSoulLayer.lua, rl_w_eight_gate Cmd 3 info / 4 train / 5 double / 6 collect).
 // Training makes a batch of gate souls (prop 9998) that waits to be collected; before collecting it can be doubled.
 // ORIGINAL (the game's own normalconfig): normal training 10 000 silver for 50 souls, 3 a day (rows 263-265); advanced training 35 gold for
-// 70 souls (266-267), advanced tries a day = vipinfo [27] ("3 times for high level training per day" at VIP1, +1 a level); normal doubling
+// 70 souls (266-267), advanced tries a day = vipinfo [27] ("3 times for high level training per day" at VIP0, +1 a level); normal doubling
 // succeeds 100 / 80 / 60 / 10 / 5 % for the 1st-5th doubling and costs 5 / 10 / 20 / 30 / 50 gold (268-277); advanced doubling always works
 // and costs 7 / 25 / 75 / 150 / 250 gold (278-282), the first 2 a day free (283).
 // (ours): a doubling multiplies by 2; a failed normal doubling collects the batch at the multiple it had; training again collects the
-// waiting batch first; VIP0 has no advanced tries; at most 5 doublings a batch.
+// waiting batch first; at most 5 doublings a batch.
 const game = require('./game');
-const vip = require('./vip');
 
 const GATE_SOUL = 9998;
 const NORMAL = { coin: 10000, soul: 50, perDay: 3 }, ADV = { gold: 35, soul: 70 };
@@ -28,7 +27,7 @@ function state(db, pl) {
 }
 const save = (db, pl, s) => db.prepare('UPDATE soultrain SET day=?, normal=?, adv=?, free=?, batch=?, mult=?, steps=? WHERE uid=? AND server_id=?')
   .run(s.day, s.normal, s.adv, s.free, s.batch, s.mult, s.steps, pl.uid, pl.server_id);
-const advPerDay = (db, pl) => { const v = vip.level(db, pl.uid, pl.server_id); return v > 0 ? (game.table('vipinfo').rows.find((r) => r[0] === v) || [])[27] || 0 : 0; };
+const advPerDay = (db, pl) => game.vipRow(db, pl)[27] || 3;
 const souls = (db, pl) => game.propCounts(db, pl.uid, pl.server_id)[GATE_SOUL] || 0;
 const nextCost = (list, s) => (s.batch && s.steps < list.length ? list[s.steps] : 0);
 const advCost = (s) => (s.free < FREE_ADV ? 0 : nextCost(ADV_COST, s));

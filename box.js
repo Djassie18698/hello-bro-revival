@@ -29,8 +29,8 @@ function state(db, pl) {
   if (r.day !== today()) { r.day = today(); r.gold_opened = 0; db.prepare('UPDATE boxopen SET day=?, gold_opened=0 WHERE uid=? AND server_id=?').run(r.day, pl.uid, pl.server_id); }
   return r;
 }
-// gold chest opens a day: the game's own vipinfo column 24 ("open gold chest 25 times" at VIP1 ... 75 at VIP11, photo 3574); VIP0 20 (ours)
-const goldTotal = (db, pl) => { const v = require('./vip').level(db, pl.uid, pl.server_id); return (game.table('vipinfo').rows.find((r) => r[0] === v) || [])[24] || 20; };
+// gold chest opens a day: ORIGINAL vipinfo column 24, "open gold chest 25 times" at VIP0, +5 a level (photo 3574: a VIP0 player, 25/25, "VIP1 +5")
+const goldTotal = (db, pl) => game.vipRow(db, pl)[24] || 25;
 
 function infoXml(db, pl) {
   const st = state(db, pl), have = game.propCounts(db, pl.uid, pl.server_id), total = goldTotal(db, pl);
