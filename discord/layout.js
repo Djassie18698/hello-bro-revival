@@ -11,7 +11,8 @@ const LAYOUT = [
   { cat: '📌 START HERE', readOnly: true, channels: [
     { name: 'welcome', topic: 'New here? Read #rules, then #install-help to get the game running.' },
     { name: 'rules', topic: 'Server rules. React to the message below to get your role.' },
-    { name: 'announcements', topic: 'Server updates and new game updates. Hosting your own server? Run UPDATE.bat after each one.' },
+    { name: 'announcement', topic: 'Only the big news: a new game app to install, new releases, important changes for everyone.' },
+    { name: 'updates', was: 'announcements', topic: 'Every server and game update. Hosting your own server? Run UPDATE.bat after each one.' },
     { name: 'faq', topic: 'Common questions: can\'t connect, how to update, accounts.' },
   ] },
   { cat: '📚 GUIDES & HELP', was: '📚 GUIDES & SUPPORT', channels: [
@@ -68,6 +69,7 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
     let pos = 0;
     for (const ch of group.channels) {
       let c = find(ch.name, 'ch');
+      if (!c && ch.was && find(ch.was, 'ch')) { c = find(ch.was, 'ch'); say(`rename #${ch.was} -> #${ch.name}`); if (apply) { await call('PATCH', `/channels/${c.id}`, { name: ch.name }); c.name = ch.name; } }
       if (!c) { say(`create ${ch.voice ? 'voice' : '#'}${ch.name}`); if (apply) { c = await call('POST', `/guilds/${GUILD}/channels`, { name: ch.name, type: ch.voice ? 2 : 0, parent_id: cat.id }); chans.push(c); } else continue; }
       const patch = {};
       if (cat && c.parent_id !== cat.id) { patch.parent_id = cat.id; say(`move ${ch.name} -> ${group.cat}`); }

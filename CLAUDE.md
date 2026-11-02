@@ -14,7 +14,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 2. **After every working change**, in this order:
    `node tools/dev/smoke.js` → `git add -A && git commit && git push` → `sh tools/sync_test_folder.sh` (copies the push into
    `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on; keeps its save) → tell the owner to restart
-   their server (never stop or start it yourself while they may be playing; ask first). Then post a short plain-words note of the update in Discord #announcements (owner's request, 1 Nov 2026; #faq has the "can't connect after an update -> make a new game file with HOST-MY-SERVER.bat" post). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
+   their server (never stop or start it yourself while they may be playing; ask first). Then post a short plain-words note of the update in Discord #updates (owner's request, 1 Nov 2026; #faq has the "can't connect after an update -> make a new game file with HOST-MY-SERVER.bat" post). Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers
    "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` is **PUBLIC on purpose** (owner's decision on 31 Oct 2026: it is shared with several people and this is easier).
    It still holds game files and the signing keystore, so never add anything secret to it: no tokens, passwords, personal data, `discord/.env`.
@@ -127,12 +127,12 @@ Current: **28.0.28** (28.0.28 Fireworks/Balloon items 40/41 added to consumeinfo
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU** — use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
   write the text to a file first). Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
-  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcements (every update) · #faq.
+  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update; was #announcements) · #faq.
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
   #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
   Guides (#welcome, #install-help, #how-to-play, #faq) are built from `discord/guides/<channel>.md` ("## " = one chapter, contents with jump links on top):
   edit the file, then `node --env-file=.env guides.js <channel> apply` (replaces only the bot's own posts there).
-  Keep it updated: new feature -> #announcements + how-to-play.md; install/update change -> install-help.md / faq.md. Never reply in chat channels.
+  Keep it updated: new feature -> #updates + how-to-play.md; new app or release -> #announcement; install/update change -> install-help.md / faq.md. Never reply in chat channels.
 
 ## 9. Open work (update this list)
 Every bug-list item and owner request is tracked in **`docs/PROGRESS.md`** (✅ fixed in game / 🧪 test save only / ⏳ to do / 🚫 not possible; the per-list Summary counts must match the rows). It is also the control panel's **Progress** tab (served at `/progress.md`). Update it with every fix.

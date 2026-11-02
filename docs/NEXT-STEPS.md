@@ -905,3 +905,4 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   reopening. Recruit pools (rollOne -> recruitPools): only classic cards (ids < 2000), ATK AND DEF (ninjainfo [6] 0/1); the later premium
   cards with God versions (Teenager Naruto, Goddess Sakura, Susa..., 48 five-stars) and DEF were wrong (DEF was never given). Checked in
   game: free pull 18->17 + price shown, paid pull, 5-star resets to 19.
+- Discord (owner, 2 Nov): #announcements renamed #updates (every update); new read-only #announcement for big news only (new app, releases). layout.js channels can now take was: for a rename.
