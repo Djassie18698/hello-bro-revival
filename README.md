@@ -29,7 +29,7 @@
 |---|---|---|
 | 🥷 **Cards & team** with chains that turn red when active | 🎰 **Recruit** with free timers and a pity counter | 🗺️ **Training** in parts, bosses, drops, reward wheel |
 | ⚔️ **Spar, Arena, Battles, War, Border war, Cross-server battle** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
-| 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** | 🛠️ **Admin page**: give anything or everything, inventory, reset |
+| 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** (festivals, God of Wealth, Flower Worship, Month card) | 🛠️ **Admin page**: give anything or everything, inventory, reset |
 | 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** with Super Ninja Pills like the original |
 | 🚪 **Eight Gates** with levels (LV1-150) | 🎫 **Scratch card, treasure chests, Growth Fund, group purchase, total-recharge gifts, Time limited GiftPack, Akatsuki mall** | 📷 Numbers checked against **~3 580 photos** of the original game |
 
@@ -95,6 +95,8 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 ## 📜 What changed recently
 
+- **2 Nov 2026 (morning test round):** **Battles** has all **25 chapters** with the chapter boss, the **Spar win** card is a real reward, **W.A. titles** and **equipment set bonuses** work, plunder uses the game's real chances, the recruit window updates after every pull, free **ramen** at 12-14 and 18-20, and new events: **Sign-in** login streak (on), **God of Wealth**, **Month card** and **Flower Worship** (control-panel switches, off until switched on). Checked against 3 692 broken requests and a cheat test. Game updates 28.0.29-28.0.31. See
+  [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
 - **2 Nov 2026 (night):** the **Anniversary festival** (original list from the photos: Fireworks from training, Balloons from spar, 100 / 140 gold, trade for Anniversary Sasuke), **daily task chests** like the original (6 chests at 30-250 points), daily things reset at **local midnight**, **War open all day** with a working clock, and the Victory screen shows the **silver** you win. Game updates 28.0.26-28.0.28. See
   [**`docs/FIXES-2026-11-02.md`**](docs/FIXES-2026-11-02.md).
 - **1 Nov 2026 (night):** fights scale: real players bring their **whole team**, bots about as many cards as you, every enemy card **varies** each fight, and watching or skipping a fight gives the same result; story bosses stay hard. Discord tidied up with chaptered guides:
