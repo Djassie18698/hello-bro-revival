@@ -31,6 +31,22 @@ const THEMES = {
       [9, 450, 400, 1, { drop: 1094 }],                   // Killer B (Santa Claus)                      (photo: Christmas Naruto)
     ],
   },
+  // ORIGINAL second-year Christmas list (photos 3623, 3630, 3658, 3672, 3676; begin 12.23-12.28, end 12.29): costs, limits and prizes as shown.
+  // (ours): "red order tokens" = Refresh Order, "purple crystals" = Sage Stone III, "purple orbs" = Development Dan.
+  christmas2: {
+    event: 'xmas2', name: 'Merry Christmas', a: CAP, b: TREE,
+    trades: [
+      [1, 10, 0, 50, { drop: 1301 }],                     // 5 Refresh Orders
+      [2, 0, 20, 50, { drop: 380 }],                      // 10 Sage Stone III
+      [3, 30, 0, 50, { drop: 107 }],                      // 5 Reincarnation Pills
+      [4, 40, 35, 40, { drop: 1531 }],                    // 5 Development Dan
+      [5, 50, 45, 20, { drop: 1222 }],                    // 3 Itachi Uchiha fragments
+      [6, 50, 45, 1, { drop: 1852 }],                     // 1 Santa of the Six Paths fragment
+      [7, 230, 180, 1, { drop: 1798 }],                   // Seven-star Sword
+      [8, 220, 180, 1, { drop: 1127 }],                   // Sexy Technique
+      [9, 650, 600, 1, { drop: 1851 }],                   // Santa of the Six Paths
+    ],
+  },
   newyear: {
     event: 'newyear', name: 'Happy New Year', a: CAP, b: TREE,
     trades: [

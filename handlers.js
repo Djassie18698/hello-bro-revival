@@ -725,7 +725,7 @@ module.exports = {
     }
     const r = game.propUse(db, pl, Number(p.Goodsid));
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-    return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="99" max="99"/></root>`;
+    return `<root code="0"><propuse ap="${r.ap}" sp="0" yinzi="${r.coin}" left="${r.left}" rest="99" max="99"${r.card ? ' ' + r.card.attr : ''}/></root>`;
   },
 
   // Scratch card (scratch.js): Cmd 1700 info, 1701 scratch one card. The reply is the whole document (attributes on the root).
@@ -1344,7 +1344,9 @@ module.exports = {
     const n = (v) => Math.round(Number(v) || 0);
     const owned = shopOwned(p);
     // unpriced items the player owns (pet grain/nostrum...) are listed too: this list is where the client learns its bag counts
-    const goods = game.table('consumeinfo').rows.filter((r) => r[4] > 0 || r[5] > 0 || (owned[r[1]] || 0) > 0).map((r, k) => ({
+    const fest = festival.theme(db); // festival items (Christmas Cap/Tree, Fireworks/Balloon) only while their festival runs, or when owned
+    const offSeason = (r) => festival.isItem(r[1]) && !(fest && (fest.a === r[1] || fest.b === r[1])) && !((owned[r[1]] || 0) > 0);
+    const goods = game.table('consumeinfo').rows.filter((r) => (r[4] > 0 || r[5] > 0 || (owned[r[1]] || 0) > 0) && !offSeason(r)).map((r, k) => ({
       propid: r[0], prop_name: esc(r[2]), prop_icon: r[3], prop_yuanbao: game.shopGold(r), prop_yinzi: r[5], prop_show: 1, prop_function: r[7],
       prop_function_value1: n(r[8]), prop_function_value2: n(r[9]), prop_function_value3: n(r[10]), prop_function_value4: n(r[11]), bagnum: owned[r[1]] || 0, prop_order: k + 1,
     }));

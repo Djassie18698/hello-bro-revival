@@ -58,9 +58,17 @@ function fightsLeft(m) { return cdLeft(m) > 0 ? 0 : FIGHTS_PER_ROUND - (m.fights
 
 // shown values from normalconfig: everyone's reward 20 on a win and on a loss (rows 109/110), gold inspire 15 gold for +5..10 (194-197),
 // silver inspire 5000 silver for +1..3 (198-201)
+// Boss hours (owner chose the original, 2 Nov 2026): the game's own screen says "Battle begins 14:00 daily" (localizable fightBoss_status_1)
+// and normalconfig 106/107 give it 30 minutes (45000-46800 s, server time in China), so the boss fights 14:00-14:30 on the server PC's clock.
+const OPEN = 14 * 3600, CLOSE = OPEN + 1800;
+function bossWindow() {
+  const d = new Date(), now = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  if (now >= OPEN && now < CLOSE) return { open: true, rest: CLOSE - now };
+  return { open: false, rest: (now < OPEN ? OPEN : OPEN + 86400) - now };
+}
 function previewXml(db, pl, b, m) {
-  const secsToMidnight = 86400 - (Math.floor(Date.now() / 1000) % 86400);
-  return '<preview>' + el('resttime', secsToMidnight) + el('inact', b.hp > 0 ? 1 : 0) + el('lastattackman', esc(b.killer)) + el('lastaward', 500) +
+  const w = bossWindow(); // closed: inact 0 + seconds until 14:00 (the screen counts down, then reloads); open: seconds until 14:30
+  return '<preview>' + el('resttime', w.rest) + el('inact', w.open && b.hp > 0 ? 1 : 0) + el('lastattackman', esc(b.killer)) + el('lastaward', 500) +
     el('commwinaward', 20) + el('cost', DICE_COST) + el('commfailaward', 20) + el('level', b.level) + el('cdcost', CD_COST) + el('cdalltime', CD) +
     el('cdallnum', FIGHTS_PER_ROUND) + el('cashaddcost', 15) + el('cashaddonemin', 5) + el('cashaddonemax', 10) + el('coinaddcost', 5000) +
     el('coinaddonemin', 1) + el('coinaddonemax', 3) + el('index', 1) + el('commawardval', m.score) + el('rankawardval', rankAward(rankOf(db, pl))) +
@@ -80,6 +88,7 @@ function infoXml(db, pl) {
 function fight(db, pl) {
   const b = boss(db, pl.server_id), m = me(db, pl);
   if (b.hp <= 0) return { error: 'the boss is already defeated today' };
+  if (!bossWindow().open) return { error: 'the world boss is not open now (14:00-14:30)' };
   if (cdLeft(m) > 0) return { error: 'resting, try again later' };
   const ts = game.teamStats(db, pl.uid, pl.server_id);
   const base = Math.round((ts.total.al + ts.total.ah) / 2);
@@ -94,7 +103,7 @@ function fight(db, pl) {
     .run(dmg, score, fights, Math.floor(Date.now() / 1000), pl.server_id, day(), pl.uid);
   game.propAdd(db, pl.uid, pl.server_id, 9995, score); // boss reputation
   db.prepare('INSERT INTO boss_log(server_id,nick,val,important) VALUES(?,?,?,?)').run(pl.server_id, pl.nick, dmg, killed ? 1 : 0);
-  const coin = 2000 + Math.round(dmg / 100);
+  const coin = Math.round(dmg / 100); // ORIGINAL normalconfig 259: silver = damage / 100 (owner chose the original; was 2000 + that)
   db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id);
   const look = BOSSES[(b.level - 1) % BOSSES.length];
   game.bumpTask(db, pl.uid, pl.server_id, 8); // daily task: join the world boss

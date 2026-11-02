@@ -19,6 +19,7 @@ const EVENTS = [
   { id: 31, pos: 10, type: 1, icon: '🏁', name: 'Stage gift', desc: 'One-time gift for new players (home screen button).' },
   // Limited-time events: off until the owner switches them on. `screen` = the game's event id they show under (several may share one).
   { id: 'xmas', screen: 44, pos: 11, type: 2, limited: true, icon: '🎄', name: 'Christmas festival', desc: 'Win fights for Christmas Caps and Trees, trade them for Santa of the Six Paths. Only one festival at a time.' },
+  { id: 'xmas2', screen: 44, pos: 11, type: 2, limited: true, icon: '🎅', name: 'Christmas festival (2nd year list)', desc: 'The original second-year Christmas trades: cheaper small trades, Itachi fragments, Seven-star Sword, and Santa of the Six Paths for 650 + 600. Only one festival at a time.' },
   { id: 'newyear', screen: 44, pos: 11, type: 2, limited: true, icon: '🎆', name: 'New Year festival', desc: 'Same trade event with Kaguya for New Year rewards. Only one festival at a time.' },
   { id: 'anniv', screen: 44, pos: 11, type: 2, limited: true, icon: '🎉', name: 'Anniversary festival', desc: 'Win fights for Fireworks (training) and Balloons (spar), trade them for Anniversary Sasuke (original list, 16-20 Dec). Only one festival at a time.' },
   { id: 'godrecruit', screen: 46, pos: 12, type: 2, limited: true, icon: '🎰', name: 'God Recruit', desc: 'Slot machine of holiday god cards (300 gold a spin). Keep the card or return it for gold and energy, trade energy for cards.' },

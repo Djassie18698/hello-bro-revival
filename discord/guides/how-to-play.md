@@ -41,6 +41,6 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 ## 8. Events and VIP
 • Check the **Event** menu and the **Daily Task** list every day for free rewards.
 • **Festivals** (when switched on): win fights for festival items (Christmas Caps and Trees, or Fireworks and Balloons for the Anniversary) and trade them in the Event menu for rare cards.
-• **World Boss** (Event menu): an Akatsuki member invades every day. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
+• **World Boss** (Event menu): an Akatsuki member invades every day from **14:00 to 14:30**: 10 hits, then a short wait. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
 • **Lottery** and **Wheel of Fortune** open at level 10.
 • Top-ups are free (one package a day) and raise your VIP level. VIP gives extra daily chances (Save time, gold chests and more).

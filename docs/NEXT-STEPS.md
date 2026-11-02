@@ -871,3 +871,10 @@ https://github.com/Djassie18698/hello-bro-revival-public (published 2026-10-30).
   gold for 5-star Lv50 growth 9 rebirth 1, ours 200; one point is not enough for a formula), Save time "round N" (photos 2212 and 4035
   fit different stage rules), Hyourou-gan "Left today 0/6, VIP2 +3" (vipinfo says 30/33 uses; which limit is unclear).
 - Boss reputation per hit now ORIGINAL damage / 30 000 (owner: "Yes, original"); min 1 (ours). Owner's main account (team attack ~8800) gets ~7 a hit instead of ~44.
+- 2 Nov night batch (owner: "Do all that"): recharge streak days 1-3 + 7-day bonus original (photo 3942: 万 ticket = Tael (large) props_021,
+  green 忍 card = props_039 "2~5S Shinobi" = dropinfo 1508, icon/label forced in dailyevents.itemXml); second-year Christmas list = festival
+  theme `christmas2` (switch `xmas2`); world boss 14:00-14:30 (client text fightBoss_status_1; closed = inact 0 + seconds to 14:00, the screen
+  shows "Battle begins 14:00 daily / World Boss event has ended" and locks Challenge) and silver = damage / 100; generic fragments 12-17 (type 6):
+  50 -> a card via <propuse ... ninjaid/ninjabagid/ninjaattr | equipid/equipbagid | skillid/skillbagid> (CItemView reads attributes);
+  festival items hidden from the Tool tab off-season. All checked in game. Not done: plunder success text is the client's own (by level; no
+  numbers known), Ninja Treasure top prizes (photo shows 16 portraits only), 300-gold recruit gold prizes (client can only show a card).

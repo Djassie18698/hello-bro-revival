@@ -1,5 +1,5 @@
 // Two small daily events, each switched on in the Server Manager. Screens and texts are the client's own; no photo shows their
-// prices or rewards, so every number here is (ours).
+// prices or rewards, so every number here is (ours), except the recharge streak days 1-3 and its 7-day bonus (photo 3942).
 //  - Daily spending gift (Event menu id 25, ui_dailyPayLayer, "consume the specified amount of gold ... recalculated everyday"):
 //    rl_w_dailycost Cmd 1 = <basic><cost/><remain/></basic><award_list><item id cost has_got><award><item id name icon/></award></item></award_list>,
 //    Cmd 2 Award = claim tier N.
@@ -16,9 +16,10 @@ const dayStart = () => Math.floor(Date.parse(today() + 'T00:00:00Z') / 1000);
 const dayEnd = () => dayStart() + 86400 - now();
 const runLeft = (db, id) => Math.max(0, (settings.switchedOnAt(db, id) || now()) + RUN_DAYS * 86400 - now());
 const dropRow = (id) => game.table('dropinfo').rows.find((x) => x[0] === id) || [];
-const ICON = { 7: 'props_034', 8: 'props_035', 11: 'props_033', 22: 'props_129', 23: 'props_128', 28: 'props_145', 30: 'props_170', 31: 'props_169', 34: 'props_229', 35: 'props_260' };
-const iconOf = (d) => ICON[dropRow(d)[7]] || 'props_033';
-const nameOf = (d) => String(dropRow(d)[13] || 1); // just the amount under the icon (long item names overlap in these cells)
+const ICON = { 2: 'props_021', 6: 'props_012', 13: 'props_027', 7: 'props_034', 8: 'props_035', 11: 'props_033', 22: 'props_129', 23: 'props_128', 28: 'props_145', 30: 'props_170', 31: 'props_169', 34: 'props_229', 35: 'props_260' };
+const SHINOBI_2_5 = 1508; // "2~5S Shinobi" pack: the green shinobi card picture and that label, as on photo 3942
+const iconOf = (d) => (d === SHINOBI_2_5 ? 'props_039' : ICON[dropRow(d)[7]] || 'props_033');
+const nameOf = (d) => (d === SHINOBI_2_5 ? '2~5S Shinobi' : String(dropRow(d)[13] || 1)); // just the amount under the icon (long item names overlap in these cells)
 const itemXml = (d, key = 'id') => `<item ${key}="${d}" name="${nameOf(d)}" icon="${iconOf(d)}"/>`;
 const pay = (db, pl, drops) => game.mergeAwards(drops.map((d) => game.grantDrop(db, pl, d)).filter(Boolean));
 const err = (m) => ({ error: m });
@@ -56,9 +57,13 @@ function costClaim(db, pl, n) {
   return { xml: pay(db, pl, t[1]) };
 }
 
-// ---- Recharge streak (ours) --------------------------------------------------------------------------------------------
-const STREAK = [[107, 1717], [108, 1718], [110, 877], [110, 1719], [112, 909], [112, 1721], [116, 906]]; // day 1-7
-const STREAK_EXTRA = [1791, 1820]; // all 7 days: 300 Reincarnation Pills, 200 Souls Dan
+// ---- Recharge streak (days 1-3 + bonus original) --------------------------------------------------------------------------------------------
+// ORIGINAL (photo 3942, "Top up 3 dollars and get the rewards"): day 1 = 2 Refresh Orders + 5 Five-Star Shinobi fragments + a 2~5-star
+// shinobi; day 2 = 4 Refresh Orders + 2 Tael (large) + 5 fragments + a 2~5-star shinobi; day 3 = 5 Hyourou-gan (Big) + 10 Sage Stone III + 5 fragments
+// + a 2~5-star shinobi; 7 days in a row = Minato (ATK) + 30 Reincarnation Pills + 8 Tael (large) + 5 fragments. The "万" ticket is Tael (large) (same picture, props_021). (ours):
+// and days 4-6 (not on the photo).
+const STREAK = [[1298, 93, 1508], [1300, 335, 93, 1508], [334, 380, 93, 1508], [110, 1719], [112, 909], [112, 1721], [116, 906]]; // day 1-7
+const STREAK_EXTRA = [961, 112, 1579, 93]; // all 7 days
 const streakRun = (db) => settings.switchedOnAt(db, 'keeppay') || 0;
 // a day counts when $3 or more was topped up that day (the screen's own text: "Top up 3 dollars and get the rewards.")
 const streakDays = (db, pl) => Math.min(7, db.prepare(`SELECT COUNT(*) n FROM (SELECT date(at, 'unixepoch') d FROM topup_log WHERE uid=? AND server_id=? AND at>=? GROUP BY d HAVING SUM(cents) >= 300)`).get(pl.uid, pl.server_id, streakRun(db)).n);

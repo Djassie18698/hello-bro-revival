@@ -300,6 +300,10 @@ function rollPack(r) {
     if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] };
     return { coin: 30000 };
   }
+  if (/2-5/.test(t)) { // "2~5S Shinobi" packs (e.g. dropinfo 1508): a 2 to 5-star shinobi; weights 40 / 30 / 20 / 10 % (ours)
+    const p = pools()[[2, 2, 2, 2, 3, 3, 3, 4, 4, 5][Math.floor(Math.random() * 10)]];
+    if (p && p.length) return { ninja: p[Math.floor(Math.random() * p.length)] };
+  }
   const pool = pools()[star] || pools()[4];
   return { ninja: pool[Math.floor(Math.random() * pool.length)] };
 }
@@ -805,6 +809,19 @@ function propUse(db, pl, goodsId) {
   const row = table('consumeinfo').rows.find((r) => r[1] === goodsId);
   const have = propCounts(db, pl.uid, pl.server_id)[goodsId] || 0;
   if (!row || have < 1) return { error: 'none left' };
+  if (row[7] === 6) { // generic card fragments (consumeinfo 12-17): ORIGINAL item text "Every 50 fragments can synthesise to a ... Card"
+    const need = Math.round(row[8]) || 50;        // [8] = 50
+    if (have < need) return { error: `not enough fragments (${need} needed)` };
+    const star = /Five-Star/.test(row[2]) ? 5 : 4, pick = (a) => a[Math.floor(Math.random() * a.length)]; // exactly the card the text names
+    const roll = /Shinobi/.test(row[2]) ? { ninja: pick(pools()[star]) } : /Equipment/.test(row[2]) ? { equip: randomEquip(Math.floor(Math.random() * 3), star, star) }
+      : { ninjutsu: pick(table('ninjutsuinfo').rows.filter((x) => x[5] === star && x[6] === 1))[0] };
+    propAdd(db, pl.uid, pl.server_id, goodsId, -need);
+    let card = null; // CItemView reads the new card from <propuse> attributes: ninjaid / equipid / skillid + their bag ids
+    if (roll.ninja) card = { attr: `ninjaid="${roll.ninja}" ninjabagid="${giveCard(db, pl.uid, pl.server_id, roll.ninja)}" ninjaattr="0"` };
+    else if (roll.equip) card = { attr: `equipid="${roll.equip}" equipbagid="${giveEquip(db, pl.uid, pl.server_id, roll.equip)}"` };
+    else if (roll.ninjutsu) card = { attr: `skillid="${roll.ninjutsu}" skillbagid="${giveCard(db, pl.uid, pl.server_id, roll.ninjutsu, 6)}"` };
+    return { ap: 0, coin: 0, left: have - need, card };
+  }
   propAdd(db, pl.uid, pl.server_id, goodsId, -1);
   let coin = 0, ap = 0;
   if (row[7] === 3) { coin = Math.round(row[8]); db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); }
