@@ -1018,3 +1018,9 @@ Not built: free ramen times 12:00-14:00 / 18:00-20:00 (46-49), seal direct merge
   enemy / award claim (border_station). handlers.saveReady makes those tables on the first request of a save. Normal play opened the main
   screen first, so it showed up only on a new server. Border war clears a day: vipinfo [23] "monument can remove players 20 times" at
   VIP0, +5 a VIP level (was 10, ours; the reply's nextlv_cleartimes_lmt now shows the next level's number).
+- Battles floor rewards (Ranking button > Achievement tab, CTowerRankDlg / CTowerRewardCell) were never paid: the list showed every 7
+  floors a reward with a Claim button, but rl_r_dup 7001 sent <award>0</award> and rl_w_dup Cmd 3101 (AwardID) had no handler. ORIGINAL
+  table tower_reward: [2] floors (7, 14 ... 175), drops [3] [5] [7] (chapter 1: 50 gold + 10 Sage Stone III + Kubikiribocho; later 100 /
+  150 gold, 15 Sage Stone III, 5 Super Ninja Pills, the chapter's boss gear), fillDropData [4] [6] [8] for the icons. <award> is a bit mask
+  (the client: claimed = (award >> id) & 1); rankings.towerClaim checks floors (= the Copy progress number) and pays all three drops.
+  Checked in game: 7-floor row Claim -> Kubikiribocho + 50 gold + 10 Sage Stone III, row shows "Claimed".

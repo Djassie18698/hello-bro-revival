@@ -1322,6 +1322,7 @@ module.exports = {
     const sid = Number(p.ServerID || 1);
     let pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid);
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    if (Number(p.Cmd) === 3101) { const r = rankings.towerClaim(db, pl, Number(p.AwardID)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // floor reward (Rank window)
     if (Number(p.Cmd) === 3102) {
       // Sweep: DupId = 'id|id|..'; each costs one of the daily sweeps and pays the same reward as winning that round.
       const ids = String(p.DupId || '').split('|').map(Number).filter((n) => n >= 1 && n <= TOWER_CHAPS * TOWER_ROUNDS);

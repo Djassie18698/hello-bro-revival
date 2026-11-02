@@ -65,7 +65,25 @@ function towerRankXml(db, pl) {
   const mine = rows.find((r) => r.uid === pl.uid) || { steps: 0 };
   const star = (id) => ((game.ninjas().get(id) || [])[11] || 1);
   const items = ranked.map((r, i) => `<item rank="${i + 1}" uid="${r.uid}" nick="${esc(r.nick)}" level="${r.level}" step_num="${r.steps}" firstninja="${r.ninja || 5}" firstninjastar="${star(r.ninja)}" newlife="0"/>`).join('');
-  return `<player>${el('step_num', mine.steps)}${el('rank', me)}${el('award', 0)}</player><rank_list>${items}</rank_list>`;
+  return `<player>${el('step_num', mine.steps)}${el('rank', me)}${el('award', towerClaimed(db, pl))}</player><rank_list>${items}</rank_list>`;
+}
+// Battles floor rewards (the Rank window's Reward tab, CTowerRewardCell). ORIGINAL: the game's own tower_reward table, one row per chapter:
+// [2] floors needed (7, 14 ... 175), the drops [3], [5], [7] (e.g. chapter 1: 50 gold + 10 Sage Stone III + Kubikiribocho), shown with
+// fillDropData [4], [6], [8]. The client reads <award> as a bit mask (bit N = row N claimed) and claims with rl_w_dup Cmd 3101 AwardID=N.
+function towerClaimed(db, pl) {
+  db.exec('CREATE TABLE IF NOT EXISTS tower_claims (uid INTEGER, server_id INTEGER, mask INTEGER, PRIMARY KEY(uid, server_id))');
+  const r = db.prepare('SELECT mask FROM tower_claims WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
+  return r ? r.mask : 0;
+}
+function towerClaim(db, pl, id) {
+  const row = game.table('tower_reward').rows.find((r) => r[0] === id);
+  if (!row) return { error: 'no such reward' };
+  const mask = towerClaimed(db, pl), bit = 2 ** id;
+  if (Math.floor(mask / bit) % 2) return { error: 'already claimed' };
+  const steps = db.prepare('SELECT COALESCE(SUM(MAX(stage - 1, 0)), 0) n FROM progress WHERE uid=? AND server_id=? AND chap BETWEEN 1001 AND 1099').get(pl.uid, pl.server_id).n;
+  if (steps < row[2]) return { error: `climb ${row[2]} floors first` };
+  db.prepare('INSERT INTO tower_claims(uid, server_id, mask) VALUES(?,?,?) ON CONFLICT(uid, server_id) DO UPDATE SET mask=excluded.mask').run(pl.uid, pl.server_id, mask + bit);
+  return { xml: game.mergeAwards([row[3], row[5], row[7]].filter((d) => d > 0).map((d) => game.grantDrop(db, pl, d)).filter(Boolean)) };
 }
 
-module.exports = { towerRankXml, wheelRankXml, wheelGift, ensure };
+module.exports = { towerClaim, towerRankXml, wheelRankXml, wheelGift, ensure };
