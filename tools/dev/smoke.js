@@ -104,6 +104,15 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     ck(claws > 0 && claws < 60, `master pet clawed in ${claws} of 60 fights`);
     db.prepare('DELETE FROM pets WHERE uid=77').run();
   }
+  // the spar list shows a real rival's real team attack, not a value made from the level (Serii 4220 instead of 7M, 3 Nov 2026)
+  {
+    const other = db.prepare('SELECT * FROM players WHERE uid!=77 AND server_id=1 LIMIT 1').get();
+    if (other) {
+      const want = game.teamStats(db, other.uid, 1).total;
+      const m = new RegExp(`<id>${other.uid}</id>.*?<attacklow>(\\d+)</attacklow><attackhigh>(\\d+)</attackhigh>`).exec(game.rivalsXml(db, db.prepare('SELECT * FROM players WHERE uid=77').get()));
+      ck(m && Number(m[1]) === want.al && Number(m[2]) === want.ah, `spar list attack of ${other.nick}: ${m && m[1]}-${m && m[2]}, team ${want.al}-${want.ah}`);
+    }
+  }
   // a won story stage must not show the part's boss tries as 0 (chapter 1 part 2 = stages 3-6, boss = 6)
   db.prepare('DELETE FROM stage_clears WHERE uid=77 AND chap=1').run();
   game.setStage(db, 77, 1, 1, 3); db.prepare('UPDATE players SET energy=500 WHERE uid=77').run();

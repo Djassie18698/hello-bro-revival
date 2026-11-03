@@ -827,9 +827,12 @@ function firstNinja(db, p) {
 }
 function rivalsXml(db, pl) {
   const f = (r) => {
+    // a real player shows his real team (like the fight uses); a bot a made-up value from its level (ours). Until 3 Nov 2026 real players
+    // also showed the level value (a level-350 player with 4M+ attack read "4220--4240").
     const lv = r.level, a = 20 + lv * 12;
-    const o = { id: r.id, level: lv, nick: r.nick, attacklow: a, attackhigh: a + 20, defenselow: Math.floor(a / 2), defenseHigh: Math.floor(a / 2) + 10,
-      chakralow: a, chakrahigh: a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
+    const t = r.id < 9000001 ? teamStats(db, r.id, pl.server_id).total : null;
+    const o = { id: r.id, level: lv, nick: r.nick, attacklow: t ? t.al : a, attackhigh: t ? t.ah : a + 20, defenselow: t ? t.dl : Math.floor(a / 2), defenseHigh: t ? t.dh : Math.floor(a / 2) + 10,
+      chakralow: t ? t.cl : a, chakrahigh: t ? t.ch : a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
     return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
   };
   const bench = benchRivals(db).map((r) => '<user>' + Object.entries({ id: r.id, level: r.level, nick: r.nick, attacklow: r.bench, attackhigh: r.bench, defenselow: r.bench, defenseHigh: r.bench,
