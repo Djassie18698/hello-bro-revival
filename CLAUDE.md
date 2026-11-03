@@ -20,7 +20,9 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    `sh tools/dev/check.sh` (smoke + bad input + cheat + real-save checks; non-zero on any problem) `&& git add -A && git commit && git push` →
    `sh tools/sync_test_folder.sh` (copies the push into `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on;
    keeps its save, removes files deleted from git) → tell the owner to restart their server (never stop or start it yourself while they
-   may be playing; ask first). Then post a short plain-words note of the update in Discord #updates (owner's request, 1 Nov 2026).
+   may be playing; ask first). The PUBLIC server runs in the cloud since 3 Nov 2026 (section 9): with the owner's OK update it with
+   `ssh -i ~/.ssh/hellobro-oracle.key ubuntu@ninjaonline.duckdns.org sudo sh /opt/hellobro/tools/vps/update.sh` (it restarts the server).
+   Then post a short plain-words note of the update in Discord #updates (owner's request, 1 Nov 2026).
    Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` is **PUBLIC on purpose** (owner's decision on 31 Oct 2026: it is shared with several people and this is easier).
    It still holds game files and the signing keystore, so never add anything secret to it: no tokens, passwords, personal data, `discord/.env`.
@@ -163,8 +165,12 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
 - Game files made since 2 Nov 2026 target Android 7 (`tools/patch_targetsdk.py`, run by `patch_apk.py`): Android 14+ refuses the original's target 19.
   Without granted permissions the account window sends `deviceId=""`; `gumplogin.js` then keys the guest by its kept password.
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (friends who host their own;
-  guide in `docs/HOST-YOUR-OWN-SERVER.md`). The owner's public server runs `START-PUBLIC-SERVER.bat` (LOGIN_LOCK, public.db; NOT in git,
-  owner-only: GitHub only offers solo/private hosting + joining ninjaonline).
+  guide in `docs/HOST-YOUR-OWN-SERVER.md`). The owner's public server (LOGIN_LOCK, public.db; owner-only: GitHub only offers
+  solo/private hosting + joining ninjaonline) runs since 3 Nov 2026 on an **Oracle Cloud Always Free** machine (VM.Standard.E2.1.Micro, Ubuntu 24.04,
+  1 GB) so it is on when the PC is off: installed by `tools/vps/install.sh` into `/opt/hellobro` as the systemd service `hellobro`
+  (`tools/vps/run.sh` = the START-PUBLIC-SERVER.bat settings; `password.sh`, `update.sh`; guide `docs/CLOUD-SERVER.md`). SSH key on the
+  owner's PC: `~/.ssh/hellobro-oracle.key`, user `ubuntu`. Logs: `sudo journalctl -u hellobro`. Backups: `/opt/hellobro/backups-public`.
+  The old `START-PUBLIC-SERVER.bat` in the play folder (not in git) must NOT run any more: its public.db is the pre-move copy.
 - Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
