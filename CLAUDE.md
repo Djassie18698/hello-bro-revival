@@ -170,7 +170,7 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
   1 GB) so it is on when the PC is off: installed by `tools/vps/install.sh` into `/opt/hellobro` as the systemd service `hellobro`
   (`tools/vps/run.sh` = the START-PUBLIC-SERVER.bat settings; `password.sh`, `update.sh`; guide `docs/CLOUD-SERVER.md`). SSH key on the
   owner's PC: `~/.ssh/hellobro-oracle.key`, user `ubuntu`. Logs: `sudo journalctl -u hellobro`. Backups: `/opt/hellobro/backups-public`, plus a daily copy on the owner's PC
-  (scheduled task "Hello Bro cloud backup" -> `tools/vps/backup-to-pc.ps1` -> `DocumentsHelloBro-cloud-backups`, 30 kept, `backup.log`).
+  (scheduled task "Hello Bro cloud backup" -> `tools/vps/backup-to-pc.ps1` -> `Documents/HelloBro-cloud-backups`, 30 kept, `backup.log`).
   The old `START-PUBLIC-SERVER.bat` in the play folder (not in git) must NOT run any more: its public.db is the pre-move copy.
 - Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
