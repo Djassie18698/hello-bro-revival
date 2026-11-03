@@ -113,7 +113,9 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     Backups: every 6 h in `/opt/hellobro/backups-public`, plus a daily copy on the owner's PC by the scheduled task "Hello Bro cloud backup"
     (`tools/vps/backup-to-pc.ps1` -> `Documents/HelloBro-cloud-backups`, 30 kept, `backup.log`). Free-tier risk: Oracle may reclaim an
     idle Always Free machine; the owner was advised to upgrade to Pay As You Go (stays free) with a budget alert.
-    The old `START-PUBLIC-SERVER.bat` in the play folder (not in git) must NOT run any more: its public.db is the pre-move copy.
+    The old PC public server (`START-PUBLIC-SERVER.bat`, its pre-move public.db, backups-public, admin-password.txt) was moved out of the
+    play folder on 3 Nov 2026 to `Documents\HelloBro-old-files` (with 3 old .apk builds): it must NOT run any more.
+    The play folder now holds exactly the GitHub files plus the owner's save (hellobro.db + backups/) and two .xapk files.
   - the **play server** the owner uses: `C:\Users\dj199\Desktop\Hello Bro Locked Server` (its own `hellobro.db`, port 18080).
     Only the owner starts and stops it (rule 2). Restart (only when asked, PowerShell): stop the process listening on 18080 and its
     parent cmd, then `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
