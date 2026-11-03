@@ -44,3 +44,7 @@ If a DuckDNS updater runs on your PC, turn it off, or it puts your PC's address 
 - Change the admin password: `sudo sh /opt/hellobro/tools/vps/password.sh`
 - Control panel: `http://ninjaonline.duckdns.org:18080/manager` (your admin password). Backups are made every 6 hours in `/opt/hellobro/backups-public`.
 - See what the server prints: `sudo journalctl -u hellobro -f`
+- **Copy on your PC:** the scheduled task *Hello Bro cloud backup* (made with `toolspsackup-to-pc.ps1 -Install`) downloads the save every day at 13:00
+  (or when you log on, if the PC was off) to `DocumentsHelloBro-cloud-backups`, 30 days kept, `backup.log` says how it went.
+- **Put a backup back:** `scp -i <key> hellobro-public-<date>.db ubuntu@ninjaonline.duckdns.org:/tmp/restore.db`, then on the machine
+  `sudo systemctl stop hellobro && sudo install -o hellobro -g hellobro -m 600 /tmp/restore.db /opt/hellobro/public.db && sudo rm -f /opt/hellobro/public.db-wal /opt/hellobro/public.db-shm && sudo systemctl start hellobro`.
