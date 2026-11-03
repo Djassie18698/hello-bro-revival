@@ -1,6 +1,6 @@
 @echo off
 rem Updates the public server in the cloud (ninjaonline) to the newest version on GitHub. Your PC's own servers are not touched.
-rem It shows what is new first and asks before updating. If the game server itself changed, players are logged out for a few seconds.
+rem It shows what is new first and asks before updating. If the game server itself changed, the server is away for about 3 seconds (players stay logged in).
 title Hello Bro - update the cloud server
 set "SSH=%SystemRoot%\System32\OpenSSH\ssh.exe"
 set "KEY=%USERPROFILE%\.ssh\hellobro-oracle.key"

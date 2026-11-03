@@ -111,7 +111,7 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     **Updating (owner, 3 Nov 2026): NOT on every push. Only when the owner asks ("update the public server"), or now and then when a
     batch of player-visible fixes is waiting: then propose it and wait for a yes.** Show what is waiting first:
     `ssh ... sudo sh /opt/hellobro/tools/vps/update.sh check`; update: `ssh ... sudo sh /opt/hellobro/tools/vps/update.sh`. It restarts the
-    server (players logged out for a few seconds) only when files under `server/` changed. The owner can also double-click
+    server (away ~3 s; players stay logged in: sessions are in the save, they only see a network error if they tap during it) only when files under `server/` changed. The owner can also double-click
     `tools\vps\UPDATE-CLOUD-SERVER.bat` (shows what's new, asks Y/N). Game-side hot updates (`server/cdn`) reach ninjaonline players only after
     such an update. Never `git pull` there without the restart when `server/` changed (a crash restart would then load half-updated code).
     Other scripts: `tools/vps/install.sh` (fresh machine, safe to rerun), `password.sh` (admin password), `snapshot.sh` (consistent copy).

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Gets the newest version from GitHub for the cloud server (the save and backups stay).
-# Restarts the server (players are logged out for a few seconds) only when the server's own files changed.
+# Restarts the server (it is away for about 3 seconds; players stay logged in and at most see one network error) only when the server's own files changed.
 # Run on that machine:  sudo sh /opt/hellobro/tools/vps/update.sh        (add "check" to only list what is waiting)
 DIR=/opt/hellobro
 [ "$(id -u)" = 0 ] || { echo "Run it with sudo."; exit 1; }
