@@ -43,6 +43,7 @@ If a DuckDNS updater runs on your PC, turn it off, or it puts your PC's address 
 - Update to the newest version: double-click `tools\vps\UPDATE-CLOUD-SERVER.bat` on your PC (shows what is new, asks first), or ask Claude.
   On the machine: `sudo sh /opt/hellobro/tools/vps/update.sh` (`... update.sh check` only lists what is waiting). It restarts the server only when
   the game server itself changed (it is away for about 3 seconds; players stay logged in and at most see one network error). Not needed after every change: once in a while is fine.
+- **Watchdog:** if the server stops answering for 3 minutes (stuck, not crashed), it restarts itself. `sudo journalctl -u hellobro | grep watchdog` shows when.
 - Change the admin password: `sudo sh /opt/hellobro/tools/vps/password.sh`
 - Control panel: `http://ninjaonline.duckdns.org:18080/manager` (your admin password). Backups are made every 6 hours in `/opt/hellobro/backups-public`.
 - See what the server prints: `sudo journalctl -u hellobro -f`

@@ -118,6 +118,8 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     Backups: every 6 h in `/opt/hellobro/backups-public`, plus a daily copy on the owner's PC by the scheduled task "Hello Bro cloud backup"
     (`tools/vps/backup-to-pc.ps1` -> `Documents/HelloBro-cloud-backups`, 30 kept, `backup.log`). Free-tier risk: Oracle may reclaim an
     idle Always Free machine; the owner was advised to upgrade to Pay As You Go (stays free) with a budget alert.
+    **Watchdog** (3 Nov 2026, after a 10-min freeze): run.sh sets HB_WATCHDOG=1, server.js forks `server/watchdog.js`, which checks
+    127.0.0.1/status every minute and stops the server after 3 failed checks; systemd (Restart=always) starts it again.
     Discord **#server-status** (owner, 3 Nov 2026): `discord/statuswatch.js` runs inside `online.js` (START-BOT-ONLINE.bat, owner's PC) and
     checks `http://ninjaonline.duckdns.org:18080/status` (server.js: `{version: git hash, started}`) every minute: posts offline (2 failed
     checks), back online, updated (new version) or restarted. Only while the owner's PC is on. Pinned there: how to connect + the item page.

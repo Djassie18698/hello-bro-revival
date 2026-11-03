@@ -14,7 +14,7 @@ echo "Waiting on GitHub:"; echo "$NEW" | sed 's/^/  /'
 OLD=$(G rev-parse HEAD)
 G merge -q --ff-only origin/main || exit 1
 chown -R hellobro:hellobro "$DIR"
-if G diff --quiet "$OLD" HEAD -- server; then
+if G diff --quiet "$OLD" HEAD -- server tools/vps/run.sh; then
   echo "Updated to $(G log --oneline -1 | cut -c1-60). No server changes: no restart needed."
   exit 0
 fi

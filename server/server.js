@@ -130,4 +130,8 @@ net.createServer((sock) => {
     httpServer.emit('connection', sock);
     sock.on('error', () => {});
   });
-}).on('error', (e) => console.error('listen error', e.message)).listen(PORT, '0.0.0.0', () => manager.banner(PORT, db));
+}).on('error', (e) => console.error('listen error', e.message)).listen(PORT, '0.0.0.0', () => {
+  manager.banner(PORT, db);
+  // always-on server (tools/vps/run.sh): a separate process restarts this one when it stops answering (watchdog.js)
+  if (process.env.HB_WATCHDOG === '1') require('child_process').fork(require('path').join(__dirname, 'watchdog.js'), [], { env: { ...process.env, PORT: String(PORT) } });
+});
