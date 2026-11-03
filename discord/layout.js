@@ -13,6 +13,7 @@ const LAYOUT = [
     { name: 'rules', topic: 'Server rules. React to the message below to get your role.' },
     { name: 'announcement', topic: 'Only the big news: a new game app to install, new releases, important changes for everyone.' },
     { name: 'updates', was: 'announcements', topic: 'Every server and game update. Hosting your own server? Run UPDATE.bat after each one.' },
+    { name: 'server-status', topic: 'Is the public server (ninjaonline) up? The bot posts here when it goes offline, comes back or gets updated. Pinned: how to connect + the item page.' },
     { name: 'faq', topic: 'Common questions: can\'t connect, how to update, accounts.' },
   ] },
   { cat: '📚 GUIDES & HELP', was: '📚 GUIDES & SUPPORT', channels: [

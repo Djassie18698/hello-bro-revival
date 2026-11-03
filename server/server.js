@@ -10,6 +10,8 @@ const settings = require('./settings');
 const manager = require('./manager');
 
 const PORT = process.env.PORT || 18080;
+const STARTED = Math.floor(Date.now() / 1000);
+const VERSION = (() => { try { return require('child_process').execSync('git log -1 --format=%h', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return ''; } })(); // '' outside a git clone
 // Everything printed also goes to the Server Manager's live log.
 for (const k of ['log', 'error']) {
   const orig = console[k].bind(console);
@@ -64,6 +66,10 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     return fs.createReadStream(file).pipe(resp);
   }
   if (u.pathname.endsWith('.do')) return require('./gumplogin').handle(req, resp, parseBody, db); // the APK's account window (gumplogin.js)
+  if (u.pathname === '/status') { // version + start time, for the Discord #server-status watcher (discord/statuswatch.js)
+    resp.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    return resp.end(JSON.stringify({ ok: true, version: VERSION, started: STARTED }));
+  }
   if (u.pathname === '/progress.md') { // the progress page (docs/PROGRESS.md), shown in the control panel's Progress tab
     resp.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store' });
     return resp.end(require('fs').readFileSync(require('path').join(__dirname, '..', 'docs', 'PROGRESS.md'), 'utf8'));

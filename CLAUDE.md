@@ -118,6 +118,9 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     Backups: every 6 h in `/opt/hellobro/backups-public`, plus a daily copy on the owner's PC by the scheduled task "Hello Bro cloud backup"
     (`tools/vps/backup-to-pc.ps1` -> `Documents/HelloBro-cloud-backups`, 30 kept, `backup.log`). Free-tier risk: Oracle may reclaim an
     idle Always Free machine; the owner was advised to upgrade to Pay As You Go (stays free) with a budget alert.
+    Discord **#server-status** (owner, 3 Nov 2026): `discord/statuswatch.js` runs inside `online.js` (START-BOT-ONLINE.bat, owner's PC) and
+    checks `http://ninjaonline.duckdns.org:18080/status` (server.js: `{version: git hash, started}`) every minute: posts offline (2 failed
+    checks), back online, updated (new version) or restarted. Only while the owner's PC is on. Pinned there: how to connect + the item page.
     The old PC public server (`START-PUBLIC-SERVER.bat`, its pre-move public.db, backups-public, admin-password.txt) was moved out of the
     play folder on 3 Nov 2026 to `Documents\HelloBro-old-files` (with 3 old .apk builds): it must NOT run any more.
     The play folder now holds exactly the GitHub files plus the owner's save (hellobro.db + backups/) and two .xapk files.
@@ -197,7 +200,7 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
   write the text to a file first). The bot shows online while `START-BOT-ONLINE.bat` runs on the owner's PC (a minimized window); `BOT-AUTOSTART.bat` (the owner double-clicks it: making a Startup shortcut ourselves is blocked) starts it with Windows.
   Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
-  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update) · #faq ("can't connect after an update -> make a new game file with HOST-MY-SERVER.bat").
+  START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update) · #server-status (public server up/down/updated, bot-posted; pinned connect + item page) · #faq ("can't connect after an update -> make a new game file with HOST-MY-SERVER.bat").
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
   #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
   Guides (#welcome, #install-help, #how-to-play, #faq) are built from `discord/guides/<channel>.md` ("## " = one chapter, contents with jump links on top):

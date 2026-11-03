@@ -6,6 +6,7 @@
 //   node --env-file=.env dc.js delete <channel> <message-id>        (own messages only)
 //   node --env-file=.env dc.js reply <channel> <message-id> <file.md | ->   (answer one message, e.g. a bug report: what got fixed)
 //   node --env-file=.env dc.js react <channel> <message-id> [emoji]         (default ✅ = the report is handled)
+//   node --env-file=.env dc.js pin <channel> <message-id>                   (pin a message, e.g. the bot's info post)
 // Same safety rules as the bot: no secrets/IP addresses, no @everyone pings, only own messages are changed.
 const fs = require('fs');
 const { secretProblem, splitMessage } = require('./tools');
@@ -71,7 +72,8 @@ async function run(argv, { token, guildId, readText = (p) => (p === '-' ? fs.rea
     return;
   }
   if (cmd === 'react') { await call('PUT', `/channels/${ch.id}/messages/${a}/reactions/${encodeURIComponent(b || '✅')}/@me`); return out(`reacted ${b || '✅'} on ${a}`); }
-  throw new Error('unknown command. Use: channels | read | post | edit | delete | reply | react');
+  if (cmd === 'pin') { await call('PUT', `/channels/${ch.id}/pins/${a}`); return out('pinned ' + a); }
+  throw new Error('unknown command. Use: channels | read | post | edit | delete | reply | react | pin');
 }
 
 module.exports = { run, makeApi };

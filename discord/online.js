@@ -1,6 +1,7 @@
 // Keeps the Hello Bro bot shown as "online" (green dot, "Playing Hello Bro") in the Discord member list.
-// Discord only shows a bot online while it holds a gateway connection, so this stays connected and does nothing else:
-// no intents, it reads no messages and posts nothing. No npm install needed (Node 24 has WebSocket built in).
+// Discord only shows a bot online while it holds a gateway connection, so this stays connected: no intents, it reads no messages.
+// It also runs the #server-status watcher (statuswatch.js: posts when the public server goes offline / comes back / is updated;
+// STATUS_WATCH=0 in .env turns it off). No npm install needed (Node 24 has WebSocket built in).
 //   node --env-file=.env online.js        (START-BOT-ONLINE.bat runs it and restarts it if it stops)
 const GATEWAY = 'wss://gateway.discord.gg/?v=10&encoding=json';
 const ACTIVITY = process.env.BOT_ACTIVITY || 'Hello Bro';
@@ -42,3 +43,4 @@ function connect() {
   ws.onerror = () => {}; // onclose follows and reconnects
 }
 connect();
+if (process.env.STATUS_WATCH !== '0') require('./statuswatch').start(token);
