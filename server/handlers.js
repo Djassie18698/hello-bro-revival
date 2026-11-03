@@ -31,6 +31,46 @@ const monopoly = require('./monopoly');
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
+// Tutorial switch (Server Manager, settings 'tutorial', off by default): 1 = the app runs its guide this session. The app starts the part
+// of the player's current level (home/userguideConfig.xml: 1, 5, 10, 20, 25, 30, 35, 40) and only marks it done on the phone when its last
+// step is reached, so a part cut short (game closed, phone lost) would start over at the next login, maybe asking for something already
+// used up. Each part therefore gets one try: once a session with the guide on started at or below a part's level and the player is now at
+// or past it, later logins at that level go without the guide. Players past level 40 never get it, nor characters made before the switch
+// was turned on (they already know the game; owner: "a tutorial for new people").
+const GUIDE_LEVELS = [1, 5, 10, 20, 25, 30, 35, 40];
+function tutorialOn(db, level, uid, sid) {
+  const S = require('./settings');
+  if (!S.eventOn(db, 'tutorial') || level > 40) return 0;
+  const pl = db.prepare('SELECT created FROM players WHERE uid=? AND server_id=?').get(uid, sid);
+  if (!pl || (pl.created || 0) < S.switchedOnAt(db, 'tutorial') * 1000) return 0;
+  db.exec('CREATE TABLE IF NOT EXISTS tutorial (uid INTEGER, server_id INTEGER, on_level INTEGER, seen TEXT, PRIMARY KEY(uid,server_id))');
+  const t = db.prepare('SELECT on_level, seen FROM tutorial WHERE uid=? AND server_id=?').get(uid, sid);
+  const seen = new Set(t && t.seen ? t.seen.split(',').map(Number) : []);
+  if (t && t.on_level != null) for (const g of GUIDE_LEVELS) if (t.on_level <= g && g <= level) seen.add(g);
+  const on = seen.has(level) ? 0 : 1;
+  db.prepare('INSERT INTO tutorial(uid,server_id,on_level,seen) VALUES(?,?,?,?) ON CONFLICT(uid,server_id) DO UPDATE SET on_level=excluded.on_level, seen=excluded.seen')
+    .run(uid, sid, on ? level : null, [...seen].join(',')); // a session without the guide shows no parts: its level-ups prove nothing
+  return on;
+}
+// A character the tutorial is for: switch on, made after it was switched on, not past the last part.
+function tutorialFor(db, pl) {
+  const S = require('./settings');
+  return S.eventOn(db, 'tutorial') && pl.level <= 40 && (pl.created || 0) >= S.switchedOnAt(db, 'tutorial') * 1000;
+}
+// While a tutorial part may run, the free starter gift must not pop up after a level-up: it covers the buttons the guide points at
+// (it stays claimable from the home event column).
+const inTutorial = (db, pl) => tutorialFor(db, pl) && (pl.level <= 5 || GUIDE_LEVELS.includes(pl.level));
+// The level-10 part (seal list) points at the 6th Shukaku fragment, plunders it, synthesises the seal (the Lv.10 gift's 30 gold pays for
+// a synthesis without the wait) and equips it: the player must already hold fragments 1-5 and that one plunder must succeed. How the
+// original server arranged this is lost, so (ours): a tutorial character at level 10-19 gets fragments 1-5 once when it opens the seal
+// list, and its first plunder of fragment 6 always takes it.
+const SHUKAKU = [11, 12, 13, 14, 15, 16];
+const sealTutorial = (db, pl) => tutorialFor(db, pl) && pl.level >= 10 && pl.level < 20 &&
+  !db.prepare('SELECT 1 FROM cards WHERE uid=? AND server_id=? AND type=5 AND ninja_id=1').get(pl.uid, pl.server_id);
+function tutorialOnce(db, pl, key) {
+  db.exec('CREATE TABLE IF NOT EXISTS tutorial_gift (uid INTEGER, server_id INTEGER, k TEXT, PRIMARY KEY(uid,server_id,k))');
+  return db.prepare('INSERT OR IGNORE INTO tutorial_gift(uid,server_id,k) VALUES(?,?,?)').run(pl.uid, pl.server_id, key).changes > 0;
+}
 
 // Public host the client should use for the game servers (set HOST to your LAN IP / domain).
 const publicHost = (ctx) => process.env.HOST || ctx.host || 'localhost:18080';
@@ -284,15 +324,16 @@ module.exports = {
   rl_w_report: () => '<root code="0"></root>',
 
   // Enter a game server. hasreg=0 sends the client to character creation.
+  // first_login 1 turns the game's own tutorial on for this session (CLoginScene/CBindAccountScene: guide flag = first_login == 1); see tutorialOn.
   rl_w_login2: ({ db, params: p }) => {
     if (process.env.HB_DEBUG) console.log('[login2]', JSON.stringify(p));
     const acc = accountBySession(db, p, true);
     if (!acc) return require('./gumplogin').locked() ? '<root code="5"><message>Please log in again, or get the newest game file from the server owner.</message></root>' : '<root code="3"><message>session expired</message></root>';
     require('./settings').hornPending.add(String(acc.uid)); // the top banner goes out once per login (see rl_r_mainpage)
-    const pl = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    const pl = db.prepare('SELECT level FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     return (
       `<root code="0"><login_info>${el('hasreg', pl ? 1 : 0)}${el('userid', acc.uid)}${el('session', acc.session)}</login_info>` +
-      `${el('first_login', 0)}</root>`
+      `${el('first_login', pl ? tutorialOn(db, pl.level, acc.uid, Number(p.ServerID || 1)) : 0)}</root>`
     );
   },
 
@@ -310,8 +351,7 @@ module.exports = {
     if (db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=? AND server_id=?').get(acc.uid, sid).n === 0)
       db.prepare('UPDATE players SET gold=50, coin=18000 WHERE uid=? AND server_id=?').run(acc.uid, sid); // normalconfig 38/39
     game.ensureStarterTeam(db, acc.uid, sid, Number(p.Card || 1));
-    // first_login 0 = skip the tutorial (CRegistScene/CLoginScene set the guide flag from it). Tutorial is off for now.
-    return `<root code="0"><login_info>${el('userid', acc.uid)}${el('session', acc.session)}</login_info>${el('first_login', 0)}</root>`;
+    return `<root code="0"><login_info>${el('userid', acc.uid)}${el('session', acc.session)}</login_info>${el('first_login', tutorialOn(db, 1, acc.uid, sid))}</root>`;
   },
 
   // Main page / initial player data. Field names are the ones CPlayerDataMgr reads from <user>.
@@ -403,7 +443,8 @@ module.exports = {
     if (r.win) { game.bumpTask(db, pl.uid, pl.server_id, 6); festival.dropOnWin(db, pl, 'spar'); }
     // Plunder (Chip = seal fragment id): a win usually steals the fragment.
     const chip = Number(p.Chip) || 0;
-    const got = chip && seals.plunder(db, pl, chip, r.win, r.rivalLevel);
+    let got = chip && seals.plunder(db, pl, chip, r.win, r.rivalLevel);
+    if (!got && chip === SHUKAKU[5] && sealTutorial(db, pl) && tutorialOnce(db, pl, 'plunder16')) { game.propAdd(db, pl.uid, pl.server_id, seals.FRAG + chip, 1); got = true; } // tutorial, see SHUKAKU
     require('./notices').record(db, pl, Number(p.ToUid), chip ? 1 : 0, r.win, chip); // battle report for a real defender (News screen)
     // The fragment is stored on the server; the seal list re-reads counts (rl_r_markchip) when it is shown again.
     // The victory reward draw shows the award's dropid as the card you pick. ORIGINAL drops (the game's own tables): the first spar ever
@@ -419,6 +460,10 @@ module.exports = {
           .replace(/<exp>\d+<\/exp>/, `<exp>${r.exp}</exp>`).replace(/<merit>\d+<\/merit>/, `<merit>${r.merit}</merit>`);
       }
     }
+    // Tutorial (level-5 part): right after this first spar it opens the weapon slot and asks to equip the weapon that spar drops. A lost
+    // first spar would leave nothing to equip and the guide's mask over the screen, so with the tutorial on it still puts that weapon
+    // (drop 1284) in the bag, without showing it on the loss screen. (ours)
+    if (!r.win && firstSpar && inTutorial(db, pl)) game.grantDrop(db, pl, 1284);
     return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
   },
 
@@ -427,15 +472,18 @@ module.exports = {
   rl_r_markchip: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
+    if (pl && sealTutorial(db, pl) && tutorialOnce(db, pl, 'shukaku1-5')) // tutorial, see SHUKAKU
+      for (const f of SHUKAKU.slice(0, 5)) if (!(game.propCounts(db, pl.uid, pl.server_id)[seals.FRAG + f] > 0)) game.propAdd(db, pl.uid, pl.server_id, seals.FRAG + f, 1);
     return pl ? '<root code="0">' + seals.listXml(db, pl) + '</root>' : '<root code="3"><message>session expired</message></root>';
   },
   rl_w_markchip: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
-    const r = seals.merge(db, pl, Number(p.MarkID));
-    if (!r.error) game.bumpTask(db, pl.uid, pl.server_id, 3); // daily task: synthesize seals
-    return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
+    // Cmd 2800 start / pay to finish (UseCash=1), Cmd 2801 take the finished seal (seals.js)
+    const r = Number(p.Cmd) === 2801 ? seals.fetch(db, pl, Number(p.MarkID)) : seals.merge(db, pl, Number(p.MarkID), Number(p.UseCash) === 1);
+    if (!r.error && Number(p.Cmd) === 2801) game.bumpTask(db, pl.uid, pl.server_id, 3); // daily task: synthesize seals
+    return r.error ? `<root code="5"><message>${r.error}</message></root>` : `<root code="0" message="${r.message || ''}">` + r.xml + '</root>';
   },
   // Country war (War > War tab). Cmd 7200 status (also polled from home), 7300ish war info.
   rl_r_warnew: ({ db, params: p }) => {
@@ -681,7 +729,7 @@ module.exports = {
     // Cmd 3 = after a level-up (CPlayerLevelUp::requestActivity): <on_off>1 makes the client re-read the event red dots (readActivityNewsData)
     // AND sets the flag that opens this gift when the level-up window closes (CPlayerLevelUp::OnClicked -> createStageGiftLayer).
     // So only while the gift is still unclaimed, else it pops up after every level-up showing "already claimed".
-    const offer = Number(p.Cmd) === 3 && require('./settings').eventOn(db, 31) && !stagegift.claimed(db, pl);
+    const offer = Number(p.Cmd) === 3 && require('./settings').eventOn(db, 31) && !stagegift.claimed(db, pl) && !inTutorial(db, pl);
     return '<root code="0">' + (offer ? '<on_off>1</on_off>' : '') + stagegift.infoXml(db, pl) + '</root>';
   },
   rl_got: () => '<root code="0"></root>',

@@ -15,7 +15,7 @@ function resetPlayer(db, uid, sid = 1) {
   } catch (e) { /* backup is best effort */ }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((r) => r.name);
   for (const t of tables) {
-    if (t === 'accounts' || t === 'sqlite_sequence') continue;
+    if (t === 'accounts' || t === 'logins' || t === 'sqlite_sequence') continue; // keep the login (accounts + the app's account window)
     const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
     if (cols.includes('uid')) { if (cols.includes('server_id')) db.prepare(`DELETE FROM ${t} WHERE uid=? AND server_id=?`).run(uid, sid); else if (sid === 1) db.prepare(`DELETE FROM ${t} WHERE uid=?`).run(uid); }
   }

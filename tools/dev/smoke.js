@@ -169,6 +169,58 @@ for (const pick of [55, 56, 57]) {
   handlers.rl_r_newbie_pay({ db, params: { ...base, Cmd: 2 } });
   if (!/<on_off>1</.test(before) || /<on_off>1</.test(lv())) { bad++; console.log('STARTER GIFT level-up popup', before.slice(0, 60), lv().slice(0, 60)); }
 }
+// Tutorial switch (owner 4 Nov 2026): off = nobody gets it; on = only characters made after switching it on, one try per part, not past 40;
+// the starter gift stays shut after a level-up while a part may run; a lost first spar still leaves the weapon the level-5 part equips.
+{
+  const S = require('../../server/settings');
+  const fl = (x) => Number((String(x).match(/<first_login>(\d)</) || [])[1]);
+  const mk = (uid) => { const p = { ...base, Uid: String(uid), Session: 's' + uid }; handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } }); return { p, reg: handlers.rl_w_reg2({ db, params: { ...p, Cmd: 0, Nick: 'Tut' + uid, Card: 55 } }) }; };
+  const login = (p) => fl(handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } }));
+  const setLv = (uid, l) => db.prepare('UPDATE players SET level=? WHERE uid=?').run(l, uid);
+  const off = mk(951);
+  if (fl(off.reg) !== 0 || login(off.p) !== 0) { bad++; console.log('TUTORIAL off still on'); }
+  S.setEvent(db, 'tutorial', true);
+  db.prepare("UPDATE players SET created=0 WHERE uid=951").run(); // made before the switch
+  const t = mk(952);
+  const r = { old: login(off.p), reg: fl(t.reg) };
+  r.again1 = login(t.p); // same level 1 again: its part already had its try
+  setLv(952, 5); r.lv5 = login(t.p); r.lv5again = login(t.p);
+  setLv(952, 7); r.lv7 = login(t.p); // no part at 7: the app finds nothing to start
+  setLv(952, 41); r.lv41 = login(t.p);
+  if (r.old !== 0 || r.reg !== 1 || r.again1 !== 0 || r.lv5 !== 1 || r.lv5again !== 0 || r.lv41 !== 0) { bad++; console.log('TUTORIAL logins', JSON.stringify(r)); }
+  setLv(952, 5);
+  const gift = handlers.rl_r_newbie_pay({ db, params: { ...t.p, Cmd: 3 } });
+  if (/<on_off>1</.test(gift)) { bad++; console.log('TUTORIAL starter gift pops up over the guide'); }
+  S.setEvent(db, 'tutorial', false);
+}
+// Seal synthesis (original flow, CMarkCardView): Claim starts it (fragments used, ready after 1800 s), Synthesis pays 30 gold to finish now
+// (reply message="usecash": the app then fetches), Cmd 2801 takes the seal. Every reply has the message attribute (a missing one crashed).
+{
+  const seals = require('../../server/seals'), pl = () => db.prepare('SELECT * FROM players WHERE uid=77').get();
+  db.prepare('UPDATE players SET gold=100 WHERE uid=77').run();
+  for (const f of [11, 12, 13, 14, 15, 16]) db.prepare('INSERT INTO props(uid,server_id,prop_id,count) VALUES(77,1,?,1) ON CONFLICT(uid,server_id,prop_id) DO UPDATE SET count=1').run(seals.FRAG + f);
+  const w = (cmd, extra = {}) => handlers.rl_w_markchip({ db, params: { ...base, Cmd: cmd, MarkID: 1, ...extra } });
+  const list0 = handlers.rl_r_markchip({ db, params: { ...base, Cmd: 1600 } });
+  const start = w(2800), list1 = handlers.rl_r_markchip({ db, params: { ...base, Cmd: 1600 } });
+  const early = w(2801), pay = w(2800, { UseCash: 1 }), gold = pl().gold, got = w(2801);
+  const ok = !/<mark>/.test(list0) && /<cash>30</.test(list0) && /message="started"/.test(start) && /<mark><id>1<\/id><resttime>1[78]\d\d</.test(list1) &&
+    /code="5"/.test(early) && /message="usecash"/.test(pay) && gold === 70 && /<markchip bagid="\d+"/.test(got) &&
+    db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=5 AND ninja_id=1').get().n >= 1 && !(seals.FRAG + 11 in require('../../server/game').propCounts(db, 77, 1) && require('../../server/game').propCounts(db, 77, 1)[seals.FRAG + 11] > 0);
+  if (!ok) { bad++; console.log('SEAL SYNTHESIS', JSON.stringify({ list0: list0.slice(0, 40), start, list1: (list1.match(/<markmerge>.*<\/markmerge>/) || [''])[0], early, pay, gold, got })); }
+}
+// Arena: a gap in the ranks (a player wiped by the admin reset) must not stop the next newcomer from joining (was UNIQUE constraint failed).
+{
+  const g = require('../../server/game');
+  g.arenaEnsure(db);
+  const top = db.prepare('SELECT MAX(rank) m FROM arena').get().m;
+  for (const [k, u] of [[1, 951], [2, 952]]) db.prepare('INSERT OR IGNORE INTO arena(rank,uid) VALUES(?,?)').run(top + k, u);
+  db.prepare('DELETE FROM arena WHERE uid=951').run(); // what the admin reset of player 951 does
+  const out = '';
+  const p953 = { ...base, Uid: '953', Session: 's953' };
+  handlers.rl_w_login2({ db, params: { ...p953, Cmd: 0 } }); handlers.rl_w_reg2({ db, params: { ...p953, Cmd: 0, Nick: 'Arena953', Card: 55 } });
+  const joined = handlers.rl_r_sport({ db, params: { ...p953, Cmd: 8100 } });
+  if (!/^<root code="0"><sport>/.test(joined)) { bad++; console.log('ARENA join after a gap', out.slice(0, 60), joined.slice(0, 80)); }
+}
 // The login data: every card must carry all the fields the client reads (a missing one crashes the game at login).
 {
   const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });

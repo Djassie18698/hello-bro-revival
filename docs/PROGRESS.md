@@ -195,6 +195,9 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Tidier folder (owner): only the .bat files, README and CLAUDE.md on top; the server and its data are in the `server` folder. START-SERVER.bat cleans the old copies out of a friend's folder after UPDATE.bat. INSTALL-WITH-USB.bat can also connect over Wi-Fi (type W). README has a "Which file do I click?" table |
 | ✅ | When a phone's XAPK installer still fails: **INSTALL-WITH-USB.bat** installs the game file over a USB cable (as was done for the owner's tablet). HOST-MY-SERVER.bat now suggests the home-network address instead of Tailscale (Tailscale only for friends elsewhere). Tested on the emulator |
 | ✅ | Arena: the daily reward could never be claimed in the game (no Claim button). Your own row is now in the Compete list with a **Claim** button (once a day, any time until midnight), then "Claimed" |
+| 🧪 | Tutorial for new players (owner): the game's own step-by-step guide is back (levels 1, 5, 10, 20, 25, 30, 40). Turn it on in the Server Manager ("Tutorial for new players"); it is only for characters made after that. Each part gets one try, restarting the game always frees a player, and the level-35 part stays off because it could lock the screen. Every part played on the emulator; not yet on a real phone or the public server |
+| ✅ | Seal synthesis (found while testing the tutorial): every seal showed "Claim" and was made at once, the green Synthesis button did nothing and the price showed your gold. Now like the original: Claim starts a 30-minute synthesis, Synthesis finishes it now for 30 gold, then Claim takes the seal. Seen in game |
+| ✅ | Arena list stayed empty for new players after an admin "reset a player" (a gap in the ranks). Fixed; admin reset also no longer deletes the player's login. Seen in game |
 
 ## Still to build
 

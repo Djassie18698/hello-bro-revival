@@ -1606,7 +1606,9 @@ function arenaEnsure(db) {
 function arenaJoin(db, pl) {
   arenaEnsure(db);
   if (!db.prepare('SELECT 1 FROM arena WHERE uid=?').get(pl.uid)) {
-    const n = db.prepare('SELECT COUNT(*) n FROM arena').get().n;
+    // last place = highest rank + 1 (was COUNT + 1: a row removed by the admin 'reset a player' left a gap, and the next newcomer then
+    // collided with the last rank, so the Arena list failed for everyone joining after it)
+    const n = db.prepare('SELECT COALESCE(MAX(rank), 0) n FROM arena').get().n;
     db.prepare('INSERT INTO arena(rank,uid) VALUES(?,?)').run(n + 1, pl.uid);
   }
   return db.prepare('SELECT rank FROM arena WHERE uid=?').get(pl.uid).rank;

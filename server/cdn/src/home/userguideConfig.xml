@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Config>
-    <steplevel No="901">
+    <steplevel No="1">
         <Steps>
             <step>
                 <condition>
@@ -326,7 +326,7 @@
             </step>
         </Steps>
     </steplevel>
-    <steplevel No="905">
+    <steplevel No="5">
         <Steps>
             <step>
                 <condition>
@@ -610,7 +610,7 @@
             </step>
         </Steps>
     </steplevel>
-    <steplevel No="910">
+    <steplevel No="10">
         <Steps>
             <step>
                 <condition>
@@ -908,7 +908,7 @@
             </step>
         </Steps>
     </steplevel>
-    <steplevel No="920">
+    <steplevel No="20">
         <Steps>
             <step>
                 <condition>
@@ -1080,7 +1080,7 @@
             </step>
         </Steps>
     </steplevel>
-    <steplevel No="925">
+    <steplevel No="25">
         <Steps>
             <step>
                 <condition>
@@ -1252,7 +1252,7 @@
             </step>
         </Steps>
     </steplevel>
-    <steplevel No="930">
+    <steplevel No="30">
         <Steps>
             <step>
                 <condition>
@@ -1610,7 +1610,7 @@
             </step>
         </Steps>
     </steplevel>
-    <steplevel No="940">
+    <steplevel No="40">
         <Steps>
             <step>
                 <condition>

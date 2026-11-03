@@ -168,7 +168,7 @@ file: copy it from `re/obb/<path>` (or `server/reference/lua-scripts`) to `serve
 edit, `python -I tools/build_cdn.py 28.0.N` with a **higher** N, `git rm` the previous zip, note it in `docs/HOT-UPDATE.md`.
 Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing. Text and numbers in the
 client's tables go through `tools/patch_tables.py` (tables.bin), layouts through `tools/ccbi.py`; sprite sheets can't be re-encoded.
-Current: **28.0.33** (home and training header numbers fit for strong teams). The full list is in `docs/HOT-UPDATE.md`.
+Current: **28.0.34** (original tutorial levels back, except 35). The full list is in `docs/HOT-UPDATE.md`.
 
 ## 8. Data model cheat sheet
 - `cards.type`: 1 ninja (ninja_id = ninjainfo id) · 2 weapon · 3 armor · 4 trinket (ninja_id = equipmentinfo id) · 5 seal
@@ -215,6 +215,7 @@ the per-list Summary counts must match the rows). It is also the control panel's
 State on 2 Nov 2026: bug lists 1-4 all done (48 ✅, 2 🚫); no 🧪 rows left (arena ladder prize + Claim button seen in game 2 Nov), GitHub issue #6 (list 5) still empty.
 Arena ladder rank rewards (ladderconfig/ladderdesc) built 2 Nov on top of the daily silver (owner); Eight Gates 5000 starter souls kept (owner).
 Limited Super Ninja (limitsuper.js) built 2 Nov with our numbers; the owner wants the hourly god rotation "for now" (ROTATE_HOURS).
+Tutorial (4 Nov 2026): the game's own guide runs when the Server Manager switch "Tutorial for new players" is on (off by default; handlers.tutorialOn, first_login): new characters only, one try per part, level 35 off (locks); see NEXT-STEPS 4 Nov.
 Left as is: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 five-element panel (photo 2666) not found in any v28 layout; first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter).
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
