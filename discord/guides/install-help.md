@@ -4,24 +4,30 @@ All files are on the **Releases page**: https://github.com/Djassie18698/hello-br
 Questions? Ask in <#1565697834571927694>.
 
 ## 1. Play on the public server (easiest)
-1. Install **BlueStacks 5** on your PC: https://www.bluestacks.com
-2. Download **`HelloBro-ninjaonline.xapk`** from the Releases page.
-3. Drag the .xapk onto the BlueStacks window and wait until it's installed.
-4. Open Hello Bro. When the account window shows, tap **PLAY**. The game remembers this device.
-5. Tap **Confirm** if it asks to download an update, press **START**, then pick your nation and your ninja.
+The public server **ninjaonline** is online day and night (it runs in the cloud, not on someone's PC).
+The game file for it is **`HelloBro-ninjaonline.xapk`** on the Releases page: https://github.com/Djassie18698/hello-bro-revival/releases/tag/tailscale-play
+**On a PC (BlueStacks 5):**
+1. Install **BlueStacks 5**: https://www.bluestacks.com
+2. Download **`HelloBro-ninjaonline.xapk`** and drag it onto the BlueStacks window. Wait until it's installed.
+3. Open Hello Bro. When the account window shows, tap **PLAY**. The game remembers this device.
+4. Tap **Confirm** if it asks to download an update, press **START**, then pick your nation and your ninja.
+**On a phone or tablet:** see chapter 2.
 
-## 2. Android phone
-**Android 14 or newer** (most phones and tablets from 2023 on): you need a game file made on or after 2 Nov 2026. Older files are refused with an error ("app not installed" or "built for an older version"). Ask your server owner for a new one, or make it again with HOST-MY-SERVER.bat.
-1. Download the same .xapk. Open it with a zip app (it's a zip file).
-2. Install `com.hello.bro.yo.apk` from it (allow "install unknown apps" if asked).
-3. Copy `Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb` to the same folder on your phone: `Android/obb/com.hello.bro.yo/`
-4. Open the game and continue at step 4 of chapter 1.
-
-**Still won't install? Use a USB cable and a PC** (works for every game file, also older ones on new Android):
-1. On the phone: Settings > About phone > Software information, tap **Build number** 7 times. Then Settings > Developer options: turn on **USB debugging**.
-2. Connect the phone to the PC with a USB cable, tap **Allow** on the phone.
-3. On the PC, in the server folder: drag the .xapk onto **INSTALL-WITH-USB.bat** (or put the .xapk in that folder and double-click it). It installs the game and its data. Close BlueStacks first.
-4. If Google Play Protect says "unsafe app blocked": tap **More details > Install anyway**.
+## 2. Android phone or tablet
+The surest way is **from a PC with a USB cable** (USB debugging). Phone XAPK installer apps often fail, or install the game without its data (then it shows a black screen or closes at start).
+**A. Turn on USB debugging (one time)**
+1. On the phone: **Settings > About phone** (Samsung: **About phone > Software information**). Tap **Build number** 7 times (Xiaomi: tap **MIUI / OS version**). Enter your PIN if asked: "You are now a developer".
+2. Go back to **Settings > Developer options** (Samsung: at the bottom of Settings; others: **System > Developer options**) and turn on **USB debugging**.
+**B. Install**
+1. On the PC, download these 2 files from the Releases page into **one folder**: **`HelloBro-ninjaonline.xapk`** and **`INSTALL-WITH-USB.bat`**. (Own server? Use your `HelloBro-for-<address>.xapk` instead.)
+2. Uninstall any old Hello Bro on the phone. Close BlueStacks on the PC.
+3. Connect the phone with a USB cable (a data cable, not a charge-only one). The phone asks **"Allow USB debugging?"**: tick **Always allow** and tap **Allow**.
+4. Double-click **`INSTALL-WITH-USB.bat`**. The first time it installs Android's USB tool (adb): close the window when it says so and double-click it again.
+5. It installs the game and copies its data. When it says it's done, open Hello Bro on the phone and tap **PLAY**.
+6. Google Play Protect says "unsafe app blocked"? Tap **More details > Install anyway**.
+**No cable?** On Android 11+ it also works over Wi-Fi: when the .bat finds no phone, type **W** and follow its steps (Developer options > **Wireless debugging**, phone and PC on the same Wi-Fi).
+**No PC?** Try an XAPK installer app (for example *XAPK Installer* or *APKPure*). If it fails or the game shows a black screen at start, use the USB way above.
+Done? You can turn USB debugging off again.
 
 ## 3. Your account and another device
 Tapping **PLAY** makes an account tied to that device.
@@ -48,7 +54,7 @@ They can't reach your PC directly. The easy way is **Tailscale** (free): you and
 
 ## 7. Problems
 • *"Network error" / stuck on loading*: the server is offline, or the game file was made for another address. Public server: ask in <#1565697834571927694>. Your own server: is `START-SERVER.bat` still open? After an update, make a new game file (chapter 5).
-• *Black screen or crash at start (phone)*: the .obb file is missing or in the wrong folder (chapter 2, step 3).
+• *Black screen or crash at start (phone)*: the game's data (.obb) wasn't copied. Install it with the USB way (chapter 2). Still black after that? Clear the game's data: Settings > Apps > Hello Bro > Storage > **Clear data**.
 • *"This app was built for an older version of Android"*: tap **OK**, the game works.
 • *Screen sideways in BlueStacks*: the game is portrait. Turn off forced landscape for the app in BlueStacks settings.
 

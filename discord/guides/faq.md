@@ -10,8 +10,8 @@ If you host your own server and the game can't connect after you updated it, mak
 5. Open the game and tap **Confirm** if it asks to download an update.
 
 ## 2. The game won't install on my phone or tablet
-Android 14 and newer refuse game files made before 2 Nov 2026. Run **UPDATE.bat**, then make a new game file with **HOST-MY-SERVER.bat** and install that. Uninstall the old Hello Bro first.
-Still an error? Install it from a PC with a USB cable: **INSTALL-WITH-USB.bat** (see #install-help, chapter 2). That works for every game file.
+Install it from a PC with a USB cable: turn on **USB debugging** on the phone, put **HelloBro-ninjaonline.xapk** and **INSTALL-WITH-USB.bat** (both on the Releases page) in one folder and double-click the .bat. Step by step: <#1565697833150058507>, chapter 2. That works on every phone, also Android 14 and 15.
+Own server? Android 14 and newer refuse game files made before 2 Nov 2026: run **UPDATE.bat**, make a new game file with **HOST-MY-SERVER.bat**, and install that one the same way.
 
 ## 3. How do I update my own server?
 1. Close the server window.
@@ -26,5 +26,8 @@ The game links your account to your device. To move it, first tap **Change** > *
 ## 5. Is it really free?
 Yes. Top-ups cost nothing and still raise your VIP level. On the public server you can top up once a day; on your own server as often as you like (the owner of a server can change this in its control panel). Never pay anyone for gold, accounts or items.
 
-## 6. Something is broken
+## 6. Is the public server always on?
+Yes. Since 3 Nov 2026 **ninjaonline** runs in the cloud, so it's online day and night, also when the owner's PC is off. Now and then it restarts for an update (a minute or so). Your progress is saved and backed up every 6 hours.
+
+## 7. Something is broken
 Post it in <#1566415215220752444> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.

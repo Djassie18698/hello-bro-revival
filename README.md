@@ -29,6 +29,8 @@
 **Every screen of the game works.** All four bug lists are done (48 fixed, 2 can't be fixed from the server), and new
 reports are fixed as they come in. Fixes reach your game by themselves: tap **Confirm** when it asks for an update.
 
+🌍 **The public server `ninjaonline` is online 24/7** (it runs in the cloud since 3 Nov 2026): [join it](#-join-the-public-server).
+
 ---
 
 ## ✨ What works
@@ -90,7 +92,19 @@ Friends on the same Wi-Fi can join with the same `.xapk`.
 
 ### 🌍 Join the public server
 
-Play with everyone on the official server: download **`HelloBro-ninjaonline.xapk`** from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases), drag it onto BlueStacks 5, open the game and press **START**. The game remembers your phone; to use your account on another phone tap **Change > Login with Gumptech > Signup** and pick a name and password.
+Play with everyone on the official server **ninjaonline** (online day and night). The game file for it is **`HelloBro-ninjaonline.xapk`** on the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases/tag/tailscale-play).
+
+**PC:** drag `HelloBro-ninjaonline.xapk` onto **BlueStacks 5**, open the game, tap **PLAY** and press **START**.
+
+**Android phone or tablet: install it from a PC with a USB cable** (phone XAPK installer apps often fail, or leave out the game's data and give a black screen):
+
+1. **Turn on USB debugging** on the phone (one time): *Settings > About phone* (Samsung: *About phone > Software information*), tap **Build number** 7 times, then *Settings > Developer options* > **USB debugging** on.
+2. Download **`HelloBro-ninjaonline.xapk`** and **`INSTALL-WITH-USB.bat`** from the [Releases page](https://github.com/Djassie18698/hello-bro-revival/releases/tag/tailscale-play) into one folder on your PC.
+3. Uninstall any old Hello Bro on the phone, close BlueStacks, connect the phone with a USB data cable and tap **Allow** on the phone.
+4. Double-click **`INSTALL-WITH-USB.bat`** (the first time it installs Android's USB tool; then double-click it again). It installs the game and its data.
+5. Open Hello Bro on the phone and tap **PLAY**. No cable? Type **W** in the .bat to install over Wi-Fi (Android 11+, *Wireless debugging*).
+
+The game remembers your device; to use your account on another device tap **Change > Login with Gumptech > Signup** and pick a name and password.
 
 ### 🔄 Getting the newest fixes
 
@@ -119,6 +133,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 | Day | What |
 |---|---|
+| **3 Nov 2026** | The public server **ninjaonline** now runs **24/7 in the cloud** (no longer on a home PC). Phones install the game from a PC with **USB debugging** + `INSTALL-WITH-USB.bat`. The ninja you pick at the start is the one you get (everyone got Shikamaru), the Starter gift no longer pops up after every level-up, a tidier folder with only the .bat files on top. [Full list](docs/FIXES-2026-11-03.md) |
 | **2 Nov 2026** | New event **Limited Super Ninja** ("Super Ninja" on Home): every god card takes a turn, a new one every hour, with a points ranking and prizes. Big test round with no new bugs found. The **second team** (Team 2, from level 100), **battle reports** and friend messages in News, all **25 Battles chapters** with floor rewards, the Arena **Exchange** with its real limits, **Akatsuki leader tools**, **war rankings**, an **Award Center** to send gifts from the control panel, the **Anniversary festival**, daily task chests like the original, **War open all day**, the real **silver** on the Victory screen, **real login** (play as guest or sign up to move phones), the public server **ninjaonline**, and new events (Sign-in streak, God of Wealth, Month card, Flower Worship). Items, gift packs and VIP gifts give what their text says. The Discord bot now shows as online. [Full list](docs/FIXES-2026-11-02.md) |
 | **1 Nov 2026** | The **cross-server battle**, **elements in fights** (Water > Fire > Wind > Thunder > Earth > Water), real players fight with their real team, holiday and limited events (Christmas, New Year, God Recruit, Hot Treasure, Lottery and more), card stats exactly like the game, the **team builder** and one **control panel**, Server Manager, rebirth up to 8, sage growth with the original chances, a **Join Discord** button in the game's Settings. [Full list](docs/FIXES-2026-11-01.md) |
 | **31 Oct 2026** | The big fix day: training in parts, fights that don't crash, chains, rewards, recruits, daily tasks and more. [Full list](docs/FIXES-2026-10-31.md) |
