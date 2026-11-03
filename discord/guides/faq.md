@@ -33,5 +33,9 @@ Yes. Since 3 Nov 2026 **ninjaonline** runs in the cloud, so it's online day and 
 Yes, on the public server for now. Open **http://ninjaonline.duckdns.org:18080/admin** in a browser (PC or phone), type your in-game name under **Players** and click it. Then use **Resources** (gold, silver, energy, level ...), **Give** (one card or item) or **Team editor**. Close the game and open it again to see what you added.
 Only change **your own** account: leave other players alone.
 
-## 8. Something is broken
+## 8. Black screen when I open the game again
+After quitting, newer Android (14 and 15) kept part of the game running, and the next start stayed black. Fixed in the game file of 3 Nov 2026: download **HelloBro-ninjaonline.xapk** again and install it over the old one (your account stays; own server: run **UPDATE.bat** and **HOST-MY-SERVER.bat** for a new game file).
+Still have the old file? Go to *Settings > Apps > Hello Bro > Force stop* and open the game again. Clearing the cache is not needed.
+
+## 9. Something is broken
 Post it in <#1566415215220752444> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.
