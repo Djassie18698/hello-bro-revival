@@ -3,7 +3,15 @@ const fs = require('fs');
 const settings = require('./settings');
 const path = require('path');
 
-const table = (name) => JSON.parse(fs.readFileSync(path.join(__dirname, 'data', name + '.json'), 'utf8'));
+// Read once and kept: this re-read and re-parsed the file on EVERY call, and a stat calculation makes many calls, so a player with
+// 2000 cards pressing "Best gear" froze the cloud server for ~10 minutes (3 Nov 2026). Frozen, so a stray write can't change the cache
+// (a write was lost before too: every call got a fresh copy).
+const tableCache = new Map();
+const freeze = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); for (const v of Object.values(o)) freeze(v); } return o; };
+const table = (name) => {
+  if (!tableCache.has(name)) tableCache.set(name, freeze(JSON.parse(fs.readFileSync(path.join(__dirname, 'data', name + '.json'), 'utf8'))));
+  return tableCache.get(name);
+};
 let ninjaById = null;
 const ninjas = () => {
   if (!ninjaById) {

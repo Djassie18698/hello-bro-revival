@@ -83,6 +83,8 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const s = seal('Saiken Seal'), t = seal('Ten-Tails Seal');
   ck(s.al === 1400 && s.dl === 1400 && s.cl === 1000, 'Saiken (DEF and ATK +40%): ' + JSON.stringify(s));
   ck(t.al > 1800 && t.dl === 1800 && t.cl === 1800, 'Ten-Tails (DEF ATK Cha +80%): ' + JSON.stringify(t));
+  // game.table() keeps tables in memory: re-reading the file on every call froze the cloud server for 10 minutes on "Best gear"
+  ck(game.table('ninjutsuinfo') === game.table('ninjutsuinfo'), 'game.table() reads the file again on every call');
   const armed = game.table('skill_suit_info').rows.find((r) => r[2] === 'Armed');
   const at = [2, 3, 4].map((num) => game.setBonus(b, [{ row: armed, num }]).al);
   ck(at.join() === '1150,1300,1450', 'Armed set 2/3/4 pieces: ' + at.join());
