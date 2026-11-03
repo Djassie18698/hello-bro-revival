@@ -622,6 +622,7 @@ module.exports = {
   // Award Center ("Receive" on Home, awardcenter.js): Cmd 1 list, Cmd 2 MsgID claim one, Cmd 3 claim all
   rl_x_award_msg: (c) => borderCall(c, (db, pl, p) => {
     const ac = require('./awardcenter'), cmd = Number(p.Cmd);
+    limitsuper.settle(db); // a Super Ninja hour that ended: its prizes are here even if nobody opened the event since
     if (cmd === 2 || cmd === 3) { const r = ac.claim(db, pl, cmd === 2 ? Number(p.MsgID) : 0); return r.error ? { code: 5, msg: r.error } : { code: 0, xml: r.xml }; }
     return { code: 0, xml: ac.listXml(db, pl) };
   }),
