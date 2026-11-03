@@ -20,8 +20,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    `sh tools/dev/check.sh` (smoke + bad input + cheat + real-save checks; non-zero on any problem) `&& git add -A && git commit && git push` →
    `sh tools/sync_test_folder.sh` (copies the push into `C:\Users\dj199\Desktop\Hello Bro Locked Server`, the folder the owner plays on;
    keeps its save, removes files deleted from git) → tell the owner to restart their server (never stop or start it yourself while they
-   may be playing; ask first). The PUBLIC server runs in the cloud since 3 Nov 2026 (section 9): with the owner's OK update it with
-   `ssh -i ~/.ssh/hellobro-oracle.key ubuntu@ninjaonline.duckdns.org sudo sh /opt/hellobro/tools/vps/update.sh` (it restarts the server).
+   may be playing; ask first). The PUBLIC cloud server is NOT updated on every push: only when the owner says so (section 5).
    Then post a short plain-words note of the update in Discord #updates (owner's request, 1 Nov 2026).
    Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. GitHub sometimes answers "Internal Server Error": just push again.
 3. Repo `Djassie18698/hello-bro-revival` is **PUBLIC on purpose** (owner's decision on 31 Oct 2026: it is shared with several people and this is easier).
@@ -96,7 +95,25 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
 | docs | `README.md` GitHub front page · `docs/PROGRESS.md` every bug and request with its state · `docs/NEXT-STEPS.md` findings log · `docs/FIXES-<date>.md` plain-words fix days · `docs/BASE-FEATURES.md` Base rules + (ours) values · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/HOT-UPDATE.md` · `docs/BALANCE-SIMULATIONS.md` · `docs/GEAR-REPORT.md` · `docs/history/` old plans and notes (outdated, for reference) · `docs/HOST-YOUR-OWN-SERVER.md` · `docs/PLAY-ON-TAILSCALE.md` |
 
 ## 5. Running and testing
-- **Two servers:**
+- **Three servers:**
+  - the **public server `ninjaonline`** (strangers play here) runs **in the cloud** since 3 Nov 2026, so it is on when the owner's PC is off:
+    Oracle Cloud Always Free, VM.Standard.E2.1.Micro (1 GB, Ubuntu 24.04), address `ninjaonline.duckdns.org:18080` (DuckDNS points at
+    the machine's public IP; the owner changes it on duckdns.org). Reach it: `ssh -i ~/.ssh/hellobro-oracle.key ubuntu@ninjaonline.duckdns.org`.
+    Code in `/opt/hellobro` (a git clone, owned by user `hellobro`: run git as `sudo -u hellobro git ...`), save `public.db`, systemd service
+    `hellobro` (`tools/vps/run.sh` = LOGIN_LOCK, STRICT_SESSIONS, DB=public.db, HB_BACKUPS=backups-public, ADMIN_PASSWORD from
+    `admin-password.txt`). Restart=always, back by itself after a reboot. Logs `sudo journalctl -u hellobro`. Control panel
+    `http://ninjaonline.duckdns.org:18080/` (the owner's admin password). Guide + restore steps: `docs/CLOUD-SERVER.md`.
+    **Updating (owner, 3 Nov 2026): NOT on every push. Only when the owner asks ("update the public server"), or now and then when a
+    batch of player-visible fixes is waiting: then propose it and wait for a yes.** Show what is waiting first:
+    `ssh ... sudo sh /opt/hellobro/tools/vps/update.sh check`; update: `ssh ... sudo sh /opt/hellobro/tools/vps/update.sh`. It restarts the
+    server (players logged out for a few seconds) only when files under `server/` changed. The owner can also double-click
+    `tools\vps\UPDATE-CLOUD-SERVER.bat` (shows what's new, asks Y/N). Game-side hot updates (`server/cdn`) reach ninjaonline players only after
+    such an update. Never `git pull` there without the restart when `server/` changed (a crash restart would then load half-updated code).
+    Other scripts: `tools/vps/install.sh` (fresh machine, safe to rerun), `password.sh` (admin password), `snapshot.sh` (consistent copy).
+    Backups: every 6 h in `/opt/hellobro/backups-public`, plus a daily copy on the owner's PC by the scheduled task "Hello Bro cloud backup"
+    (`tools/vps/backup-to-pc.ps1` -> `Documents/HelloBro-cloud-backups`, 30 kept, `backup.log`). Free-tier risk: Oracle may reclaim an
+    idle Always Free machine; the owner was advised to upgrade to Pay As You Go (stays free) with a budget alert.
+    The old `START-PUBLIC-SERVER.bat` in the play folder (not in git) must NOT run any more: its public.db is the pre-move copy.
   - the **play server** the owner uses: `C:\Users\dj199\Desktop\Hello Bro Locked Server` (its own `hellobro.db`, port 18080).
     Only the owner starts and stops it (rule 2). Restart (only when asked, PowerShell): stop the process listening on 18080 and its
     parent cmd, then `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
@@ -166,12 +183,8 @@ Current: **28.0.32** (golden Chōji card name in English). The full list is in `
   Without granted permissions the account window sends `deviceId=""`; `gumplogin.js` then keys the guest by its kept password.
 - `HOST-MY-SERVER.bat` + `tools/make_game_for.py <address>` build a game file for any server address (friends who host their own;
   guide in `docs/HOST-YOUR-OWN-SERVER.md`). The owner's public server (LOGIN_LOCK, public.db; owner-only: GitHub only offers
-  solo/private hosting + joining ninjaonline) runs since 3 Nov 2026 on an **Oracle Cloud Always Free** machine (VM.Standard.E2.1.Micro, Ubuntu 24.04,
-  1 GB) so it is on when the PC is off: installed by `tools/vps/install.sh` into `/opt/hellobro` as the systemd service `hellobro`
-  (`tools/vps/run.sh` = the START-PUBLIC-SERVER.bat settings; `password.sh`, `update.sh`; guide `docs/CLOUD-SERVER.md`). SSH key on the
-  owner's PC: `~/.ssh/hellobro-oracle.key`, user `ubuntu`. Logs: `sudo journalctl -u hellobro`. Backups: `/opt/hellobro/backups-public`, plus a daily copy on the owner's PC
-  (scheduled task "Hello Bro cloud backup" -> `tools/vps/backup-to-pc.ps1` -> `Documents/HelloBro-cloud-backups`, 30 kept, `backup.log`).
-  The old `START-PUBLIC-SERVER.bat` in the play folder (not in git) must NOT run any more: its public.db is the pre-move copy.
+  solo/private hosting + joining ninjaonline) runs in the cloud since 3 Nov 2026: everything about it is in section 5 ("Three servers").
+  Phones install a game file from a PC with USB debugging + `INSTALL-WITH-USB.bat` (also a release asset; the guides lead with it).
 - Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,

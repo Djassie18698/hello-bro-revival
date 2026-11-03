@@ -1,7 +1,23 @@
 #!/bin/sh
-# Gets the newest version from GitHub and restarts the cloud server (the save and backups stay).
-# Run on that machine:  sudo sh /opt/hellobro/tools/vps/update.sh
+# Gets the newest version from GitHub for the cloud server (the save and backups stay).
+# Restarts the server (players are logged out for a few seconds) only when the server's own files changed.
+# Run on that machine:  sudo sh /opt/hellobro/tools/vps/update.sh        (add "check" to only list what is waiting)
 DIR=/opt/hellobro
 [ "$(id -u)" = 0 ] || { echo "Run it with sudo."; exit 1; }
-sudo -u hellobro git -C "$DIR" pull -q --ff-only && chown -R hellobro:hellobro "$DIR" && systemctl restart hellobro && sleep 3 &&
-  systemctl is-active -q hellobro && echo "Updated to: $(sudo -u hellobro git -C "$DIR" log --oneline -1)" || journalctl -u hellobro -n 30 --no-pager
+G() { sudo -u hellobro git -C "$DIR" "$@"; } # as the owner of the files (root gets git's "dubious ownership")
+G fetch -q || exit 1
+echo "Running now:  $(G log --oneline -1)"
+NEW=$(G log --oneline HEAD..origin/main)
+[ -n "$NEW" ] || { echo "Already the newest version."; exit 0; }
+echo "Waiting on GitHub:"; echo "$NEW" | sed 's/^/  /'
+[ "$1" = check ] && exit 0
+OLD=$(G rev-parse HEAD)
+G merge -q --ff-only origin/main || exit 1
+chown -R hellobro:hellobro "$DIR"
+if G diff --quiet "$OLD" HEAD -- server; then
+  echo "Updated to $(G log --oneline -1 | cut -c1-60). No server changes: no restart needed."
+  exit 0
+fi
+systemctl restart hellobro && sleep 3
+if systemctl is-active -q hellobro; then echo "Updated and restarted: $(G log --oneline -1 | cut -c1-60)"
+else echo "The server did not start again:"; journalctl -u hellobro -n 30 --no-pager; exit 1; fi
