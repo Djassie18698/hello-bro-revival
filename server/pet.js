@@ -162,4 +162,15 @@ function masterPet(db, uid, sid) {
   return db.prepare('SELECT id, pet_id FROM pets WHERE uid=? AND server_id=? AND slot=0').get(uid, sid) || null;
 }
 
-module.exports = { addPet, listXml, circleXml, place, levelInfo, levelUp, rankInfo, rankUp, trainInfo, train, teamBonus, masterPet };
+// The master pet's skill in a fight ("beast hit": "1/3 chance cause %d damage to enemies"). The damage is what the pet screen shows,
+// CPlayerPet::GetSkillDesc: petinfo [12] + [16] x (pet level - [17]) (Gamakichi 185 + 5 a level); the chance is read from that text.
+// A round with AttPetSkillHurt > 0 makes the client play the pet's claw attack (CRoundTeamFightView::update -> showPetSkill). null = no pet.
+function skillHurt(db, uid, sid) {
+  const m = masterPet(db, uid, sid);
+  const p = m && db.prepare('SELECT * FROM pets WHERE id=?').get(m.id), r = p && info(p.pet_id);
+  if (!r) return null;
+  const odds = /(\d+)\s*\/\s*(\d+)\s*chance/i.exec(String(r[6])) || [0, 1, 3];
+  return { hurt: Math.max(0, (Number(r[12]) || 0) + (Number(r[16]) || 0) * (p.level - (Number(r[17]) || 1))), rate: Number(odds[1]) / Number(odds[2]) };
+}
+
+module.exports = { addPet, listXml, circleXml, place, levelInfo, levelUp, rankInfo, rankUp, trainInfo, train, teamBonus, masterPet, skillHurt };

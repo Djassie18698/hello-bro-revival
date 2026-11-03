@@ -9,3 +9,5 @@ with what is fixed and what not. The fixes themselves are rows in `docs/PROGRESS
 |---|---|---|---|
 | 1566579797059174401 | 3 Nov 2026 | (Spanish) how to play on Android | question, not a bug: the install guide covers it |
 | 1567205978535895103 | 3 Nov 2026 | 5 bugs: leaderboard power, war reward exchange, story stages using boss tries, seal bonuses, gear set bonuses | all 5 fixed (seals checked on a test save, the rest seen in game); ✅ + reply |
+| 1567214376513966143 | 3 Nov 2026 | pets ("beasts") don't claw in battle (screenshot + 2 videos, also forwarded by the owner) | fixed, seen in game; ✅ + reply |
+| 1567214670832738428 | 3 Nov 2026 | ninjutsu cut-in shows a black silhouette instead of the ninja (screenshot) | fixed, seen in game; ✅ + reply |

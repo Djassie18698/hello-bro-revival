@@ -568,6 +568,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
   // ninjutsu worn (equipped kinds 5-8) by each team ninja: they can fire when that ninja starts attacking
   const jRows = db.prepare('SELECT e.slot, c.seq, c.ninja_id, c.level FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=? AND e.kind BETWEEN 5 AND 8')
     .all(pl.uid, pl.server_id);
+  const petSkill = require('./pet').skillHurt(db, pl.uid, pl.server_id);
   const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel, attri: t.attri || 1 }; });
   // Every enemy card has a defence RANGE (dl-dh, the value is rolled each fight): +-7 % around its value (ours; like a team that hits 7-8 M).
   const VAR = 0.07, spread = (f) => ({ ...f, dl: f.dl || Math.max(1, Math.round(f.def * (1 - VAR))), dh: f.dh || Math.max(1, Math.round(f.def * (1 + VAR))) });
@@ -620,6 +621,12 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       return skills;
     });
     let skillsOf = rollSkills();
+    // My master pet (pet.skillHurt): when a ninja of mine starts attacking, the pet's skill fires with its own chance (1/3) and its damage is
+    // added to that ninja's attack like a ninjutsu; the round's AttPetSkillHurt makes the client show the pet clawing. Rolling it at each
+    // ninja's first hit is (ours): the original timing is lost (players' video: the toad jumps in early in the fight). Not in a round where a
+    // ninjutsu fires: the client then plays only the pet and the ninjutsu cut-in is lost.
+    const rollPet = () => mine.map(() => (petSkill && (want !== false || process.env.HB_SKILLS) && (process.env.HB_SKILLS || Math.random() < petSkill.rate) ? petSkill.hurt : 0));
+    let petOf = rollPet();
     foes.forEach((f) => { if (!f.attri) f.attri = foeAttri(f.id); });
     const rt = restrainTable();
     // Restrain (CFightResultData::firefly_CalcAttackVal: CauseLimit -1 adds LimitVal to "my restrain", 1 to "enemy restrain"): my element beats
@@ -628,16 +635,19 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       const at = atk.slice(), df = def0.slice(), rolled = [];
       let i = 0, j = 0, started = -1;
       while (i < mine.length && j < foes.length && rolled.length < 60) {
-        let skills = [];
-        if (started !== i) { started = i; skills = skillsOf[i]; at[i] += skills.reduce((t, s) => t + s.chakraattack, 0); }
-        const a = at[i], d = df[j], base = a - skills.reduce((t, s) => t + s.chakraattack, 0);
+        let skills = [], petHurt = 0;
+        if (started !== i) { started = i; skills = skillsOf[i]; petHurt = skills.length ? 0 : petOf[i]; at[i] += skills.reduce((t, s) => t + s.chakraattack, 0) + petHurt; }
+        const a = at[i], d = df[j], base = a - skills.reduce((t, s) => t + s.chakraattack, 0) - petHurt;
         const ma = mine[i].attri || 1, fa = foes[j].attri || 1, mr = rt.get(ma), fr = rt.get(fa);
         let cause = 0, limit = 0, finA = a, finD = d;
         if (mr && mr.beats === fa) { cause = -1; limit = Math.floor(a * mr.rate); finA = a + limit; }
         else if (fr && fr.beats === ma) { cause = 1; limit = Math.floor(d * fr.rate); finD = d + limit; }
-        rolled.push({ AttackNinja: mine[i].bagid, Attack: base, AttackAttri: ma, DefenseNinja: foes[j].bagid, Defense: d, DefenseAttri: fa,
+        // AttackNinja / DefenseNinja = the NINJA id, not the card: the skill cut-in (CRoundTeamFightView::initMySkillData) finds its ninja by
+        // comparing AttackNinja with each <ninja><id> and shows that ninja's picture and words; with the card number it found nothing and drew
+        // the "update the full package" silhouette (Discord report, 3 Nov 2026). The cards themselves are played in order, not looked up.
+        rolled.push({ AttackNinja: mine[i].id, Attack: base, AttackAttri: ma, DefenseNinja: foes[j].id, Defense: d, DefenseAttri: fa,
           CauseLimit: cause, LimitVal: limit, FinalAttack: finA, FinalDefense: finD, AttPetAttack: 0, AttPetDefense: 0, DefPetAttack: 0, DefPetDefense: 0,
-          AttPetSkillHurt: 0, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0, _skills: skills });
+          AttPetSkillHurt: petHurt, DefpetSkillHurt: 0, AttGateAttack: 0, AttGateDefense: 0, DefGateAttack: 0, DefGateDefense: 0, _skills: skills });
         if (finA > finD) { at[i] = finA - finD; df[j] = 0; j++; }
         else if (finA < finD) { df[j] = finD - finA; at[i] = 0; i++; }
         else { at[i] = 0; df[j] = 0; i++; j++; }
@@ -648,7 +658,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     // chances) until the replay ends that way, so watching and skipping show the same fight with true numbers. Only if no roll fits
     // (the decision's luck range is wider than the cards' range) the enemy defence is nudged as a last resort.
     let out = sim(def);
-    for (let k = 0; k < 400 && typeof want === 'boolean' && out.won !== want; k++) { atk = rollAtk(); skillsOf = rollSkills(); const d = rollDef(); for (let j = 0; j < def.length; j++) def[j] = d[j]; out = sim(def); }
+    for (let k = 0; k < 400 && typeof want === 'boolean' && out.won !== want; k++) { atk = rollAtk(); skillsOf = rollSkills(); petOf = rollPet(); const d = rollDef(); for (let j = 0; j < def.length; j++) def[j] = d[j]; out = sim(def); }
     for (let k = 0; k < 30 && typeof want === 'boolean' && out.won !== want; k++) {
       for (let j = 0; j < def.length; j++) def[j] = want ? Math.max(1, Math.floor(def[j] * 0.9)) : Math.ceil(def[j] * 1.15);
       out = sim(def);

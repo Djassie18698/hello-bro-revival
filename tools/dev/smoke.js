@@ -91,6 +91,19 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   game.propAdd(db, 77, 1, 9994, 1234 - (game.propCounts(db, 77, 1)[9994] || 0));
   const shop = handlers.rl_r_warnew({ db, params: { ...base, Cmd: 225 } });
   ck(shop.includes('<curpower>1234</curpower>'), 'exploit shop balance: ' + shop.slice(0, 120));
+  // fights: the skill cut-in finds its ninja by AttackNinja = a <ninja><id> of my list; a master pet claws (AttPetSkillHurt) now and then
+  {
+    const pet = require('../../server/pet'), pl77 = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const fx = game.battleXml(db, pl77, 1, 6, {});
+    const ids = [...fx.matchAll(/<killer><ninjalist>(.*?)<\/ninjalist>/g)].flatMap((m) => [...m[1].matchAll(/<ninja><id>(\d+)<\/id>/g)].map((x) => x[1]));
+    const atk = [...fx.matchAll(/<AttackNinja>(\d+)<\/AttackNinja>/g)].map((m) => m[1]);
+    ck(atk.length && atk.every((a) => ids.includes(a)), `AttackNinja ${atk.join()} is not a ninja id of my list ${ids.join()}`);
+    pet.addPet(db, 77, 1, 1);
+    let claws = 0;
+    for (let k = 0; k < 60; k++) if (/<AttPetSkillHurt>[1-9]/.test(game.battleXml(db, pl77, 1, 6, {}))) claws++;
+    ck(claws > 0 && claws < 60, `master pet clawed in ${claws} of 60 fights`);
+    db.prepare('DELETE FROM pets WHERE uid=77').run();
+  }
   // a won story stage must not show the part's boss tries as 0 (chapter 1 part 2 = stages 3-6, boss = 6)
   db.prepare('DELETE FROM stage_clears WHERE uid=77 AND chap=1').run();
   game.setStage(db, 77, 1, 1, 3); db.prepare('UPDATE players SET energy=500 WHERE uid=77').run();

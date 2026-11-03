@@ -14,7 +14,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
-| Discord reports | 4 | 1 | 0 | 0 |
+| Discord reports | 6 | 1 | 0 | 0 |
 
 ## Bug list 1
 
@@ -96,6 +96,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Story stages took away the boss's tries ("Challenges left" went to 0 after winning a normal stage) | The server sent the tries of the stage just played (0 for a normal stage) instead of the part's boss. Seen in game: 3 left after a story stage |
 | 🧪 | Seals: only part of the bonus worked | Seals with several stats ("DEF and ATK +40%", "DEF ATK Cha +80%") only boosted the last stat named. Every named stat now gets the %. Checked on a test save |
 | ✅ | Gear sets: 2 of 4 pieces gave the same as the full set | The set screen lights the 2-, 3- and 4-piece lines together, so they add up (Armed: +15 / +30 / +45 %); the server only counted the highest line. Also a weapon whose number matched a seal could count as a set piece. Seen in game: all 3 lines lit with 4 pieces |
+| ✅ | Pets ("beasts") never clawed in battle | The fight data never gave the pet a turn. Now the main pet's skill ("1/3 chance to cause X damage", X from the pet screen: Gamakichi 185 + 5 a level) can fire when each of your ninjas starts attacking; its damage counts and the pet jumps in and claws. Seen in game: the toad claws for 430 |
+| ✅ | Ninjutsu cut-in showed a black silhouette ("update the full package") instead of the ninja | The fight told the game the attacker's CARD number where it expects the NINJA id, so the cut-in found no picture. Seen in game: Gentle Fist shows Neji and her line |
 
 ## Built on request (chat)
 
