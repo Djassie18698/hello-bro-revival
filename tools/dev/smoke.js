@@ -151,9 +151,10 @@ for (const pick of [55, 56, 57]) {
   {
     const admin = require('../../server/admin'), manager = require('../../server/manager');
     const url = require('url');
+    let page = '';
     const hit = async (fn, p, method = 'GET') => {
       let status = 200;
-      const res = { writeHead(s) { status = s; }, end() {}, setHeader() {} };
+      const res = { writeHead(s) { status = s; }, end(s) { page = String(s || ''); }, setHeader() {} };
       await fn({ method, headers: {} }, res, url.parse(p, true), db, async () => JSON.stringify({ player: '77:1' })).catch(() => {});
       return status;
     };
@@ -163,6 +164,9 @@ for (const pick of [55, 56, 57]) {
     process.env.ADMIN_OPEN = '1';
     const r = { players: await hit(admin, '/admin/api/players'), reset: await hit(admin, '/admin/api/reset', 'POST'), manager: await hit(manager, '/manager') };
     if (shut !== 401 || r.players !== 200 || r.reset !== 401 || r.manager !== 401) { bad++; console.log('ADMIN_OPEN:', JSON.stringify({ shut, ...r })); }
+    // a player gets the item page alone (the control panel around it polls /manager, which asked for the password) without the Reset tab
+    const st = await hit(admin, '/admin');
+    if (st !== 200 || page.includes('f-server') || !page.includes('<body class="player">')) { bad++; console.log('ADMIN_OPEN page:', st, page.slice(0, 80)); }
     for (const [k, v] of [['ADMIN_PASSWORD', keep.pw], ['ADMIN_OPEN', keep.open]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
   }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}

@@ -355,11 +355,13 @@ module.exports = async function admin(req, res, u, db, readBody) {
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
     return res.end('password required');
   }
-  if ((u.pathname === '/admin' || u.pathname === '/admin/') && !u.query.embed) return panel(res, 'admin');
+  const owner = authorized(req);
+  // players (ADMIN_OPEN) get the item page alone: the control panel around it polls /manager, which would ask them for the password
+  if ((u.pathname === '/admin' || u.pathname === '/admin/') && !u.query.embed && owner) return panel(res, 'admin');
   if (u.pathname === '/admin' || u.pathname === '/admin/') {
     if (!pageCache || process.env.HB_DEBUG) pageCache = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    return res.end(pageCache);
+    return res.end(owner ? pageCache : pageCache.replace('<body>', '<body class="player"><style>.player [data-v="danger"],.player a[href="/manager"]{display:none!important}</style>'));
   }
   game.ensure(db);
   if (u.pathname === '/admin/playerlog') { // progress log per player (playerlog.js), the panel's "Player log" tab
