@@ -102,7 +102,8 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     Code in `/opt/hellobro` (a git clone, owned by user `hellobro`: run git as `sudo -u hellobro git ...`), save `public.db`, systemd service
     `hellobro` (`tools/vps/run.sh` = LOGIN_LOCK, STRICT_SESSIONS, DB=public.db, HB_BACKUPS=backups-public, ADMIN_PASSWORD from
     `admin-password.txt`). Restart=always, back by itself after a reboot. Logs `sudo journalctl -u hellobro`. Control panel
-    `http://ninjaonline.duckdns.org:18080/` (the owner's admin password). Guide + restore steps: `docs/CLOUD-SERVER.md`.
+    `http://ninjaonline.duckdns.org:18080/` (the owner's admin password). `ADMIN_OPEN=1` (owner, 3 Nov 2026, "for now"): players use the item
+    page `/admin` without the password; the panel, /manager and wiping a player still need it. Owner's later wish: each player only their own account. Guide + restore steps: `docs/CLOUD-SERVER.md`.
     **Updating (owner, 3 Nov 2026): NOT on every push. Only when the owner asks ("update the public server"), or now and then when a
     batch of player-visible fixes is waiting: then propose it and wait for a yes.** Show what is waiting first:
     `ssh ... sudo sh /opt/hellobro/tools/vps/update.sh check`; update: `ssh ... sudo sh /opt/hellobro/tools/vps/update.sh`. It restarts the

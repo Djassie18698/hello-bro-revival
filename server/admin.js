@@ -345,8 +345,13 @@ function benchmark(db, pl, targets, runs = 300) {
   return { team: mine.map((m) => ({ name: m.name, low: m.low, high: m.high, jutsu: m.jutsu.length })), minAtk, maxAtk, results };
 }
 
+// ADMIN_OPEN=1: players may use the item pages (/admin) without the password (owner, 3 Nov 2026: players add resources themselves on
+// the public server "for now"; later only their own account). The control panel (/, /manager) and wiping a player stay the owner's.
+const OWNER_ONLY = new Set(['/admin/api/reset']);
+const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
+
 module.exports = async function admin(req, res, u, db, readBody) {
-  if (!authorized(req)) {
+  if (!authorized(req) && !openToPlayers(u)) {
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
     return res.end('password required');
   }

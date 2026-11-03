@@ -147,6 +147,24 @@ for (const pick of [55, 56, 57]) {
   if (reg.code !== 100000 || !again || again.code !== 100000 || again.userId !== reg.userId || wrong.code === 100000) {
     bad++; console.log('LOGIN without a phone ID:', JSON.stringify({ reg: reg.code, again: again && again.code, wrong: wrong.code }));
   }
+  // ADMIN_OPEN=1 (public server, owner 3 Nov 2026): the item page works without the password; wiping a player and the manager still ask for it
+  {
+    const admin = require('../../server/admin'), manager = require('../../server/manager');
+    const url = require('url');
+    const hit = async (fn, p, method = 'GET') => {
+      let status = 200;
+      const res = { writeHead(s) { status = s; }, end() {}, setHeader() {} };
+      await fn({ method, headers: {} }, res, url.parse(p, true), db, async () => JSON.stringify({ player: '77:1' })).catch(() => {});
+      return status;
+    };
+    const keep = { pw: process.env.ADMIN_PASSWORD, open: process.env.ADMIN_OPEN };
+    process.env.ADMIN_PASSWORD = 'smoke-secret';
+    const shut = await hit(admin, '/admin/api/players');
+    process.env.ADMIN_OPEN = '1';
+    const r = { players: await hit(admin, '/admin/api/players'), reset: await hit(admin, '/admin/api/reset', 'POST'), manager: await hit(manager, '/manager') };
+    if (shut !== 401 || r.players !== 200 || r.reset !== 401 || r.manager !== 401) { bad++; console.log('ADMIN_OPEN:', JSON.stringify({ shut, ...r })); }
+    for (const [k, v] of [['ADMIN_PASSWORD', keep.pw], ['ADMIN_OPEN', keep.open]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);

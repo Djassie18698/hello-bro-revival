@@ -29,5 +29,9 @@ Yes. Top-ups cost nothing and still raise your VIP level. On the public server y
 ## 6. Is the public server always on?
 Yes. Since 3 Nov 2026 **ninjaonline** runs in the cloud, so it's online day and night, also when the owner's PC is off. Now and then it restarts for an update (a minute or so). Your progress is saved and backed up every 6 hours.
 
-## 7. Something is broken
+## 7. Can I add gold and items myself?
+Yes, on the public server for now. Open **http://ninjaonline.duckdns.org:18080/admin** in a browser (PC or phone), type your in-game name under **Players** and click it. Then use **Resources** (gold, silver, energy, level ...), **Give** (one card or item) or **Team editor**. Close the game and open it again to see what you added.
+Only change **your own** account: leave other players alone.
+
+## 8. Something is broken
 Post it in <#1566415215220752444> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.
