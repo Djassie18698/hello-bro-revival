@@ -65,17 +65,22 @@ function askGumptech(path, form) {
 // Phones on Android 14+ need the app to target Android 7 (tools/patch_targetsdk.py); then Android hides the phone ID and the account
 // window sends deviceId="" (getDeviceId throws). Such a guest is kept by its secret password instead: device = 'pw:' + sha256(passwd).
 const pwDevice = (pw) => 'pw:' + crypto.createHash('sha256').update(String(pw)).digest('hex');
+// Such a phone also sends deviceId="" when it signs up, so the guest it plays as can't be found by its ID: the sign-up then made a new,
+// empty account (owner's tablet, 3 Nov 2026). Remember which guest last logged in from each internet address; a sign-up without an ID
+// from the same address within GUEST_LINK_MIN names that guest, if it has no name yet (ours).
+const GUEST_LINK_MIN = 30, lastGuest = new Map();
+const noteGuest = (p, out) => { if (out && out.userId && p.__ip) lastGuest.set(p.__ip, { uid: Number(out.userId), at: now() }); return out; };
 async function quickLogin(db, p) {
   const dev = String(p.deviceId || '') || (p.passwd ? pwDevice(p.passwd) : '');
   if (!dev) return { code: FAIL };
   let row = db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev);
-  if (row) return check(p.passwd || '', row.pwhash) ? answer(db, row) : { code: BAD_PWD, msg: 'this phone is linked to another password' };
+  if (row) return check(p.passwd || '', row.pwhash) ? noteGuest(p, answer(db, row)) : { code: BAD_PWD, msg: 'this phone is linked to another password' };
   // first time on this server: a phone that played before keeps its old account number if Gumptech still knows it
   if (dev.startsWith('pw:')) return { code: NO_USER }; // a phone without an ID only gets a guest from /quick/reg.do
   const old = process.env.HB_NO_GUMPTECH ? null : await askGumptech('/quick/login.do', { deviceId: dev, appId: p.appId || '10015', passwd: p.passwd || '' });
   const uid = account(db, old ? Number(old.userId) : 0, 'guest');
   db.prepare("INSERT INTO logins(kind,device,pwhash,uid,created) VALUES('quick',?,?,?,?)").run(dev, hash(p.passwd || ''), uid, now());
-  return answer(db, db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev));
+  return noteGuest(p, answer(db, db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev)));
 }
 function quickReg(db, p) {
   const pw = crypto.randomBytes(6).toString('hex'); // the phone keeps this and sends it with every guest login
@@ -87,13 +92,15 @@ function quickReg(db, p) {
     db.prepare("INSERT INTO logins(kind,device,pwhash,uid,created) VALUES('quick',?,?,?,?)").run(dev, hash(pw), uid, now());
   }
   row = db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(dev);
-  return answer(db, row, { passwd: pw, quickRegUser: { id: row.id, email: dev, nickname: 'User' + row.uid, passwd: pw, appId: 10015 } });
+  return noteGuest(p, answer(db, row, { passwd: pw, quickRegUser: { id: row.id, email: dev, nickname: 'User' + row.uid, passwd: pw, appId: 10015 } }));
 }
 function gumpReg(db, p) {
   const email = String(p.email || '').trim(), pw = String(p.passwd || '');
   if (email.length < 3 || pw.length < 4) return { code: FAIL, msg: 'name or password too short' };
   if (db.prepare("SELECT 1 FROM logins WHERE kind='gump' AND email=? COLLATE NOCASE").get(email)) return { code: TAKEN };
-  const guest = p.deviceId && db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(String(p.deviceId));
+  let guest = p.deviceId && db.prepare("SELECT * FROM logins WHERE kind='quick' AND device=?").get(String(p.deviceId));
+  const recent = !p.deviceId && p.__ip && lastGuest.get(p.__ip);
+  if (!guest && recent && now() - recent.at < GUEST_LINK_MIN * 60000 && !db.prepare("SELECT 1 FROM logins WHERE kind='gump' AND uid=?").get(recent.uid)) guest = recent;
   const uid = guest ? guest.uid : account(db, 0, 'user'); // registering on a phone that plays as a guest names that account
   db.prepare("INSERT INTO logins(kind,device,email,pwhash,uid,created) VALUES('gump',?,?,?,?,?)").run(String(p.deviceId || ''), email, hash(pw), uid, now());
   return answer(db, db.prepare("SELECT * FROM logins WHERE kind='gump' AND email=? COLLATE NOCASE").get(email));
@@ -126,6 +133,7 @@ async function handle(req, resp, parseBody, db) {
   if (process.env.HB_GUMP_PROXY) return proxy(req, resp, body);
   ensure(db);
   const p = Object.fromEntries(new URLSearchParams(body || (req.url.split('?')[1] || '')));
+  p.__ip = String((req.socket && req.socket.remoteAddress) || '');
   const path = req.url.split('?')[0].replace(/\/+/g, '/');
   // "Login with Facebook" opens /facebook2/login.do in a web view (the old Facebook sign-in). Facebook can't sign in to the revival servers,
   // so show a short page instead of raw text; the player closes it with the X.

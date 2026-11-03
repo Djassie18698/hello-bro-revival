@@ -184,6 +184,18 @@ for (const pick of [55, 56, 57]) {
   if (reg.code !== 100000 || !again || again.code !== 100000 || again.userId !== reg.userId || wrong.code === 100000) {
     bad++; console.log('LOGIN without a phone ID:', JSON.stringify({ reg: reg.code, again: again && again.code, wrong: wrong.code }));
   }
+  // signing up on a phone without an ID names the guest that just played from the same internet address (owner's tablet, 3 Nov 2026)
+  {
+    const callIp = async (url, form, ip) => {
+      let out = '';
+      await gump.handle({ method: 'POST', url, socket: { remoteAddress: ip } }, { writeHead() {}, end(s) { out = s; } }, async () => new URLSearchParams(form).toString(), db);
+      return JSON.parse(out);
+    };
+    const g = await callIp('/quick/reg.do', { deviceId: '', appId: '10015' }, '10.9.9.1');
+    const same = await callIp('/gump/reg.do', { deviceId: '', appId: '10015', email: 'smokelink', passwd: 'pass1234' }, '10.9.9.1');
+    const other = await callIp('/gump/reg.do', { deviceId: '', appId: '10015', email: 'smokelink2', passwd: 'pass1234' }, '10.9.9.2');
+    if (same.userId !== g.userId || other.userId === g.userId) { bad++; console.log('SIGN-UP LINK:', JSON.stringify({ guest: g.userId, same: same.userId, other: other.userId })); }
+  }
   // ADMIN_OPEN=1 (public server, owner 3 Nov 2026): the item page works without the password; wiping a player and the manager still ask for it
   {
     const admin = require('../../server/admin'), manager = require('../../server/manager');
