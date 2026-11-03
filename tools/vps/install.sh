@@ -23,8 +23,7 @@ echo "node $(node -v)"
 echo "== server files"
 id hellobro >/dev/null 2>&1 || useradd --system --home-dir "$DIR" --shell /usr/sbin/nologin hellobro
 if [ -d "$DIR/.git" ]; then
-  git -C "$DIR" config --global --add safe.directory "$DIR" 2>/dev/null || true
-  git -C "$DIR" pull -q --ff-only
+  sudo -u hellobro git -C "$DIR" pull -q --ff-only   # as the owner of the files (root gets "dubious ownership")
 else
   git clone -q --depth 1 "$REPO" "$DIR"
 fi
