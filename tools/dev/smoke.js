@@ -75,6 +75,28 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   ck(mail.length === 1 && /#1 with 120 points/.test(mail[0].content) && mail[0].items.includes(`"dropid":${god.drop}`), 'round prize mail: ' + JSON.stringify(mail));
   ck(chest.includes('<title>Limited Super Ninja</title>'), 'the Awards chest did not show the prize: ' + chest.slice(0, 200));
 }
+// Discord report 3 Nov 2026: seals with several stats, set tiers adding up, the war exploit shop's balance.
+{
+  const ck = (ok, what) => { if (!ok) { bad++; console.log('DISCORD 3 NOV', what); } }, game = require('../../server/game');
+  const b = { al: 1000, ah: 1000, dl: 1000, dh: 1000, cl: 1000, ch: 1000 };
+  const seal = (name) => game.sealBonus(b, game.table('markinfo').rows.find((r) => r[2] === name)[0]);
+  const s = seal('Saiken Seal'), t = seal('Ten-Tails Seal');
+  ck(s.al === 1400 && s.dl === 1400 && s.cl === 1000, 'Saiken (DEF and ATK +40%): ' + JSON.stringify(s));
+  ck(t.al > 1800 && t.dl === 1800 && t.cl === 1800, 'Ten-Tails (DEF ATK Cha +80%): ' + JSON.stringify(t));
+  const armed = game.table('skill_suit_info').rows.find((r) => r[2] === 'Armed');
+  const at = [2, 3, 4].map((num) => game.setBonus(b, [{ row: armed, num }]).al);
+  ck(at.join() === '1150,1300,1450', 'Armed set 2/3/4 pieces: ' + at.join());
+  game.propAdd(db, 77, 1, 9994, 1234 - (game.propCounts(db, 77, 1)[9994] || 0));
+  const shop = handlers.rl_r_warnew({ db, params: { ...base, Cmd: 225 } });
+  ck(shop.includes('<curpower>1234</curpower>'), 'exploit shop balance: ' + shop.slice(0, 120));
+  // a won story stage must not show the part's boss tries as 0 (chapter 1 part 2 = stages 3-6, boss = 6)
+  db.prepare('DELETE FROM stage_clears WHERE uid=77 AND chap=1').run();
+  game.setStage(db, 77, 1, 1, 3); db.prepare('UPDATE players SET energy=500 WHERE uid=77').run();
+  const story = handlers.rl_w_pve({ db, params: { ...base, Cmd: 3, ChapID: 1, StageID: 2, Pos: 1 } });
+  ck(/pk_boss_times="3"/.test(story), 'boss tries after a story stage: ' + (/<pve [^>]*>/.exec(story) || [story.slice(0, 200)])[0]);
+  const list = handlers.rl_w_pve({ db, params: { ...base, Cmd: 2, ChapID: 1 } });
+  ck(!/stageid="2"[^>]*pk_boss_times="0"/.test(list), 'chapter list boss tries: ' + list.slice(0, 300));
+}
 // Ninja Treasure (sudoku.js): the top list is the 16 original prizes, every board hides exactly one of them, buying the board gives it.
 {
   const sudoku = require('../../server/sudoku');

@@ -30,6 +30,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    the owner starts it, then run `HD-Adb.exe devices`, ask which entry is "Claude", and save it in `tools/dev/emu.device`
    (one line, e.g. `emulator-5564`; or set `HB_EMU`). `emu.sh` refuses to run without it so it never hits the owner's own
    game instances. Never touch any other BlueStacks instance (the owner tests there) and never use the Multi-Instance Manager.
+   The owner allows starting and using the "Claude" instance whenever a check needs it (3 Nov 2026): test in game yourself, don't wait.
 5. Keep working through open bugs without asking at every step; ask only for real decisions (e.g. "original vs. free").
    Explain what changed in plain words; say what is not verified in game.
 6. Update this file when a rule, path or the open list changes. Append findings to `docs/NEXT-STEPS.md`.
@@ -42,7 +43,8 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 ## 2. Fixing a bug (the usual job now)
 1. **Where reports come from:** the owner in chat; GitHub issues #2 (list 1), #3 (list 2), #4 (list 3), #5 (list 4), #6 (list 5, still
    empty) and new issues from the Bug report template (`gh issue list`); Discord #bugs-and-issues and #support
-   (`cd discord && node --env-file=.env dc.js read bugs-and-issues`). Never reply in Discord chat channels.
+   (`cd discord && node --env-file=.env dc.js read bugs-and-issues`). Never reply in Discord chat channels, EXCEPT on bug reports in
+   #bugs-and-issues (owner, 3 Nov 2026): see step 7. `docs/DISCORD-REPORTS.md` logs every report and its state: read it first.
 2. **Add a row** to `docs/PROGRESS.md` (⏳) under its list, and keep the Summary counts matching the rows.
 3. **Reproduce:** `node tools/dev/probe.js <endpoint> <Cmd> k=v` against a test save, or in the game on the Claude emulator
    (section 5). `emu.sh log` shows crashes and the server's replies. Real player data: `node tools/dev/realsave.js <copy of save>`.
@@ -54,6 +56,8 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
 7. Ship it (rule 2), set the PROGRESS row to ✅/🧪, add a line to `docs/NEXT-STEPS.md`, and comment on the GitHub issue it came from
    (write the text to a file in the scratchpad, `gh issue comment N --body-file <file>`; `/tmp` paths failed once).
    If players will notice it, also update `discord/guides/how-to-play.md` or `faq.md` and apply it (section 9).
+   A Discord report: react ✅ on it (`dc.js react bugs-and-issues <id>`), reply to it with what is fixed and what not
+   (`dc.js reply bugs-and-issues <id> <file>`), add a row to `docs/DISCORD-REPORTS.md` and to PROGRESS "Discord reports".
 
 ## 3. First-time setup in a new session (5 minutes)
 - Work in `C:\Users\dj199\Desktop\HelloBroServer` (main repo). Git Bash: use short paths, `cd /c/Users/dj199/...`

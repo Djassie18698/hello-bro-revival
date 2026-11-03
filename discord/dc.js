@@ -4,6 +4,8 @@
 //   node --env-file=.env dc.js post <channel> <file.md | ->        ("-" = read the text from stdin)
 //   node --env-file=.env dc.js edit <channel> <message-id> <file.md | ->
 //   node --env-file=.env dc.js delete <channel> <message-id>        (own messages only)
+//   node --env-file=.env dc.js reply <channel> <message-id> <file.md | ->   (answer one message, e.g. a bug report: what got fixed)
+//   node --env-file=.env dc.js react <channel> <message-id> [emoji]         (default ✅ = the report is handled)
 // Same safety rules as the bot: no secrets/IP addresses, no @everyone pings, only own messages are changed.
 const fs = require('fs');
 const { secretProblem, splitMessage } = require('./tools');
@@ -46,7 +48,10 @@ async function run(argv, { token, guildId, readText = (p) => (p === '-' ? fs.rea
 
   if (cmd === 'read') {
     const msgs = (await call('GET', `/channels/${ch.id}/messages?limit=${Math.min(Number(a) || 15, 50)}`)).reverse();
-    return out(msgs.map((m) => `[${m.id}] ${m.author.id === me.id ? '(bot)' : m.author.username}: ${m.content}`).join('\n---\n'));
+    return out(msgs.map((m) => `[${m.id}] ${m.timestamp ? m.timestamp.slice(0, 16).replace('T', ' ') + ' ' : ''}${m.author.id === me.id ? '(bot)' : m.author.username}` +
+      `${m.message_reference ? ' (reply to ' + m.message_reference.message_id + ')' : ''}: ${m.content}` +
+      (m.attachments || []).map((x) => `\n  [attachment] ${x.url}`).join('') +
+      ((m.reactions || []).length ? '\n  [reactions] ' + m.reactions.map((x) => x.emoji.name + x.count).join(' ') : '')).join('\n---\n'));
   }
   if (cmd === 'post') {
     const text = readText(a); guard(text);
@@ -60,7 +65,13 @@ async function run(argv, { token, guildId, readText = (p) => (p === '-' ? fs.rea
     return out('edited ' + a);
   }
   if (cmd === 'delete') { await own(a); await call('DELETE', `/channels/${ch.id}/messages/${a}`); return out('deleted ' + a); }
-  throw new Error('unknown command. Use: channels | read | post | edit | delete');
+  if (cmd === 'reply') {
+    const text = readText(b); guard(text);
+    for (const part of splitMessage(text)) { const m = await call('POST', `/channels/${ch.id}/messages`, { content: part, message_reference: { message_id: a, fail_if_not_exists: true }, allowed_mentions: { parse: [], replied_user: false } }); out(`replied in #${ch.name}: message id ${m.id}`); await sleep(600); }
+    return;
+  }
+  if (cmd === 'react') { await call('PUT', `/channels/${ch.id}/messages/${a}/reactions/${encodeURIComponent(b || '✅')}/@me`); return out(`reacted ${b || '✅'} on ${a}`); }
+  throw new Error('unknown command. Use: channels | read | post | edit | delete | reply | react');
 }
 
 module.exports = { run, makeApi };

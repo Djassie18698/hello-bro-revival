@@ -14,6 +14,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
+| Discord reports | 4 | 1 | 0 | 0 |
 
 ## Bug list 1
 
@@ -84,6 +85,17 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Rebirth 7 error | Costs one same card or the shown pills |
 | ✅ | Defence 0 before the hit | Shows the enemy's defence |
 | ✅ | Defence 0 in Battles too | Same fix |
+
+## Discord reports
+Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORTS.md).
+
+| | Problem | What happened |
+|---|---|---|
+| ✅ | No.1 Shinobi list (Home, scroll icon) showed fake numbers: Offense / Defense Points were level x 10 - level x 20 | Each tab now shows the real thing: the team's attack range, defense range, and the W.A. medal + points. Seen in game |
+| ✅ | War > Reward: rewards could not be exchanged | The shop's "current exploit" (and "war exploit" on the War tab) showed the team power, not the exploit you spend, so exchanges were refused. Now it shows the real exploit. Seen in game: 5000, exchange, 4000 |
+| ✅ | Story stages took away the boss's tries ("Challenges left" went to 0 after winning a normal stage) | The server sent the tries of the stage just played (0 for a normal stage) instead of the part's boss. Seen in game: 3 left after a story stage |
+| 🧪 | Seals: only part of the bonus worked | Seals with several stats ("DEF and ATK +40%", "DEF ATK Cha +80%") only boosted the last stat named. Every named stat now gets the %. Checked on a test save |
+| ✅ | Gear sets: 2 of 4 pieces gave the same as the full set | The set screen lights the 2-, 3- and 4-piece lines together, so they add up (Armed: +15 / +30 / +45 %); the server only counted the highest line. Also a weapon whose number matched a seal could count as a set piece. Seen in game: all 3 lines lit with 4 pieces |
 
 ## Built on request (chat)
 

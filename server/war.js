@@ -39,14 +39,16 @@ function countryKills(db, sid, c) {
 function power(db, uid, sid) { const t = game.teamStats(db, uid, sid).total; return Math.round((t.al + t.ah + t.dl + t.dh) / 2); }
 
 function infoXml(db, pl) {
-  const m = me(db, pl), pw = power(db, pl.uid, pl.server_id);
+  const m = me(db, pl), props = game.propCounts(db, pl.uid, pl.server_id);
   const rank = db.prepare('SELECT COUNT(*)+1 n FROM war WHERE server_id=? AND day=? AND score>?').get(pl.server_id, day(), m.score).n;
   const midnight = (() => { const m = new Date(); m.setHours(24, 0, 0, 0); return Math.round((m - Date.now()) / 1000); })();
   const opp = enemies(pl.country);
   const allies = `<allicountry><allicountryid>${pl.country}</allicountryid></allicountry>`;
   const opps = `<oppecountry>${opp.map((c) => `<oppecountryid>${c}</oppecountryid>`).join('')}</oppecountry>`;
   return `<preview resttime="0" open="1" myCountryID="${pl.country}" fightlefttime="0" curintercost="10">${allies}${opps}</preview>` + allies + opps +
-    '<user>' + el('maxalive', MAX_ALIVE) + el('restalive', m.alive) + el('totlepower', pw) + el('curpower', pw) + el('thistimepowe', pw) +
+    // "war exploit" on this screen and "own score" in the exploit shop (CScoreShopView) are <curpower>: the exploit to spend (prop 9994,
+    // what war.exchange charges). It held the team power until 3 Nov 2026, so the shop looked affordable and refused every exchange.
+    '<user>' + el('maxalive', MAX_ALIVE) + el('restalive', m.alive) + el('totlepower', props[9993] || props[9994] || 0) + el('curpower', props[9994] || 0) + el('thistimepowe', props[9994] || 0) +
     el('score', m.score) + el('scorerank', rank) + el('killnum', m.kills) + el('rank', rank) + el('beattack', m.beattack) + el('beattackrank', 0) +
     el('beattackmerit', 0) + el('autowar', 0) + '</user>' +
     `<country><my killnum="${countryKills(db, pl.server_id, pl.country)}"/><he killnum="${opp.reduce((a, c) => a + countryKills(db, pl.server_id, c), 0)}"/></country>` +

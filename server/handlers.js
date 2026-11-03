@@ -442,6 +442,7 @@ module.exports = {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
+    // (Cmd 225 = the exploit shop, CScoreShopView::LoadMeritInfo: it reads <user><curpower> from this same reply)
     return '<root code="0">' + war.infoXml(db, pl) + '<display>0</display></root>';
   },
   // 4102 attack, 4101 revive (buy lives), 4103 auto attack, 4104 clear cd.
@@ -720,13 +721,22 @@ module.exports = {
     // <viplevel>: the hot-updated top-up screen (28.0.9) sets the new level right away
     return '<root code="0">' + game.awardFull({ cash: gold }) + el('viplevel', vip.level(db, pl.uid, pl.server_id)) + '</root>';
   },
-  // Hall of fame: all real players ranked by level.
+  // "No.1 Shinobi list" (ui_hallOfFameView.lua, the scroll on Home): Cmd 1 Attack, 2 Defense = the team's real range (min_score-max_score,
+  // like the team screen), 3 Ninja Rank = W.A. medal (min_score = playemedal id: the cell looks it up, so 0 would be a Lua error) and W.A.
+  // points (max_score). Until 3 Nov 2026 every tab showed level x 10 - level x 20 (Discord report "leaderboard doesn't show combat power").
   rl_r_ninja_rank: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
-    const all = db.prepare('SELECT uid,nick,country,level FROM players ORDER BY level DESC, uid').all();
-    const me = all.findIndex((r) => acc && r.uid === acc.uid) + 1;
-    const items = all.map((r, i) => `<item rank="${i + 1}" uid="${r.uid}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.level * 10}" max_score="${r.level * 20}"/>`).join('');
-    return `<root code="0"><player><rank>${me || 1}</rank><min_score>10</min_score><max_score>20</max_score></player><rank_list>${items}</rank_list></root>`;
+    const sid = Number(p.ServerID || 1), type = [1, 2, 3].includes(Number(p.Cmd)) ? Number(p.Cmd) : 1;
+    const rows = db.prepare('SELECT uid,nick,country,level FROM players WHERE server_id=?').all(sid).map((r) => {
+      if (type === 3) { const wa = game.propCounts(db, r.uid, sid); return { ...r, lo: game.meritLevel(db, r.uid, sid), hi: wa[9993] || wa[9994] || 0 }; }
+      const t = game.teamStats(db, r.uid, sid).total;
+      return { ...r, lo: Math.round(type === 1 ? t.al : t.dl), hi: Math.round(type === 1 ? t.ah : t.dh) };
+    }).filter((r) => type !== 3 || r.lo > 0).sort((a, b) => b.hi - a.hi || b.lo - a.lo || b.level - a.level || a.uid - b.uid);
+    const i = rows.findIndex((r) => acc && r.uid === acc.uid);
+    const mine = i >= 0 ? rows[i] : (() => { const r = acc && db.prepare('SELECT uid FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid); if (!r) return { lo: 0, hi: 0 };
+      if (type === 3) return { lo: 0, hi: 0 }; const t = game.teamStats(db, acc.uid, sid).total; return { lo: Math.round(type === 1 ? t.al : t.dl), hi: Math.round(type === 1 ? t.ah : t.dh) }; })();
+    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"/>`).join('');
+    return `<root code="0"><player><rank>${i + 1}</rank><min_score>${mine.lo}</min_score><max_score>${mine.hi}</max_score></player><rank_list>${items}</rank_list></root>`;
   },
 
   // Eight Gates (Dun): Cmd 1 = info, Cmd 2 = open the next gate.

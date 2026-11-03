@@ -1325,13 +1325,20 @@ function activeSuits(db, uid, sid) {
   return Object.values(best);
 }
 // Seal (markinfo col 7, e.g. "ATK +35%"): multiplies that stat of the ninja wearing it.
+// The text can name several stats: "DEF and ATK +40%", "DEF ATK +60% and skill +3%", "DEF ATK Cha +80% ..." -> every named stat gets the %
+// (only the stat right before the number got it until 3 Nov 2026, Discord report). "skill +3%" counts like a ninjutsu's chance (x 20 % attack, ours).
 function sealBonus(st, markId) {
   const m = table('markinfo').rows.find((r) => r[0] === markId);
-  const mm = m && /(ATK|DEF|CHA\w*)\s*\+(\d+)%/i.exec(String(m[7]));
+  const mm = m && /^([A-Za-z ]*?)\s*\+(\d+)%/.exec(String(m[7]).trim());
   if (!mm) return st;
-  const pct = Number(mm[2]) / 100, keys = /ATK/i.test(mm[1]) ? ['al', 'ah'] : /DEF/i.test(mm[1]) ? ['dl', 'dh'] : ['cl', 'ch'];
+  const pct = Number(mm[2]) / 100, keys = [];
+  if (/\bATK\b/i.test(mm[1])) keys.push('al', 'ah');
+  if (/\bDEF\b/i.test(mm[1])) keys.push('dl', 'dh');
+  if (/\bCHA/i.test(mm[1])) keys.push('cl', 'ch');
   const o = { ...st };
   for (const k of keys) o[k] = Math.round(o[k] * (1 + pct));
+  const skill = /skill\s*\+(\d+)%/i.exec(String(m[7]));
+  if (skill) { const c = Number(skill[1]) / 100 * 0.2; o.al = Math.round(o.al * (1 + c)); o.ah = Math.round(o.ah * (1 + c)); }
   return o;
 }
 let matchIndex = null;
@@ -1372,23 +1379,27 @@ const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) kno
 function skillSets(equipped) {
   const out = [];
   for (const row of table('skill_suit_info').rows) {
-    const want = row.slice(4, 8), kinds = row[3] === 1 ? [6] : [2, 3, 4, 5];
-    const have = new Set(equipped.filter((e) => kinds.includes(e.type)).map((e) => e.ninja_id));
-    const num = want.filter((id) => have.has(id)).length;
+    // gear sets list weapon, armour, trinket, seal in that order: each id only counts as its own kind (seal 10 is not weapon 10)
+    const want = row.slice(4, 8);
+    const has = (id, i) => equipped.some((e) => e.ninja_id === id && e.type === (row[3] === 1 ? 6 : 2 + i));
+    const num = want.filter(has).length;
     if (num >= 2) out.push({ row, num });
   }
   return out;
 }
+// The tiers ADD UP, like the original set screen: with 3 pieces it lights the 2- and 3-piece lines, with 4 pieces all three
+// (CEquipDetailView: num 4 -> setEquipSuitActiveStateNum_2, _3 and _4 in the active colour). Until 3 Nov 2026 only the highest line
+// counted, so for sets like Armed (+15 % on every line) 4 pieces gave no more than 2 (Discord report).
 function setBonus(st, sets) {
   const o = { ...st };
   for (const { row, num } of sets) {
-    const t = num - 2; // tier 0 / 1 / 2
-    const part = (stat) => [Number(row[8 + stat * 6 + t * 2]) || 0, Number(row[9 + stat * 6 + t * 2]) || 0]; // [flat, share]
+    const tiers = [...Array(num - 1).keys()]; // 2 pieces -> [0], 3 -> [0, 1], 4 -> [0, 1, 2]
+    const part = (stat) => tiers.reduce(([f, s], t) => [f + (Number(row[8 + stat * 6 + t * 2]) || 0), s + (Number(row[9 + stat * 6 + t * 2]) || 0)], [0, 0]); // [flat, share]
     if (row[3] === 2) [['al', 'ah', 0], ['dl', 'dh', 1], ['cl', 'ch', 2]].forEach(([lo, hi, stat]) => {
       const [flat, share] = part(stat);
       o[lo] = Math.round((o[lo] || 0) * (1 + share) + flat); o[hi] = Math.round((o[hi] || 0) * (1 + share) + flat);
     });
-    const chance = (Number(row[26 + t]) || 0) * 0.2;
+    const chance = tiers.reduce((a, t) => a + (Number(row[26 + t]) || 0), 0) * 0.2;
     if (chance) { o.al = Math.round(o.al * (1 + chance)); o.ah = Math.round(o.ah * (1 + chance)); }
   }
   return o;
@@ -1859,7 +1870,9 @@ function partEntry(db, pl, chap, part) {
   const parts = chapterParts(chap), p = parts[part - 1], cur = stagePart(chap, getStage(db, pl.uid, pl.server_id, chap));
   const pos = part < cur.part ? p.count : cur.pos;
   const st = stageState(db, pl, chap, p.first + pos - 1);
-  return { pos, pos_time: st.clears, pk_boss_times: st.bossLeft };
+  // the tries are the part's BOSS tries (its last row): taking them from the row at `pos` sent 0 after every normal stage,
+  // so winning a story stage looked like it used up the boss's tries (Discord report, 3 Nov 2026)
+  return { pos, pos_time: st.clears, pk_boss_times: stageState(db, pl, chap, p.first + p.count - 1).bossLeft };
 }
 function chapterStages(chap) { return table('roundinfo').rows.filter((r) => r[4] === chap).reduce((m, r) => Math.max(m, r[2]), 1); }
 function furthestChapter(db, uid, sid) {
@@ -1937,4 +1950,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
