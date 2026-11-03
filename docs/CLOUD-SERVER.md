@@ -40,7 +40,7 @@ On **duckdns.org**, log in, type the computer's **Public IP** in the *current ip
 If a DuckDNS updater runs on your PC, turn it off, or it puts your PC's address back.
 
 ## Later
-- Update to the newest version: double-click `toolspsUPDATE-CLOUD-SERVER.bat` on your PC (shows what is new, asks first), or ask Claude.
+`- Update to the newest version: double-click \`tools\vps\UPDATE-CLOUD-SERVER.bat\` on your PC (shows what is new, asks first), or ask Claude.
   On the machine: `sudo sh /opt/hellobro/tools/vps/update.sh` (`... update.sh check` only lists what is waiting). It restarts the server only when
   the game server itself changed (players are logged out for a few seconds). Not needed after every change: once in a while is fine.
 - Change the admin password: `sudo sh /opt/hellobro/tools/vps/password.sh`
