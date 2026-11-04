@@ -115,7 +115,13 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
 // The game's Lua code puts raw spaces in request URLs ("Clinettime=2026/10/29 05:42:45 Thursday"),
 // which Node's strict parser rejects. Percent-encode them in the request line before parsing.
 net.createServer((sock) => {
+  // A connection cut before it sends anything (browsers open spare connections and drop them, scanners too) emits 'error'.
+  // Without a listener from the very start that error stopped the whole server (public server, 3 times on 4 Nov 2026).
+  sock.on('error', () => {});
+  // A connection that never sends anything is closed after 2 minutes instead of being kept open for ever.
+  sock.setTimeout(120000, () => sock.destroy());
   sock.once('data', (chunk) => {
+    sock.setTimeout(0);
     const eol = chunk.indexOf('\r\n');
     if (eol > 0) {
       const line = chunk.subarray(0, eol).toString('latin1');
@@ -128,7 +134,6 @@ net.createServer((sock) => {
     }
     sock.unshift(chunk);
     httpServer.emit('connection', sock);
-    sock.on('error', () => {});
   });
 }).on('error', (e) => console.error('listen error', e.message)).listen(PORT, '0.0.0.0', () => {
   manager.banner(PORT, db);

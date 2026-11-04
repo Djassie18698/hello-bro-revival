@@ -198,6 +198,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Tutorial for new players (owner): the game's own step-by-step guide is back (levels 1, 5, 10, 20, 25, 30, 40). Turn it on in the Server Manager ("Tutorial for new players"); it is only for characters made after that. Each part gets one try, restarting the game always frees a player, and the level-35 part stays off because it could lock the screen. Every part played on the emulator; not yet on a real phone or the public server |
 | ✅ | Seal synthesis (found while testing the tutorial): every seal showed "Claim" and was made at once, the green Synthesis button did nothing and the price showed your gold. Now like the original: Claim starts a 30-minute synthesis, Synthesis finishes it now for 30 gold, then Claim takes the seal. Seen in game |
 | ✅ | Arena list stayed empty for new players after an admin "reset a player" (a gap in the ranks). Fixed; admin reset also no longer deletes the player's login. Seen in game |
+| ✅ | Public server restarted 3 times in one night (owner, 4 Nov): a connection that was cut before it sent anything (a browser dropping a spare connection) stopped the whole server. Now ignored; reproduced and tested on the real server (tools/dev/socket-test.js) |
 
 ## Still to build
 
