@@ -11,3 +11,6 @@ with what is fixed and what not. The fixes themselves are rows in `docs/PROGRESS
 | 1567205978535895103 | 3 Nov 2026 | 5 bugs: leaderboard power, war reward exchange, story stages using boss tries, seal bonuses, gear set bonuses | all 5 fixed (seals checked on a test save, the rest seen in game); ✅ + reply |
 | 1567214376513966143 | 3 Nov 2026 | pets ("beasts") don't claw in battle (screenshot + 2 videos, also forwarded by the owner) | fixed, seen in game; ✅ + reply |
 | 1567214670832738428 | 3 Nov 2026 | ninjutsu cut-in shows a black silhouette instead of the ninja (screenshot) | fixed, seen in game; ✅ + reply |
+| 1567390561441153025 | 4 Nov 2026 | pet ("beast") still doesn't claw (level 350 team) | fixed on a test save (claw skipped when a ninjutsu fired); ✅ + reply |
+| 1567390858418982912 | 4 Nov 2026 | elements wrong way round: Fire counters Water (+ 1567390645566316599 "only the Water element") | fixed on a test save (restrain sign); ✅ + reply, asked what "only Water" means |
+| 1567392488426053733 | 4 Nov 2026 | Daily Task "display error" (screenshot) | unclear: texts are original, numbers look right; asked the reporter |
