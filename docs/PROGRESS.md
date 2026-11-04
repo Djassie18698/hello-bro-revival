@@ -14,7 +14,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
-| Discord reports | 6 | 1 | 0 | 0 |
+| Discord reports | 6 | 3 | 0 | 0 |
 
 ## Bug list 1
 
@@ -98,6 +98,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Gear sets: 2 of 4 pieces gave the same as the full set | The set screen lights the 2-, 3- and 4-piece lines together, so they add up (Armed: +15 / +30 / +45 %); the server only counted the highest line. Also a weapon whose number matched a seal could count as a set piece. Seen in game: all 3 lines lit with 4 pieces |
 | ✅ | Pets ("beasts") never clawed in battle | The fight data never gave the pet a turn. Now the main pet's skill ("1/3 chance to cause X damage", X from the pet screen: Gamakichi 185 + 5 a level) can fire when each of your ninjas starts attacking; its damage counts and the pet jumps in and claws. Seen in game: the toad claws for 430 |
 | ✅ | Ninjutsu cut-in showed a black silhouette ("update the full package") instead of the ninja | The fight told the game the attacker's CARD number where it expects the NINJA id, so the cut-in found no picture. Seen in game: Gentle Fist shows Neji and her line |
+| 🧪 | Elements the wrong way round: Water hitting Fire showed "Fire beats Water" (4 Nov) | The fight screen reads the server's "who beats whom" flag the other way round (CRoundTeamFightView::initLimitData). Now the winning element's icon shows on the beaten side with -15% (their defence, or my attack when they beat me). Checked on a test save, not yet seen in game |
+| 🧪 | Pets still did not claw for strong teams (4 Nov) | The claw skipped any hit where a ninjutsu fired, which for a strong team is almost every first hit. Now a missed claw waits for that ninja's next hit. Checked on a test save, not yet seen in game |
 
 ## Built on request (chat)
 

@@ -102,7 +102,32 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     let claws = 0;
     for (let k = 0; k < 60; k++) if (/<AttPetSkillHurt>[1-9]/.test(game.battleXml(db, pl77, 1, 6, {}))) claws++;
     ck(claws > 0 && claws < 60, `master pet clawed in ${claws} of 60 fights`);
+    // with every ninjutsu firing (HB_SKILLS) the claw moves to a hit without one instead of being lost (Discord report 4 Nov 2026)
+    process.env.HB_SKILLS = '1';
+    let late = 0, both = 0;
+    for (let k = 0; k < 20; k++) {
+      for (const r of game.battleXml(db, pl77, 1, 6, {}).match(/<round>.*?<\/round>/g) || []) {
+        const claw = /<AttPetSkillHurt>[1-9]/.test(r), jutsu = /<skill>/.test(r);
+        if (claw && jutsu) both++; else if (claw) late++;
+      }
+    }
+    delete process.env.HB_SKILLS;
+    ck(both === 0, `the pet clawed in ${both} rounds that also fired a ninjutsu (the client then drops the cut-in)`);
     db.prepare('DELETE FROM pets WHERE uid=77').run();
+    // elements (CRoundTeamFightView::initLimitData): CauseLimit 1 = the attacker's element beats the defender's (their defence -LimitVal),
+    // -1 = the defender's beats the attacker's (my attack -LimitVal). Water(1) > Fire(2) > Wind(3) > Thunder(5) > Earth(4) > Water.
+    const beats = { 1: 2, 2: 3, 3: 5, 5: 4, 4: 1 };
+    let seen = 0;
+    for (let k = 0; k < 40; k++) {
+      for (const r of game.battleXml(db, pl77, 1, 6, {}).match(/<round>.*?<\/round>/g) || []) {
+        const g = (t) => Number((new RegExp(`<${t}>(-?\\d+)</${t}>`).exec(r) || [])[1]);
+        const c = g('CauseLimit'), aa = g('AttackAttri'), da = g('DefenseAttri');
+        if (c === 1) { seen++; ck(beats[aa] === da && g('FinalDefense') === g('Defense') - g('LimitVal'), `CauseLimit 1 but ${aa} vs ${da}: ${r.slice(0, 300)}`); }
+        if (c === -1) { seen++; ck(beats[da] === aa, `CauseLimit -1 but ${aa} vs ${da}`); }
+        if (c === 0) ck(beats[aa] !== da && beats[da] !== aa, `no restrain sent for ${aa} vs ${da}`);
+      }
+    }
+    ck(seen > 0, 'no element restrain in 40 fights');
   }
   // the spar list shows a real rival's real team attack, not a value made from the level (Serii 4220 instead of 7M, 3 Nov 2026)
   {

@@ -624,24 +624,28 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     // My master pet (pet.skillHurt): when a ninja of mine starts attacking, the pet's skill fires with its own chance (1/3) and its damage is
     // added to that ninja's attack like a ninjutsu; the round's AttPetSkillHurt makes the client show the pet clawing. Rolling it at each
     // ninja's first hit is (ours): the original timing is lost (players' video: the toad jumps in early in the fight). Not in a round where a
-    // ninjutsu fires: the client then plays only the pet and the ninjutsu cut-in is lost.
+    // ninjutsu fires: the client then plays only the pet and the ninjutsu cut-in is lost. Then the claw waits for that ninja's next hit (strong
+    // teams fire a ninjutsu on almost every first hit, so the pet never showed: Discord report 4 Nov 2026).
     const rollPet = () => mine.map(() => (petSkill && (want !== false || process.env.HB_SKILLS) && (process.env.HB_SKILLS || Math.random() < petSkill.rate) ? petSkill.hurt : 0));
     let petOf = rollPet();
     foes.forEach((f) => { if (!f.attri) f.attri = foeAttri(f.id); });
     const rt = restrainTable();
-    // Restrain (CFightResultData::firefly_CalcAttackVal: CauseLimit -1 adds LimitVal to "my restrain", 1 to "enemy restrain"): my element beats
-    // theirs -> my hit +15% of its attack; theirs beats mine -> their defence +15% for that hit.
+    // Restrain, as the fight screen draws it (CRoundTeamFightView::initLimitData, my fight type 0): CauseLimit 1 = MY element beats theirs:
+    // my element's icon on the ENEMY side with "-LimitVal"; CauseLimit -1 = THEIR element beats mine: their icon on MY side with "-LimitVal".
+    // So the beaten side loses 15% (ninjafiveprop [6]): my element beats theirs -> their defence -15% for that hit; theirs beats mine -> my
+    // attack -15%. Until 4 Nov 2026 the sign was the other way round and Water hitting Fire showed "Fire beats Water" (Discord report).
     const sim = (def0) => {
       const at = atk.slice(), df = def0.slice(), rolled = [];
-      let i = 0, j = 0, started = -1;
+      let i = 0, j = 0, started = -1, petDue = 0;
       while (i < mine.length && j < foes.length && rolled.length < 60) {
         let skills = [], petHurt = 0;
-        if (started !== i) { started = i; skills = skillsOf[i]; petHurt = skills.length ? 0 : petOf[i]; at[i] += skills.reduce((t, s) => t + s.chakraattack, 0) + petHurt; }
+        if (started !== i) { started = i; skills = skillsOf[i]; petDue = petOf[i]; at[i] += skills.reduce((t, s) => t + s.chakraattack, 0); }
+        if (petDue && !skills.length) { petHurt = petDue; petDue = 0; at[i] += petHurt; }
         const a = at[i], d = df[j], base = a - skills.reduce((t, s) => t + s.chakraattack, 0) - petHurt;
         const ma = mine[i].attri || 1, fa = foes[j].attri || 1, mr = rt.get(ma), fr = rt.get(fa);
         let cause = 0, limit = 0, finA = a, finD = d;
-        if (mr && mr.beats === fa) { cause = -1; limit = Math.floor(a * mr.rate); finA = a + limit; }
-        else if (fr && fr.beats === ma) { cause = 1; limit = Math.floor(d * fr.rate); finD = d + limit; }
+        if (mr && mr.beats === fa) { cause = 1; limit = Math.floor(d * mr.rate); finD = d - limit; }
+        else if (fr && fr.beats === ma) { cause = -1; limit = Math.floor(a * fr.rate); finA = a - limit; }
         // AttackNinja / DefenseNinja = the NINJA id, not the card: the skill cut-in (CRoundTeamFightView::initMySkillData) finds its ninja by
         // comparing AttackNinja with each <ninja><id> and shows that ninja's picture and words; with the card number it found nothing and drew
         // the "update the full package" silhouette (Discord report, 3 Nov 2026). The cards themselves are played in order, not looked up.
