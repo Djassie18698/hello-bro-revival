@@ -37,5 +37,12 @@ Only change **your own** account: leave other players alone.
 After quitting, newer Android (14 and 15) kept part of the game running, and the next start stayed black. Fixed in the game file of 3 Nov 2026: download **HelloBro-ninjaonline.xapk** again and install it over the old one (your account stays; own server: run **UPDATE.bat** and **HOST-MY-SERVER.bat** for a new game file).
 Still have the old file? Go to *Settings > Apps > Hello Bro > Force stop* and open the game again. Clearing the cache is not needed.
 
-## 9. Something is broken
+## 9. "This app isn't compatible" / my phone only runs 64-bit apps
+Hello Bro is a game from 2015 and its engine is a **32-bit** app. Some new phones (for example Google Pixel 7 and newer) can't run 32-bit apps at all, so the game won't install or open there. A 64-bit version can't be made: the game's source code was never released, only the finished app.
+What works: play on a PC with **BlueStacks** (steps in <#1565697833150058507>), or on another phone or tablet. Most phones and tablets still run it fine.
+
+## 10. Is there an iPhone / iPad version?
+No. Only the Android game survived, so on Apple devices you can't play. Use an Android phone or tablet, or **BlueStacks** on a Windows PC.
+
+## 11. Something is broken
 Post it in <#1566415215220752444> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.
