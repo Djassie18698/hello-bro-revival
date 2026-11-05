@@ -137,6 +137,16 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
       const m = new RegExp(`<id>${other.uid}</id>.*?<attacklow>(\\d+)</attacklow><attackhigh>(\\d+)</attackhigh>`).exec(game.rivalsXml(db, db.prepare('SELECT * FROM players WHERE uid=77').get()));
       ck(m && Number(m[1]) === want.al && Number(m[2]) === want.ah, `spar list attack of ${other.nick}: ${m && m[1]}-${m && m[2]}, team ${want.al}-${want.ah}`);
     }
+    // an old-login account (uid 22 000 000+) is a real player too, not a bot (it showed the bot's 32-52, 5 Nov 2026)
+    const q = { ...base, Uid: '22000123', Session: 's22000123' };
+    handlers.rl_w_login2({ db, params: { ...q, Cmd: 0 } });
+    handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'OldUid', Card: 55 } });
+    db.prepare('UPDATE players SET level=(SELECT level FROM players WHERE uid=77 AND server_id=1) WHERE uid=22000123').run();
+    const want2 = game.teamStats(db, 22000123, 1).total;
+    const xml2 = game.rivalsXml(db, db.prepare('SELECT * FROM players WHERE uid=77').get());
+    const m2 = /<id>22000123<\/id>.*?<attacklow>(\d+)<\/attacklow><attackhigh>(\d+)<\/attackhigh>/.exec(xml2);
+    ck(!m2 || (Number(m2[1]) === want2.al && Number(m2[2]) === want2.ah), `spar list attack of an old-uid player: ${m2 && m2[1]}-${m2 && m2[2]}, team ${want2.al}-${want2.ah}`);
+    ck(!!m2, 'old-uid player not in the spar list');
   }
   // a won story stage must not show the part's boss tries as 0 (chapter 1 part 2 = stages 3-6, boss = 6)
   db.prepare('DELETE FROM stage_clears WHERE uid=77 AND chap=1').run();
