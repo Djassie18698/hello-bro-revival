@@ -194,28 +194,22 @@ for (const pick of [55, 56, 57]) {
   handlers.rl_r_newbie_pay({ db, params: { ...base, Cmd: 2 } });
   if (!/<on_off>1</.test(before) || /<on_off>1</.test(lv())) { bad++; console.log('STARTER GIFT level-up popup', before.slice(0, 60), lv().slice(0, 60)); }
 }
-// Tutorial switch (owner 4 Nov 2026): off = nobody gets it; on = only characters made after switching it on, one try per part, not past 40;
-// the starter gift stays shut after a level-up while a part may run; a lost first spar still leaves the weapon the level-5 part equips.
+// Tutorial OFF (owner 5 Nov 2026: "leave it off"). The app starts its guide by itself for every part in home/userguideConfig.xml that the
+// phone has not finished (first_login only decides an ad), so the hot update must keep every part at level 900+ (unreachable). Nothing on
+// the server may turn the tutorial helpers on, not even an old saved 'tutorial' switch.
 {
   const S = require('../../server/settings');
-  const fl = (x) => Number((String(x).match(/<first_login>(\d)</) || [])[1]);
-  const mk = (uid) => { const p = { ...base, Uid: String(uid), Session: 's' + uid }; handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } }); return { p, reg: handlers.rl_w_reg2({ db, params: { ...p, Cmd: 0, Nick: 'Tut' + uid, Card: 55 } }) }; };
-  const login = (p) => fl(handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } }));
-  const setLv = (uid, l) => db.prepare('UPDATE players SET level=? WHERE uid=?').run(l, uid);
-  const off = mk(951);
-  if (fl(off.reg) !== 0 || login(off.p) !== 0) { bad++; console.log('TUTORIAL off still on'); }
+  const cfg = require('fs').readFileSync(require('path').join(__dirname, '../../server/cdn/src/home/userguideConfig.xml'), 'utf8');
+  const lv = [...cfg.matchAll(/<steplevel No="(\d+)"/g)].map((m) => Number(m[1]));
+  if (!lv.length || lv.some((n) => n < 900)) { bad++; console.log('TUTORIAL reachable in the hot update', lv.join(',')); }
   S.setEvent(db, 'tutorial', true);
-  db.prepare("UPDATE players SET created=0 WHERE uid=951").run(); // made before the switch
-  const t = mk(952);
-  const r = { old: login(off.p), reg: fl(t.reg) };
-  r.again1 = login(t.p); // same level 1 again: its part already had its try
-  setLv(952, 5); r.lv5 = login(t.p); r.lv5again = login(t.p);
-  setLv(952, 7); r.lv7 = login(t.p); // no part at 7: the app finds nothing to start
-  setLv(952, 41); r.lv41 = login(t.p);
-  if (r.old !== 0 || r.reg !== 1 || r.again1 !== 0 || r.lv5 !== 1 || r.lv5again !== 0 || r.lv41 !== 0) { bad++; console.log('TUTORIAL logins', JSON.stringify(r)); }
-  setLv(952, 5);
-  const gift = handlers.rl_r_newbie_pay({ db, params: { ...t.p, Cmd: 3 } });
-  if (/<on_off>1</.test(gift)) { bad++; console.log('TUTORIAL starter gift pops up over the guide'); }
+  const fl = (x) => Number((String(x).match(/<first_login>(\d)</) || [])[1]);
+  const p = { ...base, Uid: '952', Session: 's952' };
+  handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } });
+  const reg = handlers.rl_w_reg2({ db, params: { ...p, Cmd: 0, Nick: 'Tut952', Card: 55 } });
+  db.prepare('UPDATE players SET level=5 WHERE uid=952').run();
+  const gift = handlers.rl_r_newbie_pay({ db, params: { ...p, Cmd: 3 } });
+  if (fl(reg) !== 0 || fl(handlers.rl_w_login2({ db, params: { ...p, Cmd: 0 } })) !== 0 || !/<on_off>1</.test(gift)) { bad++; console.log('TUTORIAL helpers still on', reg.slice(0, 80), gift.slice(0, 80)); }
   S.setEvent(db, 'tutorial', false);
 }
 // Seal synthesis (original flow, CMarkCardView): Claim starts it (fragments used, ready after 1800 s), Synthesis pays 30 gold to finish now

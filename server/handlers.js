@@ -38,9 +38,16 @@ const el = (name, v) => `<${name}>${esc(v)}</${name}>`;
 // or past it, later logins at that level go without the guide. Players past level 40 never get it, nor characters made before the switch
 // was turned on (they already know the game; owner: "a tutorial for new people").
 const GUIDE_LEVELS = [1, 5, 10, 20, 25, 30, 35, 40];
+// OFF (5 Nov 2026). first_login does NOT switch the guide: in the app it only decides whether an ad shows (CMainMenu::ShowActivityNews
+// reads CNetUser+4), while CUserGuideManager::ReadConfig turns the guide on at every Home for any part in home/userguideConfig.xml that
+// the phone's GuideProgress.xml has not finished. So the guide can only be switched in the hot update, for every player at once (the
+// update check carries no Uid): 28.0.35 moves every part to level 9xx again (off), owner: "leave it off". To bring it back: put the
+// levels back in server/cdn/src/home/userguideConfig.xml (see 28.0.34 in docs/HOT-UPDATE.md) and set TUTORIAL true, so the helpers
+// below (seal fragments, sure plunder, spar weapon, no starter gift pop-up) apply again.
+const TUTORIAL = false;
 function tutorialOn(db, level, uid, sid) {
   const S = require('./settings');
-  if (!S.eventOn(db, 'tutorial') || level > 40) return 0;
+  if (!TUTORIAL || !S.eventOn(db, 'tutorial') || level > 40) return 0;
   const pl = db.prepare('SELECT created FROM players WHERE uid=? AND server_id=?').get(uid, sid);
   if (!pl || (pl.created || 0) < S.switchedOnAt(db, 'tutorial') * 1000) return 0;
   db.exec('CREATE TABLE IF NOT EXISTS tutorial (uid INTEGER, server_id INTEGER, on_level INTEGER, seen TEXT, PRIMARY KEY(uid,server_id))');
@@ -55,7 +62,7 @@ function tutorialOn(db, level, uid, sid) {
 // A character the tutorial is for: switch on, made after it was switched on, not past the last part.
 function tutorialFor(db, pl) {
   const S = require('./settings');
-  return S.eventOn(db, 'tutorial') && pl.level <= 40 && (pl.created || 0) >= S.switchedOnAt(db, 'tutorial') * 1000;
+  return TUTORIAL && S.eventOn(db, 'tutorial') && pl.level <= 40 && (pl.created || 0) >= S.switchedOnAt(db, 'tutorial') * 1000;
 }
 // While a tutorial part may run, the free starter gift must not pop up after a level-up: it covers the buttons the guide points at
 // (it stays claimable from the home event column).

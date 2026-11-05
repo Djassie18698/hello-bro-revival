@@ -41,10 +41,9 @@ const EVENTS = [
   // Owner, 2 Nov 2026: on a public server (START-PUBLIC-SERVER.bat sets LOGIN_LOCK=1) the limit is on by default; on a private / friends'
   // server top-ups are unlimited by default (one a day is no fun there). Either way the switch in the control panel overrides it.
   { id: 'paylimit', noconf: true, limited: process.env.LOGIN_LOCK !== '1', icon: '🔒', name: 'Top-up limit: one package a day', desc: 'On: each player can top up (free here) only once a day, so gold and gear stay earned (for a public server). Off: unlimited top-ups. Off by default on a private server, on by default on a public one. Resets at midnight (server time).' },
-  // The game's own tutorial (home/userguideConfig.xml: levels 1, 5, 10, 20, 25, 30, 35, 40). The app runs it only when the login reply says
-  // first_login 1 and keeps each player's finished parts on the phone (GuideProgress.xml), so switching it off here frees anyone stuck at
-  // their next login.
-  { id: 'tutorial', noconf: true, limited: true, icon: '🎓', name: 'Tutorial for new players', desc: 'The game\'s own step-by-step guide at levels 1, 5, 10, 20, 25, 30, 35 and 40. Off: nobody gets it (a player stuck in it is free after logging in again).' },
+  // The tutorial switch was removed on 5 Nov 2026: the game ignores the server for it (handlers.js TUTORIAL); it is off in hot update 28.0.35.
+  // 'tutorial' stays an id here (limited, hidden) so an old saved setting can never turn the helpers on.
+  { id: 'tutorial', noconf: true, limited: true, hidden: true, icon: '🎓', name: 'Tutorial for new players', desc: 'Off in the game (hot update 28.0.35).' },
   { id: 'bench', noconf: true, limited: true, icon: '📏', name: 'Benchmark rivals in Spar', desc: 'Six computer rivals at the top of Spar with 100K, 500K, 1M, 2M, 4M and 8M defence. Free, no rewards: to test a team.' },
 ];
 const DISCORD = 'https://discord.gg/2Cbp4UDHrU';

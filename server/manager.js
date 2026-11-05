@@ -42,7 +42,7 @@ function status(db, port) {
     memory: process.memoryUsage().rss, requests: settings.stats().requests, restartable: process.env.HB_MANAGED === '1',
     players: one('SELECT COUNT(*) n FROM players'), accounts: one('SELECT COUNT(*) n FROM accounts'), groups: one('SELECT COUNT(*) n FROM groups'),
     online, addresses: addresses(port), dbSize: size, backups: backups().slice(0, 8), db: require('./db').status(), cards: one('SELECT COUNT(*) n FROM cards'),
-    events: settings.EVENTS.map((e) => ({ ...e, on: settings.eventOn(db, e.id) })),
+    events: settings.EVENTS.filter((e) => !e.hidden).map((e) => ({ ...e, on: settings.eventOn(db, e.id) })),
     news: settings.news(db), banner: settings.banner(db),
   };
 }
