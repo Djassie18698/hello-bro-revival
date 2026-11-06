@@ -81,7 +81,8 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   db.prepare("INSERT INTO award_mail(uid, server_id, ts, title, content, items) VALUES(77, 1, strftime('%s','now'), '', '', '[{\"type\":2,\"dropid\":5}]')").run();
   const list = call('rl_x_award_msg', { Cmd: 1 });
   ck(!/<title><\/title>|<content><\/content>/.test(list), 'Awards chest sent an empty title or content: ' + list.slice(0, 300));
-  ck(/error/.test(JSON.stringify(ac.send(db, { uid: 77, server_id: 1 }, 'x', 'y', { gold: 5 }))), 'gold 5 (no such gold pack) was not refused');
+  ck(/error/.test(JSON.stringify(ac.send(db, { uid: 77, server_id: 1 }, 'x', 'y', { gold: 7 }))), 'gold 7 (no such gold pack) was not refused');
+  ck(ac.send(db, { uid: 77, server_id: 1 }, 'x', 'y', { gold: 5 }).sent === 1, 'gold 5 (the Gold*5 pack) was refused');
 }
 // Discord report 3 Nov 2026: seals with several stats, set tiers adding up, the war exploit shop's balance.
 {

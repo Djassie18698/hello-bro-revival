@@ -34,7 +34,7 @@ function send(db, to, title, content, { gold = 0, silver = 0, renown = 0, drops 
   const items = [...goldItems(gold), ...drops.map((d) => ({ type: 1, dropid: Number(d) })).filter((x) => x.dropid > 0)];
   if (silver > 0) items.push({ type: 2, dropid: Math.floor(silver) });
   if (renown > 0) items.push({ type: 3, dropid: Math.floor(renown) });
-  if (gold > 0 && gold % 10) return { error: 'gold goes in steps of 10 (the game has no smaller gold pack)' };
+  if (gold > 0 && gold % 5) return { error: 'gold goes in steps of 5 (the smallest gold pack is 5)' };
   if (!items.length) return { error: 'add gold, silver or reputation' };
   const who = to === 'all' ? db.prepare('SELECT uid, server_id FROM players').all() : [to];
   const ins = db.prepare('INSERT INTO award_mail(uid, server_id, ts, title, content, items) VALUES(?,?,?,?,?,?)');
