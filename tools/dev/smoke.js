@@ -380,6 +380,16 @@ for (const pick of [55, 56, 57]) {
     if (r.error && !/already/.test(r.error)) { bad++; console.log('HALL CHECKIN:', r.error); }
     else if (r.xml && !r.xml.includes('taskname=" mission A"')) { bad++; console.log('HALL LOG NAME:', r.xml.slice(0, 200)); }
   }
+  // story bosses: 5 % their own special reward (the card the boss screen shows; owner 6 Nov 2026). Graduate II = Kakashi Hatake.
+  {
+    const g = require('../../server/game'), bosses = g.table('roundinfo').rows.filter((r) => r[38]);
+    const linked = bosses.filter((r) => g.bossNamedDrop(r)).length;
+    if (linked !== bosses.length) { bad++; console.log(`BOSS REWARD: only ${linked} of ${bosses.length} bosses have their special reward`); }
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get(), before = db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=1 AND ninja_id=35').get().n;
+    g.grantDrop(db, pl, g.bossNamedDrop(bosses.find((r) => r[0] === 72)));
+    if (db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=1 AND ninja_id=35').get().n !== before + 1) { bad++; console.log('BOSS REWARD: Graduate II did not give Kakashi Hatake'); }
+    if (g.BOSS_NAMED_CHANCE !== 0.05) { bad++; console.log('BOSS REWARD chance changed:', g.BOSS_NAMED_CHANCE); }
+  }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {
     const list = (env) => require('child_process').execFileSync(process.execPath, ['-e',

@@ -193,14 +193,16 @@ function trainingFight(db, pl, chap, part, pos, buy) {
 }
 
 // Every win drops something (the original drop rule lived on the dead server, so these are ours, as the owner asked for a
-// low-tier ninja or equipment): normal stage = Sage Stone III (not ramen: the victory card shows a Chinese name and no icon for ramen) / 1-2 star equipment / 1-2 star shinobi; boss stage = 3-star equipment or shinobi.
+// low-tier ninja or equipment; a boss also has a 5 % chance of its own special reward, see below): normal stage = Sage Stone III (not ramen: the victory card shows a Chinese name and no icon for ramen) / 1-2 star equipment / 1-2 star shinobi; boss stage = 3-star equipment or shinobi.
 // dropinfo ids: 250 Sage Stone III*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
 function stageAward(db, pl, row, coin, exp) {
   const r = Math.random();
   // Treasure chest keys also drop from story fights, as in the original (victory card "Bronze Key", photo 2500; dropinfo 549/550 list
   // keys with stage drops): 8% a bronze key on a normal stage, 8% a silver key on a boss stage (ours).
   const key = Math.random() < 0.08 ? (row[38] ? 513 : 514) : 0;
-  const dropId = Number(process.env.HB_STAGE_DROP) || key || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
+  // a boss win: 5 % its own special reward, the card the boss screen shows (game.bossNamedDrop; HB_BOSS_NAMED=1 = test aid)
+  const named = row[38] && (process.env.HB_BOSS_NAMED === '1' || Math.random() < game.BOSS_NAMED_CHANCE) ? game.bossNamedDrop(row) : 0;
+  const dropId = Number(process.env.HB_STAGE_DROP) || named || key || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
   const xml = game.grantDrop(db, pl, dropId);
   if (!xml) return game.awardFull({});
   const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
