@@ -185,7 +185,7 @@ Current: **28.0.37** (boss retry price 10 gold for every boss; 28.0.36 = Chinese
   [12]=1 random pack (contents read from its text), [13] amount, [14] pet. `game.grantDrop(db, pl, dropId)` handles all and returns the `<award>` XML.
 - roundinfo: [4] chapter, [2] stage in chapter, [22] energy cost, [23] exp, [24] silver.
 - New player (original): chosen ninja (Neji 55 / Shikamaru 57 / Sakura 56) + its ninjutsu, 50 gold, 18 000 silver, VIP 0.
-  VIP exp = $ topped up × 10, thresholds in `vip.js` (ours). Accounts made before 30 Oct 2026 kept VIP 18.
+  VIP exp = $ topped up × 10, thresholds in `vip.js` (ours). Accounts made before 30 Oct 2026 kept VIP 18. Max VIP 23 since 7 Nov 2026 (the game's vipinfo + VIP shop go to 23); the app has badge pictures only for 0-18 and crashes drawing 19+, so every reply tells the game at most 18 (`vip.shown`, SHOW_MAX).
 - Daily things reset at local midnight; energy refills at 22:00; free ramen 12-14 and 18-20.
 
 ## 9. Releases, sharing and Discord

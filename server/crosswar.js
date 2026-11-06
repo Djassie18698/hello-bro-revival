@@ -134,12 +134,12 @@ function userXml(db, ph, pl, stand) {
   const score = ph.status === 2 ? (me ? me.score : 0) : (lastWeek ? lastWeek.score : 0);
   return `<user>${el('uid', pl.uid)}${el('isin', inn ? 1 : 0)}${el('posid', pos)}${el('pf', 1)}${el('zone', pl.server_id)}${el('rank', rank)}${el('score', score)}` +
     `${el('extra', live.length * INSPIRE_PCT)}${el('extra_timeleft', live.length ? Math.max(...live) : 0)}${el('keep_left', 0)}${el('timeval', 1)}${el('addscore', rate(pos))}` +
-    `${el('viplevel', require('./vip').level(db, pl.uid, pl.server_id))}${el('playerlevel', pl.level)}${el('extra_times_lmt', INSPIRE_MAX)}` +
+    `${el('viplevel', require('./vip').shown(require('./vip').level(db, pl.uid, pl.server_id)))}${el('playerlevel', pl.level)}${el('extra_times_lmt', INSPIRE_MAX)}` +
     `<extra_time_lefts>${live.map((x) => `<item>${el('timeleft', x)}</item>`).join('')}</extra_time_lefts>${cardXml(myCard(db, pl.uid, pl.server_id))}</user>`;
 }
 function rowXml(o) {
   return `<item>${el('uid', o.uid)}${el('posid', o.pos)}${el('pf', 1)}${el('zone', o.zone)}${el('rank', o.rank)}${el('score', o.score)}${el('keep_left', 0)}${el('timeval', 1)}` +
-    `${el('addscore', rate(o.pos))}${el('viplevel', o.vip)}${el('name', o.name)}${el('playerlevel', o.level)}${cardXml(o.card)}</item>`;
+    `${el('addscore', rate(o.pos))}${el('viplevel', require('./vip').shown(o.vip || 0))}${el('name', o.name)}${el('playerlevel', o.level)}${cardXml(o.card)}</item>`;
 }
 // The list: battle = the positions just above mine (no position: the lowest 10); before the battle = who is in, 10 a page.
 function listXml(db, ph, pl, page, stand) {

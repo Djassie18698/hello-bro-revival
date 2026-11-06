@@ -388,7 +388,7 @@ module.exports = {
       attactlow: gs.totals.al, attacthigh: gs.totals.ah, defenselow: gs.totals.dl, defensehigh: gs.totals.dh, chakralow: gs.totals.cl, chakrahigh: gs.totals.ch,
       caneat: 0, meritlevel: game.meritLevel(db, acc.uid, pl.server_id), meritscore: game.propCounts(db, acc.uid, pl.server_id)[9994] || 0, warpower: 0, LastActionUpdatePastTime: en.pass, LastSPUpdatePastTime: game.spState(db, pl).pass,
       score: pl.exp || 0, viplevel: // <score> is the client's EXP field (CPlayerDataMgr +0xd4); 0 here reset the exp bar on every main page visit
-        vip.level(db, acc.uid, pl.server_id), soul: game.propCounts(db, acc.uid, pl.server_id)[9999] || 0, totalm: 0 };
+        vip.shown(vip.level(db, acc.uid, pl.server_id)), soul: game.propCounts(db, acc.uid, pl.server_id)[9999] || 0, totalm: 0 };
     // Cmd 1302 = login (CLoadInitInfoScene: the client builds its card bag from this). Cmd 1301 = every return to Home / level-up / store:
     // those screens only read <user> (+ the home screen the team list), so the whole card list (408 cards = 180 KB for a big account,
     // the "Loading for you, Master" wait) and the fragment bag are left out there.
@@ -732,7 +732,9 @@ module.exports = {
     const vp = acc ? vip.progress(db, acc.uid, Number(p.ServerID || 1)) : { lv: 0, exp: 0, lvexp: 10 };
     const hp = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     const heap = hp ? game.payHeapXml(db, hp, Math.floor(vp.exp / 10)) : '<payheaplist></payheaplist>';
-    return `<root code="0">${heap}<maxlv>${vip.MAX_VIP}</maxlv><exp>${vp.exp}</exp><lvexp>${vp.lvexp}</lvexp>` +
+    // the top-up screen draws the current and next VIP badge: past VIP 18 it shows a full VIP 18 bar (no pictures for 19+, see vip.js)
+    const top = vp.lv >= vip.SHOW_MAX, vexp = top ? vip.VIP_EXP[vip.SHOW_MAX] : vp.exp, vlvexp = top ? vexp : vp.lvexp;
+    return `<root code="0">${heap}<maxlv>${vip.SHOW_MAX}</maxlv><exp>${vexp}</exp><lvexp>${vlvexp}</lvexp>` +
       '<canget>1</canget><first_pay>' + (acc && hasPaid(db, acc.uid, Number(p.ServerID || 1)) ? 1 : 0) + '</first_pay><multiple>1</multiple><servertime>0</servertime><endtime>0</endtime></root>';
   },
   // Top-up packages. Buying is FREE here (the hot-updated ui_purchaseLayer.lua calls rl_x_free_topup instead of Google Play).
@@ -786,7 +788,7 @@ module.exports = {
     require('./monthcard').onTopup(db, pl, t.rmb); // $4.99 / $9.99 = month card (when switched on)
     require('./flower').onTopup(db, pl, t.rmb); // roses for Flower Worship (1 a dollar, while it runs)
     // <viplevel>: the hot-updated top-up screen (28.0.9) sets the new level right away
-    return '<root code="0">' + game.awardFull({ cash: gold }) + el('viplevel', vip.level(db, pl.uid, pl.server_id)) + '</root>';
+    return '<root code="0">' + game.awardFull({ cash: gold }) + el('viplevel', vip.shown(vip.level(db, pl.uid, pl.server_id))) + '</root>';
   },
   // "No.1 Shinobi list" (ui_hallOfFameView.lua, the scroll on Home): Cmd 1 Attack, 2 Defense = the team's real range (min_score-max_score,
   // like the team screen), 3 Ninja Rank = W.A. medal (min_score = playemedal id: the cell looks it up, so 0 would be a Lua error) and W.A.

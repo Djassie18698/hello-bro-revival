@@ -422,6 +422,15 @@ for (const pick of [55, 56, 57]) {
       if (realDef > (mine.al + mine.ah) / 2 * 1.2 && Math.abs(shown - realDef) > realDef * 0.15) { bad++; console.log(`SPAR DEFENCE: shown ${shown}, real ${Math.round(realDef)}`); }
     }
   }
+  // VIP 19-23 (owner 6 Nov 2026): top-ups reach VIP 23 and its VIP shop pack can be bought (was capped at 18)
+  {
+    const vip = require('../../server/vip');
+    vip.addExp(db, 78123, 1, 3000000);
+    if (vip.level(db, 78123, 1) !== 23) { bad++; console.log('VIP 23: $300 000 of top-ups gave VIP', vip.level(db, 78123, 1)); }
+    db.prepare('UPDATE players SET gold=100000 WHERE uid=78123').run();
+    const r = vip.buy(db, db.prepare('SELECT * FROM players WHERE uid=78123').get(), 23);
+    if (r.error) { bad++; console.log('VIP 23 shop pack:', r.error); }
+  }
   // story enemy curve (owner 6 Nov 2026, steeper): stage 1-2 = 285 (original video), chapter ends 1 = 2 000, 3 = 8 000, 10 = 300 000,
   // 19 = 10 million; the control panel's inverse (stageForDefence) must agree with it
   {

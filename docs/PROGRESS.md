@@ -232,7 +232,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 
 | | What |
 |---|---|
-| ⏳ | VIP 19-23 (owner, 6 Nov 2026): the VIP shop has packs up to VIP 23 and the game's vipinfo table has rows up to 23, but vip.js stops at MAX_VIP 18 |
+| ✅ | VIP 19-23 (owner, 6 Nov 2026): reachable with top-ups ($70k-$300k, ours), VIP 19-23 shop packs buyable, daily VIP chances follow the game's own table. The badge stays VIP 18 (the app has no pictures for 19+ and crashed drawing them). Seen in game: VIP 23 pack gave Hokage Naruto (God) |
 | ⏳ | Card search in the backpack / team picker (owner, 6 Nov 2026): those screens are C++, see NEXT-STEPS 6 Nov |
 | ✅ | Cross-server battle ("Cross" building on Home): buy a 500-gold ticket (arena top 20 are in for free), Saturday 8-9 pm fight for positions on the ladder, points every second, Inspire (200 gold, +10 %), Score Ranking, server / nation / history rankings, point shop 24 000 - 850 000 like the original (update 28.0.23) |
 

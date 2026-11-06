@@ -2,10 +2,14 @@
 const game = require('./game');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const DEFAULT_VIP = 0; // like the original: VIP comes from (free) top-ups
-const MAX_VIP = 18;
+const MAX_VIP = 23; // the game's vipinfo table and VIP shop go up to VIP 23 (owner, 6 Nov 2026: was 18)
 // VIP exp = total topped up in dollars x 10 (the client shows (lvexp-exp)/10 as "$ to next VIP").
-// Cumulative exp per level; the original thresholds lived on the dead server, these are ours ($1, $10, $30 ... $50000).
-const VIP_EXP = [0, 10, 100, 300, 500, 1000, 2000, 3000, 5000, 8000, 12000, 20000, 30000, 50000, 80000, 120000, 200000, 300000, 500000];
+// Cumulative exp per level; the original thresholds lived on the dead server, these are ours ($1, $10, $30 ... $50000 for VIP 18, $300000 for VIP 23).
+// The app only has VIP badge pictures for 0-18 (vip_0..vip_18): any screen that draws a VIP 19+ badge crashes (Shop at VIP 23: SIGSEGV,
+// 7 Nov 2026). So the game is told at most SHOW_MAX; the server keeps the real level for benefits (vipinfo rows) and the VIP shop.
+const SHOW_MAX = 18;
+const shown = (lv) => Math.min(lv, SHOW_MAX);
+const VIP_EXP = [0, 10, 100, 300, 500, 1000, 2000, 3000, 5000, 8000, 12000, 20000, 30000, 50000, 80000, 120000, 200000, 300000, 500000, 700000, 1000000, 1500000, 2000000, 3000000]; // VIP 19-23 (ours, 6 Nov 2026): $70 000 ... $300 000
 
 const migrated = new WeakSet(); // saves already checked (one per server, several in the test tools)
 function ensure(db) {
@@ -17,7 +21,7 @@ function ensure(db) {
   try { db.exec('ALTER TABLE vipstate ADD COLUMN exp INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
   // one time: players made before 30 Oct 2026 12:00 UTC (when everyone was VIP 18) keep it; only new characters start at VIP 0
   if (!db.prepare("SELECT 1 FROM meta WHERE k='vip0'").get()) {
-    db.prepare(`INSERT OR IGNORE INTO vipstate(uid,server_id,level,exp) SELECT uid, server_id, ?, ? FROM players WHERE created < ?`).run(MAX_VIP, VIP_EXP[MAX_VIP], Date.parse('2026-10-30T12:00:00Z'));
+    db.prepare(`INSERT OR IGNORE INTO vipstate(uid,server_id,level,exp) SELECT uid, server_id, ?, ? FROM players WHERE created < ?`).run(18, VIP_EXP[18], Date.parse('2026-10-30T12:00:00Z'));
     db.prepare("INSERT INTO meta VALUES('vip0','1')").run();
   }
 }
@@ -63,8 +67,8 @@ function listXml(db, pl) {
     // child order matters: the client sets the 3rd child to 1 after a purchase (canbuy)
     return `<vipgift id="${g[0]}">${el('vip', g[1])}${el('giftid', g[0])}${el('canbuy', canbuy)}${el('price', g[2])}${el('orgin_price', g[11])}${el('desc', String(g[10]).replace(/[<>&]/g, ' '))}${el('icon', g[3])}</vipgift>`;
   }).join('');
-  const exp = VIP_EXP[lv], next = VIP_EXP[Math.min(lv + 1, MAX_VIP)];
-  return el('lv', lv) + el('exp', exp) + el('lvexp', next) + `<vipshoplist>${items}</vipshoplist>`;
+  const s = shown(lv), exp = VIP_EXP[s], next = s >= SHOW_MAX ? exp : VIP_EXP[s + 1]; // the screen's badge / next-level picture: at most VIP 18
+  return el('lv', s) + el('exp', exp) + el('lvexp', next) + `<vipshoplist>${items}</vipshoplist>`;
 }
 
 function buy(db, pl, giftId) {
@@ -80,4 +84,4 @@ function buy(db, pl, giftId) {
   return { xml: game.mergeAwards([4, 5, 6, 7, 8].filter((i) => g[i]).map((i) => game.grantDrop(db, pl, g[i])).filter(Boolean)) };
 }
 
-module.exports = { level, setLevel, addExp, progress, listXml, buy, MAX_VIP, DEFAULT_VIP };
+module.exports = { level, setLevel, addExp, progress, listXml, buy, shown, SHOW_MAX, VIP_EXP, MAX_VIP, DEFAULT_VIP };
