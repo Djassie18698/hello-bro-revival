@@ -54,4 +54,4 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Sign-in** (Event menu): log in on days in a row for ramen, Hyourou-gan and silver; from day 7 also 20 gold a day. Missing a day starts again at day 1.
 • **Lottery** and **Wheel of Fortune** open at level 10.
 • Sometimes switched on: **God of Wealth** (invest gold in 8 steps, always get a bit more back), **Flower Worship** (every dollar topped up gives a rose; give a goddess her roses for a rare card), **Month card** (a 4.99 or 9.99 top-up gives 60 or 120 gold a day for 30 days).
-• Top-ups are free (one package a day) and raise your VIP level, up to **VIP 23** ($70 000 / $100 000 / $150 000 / $200 000 / $300 000 in total for VIP 19-23). VIP gives extra daily chances (Save time, gold chests and more) and opens the VIP shop packs. The game can only show badges up to VIP 18, so from VIP 19 your badge stays at VIP 18, but the extra chances and VIP 19-23 packs are yours.
+• Free top-ups (one a day) raise your VIP, up to **VIP 23**. Badges stop at VIP18, but your real level counts.
