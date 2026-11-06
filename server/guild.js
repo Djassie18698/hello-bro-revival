@@ -216,9 +216,12 @@ function ensureHall(db) {
   db.exec('CREATE TABLE IF NOT EXISTS group_checkin (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, name TEXT, taskname TEXT, ts INTEGER, uid INTEGER, day TEXT)');
 }
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+// ui_orgHallCell shows localizable.ui_orgHall_tasktype .. taskname = "executed" .. taskname, so the name starts with a space and uses
+// the screen's own mission letters (taskid 1/2/3 = mission A/B/C). Was "Task 1" ("executedTask 1"); old rows are shown the new way.
+const taskName = (id) => ' mission ' + ('ABC'[id - 1] || id);
 function logXml(db, gid) {
   const rows = db.prepare('SELECT * FROM group_checkin WHERE group_id=? ORDER BY id DESC LIMIT 20').all(gid);
-  return '<checkin_log>' + rows.map((r) => `<log checkin_name="${esc(r.name)}" taskname="${esc(r.taskname)}" checkin_time="${r.ts}"/>`).join('') + '</checkin_log>';
+  return '<checkin_log>' + rows.map((r) => `<log checkin_name="${esc(r.name)}" taskname="${esc(String(r.taskname).replace(/^Task (\d)$/, (m, d) => taskName(Number(d))))}" checkin_time="${r.ts}"/>`).join('') + '</checkin_log>';
 }
 function memberScore(db, uid, sid) { const m = db.prepare('SELECT score FROM group_members WHERE uid=? AND server_id=?').get(uid, sid); return m ? m.score : 0; }
 function hallXml(db, pl) {
@@ -239,7 +242,7 @@ function checkin(db, pl, taskId) {
   db.prepare(`UPDATE players SET ${col}=${col}-? WHERE uid=? AND server_id=?`).run(t.consume, pl.uid, pl.server_id);
   db.prepare('UPDATE group_members SET score=score+? WHERE uid=? AND server_id=?').run(t.member_score, pl.uid, pl.server_id);
   db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(t.group_score, g.id);
-  db.prepare('INSERT INTO group_checkin(group_id,name,taskname,ts,uid,day) VALUES(?,?,?,?,?,?)').run(g.id, pl.nick, 'Task ' + taskId, Math.floor(Date.now() / 1000), pl.uid, today());
+  db.prepare('INSERT INTO group_checkin(group_id,name,taskname,ts,uid,day) VALUES(?,?,?,?,?,?)').run(g.id, pl.nick, taskName(taskId), Math.floor(Date.now() / 1000), pl.uid, today());
   const p = db.prepare('SELECT gold, coin FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
   return { xml: logXml(db, g.id) + el('cash', p.gold) + el('coin', p.coin) + el('score', memberScore(db, pl.uid, pl.server_id)) };
 }

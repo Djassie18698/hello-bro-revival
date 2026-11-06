@@ -60,7 +60,7 @@ function ensure(db) {
   try { db.exec('ALTER TABLE players ADD COLUMN vip INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE players ADD COLUMN vipexp INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE cards ADD COLUMN newlife INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
-  for (const c of ['pot_att', 'pot_def', 'pot_ckr', 'pend_att', 'pend_def', 'pend_ckr', 'breaklvl', 'attri']) { try { db.exec(`ALTER TABLE cards ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* already there */ } }
+  for (const c of ['pot_att', 'pot_def', 'pot_ckr', 'pend_att', 'pend_def', 'pend_ckr', 'breaklvl', 'attri', 'pills_used']) { try { db.exec(`ALTER TABLE cards ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* already there */ } }
   // A card above the top level (the old 99 cap let one reach 51) is put back to the top so it can be reincarnated again.
   try { for (const t of [1, 2, 3, 4, 5, 6]) db.prepare('UPDATE cards SET level=? WHERE type=? AND level>?').run(cardMaxLevel(t), t, cardMaxLevel(t)); } catch (e) { /* cards table not there yet */ }
   ready.add(db);
@@ -1172,7 +1172,7 @@ function newlife(db, pl, readySeq, eatSeq, grade) {
   return { grade: next, cost, gain };
 }
 
-// ---- Potential training ("Train" screen, rl_x_develop): roll gains, then save them. Free here (no pills needed).
+// ---- Potential training ("Train" screen, rl_x_develop): roll gains, then save them. Pills spent are counted per card (cards.pills_used) for Evolve.
 // Shinobi training cost, ORIGINAL (Facebook photos 1835, 1839, 1840, 1347): "foster once" = 2 Super Ninja Pills, or "gold advance" =
 // 1 pill + 10 gold; five at once = 10 pills, or 5 pills + 40 gold. The 10-times rows scale that (ours): 20 pills, or 10 pills + 80 gold.
 const NINJA_PILL = 28;
@@ -1196,6 +1196,7 @@ function potentialRoll(db, pl, seq, costId) {
   if ((propCounts(db, pl.uid, pl.server_id)[NINJA_PILL] || 0) < k.pills) return { error: 'not enough Super Ninja Pills' };
   if (pl.gold < k.gold) return { error: 'not enough gold' };
   propAdd(db, pl.uid, pl.server_id, NINJA_PILL, -k.pills);
+  db.prepare('UPDATE cards SET pills_used=pills_used+? WHERE seq=?').run(k.pills, seq); // Evolve gives these back
   if (k.gold) db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(k.gold, pl.uid, pl.server_id);
   bumpTask(db, pl.uid, pl.server_id, 12, times); // daily task: training shinobi
   const lim = potLimit(c), hi = gold ? 14 : 8, lo = gold ? 3 : -2;
@@ -1236,9 +1237,9 @@ function inherit(db, pl, srcSeq, dstSeq) {
   const cost = inheritCost(a);
   if (pl.gold < cost) return { code: 329018 };
   db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
-  db.prepare('UPDATE cards SET level=?, exp=?, starlevel=?, newlife=?, pot_att=?, pot_def=?, pot_ckr=? WHERE seq=?')
-    .run(a.level, a.exp, a.starlevel, a.newlife, a.pot_att, a.pot_def, a.pot_ckr, b.seq);
-  db.prepare('UPDATE cards SET level=1, exp=0, starlevel=0, newlife=0, pot_att=0, pot_def=0, pot_ckr=0, pend_att=0, pend_def=0, pend_ckr=0 WHERE seq=?').run(a.seq);
+  db.prepare('UPDATE cards SET level=?, exp=?, starlevel=?, newlife=?, pot_att=?, pot_def=?, pot_ckr=?, pills_used=? WHERE seq=?')
+    .run(a.level, a.exp, a.starlevel, a.newlife, a.pot_att, a.pot_def, a.pot_ckr, a.pills_used || 0, b.seq);
+  db.prepare('UPDATE cards SET level=1, exp=0, starlevel=0, newlife=0, pot_att=0, pot_def=0, pot_ckr=0, pend_att=0, pend_def=0, pend_ckr=0, pills_used=0 WHERE seq=?').run(a.seq);
   const na = get(a.seq), nb = get(b.seq);
   return { xml: inheritInfoXml(na) + `<src_card>${inheritCardAward(na)}</src_card><dst_card>${inheritCardAward(nb)}</dst_card>` };
 }
@@ -1980,16 +1981,24 @@ function godSynth(db, pl, attSeq, defSeq) {
   const a = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(attSeq, pl.uid, pl.server_id);
   const b = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=? AND type=1').get(defSeq, pl.uid, pl.server_id);
   if (!a || !b || a.seq === b.seq) return { error: 'cards missing' };
+  // ORIGINAL pairing (ui_godCardSyntheticLayer getNinjaListForChange / setSelectedNinjaForChange): two FIVE-star cards of the same
+  // ninja picture (m_ninjaicon), the attack card with m_attackmax >= m_defensemax, the defense card below it. The server took any two.
+  const na = ninjas().get(a.ninja_id), nb = ninjas().get(b.ninja_id);
+  if (!na || !nb || na[11] !== 5 || nb[11] !== 5 || na[3] !== nb[3] || !(na[20] >= na[22]) || !(nb[20] < nb[22])) return { error: 'choose an attack and a defense card of the same five-star ninja' };
   const god = godOf(b.ninja_id) || godOf(a.ninja_id); if (!god) return { error: 'no evolution for this card' };
   for (const c of [a, b]) if (inLineup(db, c.seq)) return { error: 'remove cards from the team first' };
   if ((propCounts(db, pl.uid, pl.server_id)[34] || 0) < GOD_COST) return { error: 'Insufficient evolution pills' };
   propAdd(db, pl.uid, pl.server_id, 34, -GOD_COST);
+  // ORIGINAL: "After combining, the super ninja pills used will be returned!" (the confirm window); the reply's <prop_num> is that count
+  // (tip ui_godCard_dan_back). Counted per card from 6 Nov 2026 (cards.pills_used); training done before that is not known.
+  const back = (a.pills_used || 0) + (b.pills_used || 0);
+  if (back) propAdd(db, pl.uid, pl.server_id, NINJA_PILL, back);
   db.prepare('DELETE FROM cards WHERE seq IN (?,?)').run(a.seq, b.seq);
   const seq = giveCard(db, pl.uid, pl.server_id, god);
   // "Reincarnation and growth will be retained" (the evolve screen): the best rebirth and sage growth of the two cards carry over
   const newlife = Math.max(a.newlife || 0, b.newlife || 0), starlevel = Math.max(a.starlevel || 0, b.starlevel || 0);
   db.prepare('UPDATE cards SET newlife=?, starlevel=? WHERE seq=?').run(newlife, starlevel, seq);
-  return { ninja: god, seq, newlife, starlevel };
+  return { ninja: god, seq, newlife, starlevel, back };
 }
 
 module.exports = { cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

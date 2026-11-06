@@ -1103,7 +1103,7 @@ module.exports = {
     if (Number(p.Cmd) === 28) {
       const r = game.godSynth(db, pl, Number(p.AttackCardBagIndex), Number(p.DefenseCardBagIndex));
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
-      return '<root code="0"><prop_num>0</prop_num>' + game.awardXml(r) + '</root>';
+      return '<root code="0"><prop_num>' + (r.back || 0) + '</prop_num>' + game.awardXml(r) + '</root>'; // prop_num = Super Ninja Pills given back
     }
     return '<root code="0"></root>';
   },

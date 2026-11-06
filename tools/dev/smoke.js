@@ -361,6 +361,16 @@ for (const pick of [55, 56, 57]) {
     const sal = country.salary(db, fresh());
     if (packs !== '218,219,219,220,220' || !sal.xml || !/<award/.test(sal.xml)) { bad++; console.log('OFFICIAL GIFT:', packs, JSON.stringify(sal).slice(0, 200)); }
   }
+  // Akatsuki Hall log: the game prints "executed" .. taskname, so the name is " mission A" (was "Task 1" -> "executedTask 1")
+  {
+    const guild = require('../../server/guild');
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    db.prepare('UPDATE players SET gold=5000, coin=500000 WHERE uid=77').run();
+    if (!guild.myGroup(db, 77, pl.server_id)) guild.create(db, db.prepare('SELECT * FROM players WHERE uid=77').get(), 'SmokeClan', 'x');
+    const r = guild.checkin(db, db.prepare('SELECT * FROM players WHERE uid=77').get(), 1);
+    if (r.error && !/already/.test(r.error)) { bad++; console.log('HALL CHECKIN:', r.error); }
+    else if (r.xml && !r.xml.includes('taskname=" mission A"')) { bad++; console.log('HALL LOG NAME:', r.xml.slice(0, 200)); }
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);
