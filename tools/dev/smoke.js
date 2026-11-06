@@ -380,6 +380,14 @@ for (const pick of [55, 56, 57]) {
     if (r.error && !/already/.test(r.error)) { bad++; console.log('HALL CHECKIN:', r.error); }
     else if (r.xml && !r.xml.includes('taskname=" mission A"')) { bad++; console.log('HALL LOG NAME:', r.xml.slice(0, 200)); }
   }
+  // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
+  {
+    const list = (env) => require('child_process').execFileSync(process.execPath, ['-e',
+      "process.stdout.write(require('./server/handlers').xk_r_dir({ host: 'x' }))"], { cwd: path.join(__dirname, '..', '..'), env: { ...process.env, ...env } }).toString();
+    const ids = (x) => [...x.matchAll(/<server><id>(\d+)<\/id>/g)].map((m) => m[1]).join();
+    if (ids(list({ HB_ONE_WORLD: '1' })) !== '1') { bad++; console.log('ONE WORLD: server list', ids(list({ HB_ONE_WORLD: '1' }))); }
+    if (ids(list({ HB_ONE_WORLD: '' })) !== '1,2,3,4') { bad++; console.log('STARTER SLOTS gone without HB_ONE_WORLD:', ids(list({ HB_ONE_WORLD: '' }))); }
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);

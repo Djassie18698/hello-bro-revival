@@ -84,7 +84,11 @@ const publicHost = (ctx) => process.env.HOST || ctx.host || 'localhost:18080';
 
 // Account picker (owner request): every save is per server id, so the game's own server list doubles as a character list.
 // Server 1 = the main character; 2-4 are extra slots for trying a fresh starter account (same login, separate character and world).
-const servers = (ctx) => [
+// HB_ONE_WORLD=1 (public server, owner 6 Nov 2026): only Konoha (main) in the list, so nobody lands in a separate starter world by
+// accident; server.js also plays every request on world 1. The PC servers keep the starter slots for testing.
+const ONE_WORLD = process.env.HB_ONE_WORLD === '1';
+const servers = (ctx) => ONE_WORLD ? allServers(ctx).slice(0, 1) : allServers(ctx);
+const allServers = (ctx) => [
   // para1 1000 = the app's baseconfig "Recommend": CServerListMgr::GetRecommendServer picks the server whose para1 matches it on a
   // fresh install (otherwise the highest id = an empty starter slot)
   { id: 1, name: 'Konoha (main)', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1000, para2: 2, payzoneid: 1 },

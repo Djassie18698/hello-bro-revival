@@ -86,6 +86,8 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   }
   const body = req.method === 'POST' ? await parseBody(req) : '';
   const params = { ...u.query, ...Object.fromEntries(new URLSearchParams(body)) };
+  // one world only (HB_ONE_WORLD=1, see handlers.js servers): a phone that still remembers a starter slot plays on Konoha (main)
+  if (process.env.HB_ONE_WORLD === '1' && params.ServerID && params.ServerID !== '1') params.ServerID = '1';
   const cgi = u.pathname.replace(/^\/+/, '');
   const h = handlers[cgi];
   settings.hit(params.Uid, cgi);

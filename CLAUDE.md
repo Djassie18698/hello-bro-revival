@@ -31,6 +31,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    (one line, e.g. `emulator-5564`; or set `HB_EMU`). `emu.sh` refuses to run without it so it never hits the owner's own
    game instances. Never touch any other BlueStacks instance (the owner tests there) and never use the Multi-Instance Manager.
    The owner allows starting and using the "Claude" instance whenever a check needs it (3 Nov 2026): test in game yourself, don't wait.
+   Start it detached (a plain Start-Process dies when the tool command ends): PowerShell `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '"C:\Program Files\BlueStacks_nxt\HD-Player.exe" --instance Rvc64_6' }`, then `HD-Adb.exe connect 127.0.0.1:5615`.
 5. Keep working through open bugs without asking at every step; ask only for real decisions (e.g. "original vs. free").
    Explain what changed in plain words; say what is not verified in game.
 6. Update this file when a rule, path or the open list changes. Append findings to `docs/NEXT-STEPS.md`.
@@ -106,7 +107,7 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     Code in `/opt/hellobro` (a git clone, owned by user `hellobro`: run git as `sudo -u hellobro git ...`), save `public.db`, systemd service
     `hellobro` (`tools/vps/run.sh` = LOGIN_LOCK, STRICT_SESSIONS, DB=public.db, HB_BACKUPS=backups-public, ADMIN_PASSWORD from
     `admin-password.txt`). Restart=always, back by itself after a reboot. Logs `sudo journalctl -u hellobro`. Control panel
-    `http://ninjaonline.duckdns.org:18080/` (the owner's admin password). `ADMIN_OPEN=1` (owner, 3 Nov 2026, "for now"): players use the item
+    `http://ninjaonline.duckdns.org:18080/` (the owner's admin password). `HB_ONE_WORLD=1` (owner, 6 Nov 2026): only Konoha (main) in the server list, every request plays on world 1 (starter slots stay on the PC servers; `tools/movechar.js` moves a character between worlds). `ADMIN_OPEN=1` (owner, 3 Nov 2026, "for now"): players use the item
     page `/admin` without the password; the panel, /manager and wiping a player still need it. Owner's later wish: each player only their own account (5 Nov 2026: NOT now, "I want people to have fun for now"). Guide + restore steps: `docs/CLOUD-SERVER.md`.
     **Updating (owner, 3 Nov 2026): NOT on every push. Only when the owner asks ("update the public server"), or now and then when a
     batch of player-visible fixes is waiting: then propose it and wait for a yes.** Show what is waiting first:
