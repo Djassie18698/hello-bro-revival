@@ -409,6 +409,19 @@ for (const pick of [55, 56, 57]) {
     const r = require('../../server/errcodes').fix(handlers.rl_w_recruit({ db, params: { ...b2, Cmd: '1900', Type: '3', Free: '1' } }));
     if (!/^<root code="(?!0")\d+" message="[^"]+"/.test(r)) { bad++; console.log('RECRUIT REFUSAL without a message attribute:', r.slice(0, 160)); }
   }
+  // GitHub #6: a lost spar against a much stronger real player shows his REAL defence (was scaled down to fit the result)
+  {
+    const g = require('../../server/game'), me = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const strong = db.prepare('SELECT uid FROM players WHERE uid=78123').get();
+    if (strong) {
+      db.prepare('UPDATE cards SET level=50 WHERE uid=78123').run();
+      const real = g.teamStats(db, 78123, 1).total, mine = g.teamStats(db, 77, 1).total;
+      process.env.HB_SPAR = 'lose'; const x = g.sparFight(db, me, 78123).xml || ''; delete process.env.HB_SPAR;
+      const guard = x.split('<guard>')[1] || '', ends = [...guard.matchAll(/<end>(\d+)<\/end>/g)].map((m) => +m[1]), shown = ends.reduce((a, v) => a + v, 0);
+      const realDef = (real.dl + real.dh) / 2;
+      if (realDef > (mine.al + mine.ah) / 2 * 1.2 && Math.abs(shown - realDef) > realDef * 0.15) { bad++; console.log(`SPAR DEFENCE: shown ${shown}, real ${Math.round(realDef)}`); }
+    }
+  }
   // story enemy curve (owner 6 Nov 2026, steeper): stage 1-2 = 285 (original video), chapter ends 1 = 2 000, 3 = 8 000, 10 = 300 000,
   // 19 = 10 million; the control panel's inverse (stageForDefence) must agree with it
   {

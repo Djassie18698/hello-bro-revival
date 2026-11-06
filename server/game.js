@@ -589,6 +589,15 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       return cards.map((c, i) => { const def = Math.round((c.dl + c.dh) / 2); return { id: c.id, bagid: 1000 + i, low: c.al, high: c.ah, def, end: def, dl: c.dl, dh: c.dh, level: c.level || 1, star: c.star || 0, attri: c.attri || 0 }; });
     }
     const myAtk = mine.reduce((t, m) => t + (m.low + m.high) / 2, 0);
+    // A real player's true defence when it already agrees with the decision (a loss: their total defence above my total attack; a win:
+    // below), so the fight screen shows his real numbers (GitHub #6, 6 Nov 2026: DEAN with 4.8-5.1 M defence showed DEF 1 866 480).
+    // Only when luck went against the numbers is his defence scaled to fit the result, as before.
+    if (opt.win !== undefined && cards.length && cards.every((c) => c.dl !== undefined && c.al !== undefined)) {
+      const realDef = cards.reduce((t, c) => t + (c.dl + c.dh) / 2, 0);
+      if (opt.win ? realDef < myAtk * 0.9 : realDef > myAtk * 1.1) {
+        return cards.map((c, i) => { const def = Math.round((c.dl + c.dh) / 2); return { id: c.id, bagid: 1000 + i, low: c.al, high: c.ah, def, end: def, dl: c.dl, dh: c.dh, level: c.level || 1, star: c.star || 0, attri: c.attri || 0 }; });
+      }
+    }
     const ratio = opt.ratio > 0 ? opt.ratio : fallback;
     const total = Math.max(cards.length, myAtk * ratio);
     const w = cards.map((c) => (c.dl !== undefined ? Math.max(1, (c.dl + c.dh) / 2) : c.w || 1)), sw = w.reduce((t, x) => t + x, 0);

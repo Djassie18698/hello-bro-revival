@@ -14,7 +14,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
-| Bug list 5 | 2 | 0 | 1 | 0 |
+| Bug list 5 | 3 | 0 | 0 | 1 |
 | Discord reports | 8 | 1 | 0 | 0 |
 
 ## Bug list 1
@@ -95,7 +95,8 @@ GitHub issue #6 (6 Nov 2026).
 |---|---|---|
 | ✅ | No.1 Shinobi list: challenging a player showed a weak made-up team | The list must send the uid with 5 extra digits (the game cuts 5 off before Challenge); it sent the plain uid, so 22079117 became 220 and the fight was against a made-up "Rival". Also a player far from your level now keeps his name and level. Seen in game: Ninja78277 with his real team |
 | ✅ | The 1-in-100 recruit with recruitment orders crashed every time | After the 5 order recruits of the day the server refused, and the shop screen reads the refusal text from an attribute the server did not send, so the game aborted. Every recruit refusal now carries it (shows "You can recruit with orders 5 times a day. Come back tomorrow."). Seen in game: no crash |
-| ⏳ | "1st Recharge" stays on Home after claiming | Not found yet which reply hides the Home button |
+| ✅ | Ranking fight showed too little defence (DEAN 4.8-5.1 M in the list, DEF 1.87 M in the fight) | The spar result is decided first and the enemy defence was always scaled to fit it. Now a real player's true defence is shown whenever it already fits the result (a loss against a stronger player); only a lucky win still scales it |
+| 🚫 | "1st Recharge" stays on Home after claiming | That button is the Top-up shortcut (CDefaultMainMenu::onBtnPay opens purchase_business.lua); "1st Recharge" is printed in its picture and the app never hides it, in the original too |
 
 ## Discord reports
 Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORTS.md).
@@ -231,6 +232,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 
 | | What |
 |---|---|
+| ⏳ | VIP 19-23 (owner, 6 Nov 2026): the VIP shop has packs up to VIP 23 and the game's vipinfo table has rows up to 23, but vip.js stops at MAX_VIP 18 |
+| ⏳ | Card search in the backpack / team picker (owner, 6 Nov 2026): those screens are C++, see NEXT-STEPS 6 Nov |
 | ✅ | Cross-server battle ("Cross" building on Home): buy a 500-gold ticket (arena top 20 are in for free), Saturday 8-9 pm fight for positions on the ladder, points every second, Inspire (200 gold, +10 %), Score Ranking, server / nation / history rankings, point shop 24 000 - 850 000 like the original (update 28.0.23) |
 
 ## Known, harmless
