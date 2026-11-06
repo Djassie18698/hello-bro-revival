@@ -22,7 +22,7 @@ def patch_mbs(d, rowid, col, value):
         struct.pack_into('<IH', d, p, len(d), len(b))
         return bytes(d) + b + bytes(1)
     assert types[col] == 'u', 'only number and text columns'
-    print('row %d col %d: %d -> %d' % (rowid, col, struct.unpack_from('<I', d, p)[0], value))
+    print('row %d col %d: %d -> %d' % (rowid, col, struct.unpack_from('<I', d, p)[0], int(value)))
     struct.pack_into('<I', d, p, int(value))
     return bytes(d)
 

@@ -390,6 +390,16 @@ for (const pick of [55, 56, 57]) {
     if (db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=1 AND ninja_id=35').get().n !== before + 1) { bad++; console.log('BOSS REWARD: Graduate II did not give Kakashi Hatake'); }
     if (g.BOSS_NAMED_CHANCE !== 0.05) { bad++; console.log('BOSS REWARD chance changed:', g.BOSS_NAMED_CHANCE); }
   }
+  // story enemy curve (owner 6 Nov 2026, steeper): stage 1-2 = 285 (original video), chapter ends 1 = 2 000, 3 = 8 000, 10 = 300 000,
+  // 19 = 10 million; the control panel's inverse (stageForDefence) must agree with it
+  {
+    const g = require('../../server/game'), tot = (c, s) => g.stageFoes(c, s).reduce((a, x) => a + x.def, 0);
+    const got = [tot(1, 2), tot(1, g.chapterStages(1)), tot(3, g.chapterStages(3)), tot(10, g.chapterStages(10)), tot(19, g.chapterStages(19))];
+    const want = [285, 2000, 8000, 300000, 10000000];
+    if (got.some((v, i) => Math.abs(v - want[i]) > want[i] * 0.01)) { bad++; console.log('BOSS CURVE:', got.join(', '), 'want', want.join(', ')); }
+    const back = g.stageForDefence(tot(3, 30));
+    if (!back || back.chap !== 3 || Math.abs(back.stage - 30) > 1) { bad++; console.log('BOSS CURVE inverse: chapter 3 stage 30 came back as', JSON.stringify(back)); }
+  }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {
     const list = (env) => require('child_process').execFileSync(process.execPath, ['-e',

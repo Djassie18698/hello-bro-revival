@@ -120,7 +120,7 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - **Starting energy (1 Nov 2026):** a new account starts with 50 energy (above the level-1 maximum of 10) so it gets a few levels in **(ours, owner's choice)**.
 - **Gear packs (1 Nov 2026):** stars follow each pack's own text (original): 3☆ bags 2-4 stars (they gave 5-star 29-42 % before), 4☆ bags 3-5, "Five-Star weapon Card" exactly 5-star of that slot. Split for "chance of X, higher chance of Y, at least Z" = 10 / 60 / 30 % and "chance of X, at least Y" = 25 / 75 % **(ours)** (4☆ bags: 5-star about 45 % before, 10 % now).
 - **Element restrain (1 Nov 2026):** +15% and who beats whom from the game table `ninjafiveprop` (original); NPC enemies get a fixed element from their ninja id **(ours)**; the bonus only changes the replay, not who wins **(ours, owner keeps the balance)**.
-- **Enemy strength (ours, 1 Nov 2026):** enemy team defence 285 at stage 1-2 (from the owner's video of the original) growing evenly to 2 500 000 at the last story stage; Battles use the same range over their 175 rounds; Ninja Test guards = stage value (1160 / 1950 / 2980 / 10 065 at stages 1 / 2 / 4 / 14, from photos) x min(1, (level/280)^2) (fits 5 photos; 2 Nov 2026), bosses +30% (ours).
+- **Enemy strength (ours, 1 Nov 2026):** enemy team defence 285 at stage 1-2 (from the owner's video of the original); since 6 Nov 2026 (owner, steeper) chapter ends 1 = 2 000, 3 = 8 000, 10 = 300 000, 19 = 10 000 000, growing evenly between them (`CURVE_POINTS` in game.js; was one even curve to 2 500 000); Battles use the same range over their 175 rounds; Ninja Test guards = stage value (1160 / 1950 / 2980 / 10 065 at stages 1 / 2 / 4 / 14, from photos) x min(1, (level/280)^2) (fits 5 photos; 2 Nov 2026), bosses +30% (ours).
 
 ## Recharge events (added 2 Nov 2026)
 - Great gift for total recharge (`totalgift.js`): tiers, rewards and 48 h are ORIGINAL (photo 1238). (ours): which cards match the photo's faces (The Fourth Sage ATK, Hokage Kakashi (God), Kaguya (God)); the amount counted is the dollars of the top-up packages bought while it runs.
@@ -144,4 +144,4 @@ Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 - Spar (`game.sparFight`): ORIGINAL 15 / 5 W.A.; EXP = level + 4 / a third (ours, fitted to one photo); silver ours.
 - Element Change (`game.elementChange`): ORIGINAL 12 pills + 2000 silver for a God card. (ours): 10 / 9 / 6 pills for 5 / 4 / 3-star cards.
 - God evolve: ORIGINAL 100 Development Dan. Equipment advance: ORIGINAL 50 000 silver. Small EXP-card bags: ORIGINAL 2000 silver (armor / trinket / skill bags ours).
-
+- **Boss retry price (6 Nov 2026, owner):** roundinfo [43] (tables.bin column 42) is the gold price the boss button shows after the 3 free tries (original 10 / 15 / 20 per boss). The server charges 10 for all; hot update 28.0.37 sets the column to 10 so the button and the confirm window say 10.

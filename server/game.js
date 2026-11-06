@@ -1793,25 +1793,43 @@ function npcStats(star, level) {
   return { al: v(0), ah: v(1), dl: v(2), dh: v(3), cl: v(4), ch: v(5) };
 }
 // Enemy strength (the originals lived on the dead server). In a fight only my side attacks and every enemy's defence is taken off my attack,
-// so what matters is the enemy team's TOTAL defence. Anchors: stage 1-2 = 285 (the owner's video of the original game: Mizuki 140 +
-// Iruka 125... "total defence 285"); the last story boss (chapter 19, last stage) = 2 500 000 (owner's choice: a strong late build).
-// In between it grows by the same factor every stage (ours). The named / first enemy carries a bit more than the others (video 140 vs 125).
-const CURVE = { first: 285, last: 2500000 };
-let storyIndex = null;
+// so what matters is the enemy team's TOTAL defence. Stage 1-2 = 285 (the owner's video of the original game: Mizuki 140 + Iruka 125...
+// "total defence 285"). The rest is ours: CURVE_POINTS = total defence at the last stage of a chapter, growing by the same factor every
+// stage between two points. 6 Nov 2026 (owner): steeper, because with the free top-ups players reach ~7 000 attack in their first hour
+// (Riskeric, level 60, chapter 3) and level-350 players have 8-20 million: was one even curve 285 -> 2.5 million (end of chapter 1 = 477).
+// The Battles tower (towerFoes) and the control panel's "beats up to stage" (stageForDefence) use the same curve.
+const CURVE_POINTS = [[1, 2000], [3, 8000], [10, 300000], [19, 10000000]]; // [chapter, total defence of its last stage]
+const CURVE_FIRST = 285;
+let storyIndex = null, curvePts = null;
 function storyPos(chap, stage) { // 0 = stage 1-1 ... N-1 = the last stage of chapter 19
   if (!storyIndex) { storyIndex = [0]; for (let c = 1; c <= 19; c++) storyIndex[c] = storyIndex[c - 1] + chapterStages(c); }
   return { at: (storyIndex[chap - 1] || 0) + stage - 1, of: storyIndex[19] };
 }
+function curve() { // [frac, defence] points; frac 0 = stage 1-2, 1 = the last stage of chapter 19 (frac = (at - 1) / (N - 2))
+  if (!curvePts) { const n = storyPos(1, 1).of; curvePts = [[0, CURVE_FIRST], ...CURVE_POINTS.map(([c, d]) => [(storyIndex[c] - 2) / (n - 2), d])]; }
+  return curvePts;
+}
+function teamDefence(frac) {
+  const pts = curve();
+  for (let i = 1; i < pts.length; i++) {
+    const [f0, d0] = pts[i - 1], [f1, d1] = pts[i];
+    if (frac <= f1 || i === pts.length - 1) return Math.round(d0 * Math.pow(d1 / d0, Math.min(1, Math.max(0, (frac - f0) / (f1 - f0)))));
+  }
+  return CURVE_FIRST;
+}
 // Where a given enemy team defence sits in the story (inverse of teamDefence): { chap, stage } or null when above the last boss.
 function stageForDefence(d) {
-  storyPos(1, 1);
-  const n = storyIndex[19], frac = Math.log(Math.max(d, CURVE.first) / CURVE.first) / Math.log(CURVE.last / CURVE.first);
-  if (frac > 1) return null;
+  const pts = curve(), n = storyIndex[19];
+  if (d > pts[pts.length - 1][1]) return null;
+  let frac = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const [f0, d0] = pts[i - 1], [f1, d1] = pts[i];
+    if (d <= d1) { frac = f0 + (f1 - f0) * Math.max(0, Math.log(Math.max(d, d0) / d0) / Math.log(d1 / d0)); break; }
+  }
   const at = Math.round(frac * (n - 2)) + 1;
   for (let c = 1; c <= 19; c++) if (at < storyIndex[c]) return { chap: c, stage: at - storyIndex[c - 1] + 1 };
   return { chap: 19, stage: chapterStages(19) };
 }
-function teamDefence(frac) { return Math.round(CURVE.first * Math.pow(CURVE.last / CURVE.first, frac)); }
 function spreadFoes(ids, total, level) { // split a total defence over the enemies (first one x1.12) and give each a matching look
   const w = ids.map((_, i) => (i === 0 ? 1.12 : 1)), sw = w.reduce((t, x) => t + x, 0);
   return ids.map((id, i) => {
