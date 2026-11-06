@@ -24,16 +24,21 @@ const clash = moving.filter((r) => r.there && r.u === 'uid');
 console.log(`${pl.nick} (level ${pl.level}), login ${uid}: world ${from} -> ${to}`);
 for (const r of moving) console.log(`  ${r.t}: ${r.n} rows${r.there ? `   (already ${r.there} in world ${to}!)` : ''}`);
 if (clash.length) { console.log(`refused: login ${uid} already has rows in world ${to} (${clash.map((r) => r.t).join(', ')})`); process.exit(1); }
-const led = db.prepare("SELECT name FROM sqlite_master WHERE name='groups'").get() && db.prepare('SELECT name FROM groups WHERE leader_uid=? AND server_id=?').get(uid, from);
-if (led) { console.log(`refused: ${pl.nick} leads the Akatsuki group "${led.name}" in world ${from}; hand it over or leave it first`); process.exit(1); }
-const member = db.prepare("SELECT name FROM sqlite_master WHERE name='group_members'").get() && db.prepare('SELECT 1 FROM group_members WHERE uid=? AND server_id=?').get(uid, from);
-if (member) { console.log(`refused: ${pl.nick} is in an Akatsuki group in world ${from} (groups belong to one world); leave it first`); process.exit(1); }
+// Akatsuki groups belong to one world: a group whose ONLY member is this character moves along (its buildings and log are keyed
+// by group id); any other group membership is refused (leave or hand it over first).
+const hasGroups = db.prepare("SELECT name FROM sqlite_master WHERE name='group_members'").get();
+const mine = hasGroups && db.prepare('SELECT g.id, g.name, (SELECT COUNT(*) FROM group_members m WHERE m.group_id=g.id) n FROM group_members gm JOIN groups g ON g.id=gm.group_id WHERE gm.uid=? AND gm.server_id=?').get(uid, from);
+const ledOther = hasGroups && db.prepare('SELECT name FROM groups WHERE leader_uid=? AND server_id=? AND id<>?').get(uid, from, mine ? mine.id : -1);
+if (ledOther || (mine && mine.n > 1)) { console.log(`refused: ${pl.nick} is in the Akatsuki group "${(ledOther || mine).name}" with other players in world ${from}; leave it or hand it over first`); process.exit(1); }
+if (mine && db.prepare('SELECT 1 FROM groups WHERE server_id=? AND name=?').get(to, mine.name)) { console.log(`refused: world ${to} already has a group named "${mine.name}"`); process.exit(1); }
+if (mine) console.log(`  (the Akatsuki group "${mine.name}" moves along: ${pl.nick} is its only member)`);
 // an official seat belongs to that world's country: given up, not moved (it could clash with a seat holder in the new world)
 const seatOff = moving.find((r) => r.t === 'officials' && r.n);
 if (seatOff) console.log('  (the official seat is given up, not moved)');
 if (mode !== 'apply') { console.log('dry run: add "apply" to move it'); process.exit(0); }
 db.exec('BEGIN IMMEDIATE');
 try {
+  if (mine) db.prepare('UPDATE groups SET server_id=? WHERE id=?').run(to, mine.id);
   if (seatOff) db.prepare('DELETE FROM officials WHERE uid=? AND server_id=?').run(uid, from);
   for (const r of moving) db.prepare(`UPDATE "${r.t}" SET ${r.w}=? WHERE ${r.u}=? AND ${r.w}=?`).run(to, uid, from);
   db.exec('COMMIT');
