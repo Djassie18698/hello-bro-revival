@@ -14,6 +14,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 2 | 8 | 0 | 0 | 0 |
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
+| Bug list 5 | 2 | 0 | 1 | 0 |
 | Discord reports | 8 | 1 | 0 | 0 |
 
 ## Bug list 1
@@ -85,6 +86,16 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Rebirth 7 error | Costs one same card or the shown pills |
 | ✅ | Defence 0 before the hit | Shows the enemy's defence |
 | ✅ | Defence 0 in Battles too | Same fix |
+
+## Bug list 5
+
+GitHub issue #6 (6 Nov 2026).
+
+| | Problem | What happened |
+|---|---|---|
+| ✅ | No.1 Shinobi list: challenging a player showed a weak made-up team | The list must send the uid with 5 extra digits (the game cuts 5 off before Challenge); it sent the plain uid, so 22079117 became 220 and the fight was against a made-up "Rival". Also a player far from your level now keeps his name and level. Seen in game: Ninja78277 with his real team |
+| ✅ | The 1-in-100 recruit with recruitment orders crashed every time | After the 5 order recruits of the day the server refused, and the shop screen reads the refusal text from an attribute the server did not send, so the game aborted. Every recruit refusal now carries it (shows "You can recruit with orders 5 times a day. Come back tomorrow."). Seen in game: no crash |
+| ⏳ | "1st Recharge" stays on Home after claiming | Not found yet which reply hides the Home button |
 
 ## Discord reports
 Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORTS.md).

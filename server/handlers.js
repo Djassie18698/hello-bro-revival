@@ -414,7 +414,13 @@ module.exports = {
   },
 
   // Gacha pull. Cmd 1901 = ten-pull, otherwise a single pull. Type = recruitinfo row (1 premium, 2 standard, 3 free).
+  // A refused recruit: the shop's CItemView::onHttpRequestCompleted (Cmd 1900) shows the root's message ATTRIBUTE with ShowTextTip and
+  // builds a std::string from it, so a refusal without it aborted the game (GitHub #6, 6 Nov 2026: the 1-in-100 recruit after the 5 order
+  // recruits of the day crashed every time). The <message> child stays for errcodes.js.
   rl_w_recruit: ({ db, params: p }) => {
+    const RECRUIT_TEXT = { 'no recruits left today': 'You can recruit with orders 5 times a day. Come back tomorrow.', 'not enough recruitment orders': 'You have insufficient recruitment orders',
+      'not enough gold': 'Not enough gold', 'free recruit not ready yet': 'Have not reached time for free card draw' };
+    const refuse = (e) => { const t = String(RECRUIT_TEXT[e] || (e ? e[0].toUpperCase() + e.slice(1) : 'Recruit failed')).replace(/[<>&"]/g, ''); return `<root code="5" message="${t}"><message>${e || 'recruit failed'}</message></root>`; };
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
@@ -423,12 +429,12 @@ module.exports = {
     // Limited Super Ninja (limitsuper.js): Cmd 1902 = its free pull; its gold pulls are premium-recruit requests sent while its screen is open
     if (Number(p.Cmd) === 1902 || (Number(p.Type) === 1 && Number(p.Free) !== 1 && limitsuper.isOpen(db, pl))) {
       const r = limitsuper.pull(db, pl, Number(p.Cmd) === 1902 ? 1 : count, Number(p.Cmd) === 1902);
-      if (r.code) return `<root code="${r.code}"></root>`;
-      if (r.error) return '<root code="5"><message>' + r.error + '</message></root>';
+      if (r.code) return `<root code="${r.code}" message="Recruit failed"></root>`;
+      if (r.error) return refuse(r.error);
       return '<root code="0">' + game.pullXml(r, Number(p.Cmd) === 1902 ? 1 : count, 1) + '</root>';
     }
     const res = game.pull(db, pl, Number(p.Type || 2), count, Number(p.Free) === 1);
-    if (res.error) return '<root code="5"><message>' + res.error + '</message></root>';
+    if (res.error) return refuse(res.error);
     return '<root code="0">' + game.pullXml(res, count, Number(p.Type || 2)) + '</root>';
   },
 
@@ -796,7 +802,10 @@ module.exports = {
     const i = rows.findIndex((r) => acc && r.uid === acc.uid);
     const mine = i >= 0 ? rows[i] : (() => { const r = acc && db.prepare('SELECT uid FROM players WHERE uid=? AND server_id=?').get(acc.uid, sid); if (!r) return { lo: 0, hi: 0 };
       if (type === 3) return { lo: 0, hi: 0 }; const t = game.teamStats(db, acc.uid, sid).total; return { lo: Math.round(type === 1 ? t.al : t.dl), hi: Math.round(type === 1 ? t.ah : t.dh) }; })();
-    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"/>`).join('');
+    // uid + 5 digits: ui_hallOfFameView.lua cuts the last 5 characters off before Challenge (ToUid) and before hiding the button on its own
+    // row, so the original sent the uid with a 5-digit suffix. A plain uid became ToUid=220 for 22079117 (GitHub #6, 6 Nov 2026): every
+    // challenge from this list fought a made-up "Rival". Suffix = the world id, padded (ours).
+    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}${String(sid).padStart(5, '0')}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"/>`).join('');
     return `<root code="0"><player><rank>${i + 1}</rank><min_score>${mine.lo}</min_score><max_score>${mine.hi}</max_score></player><rank_list>${items}</rank_list></root>`;
   },
 

@@ -21,6 +21,8 @@ const RULES = [
   [/battle is Saturday|only during the battle/i, 323006],      // "It is not time for battle"
   [/no more morale boosts/i, 323007],                          // "You have reached the maximum number of morale boosts"
   [/free recruit not ready/i, 80003],                          // "Have not reached time for free card draw"
+  [/no recruits left today/i, 80005],                         // "You have reached the daily limit of free card draw" (1-in-100 orders, 5 a day; 277 crashed the recruit dialog, GitHub #6)
+  [/not enough recruitment orders/i, 297],                     // "You have insufficient recruitment orders"
   [/at the maximum|highest rebirth|all gates open/i, 190008],  // "You have reached the highest possible level"
   [/stage already cleared/i, 330001],                          // "You've cleared the level!"
   [/grudge is already full/i, 184],                           // "Energy and duel levels are full, you can continue your adventure!"

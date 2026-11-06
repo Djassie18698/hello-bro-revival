@@ -390,6 +390,25 @@ for (const pick of [55, 56, 57]) {
     if (db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=1 AND ninja_id=35').get().n !== before + 1) { bad++; console.log('BOSS REWARD: Graduate II did not give Kakashi Hatake'); }
     if (g.BOSS_NAMED_CHANCE !== 0.05) { bad++; console.log('BOSS REWARD chance changed:', g.BOSS_NAMED_CHANCE); }
   }
+  // GitHub #6: the No.1 Shinobi list's uid needs a 5-digit suffix (the Lua cuts 5 characters off before ToUid), and a challenged real
+  // player far from my level fights under his own name, not "Rival"
+  {
+    const list = handlers.rl_r_ninja_rank({ db, params: { Uid: '77', Session: 'x', ServerID: '1', GroupID: '2', Cmd: '1' } }), m = list.match(/uid="(\d+)"/);
+    if (!m || m[1].length < 6 || !db.prepare('SELECT 1 FROM players WHERE uid=?').get(Number(m[1].slice(0, -5)))) { bad++; console.log('RANK UID: the list uid does not end in 5 extra digits:', list.slice(0, 200)); }
+    const g = require('../../server/game');
+    handlers.rl_w_reg2({ db, params: { Uid: '78123', Session: 'x', ServerID: '1', GroupID: '2', Nick: 'FarAbove', Card: 1, Ninja: 55, Country: 1 } });
+    db.prepare("UPDATE players SET level=350 WHERE uid=78123").run();
+    const me = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    for (let i = 0; i < 15; i++) handlers.rl_w_reg2({ db, params: { Uid: String(78200 + i), Session: 'x', ServerID: '1', GroupID: '2', Nick: 'Near' + i, Card: 1, Ninja: 55, Country: 1 } });
+    const r = g.sparFight(db, me, 78123);
+    if (!/defensenick="FarAbove"/.test(r.xml || '') || !/defenselevel="350"/.test(r.xml || '')) { bad++; console.log('RANK CHALLENGE: a far-above player fought as', ((r.xml || '').match(/<preview[^>]*>/) || [''])[0]); }
+  }
+  // GitHub #6: a refused recruit must carry the root's message ATTRIBUTE (CItemView shows it with ShowTextTip; without it the game aborted)
+  {
+    const b2 = { Uid: '78123', Session: 'x', ServerID: '1', GroupID: '2' };
+    const r = require('../../server/errcodes').fix(handlers.rl_w_recruit({ db, params: { ...b2, Cmd: '1900', Type: '3', Free: '1' } }));
+    if (!/^<root code="(?!0")\d+" message="[^"]+"/.test(r)) { bad++; console.log('RECRUIT REFUSAL without a message attribute:', r.slice(0, 160)); }
+  }
   // story enemy curve (owner 6 Nov 2026, steeper): stage 1-2 = 285 (original video), chapter ends 1 = 2 000, 3 = 8 000, 10 = 300 000,
   // 19 = 10 million; the control panel's inverse (stageForDefence) must agree with it
   {

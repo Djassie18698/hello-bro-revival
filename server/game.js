@@ -703,7 +703,9 @@ function sparTooOften(db, pl, toUid) { return sparCount(db, pl, toUid) >= SPAR_S
 function sparFight(db, pl, toUid) {
   sparCount(db, pl, toUid);
   db.prepare('INSERT INTO spar_pairs VALUES(?,?,?,?,1) ON CONFLICT(uid, server_id, day, to_uid) DO UPDATE SET n=n+1').run(pl.uid, pl.server_id, today(), toUid);
-  const rv = rivals(db, pl, 12).find((r) => r.id === toUid) || { id: toUid, level: pl.level, nick: 'Rival', ninja: 5 };
+  // a real player challenged from outside the Spar list (No.1 Shinobi list, far above or below my level) keeps his own name and level
+  const real = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(toUid, pl.server_id);
+  const rv = rivals(db, pl, 12).find((r) => r.id === toUid) || (real ? { id: real.uid, level: real.level, nick: real.nick, country: real.country, ninja: firstNinja(db, real), coin: real.coin || 0 } : { id: toUid, level: pl.level, nick: 'Rival', ninja: 5 });
   // bot strength in the same units as a ninja's attack (level 1 shinobi ~ 210): about even at equal level (ours)
   const botAtk = (lv, star) => 60 + lv * 30 + star * 30;
   const ts = teamStats(db, pl.uid, pl.server_id);

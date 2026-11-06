@@ -110,7 +110,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   // The Lua side looks for a <RENLONG> root; the C++ side accepts any root name.
   out = out.replace(/^<root/, '<RENLONG').replace(/<\/root>$/, '</RENLONG>');
   // Dev aid: HB_REPLY_LOG=<file> keeps every request + full reply (the emulator log cuts long replies at ~4 KB)
-  if (process.env.HB_REPLY_LOG) require('fs').appendFile(process.env.HB_REPLY_LOG, `${new Date().toISOString()} ${cgi} ${body}\n${out}\n\n`, () => {});
+  if (process.env.HB_REPLY_LOG) require('fs').appendFile(process.env.HB_REPLY_LOG, `${new Date().toISOString()} ${cgi} ${req.url.split("?")[1] || ""} ${body}\n${out}\n\n`, () => {});
   resp.end('<?xml version="1.0" encoding="UTF-8"?>' + out);
 });
 
