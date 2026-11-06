@@ -34,15 +34,18 @@ function send(db, to, title, content, { gold = 0, silver = 0, renown = 0, drops 
   const items = [...goldItems(gold), ...drops.map((d) => ({ type: 1, dropid: Number(d) })).filter((x) => x.dropid > 0)];
   if (silver > 0) items.push({ type: 2, dropid: Math.floor(silver) });
   if (renown > 0) items.push({ type: 3, dropid: Math.floor(renown) });
+  if (gold > 0 && gold % 10) return { error: 'gold goes in steps of 10 (the game has no smaller gold pack)' };
   if (!items.length) return { error: 'add gold, silver or reputation' };
   const who = to === 'all' ? db.prepare('SELECT uid, server_id FROM players').all() : [to];
   const ins = db.prepare('INSERT INTO award_mail(uid, server_id, ts, title, content, items) VALUES(?,?,?,?,?,?)');
-  for (const p of who) ins.run(p.uid, p.server_id, now(), String(title || 'A gift').slice(0, 40), String(content || '').slice(0, 300), JSON.stringify(items));
+  for (const p of who) ins.run(p.uid, p.server_id, now(), String(title || 'A gift').slice(0, 40), String(content || title || 'A gift').slice(0, 300), JSON.stringify(items));
   return { sent: who.length };
 }
 const open = (db, pl) => { ensure(db); return db.prepare('SELECT * FROM award_mail WHERE uid=? AND server_id=? AND claimed=0 AND ts>? ORDER BY id DESC').all(pl.uid, pl.server_id, now() - EXPIRY_DAYS * 86400); };
+// title and content must never be empty: ui_awardCenterCell.lua does setString(data:find("content")[1]) and an empty element
+// gives nil, which crashed the game as soon as the Award Center opened (6 Nov 2026: a mail sent with an empty Message box).
 function listXml(db, pl) {
-  const msgs = open(db, pl).map((m) => '<msg>' + el('id', m.id) + el('ts', m.ts) + el('title', esc(m.title)) + el('content', esc(m.content)) +
+  const msgs = open(db, pl).map((m) => '<msg>' + el('id', m.id) + el('ts', m.ts) + el('title', esc(m.title || 'A gift')) + el('content', esc(m.content || m.title || 'A gift')) +
     '<awards>' + JSON.parse(m.items).map((x) => `<item type="${x.type}" dropid="${x.dropid}"/>`).join('') + '</awards></msg>').join('');
   return el('expiry', EXPIRY_DAYS) + `<msglist>${msgs}</msglist>`;
 }

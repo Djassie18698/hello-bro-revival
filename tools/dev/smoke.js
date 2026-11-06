@@ -74,6 +74,14 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const mail = db.prepare("SELECT content, items FROM award_mail WHERE uid=77 AND title='Limited Super Ninja'").all();
   ck(mail.length === 1 && /#1 with 120 points/.test(mail[0].content) && mail[0].items.includes(`"dropid":${god.drop}`), 'round prize mail: ' + JSON.stringify(mail));
   ck(chest.includes('<title>Limited Super Ninja</title>'), 'the Awards chest did not show the prize: ' + chest.slice(0, 200));
+  // 6 Nov 2026: a control-panel mail with an empty Message box crashed the game on opening the Awards chest
+  // (ui_awardCenterCell.lua setString(find("content")[1]) = nil). Old empty rows too: never an empty <title>/<content>.
+  const ac = require('../../server/awardcenter');
+  ac.send(db, { uid: 77, server_id: 1 }, 'W', '', { silver: 3 });
+  db.prepare("INSERT INTO award_mail(uid, server_id, ts, title, content, items) VALUES(77, 1, strftime('%s','now'), '', '', '[{\"type\":2,\"dropid\":5}]')").run();
+  const list = call('rl_x_award_msg', { Cmd: 1 });
+  ck(!/<title><\/title>|<content><\/content>/.test(list), 'Awards chest sent an empty title or content: ' + list.slice(0, 300));
+  ck(/error/.test(JSON.stringify(ac.send(db, { uid: 77, server_id: 1 }, 'x', 'y', { gold: 5 }))), 'gold 5 (no such gold pack) was not refused');
 }
 // Discord report 3 Nov 2026: seals with several stats, set tiers adding up, the war exploit shop's balance.
 {
