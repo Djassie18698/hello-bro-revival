@@ -128,7 +128,7 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     The play folder now holds exactly the GitHub files plus the owner's save (hellobro.db + backups/) and two .xapk files.
   - the **play server** the owner uses: `C:\Users\dj199\Desktop\Hello Bro Locked Server` (its own `hellobro.db`, port 18080).
     Only the owner starts and stops it (rule 2). Restart (only when asked, PowerShell): stop the process listening on 18080 and its
-    parent cmd, then `Start-Process "<that folder>\START-SERVER.bat" -WorkingDirectory "<that folder>"`.
+    parent cmd, then `explorer.exe "<that folder>\START-SERVER.bat"` (Start-Process from the tool gets its node killed when the command ends: 6 Nov 2026).
   - the **dev server** in the main repo: `bash tools/dev/restart.sh` (port **18081**, so the owner can play on 18080 at the same time;
     logs `%TEMP%\hb\server.log`). The Claude emulator runs `release/HelloBro-for-127.0.0.1-18081.apk` and reaches it through
     `adb reverse` (`emu.sh restart` sets it up). Test login: `tools/dev/emu.account` (git-ignored), account 55501235.
