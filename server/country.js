@@ -5,7 +5,7 @@ const game = require('./game');
 
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const SALARY = { 1: 3000, 2: 1500, 3: 1500, 4: 800, 5: 800, 6: 800, 7: 800 }; // gold per day
+const SALARY_PACK = (seat) => (seat === 1 ? 218 : seat <= 3 ? 219 : 220); // daily official gift (dropinfo random packs)
 const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 function ensure(db) {
@@ -28,15 +28,23 @@ function infoXml(db, pl) {
   const midnight = (() => { const m = new Date(); m.setHours(24, 0, 0, 0); return Math.round((m - Date.now()) / 1000); })() // seconds to local midnight;
   return `<display>0</display><pack>${el('canget', seat && !got ? 1 : 0)}${el('resttime', seat && !got ? 0 : midnight)}</pack>${el('resttime', midnight)}` +
     `<officallist>${list}</officallist><decllist><has_decl>0</has_decl><allicountry></allicountry><oppecountry></oppecountry></decllist>` +
-    '<timeinfo><begin>0</begin><end>0</end></timeinfo>';
+    // <timeinfo> = war hours in seconds of the day; CMyCountryInfo::SetTimeToText prints them as H:MM ("war starts everynight 0:00-24:00").
+    // The war is open all day here (owner, 1 Nov 2026; war.js); end 0 printed "0:00-0:00".
+    '<timeinfo><begin>0</begin><end>86400</end></timeinfo>';
 }
 const power = (db, uid, sid) => { const t = game.teamStats(db, uid, sid).total; return (t.al + t.ah + t.dl + t.dh) / 2; };
 
+const seatCost = (seat) => (game.table('normalconfig').rows.find((r) => r[0] === (seat === 1 ? 11 : seat <= 3 ? 12 : 13)) || [])[3] || 0;
 function take(db, pl, seat) {
   ensure(db);
   if (!(seat >= 1 && seat <= 7)) return { error: 'bad seat' };
   const holder = db.prepare('SELECT uid FROM officials WHERE server_id=? AND country=? AND seat=?').get(pl.server_id, pl.country, seat);
   if (holder && holder.uid === pl.uid) return { error: 'you already hold this seat' };
+  // ORIGINAL price of competing for a seat (normalconfig 11 / 12 / 13: official A / B / C), the client shows it before the try
+  // ("Competing for this position requires gold: 20"): Raikage 20, Custodians 10, Elders 0. Paid for every try, won or lost. Was free.
+  const cost = seatCost(seat);
+  if (pl.gold < cost) return { error: 'not enough gold' };
+  if (cost) db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
   const free = () => db.prepare('DELETE FROM officials WHERE server_id=? AND uid=?').run(pl.server_id, pl.uid);
   const sit = () => db.prepare('INSERT OR REPLACE INTO officials VALUES(?,?,?,?)').run(pl.server_id, pl.country, seat, pl.uid);
   if (!holder) { free(); sit(); return { xml: '<officaltake direct="1"></officaltake>' }; }
@@ -56,11 +64,10 @@ function salary(db, pl) {
   if (!seat) return { error: 'only officials get a salary' };
   const ok = db.prepare('INSERT OR IGNORE INTO salary VALUES(?,?,?)').run(pl.uid, pl.server_id, day()).changes;
   if (!ok) return { error: 'already collected today' };
-  // Like the original: a reward box. Hokage: 5-star card / 4-star card / 500 gold, with a small chance at Sage of the Six Paths.
-  const pool = seat === 1 ? [11, 11, 371, 371, 352, 374] : seat <= 3 ? [371, 372, 352] : [372, 372, 107];
-  const drop = seat === 1 && Math.random() < 0.05 ? 0 : pool[Math.floor(Math.random() * pool.length)];
-  if (!drop) { const seq = game.giveCard(db, pl.uid, pl.server_id, 1); return { xml: game.awardXml({ ninja: 1, seq }) }; }
-  return { xml: game.grantDrop(db, pl, drop) };
+  // ORIGINAL official gift packs (dropinfo 218 / 219 / 220, the texts the bag shows before Claim): Raikage "Five-Star Shinobi Card,
+  // Four-Star Shinobi Card, 500 Gold, may even grant Sage of the Six Paths", Custodians the same with 300 Gold, Elders 5/4/3-star card or
+  // 100 Gold (may even grant Naruto). Was our own list (Custodian 200 gold, Elder reincarnation pills) that did not match the text.
+  return { xml: game.grantDrop(db, pl, SALARY_PACK(seat)) };
 }
 
 // War > Ranking: Individuals (power ranking, all countries or one) and Nations (wins/losses, king = Hokage nick).
@@ -82,4 +89,4 @@ function rankXml(db, pl, cmd, countryFilter) {
   return `<countryrank>${countries}</countryrank>`;
 }
 
-module.exports = { rankXml, infoXml, take, salary, mySeat };
+module.exports = { rankXml, infoXml, take, salary, mySeat, seatCost, SALARY_PACK };

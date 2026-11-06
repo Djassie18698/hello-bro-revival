@@ -61,6 +61,8 @@ function ensure(db) {
   try { db.exec('ALTER TABLE players ADD COLUMN vipexp INTEGER NOT NULL DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE cards ADD COLUMN newlife INTEGER NOT NULL DEFAULT 0'); } catch (e) { /* already there */ }
   for (const c of ['pot_att', 'pot_def', 'pot_ckr', 'pend_att', 'pend_def', 'pend_ckr', 'breaklvl', 'attri']) { try { db.exec(`ALTER TABLE cards ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* already there */ } }
+  // A card above the top level (the old 99 cap let one reach 51) is put back to the top so it can be reincarnated again.
+  try { for (const t of [1, 2, 3, 4, 5, 6]) db.prepare('UPDATE cards SET level=? WHERE type=? AND level>?').run(cardMaxLevel(t), t, cardMaxLevel(t)); } catch (e) { /* cards table not there yet */ }
   ready.add(db);
 }
 
@@ -381,7 +383,9 @@ function rollPack(r) {
     const n = Number((o.match(/(\d+)/) || [0, 0])[1]);
     return /gold/i.test(o) ? { cash: n } : { coin: n };
   }
-  const star = /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
+  // "Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card, 100 Gold" (official Elder pack 220): 20 / 40 / 40 % (ours)
+  const all3 = /Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card/.test(t), x3 = Math.random();
+  const star = all3 ? (x3 < 0.2 ? 5 : x3 < 0.6 ? 4 : 3) : /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
   // "One, Two-Star ..." and "Three-Star ..." packs are exactly those stars (slot 0-2 = weapon / armor / trinket)
   const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);
   const exact = equipFromText(t);
@@ -1083,6 +1087,10 @@ function packBuy(db, pl, packId) {
   return { costG, costS, type: first[0], ninja: first[1], n, seq: seqs.join('|'), attrs: seqs.map(() => 0).join('|') };
 }
 
+// Top card level per kind = the row count of its upgrade table (client IUpgradeable::firefly_GetMaxLevel): 50 for all of them.
+const UPGRADE_TABLE = (type) => (type === 1 ? 'ninjaupgrade' : type === 5 ? 'markupgrade' : type === 6 ? 'ninjutsuupgrade' : 'equipupgrade');
+function cardMaxLevel(type) { return table(UPGRADE_TABLE(type)).rows.length; }
+
 // Card level-up: eat material cards (75 exp each), cost 2 silver per exp. Level thresholds = ninjaupgrade col 2.
 function strengthen(db, pl, srcSeq, eatSeqs) {
   const src = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(srcSeq, pl.uid, pl.server_id);
@@ -1093,13 +1101,17 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
   // [4] silver from its OWN kind's upgrade table at its level (ninjaupgrade, equipupgrade, markupgrade, ninjutsuupgrade); the card that
   // grows needs [2] EXP per level from its own kind's table. Was a flat 75 EXP / 150 silver a card and the ninja table for every kind.
   // (ours): the ninja EXP-card bonus multiplier the client has for special cards is not applied.
-  const up = (type) => table(type === 1 ? 'ninjaupgrade' : type === 5 ? 'markupgrade' : type === 6 ? 'ninjutsuupgrade' : 'equipupgrade').rows;
+  const up = (type) => table(UPGRADE_TABLE(type)).rows;
   let exp = 0, cost = 0;
   for (const e of eat) { const r = up(e.type).find((x) => x[1] === (e.level || 1)) || []; exp += r[3] || 0; cost += r[4] || 0; }
   if (pl.coin < cost) return { error: 'not enough silver' };
   const rows = up(src.type);
   let level = src.level, cur = src.exp + exp;
-  for (;;) { const r = rows.find((x) => x[1] === level); if (!r || level >= Math.min(pl.level * 2 + 10, 99) || cur < r[2]) break; cur -= r[2]; level++; }
+  // ORIGINAL top level = the number of rows in the kind's upgrade table (IUpgradeable::firefly_GetMaxLevel; 50 for every kind).
+  // Reincarnation only lists cards whose level equals it (CReincarnationView::onClickSelectCard, "No Lv.50 cards").
+  // Was capped at 99, so a card could reach 51 and could then never be reincarnated (one weapon on the public server, 6 Nov 2026).
+  const top = Math.min(pl.level * 2 + 10, cardMaxLevel(src.type));
+  for (;;) { const r = rows.find((x) => x[1] === level); if (!r || level >= top || cur < r[2]) break; cur -= r[2]; level++; }
   db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
   db.prepare('UPDATE cards SET level=?, exp=? WHERE seq=?').run(level, cur, srcSeq);
   for (const e of eat) db.prepare('DELETE FROM cards WHERE seq=?').run(e.seq);
@@ -1980,4 +1992,4 @@ function godSynth(db, pl, attSeq, defSeq) {
   return { ninja: god, seq, newlife, starlevel };
 }
 
-module.exports = { COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

@@ -104,6 +104,7 @@ function resultXml(db, pl) {
 }
 
 // Scrolling war news (Cmd 7700, everyone) and my own fights (Cmd 7701). Children are text elements.
+// <powernum> is the exploit in "get N points and N exploit" (CCountryWarDescTable::AddMessageFromXML): a win gives 10 (see attack), was always 0.
 function msgXml(db, pl, mine) {
   ensure(db);
   const rows = mine
@@ -112,7 +113,7 @@ function msgXml(db, pl, mine) {
   const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const items = rows.map((r) => '<warmsg>' + el('id', r.id) + el('fromnick', esc(r.fromnick)) + el('tonick', esc(r.tonick)) + el('fromcountry', r.fromcountry) +
     el('tocountry', r.tocountry) + el('killnum', r.win) + el('fromofficer', 0) + el('toofficer', 0) + el('msgtype', 1) + el('iswin', r.win) +
-    el('score', r.score) + el('powernum', 0) + '</warmsg>').join('');
+    el('score', r.score) + el('powernum', r.win ? 10 : 0) + '</warmsg>').join('');
   return mine ? `<usermsglist>${items}</usermsglist>` : `<warmsglist>${items}</warmsglist>`;
 }
 

@@ -308,6 +308,59 @@ for (const pick of [55, 56, 57]) {
     if (st !== 200 || page.includes('f-server') || !page.includes('<body class="player">')) { bad++; console.log('ADMIN_OPEN page:', st, page.slice(0, 80)); }
     for (const [k, v] of [['ADMIN_PASSWORD', keep.pw], ['ADMIN_OPEN', keep.open]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
   }
+  // Cards stop at level 50 (the upgrade tables' row count, client IUpgradeable::firefly_GetMaxLevel): the old 99 cap let a weapon reach 51,
+  // and reincarnation only lists cards at exactly the top level ("No Lv.50 cards"). Also a card already above it is put back on start.
+  {
+    const game = require('../../server/game');
+    const p77 = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    db.prepare('UPDATE players SET level=100, coin=99999999 WHERE uid=77').run();
+    const pl = { ...p77, level: 100, coin: 99999999 };
+    const w = game.giveCard(db, 77, pl.server_id, 1001, 2);
+    db.prepare('UPDATE cards SET level=49 WHERE seq=?').run(w);
+    const food = [];
+    for (let i = 0; i < 30; i++) { const s = game.giveCard(db, 77, pl.server_id, 1001, 2); db.prepare('UPDATE cards SET level=50 WHERE seq=?').run(s); food.push(s); }
+    game.strengthen(db, pl, w, food);
+    const lv = db.prepare('SELECT level FROM cards WHERE seq=?').get(w).level;
+    const over = game.giveCard(db, 77, pl.server_id, 1001, 2);
+    db.prepare('UPDATE cards SET level=51 WHERE seq=?').run(over);
+    const { DatabaseSync } = require('node:sqlite');
+    const d2 = new DatabaseSync(':memory:'); require('../../server/schema')(d2);
+    d2.exec('CREATE TABLE cards (seq INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, server_id INTEGER, type INTEGER, ninja_id INTEGER, level INTEGER NOT NULL DEFAULT 1, exp INTEGER NOT NULL DEFAULT 0, starlevel INTEGER NOT NULL DEFAULT 0)');
+    d2.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level) VALUES(1,1,2,1001,51)').run();
+    game.ensure(d2);
+    const fixed = d2.prepare('SELECT level FROM cards').get().level;
+    if (lv !== 50 || game.cardMaxLevel(1) !== 50 || fixed !== 50) { bad++; console.log('CARD TOP LEVEL:', JSON.stringify({ upgraded: lv, fixedOnStart: fixed })); }
+  }
+  // Country war log: "you defeated X, get 10 points and N exploit" reads <powernum>; a win gives 10 exploit (was always shown as 0)
+  {
+    const war = require('../../server/war');
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    db.prepare("INSERT INTO war_log(server_id,uid,tuid,fromnick,tonick,fromcountry,tocountry,win,score) VALUES(?,?,0,'a','b',1,2,1,10)").run(pl.server_id, pl.uid);
+    const x = war.msgXml(db, pl, true);
+    if (!/<iswin>1<\/iswin><score>10<\/score><powernum>10<\/powernum>/.test(x)) { bad++; console.log('WAR LOG EXPLOIT:', x.slice(0, 300)); }
+    // Country tab "war starts everynight B-E" (seconds of the day): the war is open all day here, so 0:00-24:00 (was 0:00-0:00)
+    const ci = require('../../server/country').infoXml(db, pl);
+    if (!ci.includes('<timeinfo><begin>0</begin><end>86400</end></timeinfo>')) { bad++; console.log('COUNTRY WAR HOURS:', ci.slice(-80)); }
+    // Competing for an official seat costs the original normalconfig 11/12/13 gold (Raikage 20, Custodian 10, Elder 0); it was free
+    const country = require('../../server/country');
+    const gold = () => db.prepare('SELECT gold FROM players WHERE uid=77').get().gold;
+    db.prepare('UPDATE players SET gold=100 WHERE uid=77').run();
+    db.prepare('DELETE FROM officials WHERE server_id=? AND country=?').run(pl.server_id, pl.country);
+    const fresh = () => db.prepare('SELECT * FROM players WHERE uid=77').get();
+    country.take(db, fresh(), 1); const g1 = gold();
+    country.take(db, fresh(), 4); const g4 = gold();
+    db.prepare('UPDATE players SET gold=5 WHERE uid=77').run();
+    db.prepare('DELETE FROM officials WHERE server_id=? AND country=?').run(pl.server_id, pl.country);
+    const poor = country.take(db, fresh(), 1);
+    if (g1 !== 80 || g4 !== 80 || !poor.error || gold() !== 5 || country.seatCost(2) !== 10) { bad++; console.log('SEAT PRICE:', JSON.stringify({ g1, g4, poor, left: gold() })); }
+    // the daily official gift is the game's own pack for the seat (218 Raikage / 219 Custodian / 220 Elder: the text the bag shows)
+    const packs = [1, 2, 3, 4, 7].map(country.SALARY_PACK).join(',');
+    db.prepare('DELETE FROM officials WHERE server_id=? AND country=?').run(pl.server_id, pl.country);
+    db.prepare('UPDATE players SET gold=100 WHERE uid=77').run();
+    country.take(db, fresh(), 4);
+    const sal = country.salary(db, fresh());
+    if (packs !== '218,219,219,220,220' || !sal.xml || !/<award/.test(sal.xml)) { bad++; console.log('OFFICIAL GIFT:', packs, JSON.stringify(sal).slice(0, 200)); }
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);
