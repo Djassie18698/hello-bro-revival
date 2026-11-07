@@ -12,34 +12,6 @@ baseClass(layer_base_t, ui_tupoLayer)
 Instance = nil
 SelectedCard = 0
 
--- Hello Bro revival (hot update 28.0.39): the "+N" font characters/NumB.fnt has only "+" and 1-9 (no 0), so Breakthrough 10 showed
--- as "+1". From 10 on the level is drawn with characters/number_40.fnt (the game's gold numbers, which have a 0) in the same spot.
-local function hbShowTupoLevel(self, key, plusNode, numNode, lvl)
-	local big = self[key]
-	if lvl < 10 then
-		if big then big:setVisible(false) end
-		numNode:setString(tostring(lvl))
-		numNode:setVisible(true)
-		plusNode:setVisible(true)
-		return
-	end
-	numNode:setVisible(false)
-	plusNode:setVisible(false)
-	if big == nil then
-		big = CCLabelBMFont:create("+" .. tostring(lvl), "characters/number_40.fnt")
-		big:setAnchorPoint(ccp(0.5, 0.5))
-		big:setPosition(ccp((plusNode:getPositionX() + numNode:getPositionX()) / 2 + 6, numNode:getPositionY()))
-		big:setScale(1.15)
-		plusNode:getParent():addChild(big, plusNode:getZOrder() + 1)
-		self[key] = big
-	end
-	big:setString("+" .. tostring(lvl))
-	big:setVisible(true)
-end
-local function hbHideTupoLevel(self, key)
-	if self[key] then self[key]:setVisible(false) end
-end
-
 function init(self)
 	self.playerMgr_ = CPlayerDataMgr:instance()
 	self.playerData_ = self.playerMgr_:GetPlayerInfoData()
@@ -96,8 +68,6 @@ function clearShowTupoInfo( self )
     self.tupo_begin_level:setVisible(false)
     self.tupo_end_level:setString("0")
     self.tupo_end_level:setVisible(false)
-    hbHideTupoLevel(self, "hb_big_begin")
-    hbHideTupoLevel(self, "hb_big_end")
 
     for i=1,5 do
     	self["card_attr_start_0"..tostring(i)]:setString(tostring(0))
@@ -133,25 +103,27 @@ function refreshData(self)
 
     	--突破等级
     	if self.current_tupo_level ~= 0 then
-    		hbShowTupoLevel(self, "hb_big_begin", self.spr_add_01, self.tupo_begin_level, self.current_tupo_level)
+    		self.tupo_begin_level:setString(tostring(self.current_tupo_level))
+    		self.tupo_begin_level:setVisible(true)
+    		self.spr_add_01:setVisible(true)
 
     	else
     		self.spr_add_01:setVisible(false)
     		self.tupo_begin_level:setVisible(false)
-    		hbHideTupoLevel(self, "hb_big_begin")
     	end
 
     	if (self.current_tupo_level+1)>self.max_tupo_level then
     		self.tupo_end_level:setVisible(false)
     		self.spr_add_02:setVisible(false)
-    		hbHideTupoLevel(self, "hb_big_end")
 
     		self.label_tupo_cost:setString("0")
     		self.label_tupo_cost_piece:setString("0/0")
 
     		self.card_name_2:setVisible(false)
     	else
-    		hbShowTupoLevel(self, "hb_big_end", self.spr_add_02, self.tupo_end_level, self.current_tupo_level+1)
+    		self.tupo_end_level:setString(tostring(self.current_tupo_level+1))
+    		self.tupo_end_level:setVisible(true)
+    		self.spr_add_02:setVisible(true)
 
     		--消耗碎片数量和银两数量
     		self.label_tupo_cost:setString(tostring(self.cost_sliver_num))

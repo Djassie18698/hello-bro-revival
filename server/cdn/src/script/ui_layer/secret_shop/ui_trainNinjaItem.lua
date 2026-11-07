@@ -6,30 +6,6 @@
 module("ui_trainNinjaItem", package.seeall)
 baseClass(layer_base_t, ui_trainNinjaItem)
 
-
--- Hello Bro revival (hot update 28.0.39): the "+N" font characters/NumB.fnt has only "+" and 1-9 (no 0), so Breakthrough 10 showed
--- as "+1". From 10 on the level is drawn with characters/number_40.fnt (the game's gold numbers, which have a 0) in the same spot.
-local function hbTupoLevelLabel(self, lvl)
-	local lab = self.label_tupo_level
-	if lvl < 10 then
-		if self.hb_tupo_big then self.hb_tupo_big:setVisible(false) end
-		lab:setString("+" .. tostring(lvl))
-		lab:setVisible(true)
-		return
-	end
-	lab:setVisible(false)
-	if self.hb_tupo_big == nil then
-		local b = CCLabelBMFont:create("+" .. tostring(lvl), "characters/number_40.fnt")
-		b:setAnchorPoint(lab:getAnchorPoint())
-		b:setPosition(ccp(lab:getPositionX(), lab:getPositionY()))
-		b:setScale(lab:getScale() * 1.15)
-		lab:getParent():addChild(b, lab:getZOrder() + 1)
-		self.hb_tupo_big = b
-	end
-	self.hb_tupo_big:setString("+" .. tostring(lvl))
-	self.hb_tupo_big:setVisible(true)
-end
-
 function init(self, data, cellSize, indexval)
 	local ccbiAttrTable = {name="secretshop/trainSoulNinjaItem.ccbi", size=cellSize}
 	--local ccbiAttrTable = {name="secretshop/trainNinjaCard.ccbi"}
@@ -263,9 +239,9 @@ function init_control_data(self)
 		--cclog("20151224-- supo level show : %d", pNinja:GetTupoLevel())
 		if pNinja:GetTupoLevel() <= 0 then
 			self.label_tupo_level:setVisible(false)
-			if self.hb_tupo_big then self.hb_tupo_big:setVisible(false) end
 		else
-			hbTupoLevelLabel(self, pNinja:GetTupoLevel())
+			self.label_tupo_level:setVisible(true)
+			self.label_tupo_level:setString("+"..tostring(pNinja:GetTupoLevel()))
 		end
 	end
 

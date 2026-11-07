@@ -173,7 +173,7 @@ file: copy it from `re/obb/<path>` (or `server/reference/lua-scripts`) to `serve
 edit, `python -I tools/build_cdn.py 28.0.N` with a **higher** N, `git rm` the previous zip, note it in `docs/HOT-UPDATE.md`.
 Players tap Confirm once. `mainActivity.lua` is run straight from the OBB by C++: patching it does nothing. Text and numbers in the
 client's tables go through `tools/patch_tables.py` (tables.bin), layouts through `tools/ccbi.py`; sprite sheets can't be re-encoded.
-Current: **28.0.39** (Breakthrough +10 drawn with a font that has a 0; 28.0.37 = boss retry price 10 gold for every boss, 28.0.36 = Chinese button texts in English, 28.0.35 = tutorial off for everyone). The full list is in `docs/HOT-UPDATE.md`.
+Current: **28.0.40** (the "+N" font characters/NumB.fnt got a 0, so Breakthrough +10 shows everywhere; tools/add_numb_zero.py makes it; 28.0.37 = boss retry price 10 gold for every boss, 28.0.36 = Chinese button texts in English, 28.0.35 = tutorial off for everyone). The full list is in `docs/HOT-UPDATE.md`.
 
 ## 8. Data model cheat sheet
 - `cards.type`: 1 ninja (ninja_id = ninjainfo id) · 2 weapon · 3 armor · 4 trinket (ninja_id = equipmentinfo id) · 5 seal
