@@ -244,61 +244,96 @@ function chainPlan(db, pl) {
 
 // ---- Gear calculator: the strongest weapon / armor / trinket / seal / 4 ninjutsu for every ninja in the team ----------------------
 // mode 'owned' = only cards the player has and nobody else in the team wears; 'best' = also new cards (level 50, rebirth 3 for equipment).
-// A piece a chain of that ninja asks for ("Equip X") is kept or chosen first; otherwise the score is the slot's total stats
-// (attack + defence + chakra, low and high) with the same gear math as the team screen (game.teamStats).
-const STATK = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
-function slotScore(ninjaCard, gear) {
-  let st = game.ninjaStats(ninjaCard);
-  for (const g of gear) {
-    if (!g) continue;
-    if (g.type === 5) st = game.sealBonus(st, g.ninja_id);
-    else if (g.type === 6) st = game.ninjutsuBonus(st, g.ninja_id);
-    else st = game.addStats(st, game.equipStats(g));
-  }
-  return st;
-}
-const sum = (st) => STATK.reduce((t, k) => t + (st[k] || 0), 0);
-function gearPlan(db, pl, mode) {
-  const view = teamView(db, pl);
+// The score is that ninja with the team screen's own math (game.teamSlots on the one ninja: gear stats, seal %, ninjutsu, gear and ninjutsu
+// SETS, "Equip X" chains), on `keys` (all stats for Best gear, the goal's for Best team). Sets need several pieces at once, so besides the best
+// piece per place it also tries every complete set (weapon, armor, trinket, seal of one gear set; the 4 ninjutsu of a ninjutsu set).
+// Until 7 Nov 2026 sets did not count here, so DEAN got strong single pieces and no set (Riskeric's full "Armed" set is +45 % attack).
+const KTYPE = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 6, 8: 6 };
+// The 34 ninjutsu with m_rate 1.0 (ids 56-89: "level 1", damage 10-40, some named like the top ones) are special versions no drop gives;
+// our team-attack model counts a ninjutsu as rate x 20 %, so these would read as +20 % each and four of them double a team. Gear tools
+// leave them out and use the normal ninjutsu (m_rate 0.15).
+const realJutsu = (id) => { const r = game.table('ninjutsuinfo').rows.find((x) => x[0] === id); return !!r && Number(r[4]) < 1; };
+const ALLSTATS = ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
+function gearSolver(db, pl, mode, keys) {
   const cards = new Map(db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=?').all(pl.uid, pl.server_id).map((c) => [c.seq, c]));
-  const inUse = new Set(view.slots.flatMap((s) => [s.ninja.seq, ...Object.values(s.equip).filter(Boolean).map((e) => e.seq)]));
-  const freed = new Set(); // gear taken off a ninja here may go to another
-  const taken = new Set();
   const equipRows = game.table('equipmentinfo').rows;
-  const KTYPE = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 6, 8: 6 };
   const catalog = (type) => {
     if (type <= 4) return equipRows.filter((r) => r[5] === 1 && ({ 0: 2, 1: 3, 2: 4 }[r[3]]) === type).map((r) => r[0]);
     if (type === 5) return game.table('markinfo').rows.map((r) => r[0]);
-    return game.table('ninjutsuinfo').rows.map((r) => r[0]);
+    return game.table('ninjutsuinfo').rows.filter((r) => realJutsu(r[0])).map((r) => r[0]);
   };
+  const catalogs = {};
+  const newPiece = (type, id) => ({ seq: 0, type, ninja_id: id, level: 50, newlife: type <= 4 ? 3 : 0 });
+  const value = (ninja, pick) => {
+    const eq = Object.entries(pick).filter(([, c]) => c).map(([k, c]) => ({ ...c, slot: 1, kind: Number(k) }));
+    const st = game.teamSlots([{ ...ninja, slot: 0 }], eq, null)[0];
+    return keys.reduce((t, k) => t + (st[k] || 0), 0);
+  };
+  const better = (x, y) => (x.level || 0) - (y.level || 0) || (x.newlife || 0) - (y.newlife || 0);
+  const memo = new Map(); // 'best' mode: the same card always gets the same gear
+  // one ninja: cur = { kind: card } it wears now; free(type) = the owned pieces it may take (not worn by another ninja of the plan)
+  function solve(ninja, cur, free) {
+    const mkey = mode === 'best' && `${ninja.ninja_id}|${ninja.level}|${ninja.newlife}|${ninja.starlevel}|${ninja.breaklvl || 0}`;
+    if (mkey && memo.has(mkey)) { // same pieces again; an owned one another ninja already took -> a free copy of it, else a new one
+      const out = {};
+      for (const [k, c] of Object.entries(memo.get(mkey))) {
+        if (!c.seq) { out[k] = c; continue; }
+        const f = free(c.type).filter((x) => x.ninja_id === c.ninja_id).sort((x, y) => better(y, x))[0];
+        out[k] = f || newPiece(c.type, c.ninja_id);
+      }
+      return out;
+    }
+    // candidates per type: the best owned copy of each id (+ every id new in 'best' mode); own copies win ties
+    const cand = {};
+    const candOf = (type) => {
+      if (cand[type]) return cand[type];
+      const byId = new Map();
+      for (const c of free(type)) { if (type === 6 && !realJutsu(c.ninja_id)) continue; const o = byId.get(c.ninja_id); if (!o || better(c, o) > 0) byId.set(c.ninja_id, c); }
+      if (mode === 'best') for (const id of (catalogs[type] = catalogs[type] || catalog(type))) if (!byId.has(id)) byId.set(id, newPiece(type, id));
+      return (cand[type] = byId);
+    };
+    let pick = { ...cur }, best = value(ninja, pick); // special ninjutsu the ninja already wears stay unless something beats them
+    for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) { // the best piece for each place
+      const others = new Set([5, 6, 7, 8].filter((x) => x !== k && pick[x]).map((x) => pick[x].ninja_id)); // 4 different ninjutsu
+      for (const c of candOf(KTYPE[k]).values()) {
+        if (k >= 5 && others.has(c.ninja_id)) continue;
+        if (pick[k] && pick[k].seq === c.seq && pick[k].ninja_id === c.ninja_id) continue;
+        const v = value(ninja, { ...pick, [k]: c });
+        if (v > best) { best = v; pick = { ...pick, [k]: c }; }
+      }
+    }
+    for (const row of game.table('skill_suit_info').rows) { // complete sets
+      const ids = row.slice(4, 8);
+      const places = row[3] === 2 ? [1, 2, 3, 4] : [5, 6, 7, 8];
+      const pieces = places.map((k, i) => candOf(row[3] === 2 ? KTYPE[k] : 6).get(ids[i]));
+      if (pieces.some((c) => !c)) continue;
+      const t = { ...pick };
+      places.forEach((k, i) => { t[k] = pieces[i]; });
+      const v = value(ninja, t);
+      if (v > best) { best = v; pick = t; }
+    }
+    if (mkey) memo.set(mkey, { ...pick });
+    return pick;
+  }
+  return { solve, cards };
+}
+// Best gear for the team as it is (Team editor buttons): every ninja in team order; a piece taken off one ninja may go to a later one.
+function gearPlan(db, pl, mode) {
+  const view = teamView(db, pl);
+  const { solve, cards } = gearSolver(db, pl, mode, ALLSTATS);
+  const inUse = new Set(view.slots.flatMap((s) => [s.ninja.seq, ...Object.values(s.equip).filter(Boolean).map((e) => e.seq)]));
+  const freed = new Set(), taken = new Set();
+  const equipRows = game.table('equipmentinfo').rows;
   const nameOf = (type, id) => (type === 1 ? (game.ninjas().get(id) || [])[2] : type <= 4 ? (equipRows.find((r) => r[0] === id) || [])[2]
     : type === 5 ? (game.table('markinfo').rows.find((r) => r[0] === id) || [])[2] : (game.table('ninjutsuinfo').rows.find((r) => r[0] === id) || [])[2]) || '#' + id;
   const changes = [], plan = [];
   for (const s of view.slots) {
     const ninja = cards.get(s.ninja.seq);
-    const chainWants = new Set(game.matchRows(ninja.ninja_id).flatMap((r) => [r[14], r[15]]).filter((x) => x > 0));
     const cur = {};
     for (const [k, e] of Object.entries(s.equip)) if (e) cur[k] = cards.get(e.seq);
-    const before = sum(slotScore(ninja, Object.values(cur)));
-    const pick = { ...cur };
-    const candidates = (type, exclude) => {
-      const own = [...cards.values()].filter((c) => c.type === type && !taken.has(c.seq) && (!inUse.has(c.seq) || freed.has(c.seq) || Object.values(cur).some((x) => x && x.seq === c.seq)) && !exclude.has(c.ninja_id));
-      const list = own.map((c) => ({ card: c, own: true }));
-      if (mode === 'best') for (const id of catalog(type)) if (!exclude.has(id)) list.push({ card: { seq: 0, type, ninja_id: id, level: 50, newlife: type <= 4 ? 3 : 0 }, own: false });
-      return list;
-    };
-    // ninjutsu all give the same stat boost here: the one with the higher power (ninjutsuinfo col 10, e.g. Six Paths Rinnegan 150, Shuriken 31) wins
-    const jPower = (id) => (game.table('ninjutsuinfo').rows.find((r) => r[0] === id) || [])[10] || 0;
-    const score = (k, c) => { if (c.type === 6) return (chainWants.has(c.ninja_id) ? 1e9 : 0) + jPower(c.ninja_id); const g = { ...pick, [k]: c }; return sum(slotScore(ninja, Object.values(g))) + (chainWants.has(c.ninja_id) ? 1e9 : 0) + (c.type === 6 ? jPower(c.ninja_id) : 0); };
-    const choose = (k, exclude) => {
-      const type = KTYPE[k], now = pick[k];
-      if (now && chainWants.has(now.ninja_id)) return; // keep chain gear
-      let best = now ? { card: now, own: true, v: score(k, now) } : null;
-      for (const c of candidates(type, exclude)) { const v = score(k, c.card); if (!best || v > best.v + (c.own ? 0 : 0.5)) best = { ...c, v }; }
-      if (best && (!now || best.card !== now)) pick[k] = best.card;
-    };
-    for (const k of [1, 2, 3, 4]) choose(k, new Set());
-    for (const k of [5, 6, 7, 8]) choose(k, new Set([5, 6, 7, 8].filter((x) => x !== k && pick[x]).map((x) => pick[x].ninja_id))); // 4 different ninjutsu
+    const mine = new Set(Object.values(cur).map((c) => c.seq));
+    const free = (type) => [...cards.values()].filter((c) => c.type === type && !taken.has(c.seq) && (!inUse.has(c.seq) || freed.has(c.seq) || mine.has(c.seq)));
+    const before = sum(slotTotal(ninja, cur)), pick = solve(ninja, cur, free), after = sum(slotTotal(ninja, pick));
     for (const k of Object.keys(pick)) {
       const c = pick[k], was = cur[k];
       if (c.seq) taken.add(c.seq);
@@ -308,13 +343,15 @@ function gearPlan(db, pl, mode) {
         changes.push(`${nameOf(1, ninja.ninja_id)}: ${label} ${was ? nameOf(was.type, was.ninja_id) + ' -> ' : ''}${c.seq ? 'your' : 'a new'} ${nameOf(c.type, c.ninja_id)}`);
       }
     }
-    const after = sum(slotScore(ninja, Object.values(pick)));
     if (after > before) changes.push(`   = ${nameOf(1, ninja.ninja_id)} total stats ${before.toLocaleString('en-US')} -> ${after.toLocaleString('en-US')} (+${Math.round((after / Math.max(1, before) - 1) * 100)}%)`);
-    plan.push({ ninja: { seq: ninja.seq }, level: ninja.level, newlife: ninja.newlife || 0, growth: ninja.starlevel || 0,
-      equip: Object.fromEntries(Object.entries(pick).map(([k, c]) => [k, c.seq ? { seq: c.seq, level: c.level, newlife: c.newlife || 0 } : { give: c.ninja_id, level: c.level, newlife: c.newlife }])) });
+    plan.push({ ninja: { seq: ninja.seq }, level: ninja.level, newlife: ninja.newlife || 0, growth: ninja.starlevel || 0, equip: gearToPlan(pick) });
   }
   return { plan, changes };
 }
+// that ninja's stats with this gear (team screen math, the ninja alone), and the plan format setteam takes
+const slotTotal = (ninja, pick) => game.teamSlots([{ ...ninja, slot: 0 }], Object.entries(pick).filter(([, c]) => c).map(([k, c]) => ({ ...c, slot: 1, kind: Number(k) })), null)[0];
+const sum = (st) => ALLSTATS.reduce((t, k) => t + (st[k] || 0), 0);
+const gearToPlan = (pick) => Object.fromEntries(Object.entries(pick).filter(([, c]) => c).map(([k, c]) => [k, c.seq ? { seq: c.seq, level: c.level, newlife: c.newlife || 0 } : { give: c.ninja_id, level: c.level, newlife: c.newlife }]));
 
 // ---- Best team: the line-up with the highest attack (or defence), chains included ------------------------------------------------
 // Scores line-ups with the team screen's own math (game.teamSlots: card stats, gear, sets, seals, chains; the team-wide parts like card
@@ -443,8 +480,23 @@ function bestTeam(db, pl, goal, mode) {
   // report: full totals (card sets, gates, title, pets) before and after, the changes and the chains that switch on
   const nameOf = (id) => (game.ninjas().get(id) || [])[2] || '#' + id;
   const chainText = (id) => String((game.table('ninjamatch').rows.find((r) => r[0] === id) || [])[4] || '').trim();
-  const totalOf = (tm) => { const s = slotsOf(tm); return { slots: s, total: game.teamTotals(db, pl.uid, pl.server_id, s).total }; };
-  const A = totalOf(startTeam.slice(0, max)), B = totalOf(team);
+  // gear: the best gear for every ninja of the new line-up (sets count; own pieces in 'owned', new ones allowed in 'all'). A piece taken off
+  // one ninja may go to a later one; no piece is given to two ninjas.
+  const solver = gearSolver(db, pl, mode === 'all' ? 'best' : 'owned', [k0, k1]);
+  const inUse = new Set(eqRows.map((e) => e.seq)), taken = new Set(), freed = new Set();
+  const gearNew = team.map((x, i) => {
+    const cur = {};
+    eqRows.filter((e) => e.slot === i + 1).forEach((e) => { cur[e.kind] = bySeq.get(e.seq); });
+    const mine = new Set(Object.values(cur).map((c) => c.seq));
+    const free = (type) => cards.filter((c) => c.type === type && !taken.has(c.seq) && (!inUse.has(c.seq) || freed.has(c.seq) || mine.has(c.seq)));
+    const pick = solver.solve(x.card, cur, free);
+    for (const k of Object.keys(pick)) { const c = pick[k]; if (c.seq) taken.add(c.seq); if (cur[k] && cur[k].seq !== c.seq) freed.add(cur[k].seq); }
+    for (const k of Object.keys(cur)) if (!pick[k]) freed.add(cur[k].seq);
+    return pick;
+  });
+  const eqNew = gearNew.flatMap((pick, i) => Object.entries(pick).map(([k, c]) => ({ ...c, slot: i + 1, kind: Number(k) })));
+  const totalOf = (tm, eq) => { const s = game.teamSlots(tm.map((x, i) => ({ ...x.card, slot: i })), eq, null); return { slots: s, total: game.teamTotals(db, pl.uid, pl.server_id, s).total }; };
+  const A = totalOf(startTeam.slice(0, max), eqRows), B = totalOf(team, eqNew);
   const fmt = (t) => ({ attack: `${t.al}-${t.ah}`, defense: `${t.dl}-${t.dh}`, atk: Math.round((t.al + t.ah) / 2), def: Math.round((t.dl + t.dh) / 2) });
   const changes = [];
   team.forEach((x, i) => {
@@ -454,9 +506,14 @@ function bestTeam(db, pl, goal, mode) {
   const activeBefore = new Set(A.slots.flatMap((s) => s.active)), activeAfter = B.slots.flatMap((s, i) => s.active.map((id) => ({ id, who: team[i].card.ninja_id })));
   const seen = new Set(), links = activeAfter.filter((a) => !activeBefore.has(a.id) && !seen.has(a.id) && seen.add(a.id)).map((a) => `${nameOf(a.who)}: ${chainText(a.id)}`);
   const lost = [...activeBefore].filter((id) => !activeAfter.some((a) => a.id === id)).map((id) => chainText(id));
-  const equipOf = (i) => Object.fromEntries(eqRows.filter((e) => e.slot === i + 1).map((e) => [e.kind, { seq: e.seq, level: e.level, newlife: e.newlife || 0 }]));
   const plan = team.map((x, i) => ({ ninja: x.own ? { seq: x.card.seq } : { give: x.card.ninja_id }, level: x.card.level, newlife: x.card.newlife || 0,
-    growth: x.card.starlevel || 0, equip: equipOf(i) }));
+    growth: x.card.starlevel || 0, equip: gearToPlan(gearNew[i]) }));
+  // gear in short: pieces that change, new pieces, complete sets before and after
+  const setName = (id) => (game.table('skill_suit_info').rows.find((r) => r[0] === id) || [])[2] || '#' + id;
+  const fullSets = (slots) => { const m = new Map(); for (const sl of slots) for (const x of sl.sets || []) if (x.num >= 4) m.set(x.id, (m.get(x.id) || 0) + 1); return [...m.entries()].map(([id, n]) => `${setName(id)} x${n}`).join(', ') || 'none'; };
+  let moved = 0, fresh = 0;
+  gearNew.forEach((pick, i) => { for (const [k, c] of Object.entries(pick)) { const was = eqRows.find((e) => e.slot === i + 1 && e.kind === Number(k)); if (!was || was.seq !== c.seq) moved++; if (!c.seq) fresh++; } });
+  if (moved) changes.push(`gear: ${moved} pieces change${fresh ? ` (${fresh} new)` : ''}; complete sets ${fullSets(A.slots)} -> ${fullSets(B.slots)}`);
   // the new team in short: "22x Hokage Naruto (God) (3 new), Mother Kaguya ..."
   const group = new Map();
   for (const x of team) { const g = group.get(x.card.ninja_id) || { n: 0, fresh: 0 }; g.n++; if (!x.own) g.fresh++; group.set(x.card.ninja_id, g); }

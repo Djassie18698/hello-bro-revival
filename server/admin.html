@@ -530,8 +530,8 @@ async function bestTeamRun(mode) {
   const msg = head + '\n\nAttack ' + r.before.attack + ' -> ' + r.after.attack + '\nDefence ' + r.before.defense + ' -> ' + r.after.defense +
     '\nActive chains ' + r.chains.before + ' -> ' + r.chains.after + '\n\nNew team: ' + r.lineup.join(', ') + '\n\n' + r.changes.join('\n') +
     (r.links.length ? '\n\nChains that switch on:\n' + r.links.slice(0, 12).join('\n') + (r.links.length > 12 ? '\n... and ' + (r.links.length - 12) + ' more' : '') : '') +
-    (mode === 'all' ? "\n\nNEW cards arrive at level 50 with the rebirth and growth of the player's best card." : '') +
-    '\nGear stays in its team slot: press Best gear afterwards.\n\nApply this team?';
+    (mode === 'all' ? "\n\nNEW cards arrive at level 50 with the rebirth and growth of the player's best card; new gear at level 50 (equipment rebirth 3)." : '') +
+    '\nThe gear is chosen too (gear and ninjutsu sets count).\n\nApply this team?';
   if (!confirm(msg)) return;
   const a = await api('setteam', { uid: sel, slots: r.plan });
   if (!a.ok) return toast(esc(a.error), false);
