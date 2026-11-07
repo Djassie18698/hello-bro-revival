@@ -483,6 +483,24 @@ for (const pick of [55, 56, 57]) {
     game.setStage(db, 77, 1, 1001, 8);
     const sw = handlers.rl_w_dup({ db, params: { ...base, Cmd: 3102, DupId: '1' } });
     if (!/<award dropid="914"[^>]*coin="33"/.test(sw) || !/<exp>22<\/exp>/.test(sw)) { bad++; console.log('TOWER SWEEP reward:', sw.slice(0, 300)); }
+    // a plunder pays the Plunder Preview's numbers (playerlevel [8]-[11] of my level): a win no silver, a loss costs [11]
+    {
+      const meNow = () => db.prepare('SELECT level, coin, exp FROM players WHERE uid=77 AND server_id=1').get();
+      const rv = db.prepare('SELECT uid FROM players WHERE uid!=77 AND server_id=1 AND uid<9000000 LIMIT 1').get();
+      const frag = (game.table('markmerge').rows[0] || []).slice(3, 9).find((x) => x > 0);
+      if (rv && frag) {
+        db.prepare('UPDATE players SET coin=50000 WHERE uid=77').run();
+        const lvRow = game.table('playerlevel').rows.find((x) => x[1] === meNow().level);
+        for (const [mode, want] of [['win', 0], ['lose', -lvRow[11]]]) {
+          process.env.HB_SPAR = mode; db.exec('DELETE FROM spar_pairs'); try { db.exec('DELETE FROM spar_count'); } catch (e) { /* none */ }
+          const c0 = meNow().coin;
+          const out = handlers.rl_w_pvp({ db, params: { ...base, Cmd: 2701, ToUid: String(rv.uid), Chip: String(frag) } });
+          const got = meNow().coin - c0;
+          if (got !== want && !/code="5"/.test(out)) { bad++; console.log(`PLUNDER ${mode}: silver ${got}, want ${want}`); }
+        }
+        delete process.env.HB_SPAR;
+      }
+    }
     // sage growth: a failure falls back to m_cuttolevel (level 5 -> 3)
     const seq = db.prepare('SELECT seq FROM cards WHERE uid=77 AND server_id=1 AND type=1 LIMIT 1').get().seq;
     db.prepare('UPDATE cards SET starlevel=5 WHERE seq=?').run(seq); game.propAdd(db, 77, 1, 7, 10); db.prepare('UPDATE players SET coin=coin+100000 WHERE uid=77').run();

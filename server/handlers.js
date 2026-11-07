@@ -488,6 +488,14 @@ module.exports = {
     if (!game.spUse(db, pl)) return '<root code="5"><message>not enough grudge</message></root>';
     const firstSpar = !db.prepare('SELECT 1 FROM spar_pairs WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
     const r = game.sparFight(db, pl, Number(p.ToUid));
+    // A PLUNDER (Chip = a seal fragment) pays what the game's own Plunder Preview shows (CPlunderPreView::InitUI, 7 Nov 2026): the
+    // playerlevel row of MY level, [8] win EXP / [9] lose EXP, [10] win silver (0 at every level) / [11] lose silver. Until 7 Nov a plunder
+    // paid like a spar (a share of the rival's silver on a win). The EXP values are the spar table's anyway; a loss is capped by my silver.
+    if (Number(p.Chip) > 0) {
+      const lv = game.table('playerlevel').rows.find((x) => x[1] === pl.level) || [];
+      r.exp = r.win ? lv[8] || r.exp : lv[9] || r.exp;
+      r.coin = r.win ? lv[10] || 0 : -Math.min(pl.coin || 0, lv[11] || 0);
+    }
     game.addExp(db, pl, r.exp);
     db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(r.coin, pl.uid, pl.server_id);
     if (r.win) { game.bumpTask(db, pl.uid, pl.server_id, 6); festival.dropOnWin(db, pl, 'spar'); }
