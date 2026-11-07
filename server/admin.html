@@ -274,6 +274,9 @@ html.embed .wrap{padding-top:18px}
           <div class="row"><span class="tag" id="tpower">⚔️ -</span><button class="btn purple sm" onclick="completeChains()">🔗 Complete chains</button>
             <button class="btn purple sm" onclick="bestGear('owned')" title="Best gear from what this player owns">⚔️ Best gear (owned)</button>
             <button class="btn purple sm" onclick="bestGear('best')" title="Best gear in the game, new cards are made where needed">💎 Best gear (all)</button>
+            <select id="bgoal" title="What Best team aims for"><option value="attack">for attack</option><option value="defense">for defence</option></select>
+            <button class="btn purple sm" onclick="bestTeamRun('owned')" title="The line-up with the highest attack (or defence) from the player's own cards, copies and chains included">🏆 Best team (owned)</button>
+            <button class="btn purple sm" onclick="bestTeamRun('all')" title="Also new cards (upgraded like the player's best card): shows which cards and links would raise the team">🏆 Best team (all)</button>
             <button class="btn ghost sm" onclick="maxAll()">Everything max</button>
             <button class="btn ghost sm" onclick="loadTeam()">Reload</button><button class="btn" onclick="applyTeam()">✅ Apply team</button></div>
         </div>
@@ -512,6 +515,27 @@ async function bestGear(mode) {
   const a = await api('setteam', { uid: sel, slots: r.plan });
   if (!a.ok) return toast(esc(a.error), false);
   toast('Gear updated!<br><small>⚔️ ' + a.power.attack + ' · 🛡️ ' + a.power.defense + '<br>Close the game completely and open it again.</small>');
+  loadTeam(); loadPlayers();
+}
+// Best team: the server searches the line-up with the highest attack / defence (own cards, or also new ones), shows what changes, applies on OK.
+async function bestTeamRun(mode) {
+  if (!sel) return;
+  const goal = $('bgoal').value, word = goal === 'defense' ? 'defence' : 'attack';
+  toast('Searching the best team for ' + word + '... this can take up to a minute.');
+  const r = await api('bestteam', { uid: sel, goal, mode });
+  if (!r.ok) return toast(esc(r.error || 'failed'), false);
+  const now = goal === 'defense' ? r.before.def : r.before.atk, after = goal === 'defense' ? r.after.def : r.after.atk;
+  const head = 'Best team for ' + word + ' (' + (mode === 'owned' ? 'own cards' : 'all cards') + '): ' + short(now) + ' -> ' + short(after) + ' (' + (r.gain >= 0 ? '+' : '') + r.gain + '%)';
+  if (!r.changes.length) return toast('🏆 This is already the best team ' + (mode === 'owned' ? "from the player's own cards" : 'we can find') + ' 👌<br><small>' + esc(head) + '</small>');
+  const msg = head + '\n\nAttack ' + r.before.attack + ' -> ' + r.after.attack + '\nDefence ' + r.before.defense + ' -> ' + r.after.defense +
+    '\nActive chains ' + r.chains.before + ' -> ' + r.chains.after + '\n\nNew team: ' + r.lineup.join(', ') + '\n\n' + r.changes.join('\n') +
+    (r.links.length ? '\n\nChains that switch on:\n' + r.links.slice(0, 12).join('\n') + (r.links.length > 12 ? '\n... and ' + (r.links.length - 12) + ' more' : '') : '') +
+    (mode === 'all' ? "\n\nNEW cards arrive at level 50 with the rebirth and growth of the player's best card." : '') +
+    '\nGear stays in its team slot: press Best gear afterwards.\n\nApply this team?';
+  if (!confirm(msg)) return;
+  const a = await api('setteam', { uid: sel, slots: r.plan });
+  if (!a.ok) return toast(esc(a.error), false);
+  toast('Best team applied!<br><small>⚔️ ' + a.power.attack + ' · 🛡️ ' + a.power.defense + '<br>Close the game completely and open it again.</small>');
   loadTeam(); loadPlayers();
 }
 async function completeChains() {

@@ -316,6 +316,174 @@ function gearPlan(db, pl, mode) {
   return { plan, changes };
 }
 
+// ---- Best team: the line-up with the highest attack (or defence), chains included ------------------------------------------------
+// Scores line-ups with the team screen's own math (game.teamSlots: card stats, gear, sets, seals, chains; the team-wide parts like card
+// sets, gates, title and pets only multiply that sum, so they don't change which line-up wins). Gear stays with its team slot (press Best gear
+// afterwards). Copies of a card may be used (owner, 7 Nov 2026: "the highest possible, copies or not"; the game allows them; whether their
+// whole-team chains stack is game.RULES.leaderOnce). mode 'owned' = the player's own ninja cards; 'all' = also NEW cards (level 50, rebirth and
+// Sage growth of the player's strongest card) of the strongest / most chain-rich ninjas, as many copies as help. Search: per ninja the next
+// card is its strongest unused copy (own first; a new one when 'all' and it is stronger or the own copies are used up); fill free slots, then
+// per slot try every ninja and keep the best (repeated until nothing improves), plus "chain groups": an inactive chain that needs several
+// partners ("Fight with X and Y") tries all of them at once in place of the weakest slots.
+function bestTeam(db, pl, goal, mode) {
+  const t0 = Date.now();
+  const [k0, k1] = goal === 'defense' ? ['dl', 'dh'] : ['al', 'ah'];
+  const max = game.maxTeam(db, pl);
+  const cards = db.prepare('SELECT * FROM cards WHERE uid=? AND server_id=?').all(pl.uid, pl.server_id);
+  const bySeq = new Map(cards.map((c) => [c.seq, c]));
+  const teamSeqs = db.prepare('SELECT seq FROM team WHERE uid=? AND server_id=? ORDER BY slot').all(pl.uid, pl.server_id).map((r) => r.seq);
+  const eqRows = db.prepare('SELECT e.slot, e.kind, c.* FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?').all(pl.uid, pl.server_id);
+  const soloMemo = new Map();
+  const solo = (c) => { const k = c.seq; if (k > 0 && soloMemo.has(k)) return soloMemo.get(k); const st = game.ninjaStats(c); const v = (st[k0] + st[k1]) / 2; if (k > 0) soloMemo.set(k, v); return v; };
+  // A quick estimate to keep the search small: own stat x (1 + its own chain ratios) + its whole-team chain ratios x a team's worth of stats.
+  const ratioCol = goal === 'defense' ? 17 : 16;
+  const est = (c, teamWorth) => {
+    const m = game.matchRows(c.ninja_id);
+    const own = m.filter((r) => r[5] === 1).reduce((t, r) => t + (r[ratioCol] || 0), 0), lead = m.filter((r) => r[5] === 0).reduce((t, r) => t + (r[ratioCol] || 0), 0);
+    return solo(c) * (1 + own) + lead * teamWorth;
+  };
+  // pools: per ninja id the player's copies (strongest first) and, in 'all' mode, a template for new copies
+  const pools = new Map();
+  const pool = (id) => { if (!pools.has(id)) pools.set(id, { own: [], fresh: null }); return pools.get(id); };
+  for (const c of cards) if (c.type === 1) pool(c.ninja_id).own.push(c);
+  for (const pp of pools.values()) pp.own.sort((x, y) => solo(y) - solo(x));
+  const ownTop = [...pools.values()].map((pp) => pp.own[0]).sort((x, y) => solo(y) - solo(x));
+  const worth = (ownTop[0] ? solo(ownTop[0]) : 1000) * max / 2;
+  // the ninjas the search looks at: the best 160 owned ones by the estimate (+ the ones in the team now)
+  let ids = ownTop.map((c) => [c.ninja_id, est(c, worth)]).sort((x, y) => y[1] - x[1]).slice(0, 160).map(([id]) => id);
+  for (const seq of teamSeqs) { const c = bySeq.get(seq); if (c && !ids.includes(c.ninja_id)) ids.push(c.ninja_id); }
+  if (mode === 'all') {
+    const top = ownTop[0] || {};
+    const nl = top.newlife || 0, gr = top.starlevel || 0;
+    const tpl = [...game.ninjas().values()].filter((n) => n[4] === 1 && n[19] > 0)
+      .map((n) => ({ seq: 0, type: 1, ninja_id: n[0], level: 50, newlife: nl, starlevel: gr, attri: 1, breaklvl: 0 }));
+    for (const c of tpl.map((c) => [c, est(c, worth)]).sort((x, y) => y[1] - x[1]).slice(0, 160).map(([c]) => c)) {
+      pool(c.ninja_id).fresh = c;
+      if (!ids.includes(c.ninja_id)) ids.push(c.ninja_id);
+    }
+  }
+  let freshN = 0;
+  const ownEntry = (c) => ({ key: 's' + c.seq, card: c, own: true });
+  // the next card of ninja id for a team, slot `skip` left out (its card may be chosen again)
+  const nextCard = (id, team, skip) => {
+    const pp = pools.get(id);
+    if (!pp) return null;
+    const used = new Set(team.filter((_, j) => j !== skip).map((x) => x.key));
+    const own = pp.own.find((c) => !used.has('s' + c.seq));
+    if (pp.fresh && (!own || solo(pp.fresh) > solo(own))) {
+      const cur = skip >= 0 && team[skip];
+      if (cur && !cur.own && cur.card.ninja_id === id) return cur; // the new copy already there
+      freshN++;
+      return { key: 'n' + id + '.' + freshN, card: { ...pp.fresh, seq: -freshN }, own: false };
+    }
+    return own ? ownEntry(own) : null;
+  };
+  let evals = 0;
+  const cache = new Map(); // card + slot gear -> stats (gear stays with its slot, so only the chains change between line-ups)
+  const slotsOf = (team) => game.teamSlots(team.map((x, i) => ({ ...x.card, slot: i })), eqRows.filter((e) => e.slot <= team.length), null, cache);
+  const score = (team) => { evals++; return slotsOf(team).reduce((t, s) => t + (s[k0] + s[k1]) / 2, 0); };
+  const startTeam = teamSeqs.map((seq) => bySeq.get(seq)).filter((c) => c && c.type === 1).map(ownEntry);
+  const search = (init) => {
+  let team = init;
+  while (team.length < max) { // fill free slots
+    let best = null, bv = -1;
+    for (const id of ids) { const c = nextCard(id, team, -1); if (!c) continue; const v = score([...team, c]); if (v > bv) { bv = v; best = c; } }
+    if (!best) break;
+    team.push(best);
+  }
+  let cur = score(team);
+  for (let pass = 0; pass < 10; pass++) {
+    let changed = false;
+    for (let i = 0; i < team.length; i++) { // best card for each slot
+      let pick = null;
+      for (const id of ids) {
+        const c = nextCard(id, team, i);
+        if (!c || c.key === team[i].key) continue;
+        const t2 = team.slice(); t2[i] = c;
+        const v = score(t2);
+        if (v > cur + 0.5) { cur = v; pick = c; }
+      }
+      if (pick) { team[i] = pick; changed = true; }
+    }
+    // chain groups: an inactive chain of a team ninja that needs several partners -> try them all at once in place of the weakest slots
+    const slots = slotsOf(team);
+    const contrib = team.map((_, j) => cur - score(team.filter((__, x) => x !== j)));
+    for (let i = 0; i < team.length; i++) {
+      for (const r of game.matchRows(team[i].card.ninja_id)) {
+        if (r[5] !== 1 || slots[i].active.includes(r[0])) continue;
+        const p = game.chainPartsOf(r);
+        if (!p || p.any || p.parts.length < 2 || p.parts.length >= team.length) continue;
+        const want = [];
+        for (const part of p.parts) {
+          if (!game.chainKnown(part)) { want.length = 0; break; }
+          if (team.some((x) => game.chainFits(part, x.card.ninja_id))) continue; // that partner is in already
+          const id = ids.filter((x) => game.chainFits(part, x) && !want.includes(x)).sort((x, y) => (pools.get(y).own.length ? 1 : 0) - (pools.get(x).own.length ? 1 : 0))[0];
+          if (!id) { want.length = 0; break; }
+          want.push(id);
+        }
+        if (!want.length) continue;
+        const weakest = team.map((_, j) => j).filter((j) => j !== i).sort((x, y) => contrib[x] - contrib[y]).slice(0, want.length);
+        if (weakest.length < want.length) continue;
+        const t2 = team.slice();
+        let ok = true;
+        weakest.forEach((j, n) => { const c = nextCard(want[n], t2, j); if (c) t2[j] = c; else ok = false; });
+        if (!ok) continue;
+        const v = score(t2);
+        if (v > cur + 0.5) { team = t2; cur = v; changed = true; break; }
+      }
+    }
+    if (!changed) break;
+  }
+  return { team, cur };
+  };
+  // from the team as it is and from an empty team (a different line-up may win); the higher one counts
+  const runs = [search(startTeam.slice(0, max)), search([])];
+  const team = runs[0].cur >= runs[1].cur ? runs[0].team : runs[1].team;
+  const cand = ids;
+  // report: full totals (card sets, gates, title, pets) before and after, the changes and the chains that switch on
+  const nameOf = (id) => (game.ninjas().get(id) || [])[2] || '#' + id;
+  const chainText = (id) => String((game.table('ninjamatch').rows.find((r) => r[0] === id) || [])[4] || '').trim();
+  const totalOf = (tm) => { const s = slotsOf(tm); return { slots: s, total: game.teamTotals(db, pl.uid, pl.server_id, s).total }; };
+  const A = totalOf(startTeam.slice(0, max)), B = totalOf(team);
+  const fmt = (t) => ({ attack: `${t.al}-${t.ah}`, defense: `${t.dl}-${t.dh}`, atk: Math.round((t.al + t.ah) / 2), def: Math.round((t.dl + t.dh) / 2) });
+  const changes = [];
+  team.forEach((x, i) => {
+    const was = startTeam[i];
+    if (!was || was.key !== x.key) changes.push(`slot ${i + 1}: ${was ? nameOf(was.card.ninja_id) + ' -> ' : ''}${x.own ? 'your' : 'a NEW'} ${nameOf(x.card.ninja_id)} (Lv ${x.card.level}${x.card.newlife ? ', rebirth ' + x.card.newlife : ''})`);
+  });
+  const activeBefore = new Set(A.slots.flatMap((s) => s.active)), activeAfter = B.slots.flatMap((s, i) => s.active.map((id) => ({ id, who: team[i].card.ninja_id })));
+  const seen = new Set(), links = activeAfter.filter((a) => !activeBefore.has(a.id) && !seen.has(a.id) && seen.add(a.id)).map((a) => `${nameOf(a.who)}: ${chainText(a.id)}`);
+  const lost = [...activeBefore].filter((id) => !activeAfter.some((a) => a.id === id)).map((id) => chainText(id));
+  const equipOf = (i) => Object.fromEntries(eqRows.filter((e) => e.slot === i + 1).map((e) => [e.kind, { seq: e.seq, level: e.level, newlife: e.newlife || 0 }]));
+  const plan = team.map((x, i) => ({ ninja: x.own ? { seq: x.card.seq } : { give: x.card.ninja_id }, level: x.card.level, newlife: x.card.newlife || 0,
+    growth: x.card.starlevel || 0, equip: equipOf(i) }));
+  // the new team in short: "22x Hokage Naruto (God) (3 new), Mother Kaguya ..."
+  const group = new Map();
+  for (const x of team) { const g = group.get(x.card.ninja_id) || { n: 0, fresh: 0 }; g.n++; if (!x.own) g.fresh++; group.set(x.card.ninja_id, g); }
+  const lineup = [...group.entries()].sort((x, y) => y[1].n - x[1].n).map(([id, g]) => `${g.n > 1 ? g.n + 'x ' : ''}${nameOf(id)}${g.fresh ? ` (${g.fresh} new)` : ''}`);
+  return { plan, changes, lineup, links, lost, before: fmt(A.total), after: fmt(B.total), chains: { before: activeBefore.size, after: new Set(activeAfter.map((a) => a.id)).size },
+    max, candidates: cand.length, evals, ms: Date.now() - t0, gain: Math.round(((goal === 'defense' ? fmt(B.total).def / Math.max(1, fmt(A.total).def) : fmt(B.total).atk / Math.max(1, fmt(A.total).atk)) - 1) * 1000) / 10 };
+}
+
+// The search in its own thread (bestteam-worker.js), so the game keeps answering players while it runs; one at a time, 2 minutes at most.
+// An in-memory save (tests) has no file to open: then it runs here.
+let bestTeamBusy = false;
+function bestTeamInThread(db, pl, goal, mode) {
+  const file = db.location ? db.location() : null;
+  if (!file) return Promise.resolve({ ok: true, ...bestTeam(db, pl, goal, mode) });
+  if (bestTeamBusy) return Promise.resolve({ ok: false, error: 'a Best team search is already running, try again in a moment' });
+  bestTeamBusy = true;
+  return new Promise((resolve) => {
+    const { Worker } = require('node:worker_threads');
+    const w = new Worker(path.join(__dirname, 'bestteam-worker.js'), { workerData: { dbPath: file, uid: pl.uid, sid: pl.server_id, goal, mode, leaderOnce: game.RULES.leaderOnce } });
+    const done = (r) => { bestTeamBusy = false; clearTimeout(timer); resolve(r); };
+    const timer = setTimeout(() => { w.terminate(); done({ ok: false, error: 'the search took too long' }); }, 120000);
+    w.once('message', done);
+    w.once('error', (e) => done({ ok: false, error: e.message }));
+    w.once('exit', (code) => { if (bestTeamBusy) done({ ok: false, error: 'the search stopped (' + code + ')' }); });
+  });
+}
+
 // ---- Fight benchmark: the player's real team against enemy teams with a fixed total defence, played many times with the
 // server's fight rule (each ninja rolls its attack low..high, worn ninjutsu fire with their chance and add damage, attack is spent on
 // enemy defence in order: game.battleXml). Shows the win chance, how many ninjas a win needs and where that defence sits in the story.
@@ -454,6 +622,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
     }
     if (u.pathname === '/admin/api/gearplan') return json(res, { ok: true, ...gearPlan(db, pl, b.mode === 'best' ? 'best' : 'owned') });
     if (u.pathname === '/admin/api/chainplan') return json(res, { ok: true, ...chainPlan(db, pl) });
+    if (u.pathname === '/admin/api/bestteam') return json(res, await bestTeamInThread(db, pl, b.goal === 'defense' ? 'defense' : 'attack', b.mode === 'all' ? 'all' : 'owned'));
     if (u.pathname === '/admin/api/setteam') return json(res, applyTeam(db, pl, b.slots));
     if (u.pathname === '/admin/api/setprop') { // set the exact amount of one item / fragment / souls
       const id = Math.trunc(Number(b.id)), n = Math.max(0, Math.min(Math.trunc(Number(b.count)) || 0, 999999999));
@@ -485,3 +654,5 @@ module.exports = async function admin(req, res, u, db, readBody) {
 
 module.exports.authorized = authorized;
 module.exports.panel = panel;
+module.exports.bestTeam = bestTeam; // for tools/dev and smoke
+module.exports.bestTeamInThread = bestTeamInThread;

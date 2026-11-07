@@ -1420,7 +1420,11 @@ function matchRows(ninjaId) {
 }
 // ---- chain text helpers (also used by the admin team builder) ----
 const words = (s) => String(s).toLowerCase().replace(/[（(][^)）]*[)）]/g, ' ').split(/[^a-z]+/).filter((w) => w && !['of', 'the', 'and'].includes(w)).map((w) => (w.length > 3 ? w.replace(/s$/, '') : w));
-const cardWords = (id) => new Set(words((ninjas().get(id) || [])[2] || ''));
+const cardWordsCache = new Map();
+const cardWords = (id) => { let w = cardWordsCache.get(id); if (!w) { w = new Set(words((ninjas().get(id) || [])[2] || '')); cardWordsCache.set(id, w); } return w; };
+// a ninja's character name without "(God)" and spaces (chain partners match by character)
+const whoCache = new Map();
+const whoOf = (id) => { let w = whoCache.get(id); if (w === undefined) { w = String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, ''); whoCache.set(id, w); } return w; };
 const ALIAS = [[/raikagand/gi, 'Raikage and'], [/itachiand/gi, 'Itachi and'], [/fukasakun/gi, 'Fukasaku'], [/\bforth\b/gi, 'Fourth'], [/sasu sasuke/gi, 'Susa Sasuke'],
   [/\bkyubi\b/gi, 'Kurama'], [/eight tails/gi, 'Gyūki'], [/mei tsunade onoki/gi, 'Mei, Tsunade, Onoki'], [/fourth sage minato/gi, 'Fourth Sage, Minato']];
 const chainParts = new Map(); // row id -> { any, parts: [[words]...] } | null
@@ -1480,7 +1484,22 @@ function teamStats(db, uid, sid, t = USED) {
   ensure(db);
   const team = db.prepare(`SELECT t.slot, c.* FROM ${t.team} t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot`).all(uid, sid);
   const eqRows = db.prepare(`SELECT e.slot, e.kind, c.* FROM ${t.equipped} e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?`).all(uid, sid);
+  const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
+  const slots = teamSlots(team, eqRows, owned);
+  return { slots, ...teamTotals(db, uid, sid, slots) };
+}
+// leaderOnce: ORIGINAL rule (official Q&A, hydr.zqgame.com news 17406, Dec 2014): a "whole team" chain (type 0) counts once per card version;
+// "three Kakashi cards, 2 attack 1 defence, still give only two effects" (the attack and defence versions are different ids with their own rows).
+// Off = every copy adds it again (how this server worked until now). Waiting for the owner's decision (7 Nov 2026).
+const RULES = { leaderOnce: process.env.HB_LEADER_ONCE === '1' };
+// The per-ninja part of teamStats: each team card's stats with its gear, sets and chains, from plain rows (team = cards in slot order,
+// eqRows = worn cards with .slot 1-based and .kind). No database, so the admin's Best team search can score line-ups without saving them.
+// owned = the player's ninja ids (only for the "ready" chain hints; null skips them).
+// cache (optional, Best team search): a Map that keeps each card's stats with that slot's gear, so only the chains are worked out again.
+function teamSlots(team, eqRows, owned, cache) {
   const slots = team.map((c, i) => {
+    const ck = cache && `${c.seq}|${i}`;
+    if (cache && cache.has(ck)) { const b = cache.get(ck); return { ...b, sets: b.sets }; }
     let st = ninjaStats(c);
     const mine = eqRows.filter((x) => x.slot === i + 1);
     for (const e of mine) {
@@ -1490,14 +1509,16 @@ function teamStats(db, uid, sid, t = USED) {
     }
     const sets = skillSets(mine);
     st = setBonus(st, sets);
-    return { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st, sets: sets.map((x) => ({ id: x.row[0], num: x.num })) };
+    const out = { seq: c.seq, ninja_id: c.ninja_id, level: c.level, ...st, sets: sets.map((x) => ({ id: x.row[0], num: x.num })) };
+    if (cache) cache.set(ck, { ...out });
+    return out;
   });
   // Chains (ninjamatch.json; a card's "Chains" list on its detail screen): cols 3 ninja it belongs to, 5 type, 6-13 partner ninja ids, 14 equipment id,
   // 15 ninjutsu id, 16-18 attack/defence/chakra ratio. Type 1 = the card's own stats grow when ANY partner is in the team, or the equipment / ninjutsu is worn
   // by it; type 0 = a leader effect: while the card is in the team every ninja gets the ratio. Each chain adds ratio x the slot's stats (after gear).
   // Chain partners match by CHARACTER, not by card id: the table has 8 partner places and often lists only some variants
   // (Kaguya "Fight with Susa Kakashi" lists 5026 but not 5027 or Susa Kakashi (God) 5028; GitHub #5).
-  const who = (id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, '');
+  const who = whoOf;
   // The partner lists also miss whole variants (Six Paths Madara (God) "Fight with Six Paths Obito" lists only plain Obito; Hokage Naruto
   // "Fight with Madara" misses Six Paths Madara; GitHub #5), so the names written in the chain text count too: every word of a name must be in
   // the card's name ("Madara" = every Madara, "Six Paths Obito" = every Six Paths Obito, "Sage Six Path" = Sage of the Six Paths).
@@ -1513,24 +1534,29 @@ function teamStats(db, uid, sid, t = USED) {
     if (p.parts.length === 1) return listedHit || ok(p.parts[0]);
     return p.any ? p.parts.some(ok) || listedHit : p.parts.every(ok);
   };
-  const inTeam = new Set(slots.map((s) => s.ninja_id));
-  const teamWho = slots.map((s) => who(s.ninja_id));
-  const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
-  const ownedWho = new Set([...owned].map((id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, '')));
+  const ownedWho = owned ? new Set([...owned].map((id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, ''))) : null;
   const chain = slots.map(() => ({}));
+  const leaderDone = new Set(); // RULES.leaderOnce: each whole-team chain counts once, however many copies of the card are in the team
   const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };
   slots.forEach((s, i) => {
     const worn = eqRows.filter((x) => x.slot === i + 1).map((x) => x.ninja_id);
     s.active = []; s.ready = [];
+    const others = slots.filter((_, j) => j !== i).map((o) => o.ninja_id), otherIds = new Set(others), otherWho = new Set(others.map(who));
     for (const r of matchRows(s.ninja_id)) {
-      if (r[5] === 0) { slots.forEach((_, j) => add(j, r)); s.active.push(r[0]); continue; }
-      const others = slots.filter((_, j) => j !== i).map((o) => o.ninja_id);
-      const partner = partnersIn(r, new Set(others), new Set(others.map(who)));
+      if (r[5] === 0) {
+        if (!(RULES.leaderOnce && leaderDone.has(r[0]))) slots.forEach((_, j) => add(j, r));
+        leaderDone.add(r[0]); s.active.push(r[0]); continue;
+      }
+      const partner = partnersIn(r, otherIds, otherWho);
       if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) { add(i, r); s.active.push(r[0]); }
-      else if (partnersIn(r, new Set([...owned].filter((id) => id !== s.ninja_id)), ownedWho)) s.ready.push(r[0]); // the partners are owned but not all in the team yet
+      else if (owned && partnersIn(r, new Set([...owned].filter((id) => id !== s.ninja_id)), ownedWho)) s.ready.push(r[0]); // the partners are owned but not all in the team yet
     }
   });
   slots.forEach((s, i) => { Object.assign(s, addStats(s, chain[i])); s.chain = chain[i]; });
+  return slots;
+}
+// The team-wide part of teamStats: card sets, Eight Gates, the W.A. title and pets on top of the slots' sum, and each ninja's fight share.
+function teamTotals(db, uid, sid, slots) {
   let tot = slots.reduce((a, s) => addStats(a, s), {});
   const suits = activeSuits(db, uid, sid);
   let bonus = {};
@@ -1550,7 +1576,7 @@ function teamStats(db, uid, sid, t = USED) {
   // numbers add up to the team total shown on the Team screen.
   const sum = slots.reduce((t, s) => addStats(t, s), {});
   const fight = slots.map((s) => { const o = { ...s }; KEYS.forEach((k) => { o[k] = sum[k] ? Math.round((s[k] || 0) * (tot[k] || 0) / sum[k]) : s[k]; }); return o; });
-  return { slots, fight, total: tot, suits, bonus };
+  return { fight, total: tot, suits, bonus };
 }
 
 // Sage growth (rl_w_star Cmd 1): spend sage stones on a card for a chance at +1 sage level (stored in cards.starlevel).
@@ -2036,4 +2062,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

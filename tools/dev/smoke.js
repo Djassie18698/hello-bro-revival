@@ -596,6 +596,17 @@ for (const pick of [55, 56, 57]) {
     try { tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '2' }); } finally { Math.random = rnd; }
     ck((game.propCounts(db, 78802, 1)[9994] || 0) === m0 + 5, 'a guard who holds should get 5 merit');
   }
+  // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
+  // goal stat, may use copies, and the split team math (teamSlots + teamTotals) still gives what teamStats gives
+  {
+    const admin = require('../../server/admin'), game = require('../../server/game');
+    const pl77 = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const max = game.maxTeam(db, pl77);
+    const r = await admin.bestTeamInThread(db, pl77, 'attack', 'all');
+    if (!r.ok || !Array.isArray(r.plan) || !r.plan.length || r.plan.length > max || r.after.atk < r.before.atk || !Array.isArray(r.lineup)) { bad++; console.log('BEST TEAM:', JSON.stringify(r).slice(0, 300)); }
+    const ts = game.teamStats(db, 77, 1);
+    if (!ts.total || !(ts.total.al >= 0) || ts.slots.length !== db.prepare('SELECT COUNT(*) n FROM team WHERE uid=77 AND server_id=1').get().n) { bad++; console.log('TEAM STATS after the split:', JSON.stringify(ts.total)); }
+  }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {
     const list = (env) => require('child_process').execFileSync(process.execPath, ['-e',
