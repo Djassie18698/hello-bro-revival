@@ -431,15 +431,39 @@ for (const pick of [55, 56, 57]) {
     const r = vip.buy(db, db.prepare('SELECT * FROM players WHERE uid=78123').get(), 23);
     if (r.error) { bad++; console.log('VIP 23 shop pack:', r.error); }
   }
-  // story enemy curve (owner 6 Nov 2026, steeper): stage 1-2 = 285 (original video), chapter ends 1 = 2 000, 3 = 8 000, 10 = 300 000,
-  // 19 = 10 million; the control panel's inverse (stageForDefence) must agree with it
+  // ORIGINAL story bosses (7 Nov 2026): every npc of the roundinfo row with its own ninjainfo stats. The victory photos show the total
+  // defence: Kakuzu 9-70 21 162 (9 enemies), Hidan 10-17 19 474 (9), Obito 11-65 31 425 (10), Nagato 12-25 39 574 (10),
+  // Sakon Ukon 6-70 9 643 (7), Jiroubou 7-27 9 383 (7), Night Kai 19-47 1 600 544. Each must fall inside the team's range.
   {
-    const g = require('../../server/game'), tot = (c, s) => g.stageFoes(c, s).reduce((a, x) => a + x.def, 0);
-    const got = [tot(1, 2), tot(1, g.chapterStages(1)), tot(3, g.chapterStages(3)), tot(10, g.chapterStages(10)), tot(19, g.chapterStages(19))];
-    const want = [285, 2000, 8000, 300000, 10000000];
-    if (got.some((v, i) => Math.abs(v - want[i]) > want[i] * 0.01)) { bad++; console.log('BOSS CURVE:', got.join(', '), 'want', want.join(', ')); }
-    const back = g.stageForDefence(tot(3, 30));
-    if (!back || back.chap !== 3 || Math.abs(back.stage - 30) > 1) { bad++; console.log('BOSS CURVE inverse: chapter 3 stage 30 came back as', JSON.stringify(back)); }
+    const g = require('../../server/game');
+    const photos = [[9, 70, 21162, 9], [10, 17, 19474, 9], [11, 65, 31425, 10], [12, 25, 39574, 10], [6, 70, 9643, 7], [7, 27, 9383, 7], [19, 47, 1600544, 15]];
+    for (const [c, st, def, n] of photos) {
+      const f = g.stageFoes(c, st), lo = f.reduce((t, x) => t + x.dl, 0), hi = f.reduce((t, x) => t + x.dh, 0);
+      if (f.length !== n || def < lo || def > hi) { bad++; console.log(`ORIGINAL BOSS ${c}-${st}: ${f.length} enemies, defence ${lo}-${hi}; photo ${n} enemies, ${def}`); }
+    }
+    if (g.stageFoes(1, 2).length !== 2) { bad++; console.log('ORIGINAL BOSS 1-2: Mizuki + 1 helper expected, got', g.stageFoes(1, 2).length); }
+    const back = g.stageForDefence(21500), first = g.stageForDefence(1);
+    if (!back || back.chap < 9 || back.chap > 11) { bad++; console.log('beats up to stage for 21 500 defence came back as', JSON.stringify(back)); }
+    if (!first || first.chap !== 1 || first.stage !== 1 || g.stageForDefence(1e9) !== null) { bad++; console.log('beats up to stage ends:', JSON.stringify(first), JSON.stringify(g.stageForDefence(1e9))); }
+  }
+  // ORIGINAL story wheel (roundinfo m_addexprate ... m_norewardrate): every result pays what its segment shows
+  {
+    const pve = (p) => handlers.rl_w_pve({ db, params: { ...base, Cmd: 3, ...p } });
+    const me = () => db.prepare('SELECT gold, coin, energy, exp, level FROM players WHERE uid=77 AND server_id=1').get();
+    const game = require('../../server/game'), row = game.stageRow(1, 3); // chapter 1, part 2, row 1: a normal stage
+    for (const kind of ['exp', 'silver', 'chest', 'gold', 'power', 'none']) {
+      process.env.HB_WHEEL = kind;
+      db.prepare('DELETE FROM stage_clears WHERE uid=77 AND chap=1').run();
+      game.setStage(db, 77, 1, 1, 3); db.prepare('UPDATE players SET energy=200, level=40 WHERE uid=77').run();
+      const b4 = me(), x = pve({ ChapID: 1, StageID: 2, Pos: 1 }), af = me();
+      const type = (/<award type="(\d)"/.exec(x) || [])[1];
+      const want = { exp: '3', silver: '2', chest: '1', gold: '5', power: '4', none: '4' }[kind];
+      const ok = type === want && (kind !== 'gold' || af.gold - b4.gold === row[32]) && (kind !== 'silver' || af.coin - b4.coin === 2 * row[24])
+        && (kind !== 'none' || af.coin - b4.coin === row[24]) && (kind !== 'power' || af.energy - b4.energy === row[34] - row[22])
+        && (kind !== 'chest' || /<card>|<prop>/.test(x));
+      if (!ok) { bad++; console.log(`STORY WHEEL ${kind}: type ${type} (want ${want}), gold +${af.gold - b4.gold}, silver +${af.coin - b4.coin}, energy ${af.energy - b4.energy}`, x.slice(-400)); }
+    }
+    delete process.env.HB_WHEEL;
   }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {

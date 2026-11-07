@@ -166,13 +166,14 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   // so they always count as won.
   const won = !row[38] || (process.env.HB_PVE ? process.env.HB_PVE === 'win' : !foes.length || myPower * (0.85 + Math.random() * 0.3) >= theirPower); // HB_PVE = test aid
   const foeLevel = foes.length ? Math.max(...foes.map((f) => f.level)) : 1;
+  const foeName = String((foes.length && (game.ninjas().get(foes[0].id) || [])[2]) || 'Enemy'); // the boss's own name on the result screen, like the original ("Hidan", "Kakuzu")
   if (!won) {
     db.prepare('UPDATE players SET energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
     if (row[38]) game.stageTried(db, pl, chap, stage);
     const e0 = game.partEntry(db, pl, chap, part), cur0 = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part;
     const a0 = `curchapter="${chap}" curstage="${cur0}" pos="${e0.pos}" pos_time="${e0.pos_time}" pk_boss_times="${e0.pk_boss_times}" curaction="${Math.max(0, pl.energy - cost)}" LastActionUpdatePastTime="0"`;
     return `<root code="0"><pve ${a0}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` +
-      game.battleXml(db, pl, chap, stage, { foes, win: false, enemyLevel: foeLevel, enemyName: 'Enemy' }) + game.awardFull({}) + '</root>';
+      game.battleXml(db, pl, chap, stage, { foes, win: false, enemyLevel: foeLevel, enemyName: foeName }) + game.awardFull({}) + '</root>';
   }
   db.prepare('UPDATE players SET coin=coin+?, energy=MAX(0,energy-?) WHERE uid=? AND server_id=?').run(coin, cost, pl.uid, pl.server_id);
   const lv = game.addExp(db, pl, exp); // after paying, so a level-up refill stays
@@ -181,6 +182,7 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   if (stage >= game.chapterStages(chap) && now.clears >= game.clearsNeeded(row) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   festival.dropOnWin(db, pl, 'training'); // Christmas Caps while a festival runs
+  const award = stageAward(db, pl, row, coin, exp); // before reading the energy: the wheel's energy prize shows at once
   const energy = db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).energy;
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
@@ -188,35 +190,52 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   // (otherwise the next chapter stays grey until the next login; GitHub #5).
   const nextOpen = chap < 19 && db.prepare('SELECT 1 FROM progress WHERE uid=? AND server_id=? AND chap=?').get(pl.uid, pl.server_id, chap + 1);
   const attrs = `curchapter="${nextOpen ? chap + 1 : chap}" curstage="${nextOpen ? 1 : curPart}" pos="${e.pos}" pos_time="${e.pos_time}" pk_boss_times="${e.pk_boss_times}" curaction="${energy}" LastActionUpdatePastTime="0"`;
-  return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage, { foes, win: true, enemyLevel: foeLevel, enemyName: 'Enemy' }) +
-    stageAward(db, pl, row, coin, exp) + '</root>';
+  return `<root code="0"><pve ${attrs}/><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>` + game.battleXml(db, pl, chap, stage, { foes, win: true, enemyLevel: foeLevel, enemyName: foeName }) +
+    award + '</root>';
 }
 
-// Every win drops something (the original drop rule lived on the dead server, so these are ours, as the owner asked for a
-// low-tier ninja or equipment; a boss also has a 5 % chance of its own special reward, see below): normal stage = Sage Stone III (not ramen: the victory card shows a Chinese name and no icon for ramen) / 1-2 star equipment / 1-2 star shinobi; boss stage = 3-star equipment or shinobi.
-// dropinfo ids: 250 Sage Stone III*1, 19 "One, Two-Star Equipment Card", 16 "One,Two-Star Shinobi Card", 21 "Three-Star Equipment Card", 17 "Three-Star Shinobi Card".
+// Story-stage rewards.
+// NORMAL stage = the wheel (CDialogRunLevelTurnView). ORIGINAL odds (7 Nov 2026): roundinfo's own columns (names from
+// Struct_Roundinfo::InitMemberNames) [26] m_addexp / [27] m_addexprate, [28] m_addsilver / [29] m_addsilverrate, [30] m_chestid /
+// [31] m_chestrate, [32] m_addgold / [33] m_addgoldrate, [34] m_addpower / [35] m_addpowerrate, [36] m_norewardrate. Almost every stage:
+// EXP 1000, silver 2000, chest 1000, gold 1, energy 3, nothing 200, read as weights (= silver x2 47.6 %, EXP x2 23.8 %, a card 23.8 %,
+// work harder 4.8 %, gold 0.02 %, energy 0.07 %). The chest is dropinfo 25 "Shinobi Card, Seal Fragments, Advanced Card Fragments";
+// what it held lived on the dead server, so (ours) a quarter each: a 1-2 star shinobi (16), a seal fragment (24), 2 four-star card
+// fragments (175) or a treasure-chest bronze key (514; victory card "Bronze Key", photo 2500).
+// BOSS stage: its own drop ([25] m_dropid "BOSS stage fragment drop set", contents lost): (ours) a 3-star gear or shinobi card, 8 % a
+// silver key, 5 % the boss's own special reward (game.bossNamedDrop; the victory draw always shows it, photos 2377, 2378, 3812, 4255).
+// <award type=N> is where the wheel stops: the client maps type 1,2,3,4,5 to segment 4 cards, 3 silver x2, 1 EXP x2, 0 work harder, 2 gold.
+// The client already credits the stage's own exp and silver; a doubled segment adds ONE more copy through the award fields and the server
+// pays the same.
+const WHEEL = [['exp', 27, 3], ['silver', 29, 2], ['chest', 31, 1], ['gold', 33, 5], ['power', 35, 4], ['none', 36, 4]];
+function wheelRoll(row) {
+  const forced = process.env.HB_WHEEL && WHEEL.find((w) => w[0] === process.env.HB_WHEEL); // test aid: exp / silver / chest / gold / power / none
+  if (forced) return forced;
+  const total = WHEEL.reduce((t, w) => t + (Number(row[w[1]]) || 0), 0);
+  let x = Math.random() * total;
+  for (const w of WHEEL) { x -= Number(row[w[1]]) || 0; if (x < 0) return w; }
+  return WHEEL[WHEEL.length - 1];
+}
 function stageAward(db, pl, row, coin, exp) {
-  const r = Math.random();
-  // Treasure chest keys also drop from story fights, as in the original (victory card "Bronze Key", photo 2500; dropinfo 549/550 list
-  // keys with stage drops): 8% a bronze key on a normal stage, 8% a silver key on a boss stage (ours).
-  const key = Math.random() < 0.08 ? (row[38] ? 513 : 514) : 0;
-  // a boss win: 5 % its own special reward, the card the boss screen shows (game.bossNamedDrop; HB_BOSS_NAMED=1 = test aid)
-  const named = row[38] && (process.env.HB_BOSS_NAMED === '1' || Math.random() < game.BOSS_NAMED_CHANCE) ? game.bossNamedDrop(row) : 0;
-  const dropId = Number(process.env.HB_STAGE_DROP) || named || key || (row[38] ? (r < 0.5 ? 21 : 17) : r < 0.5 ? 250 : r < 0.8 ? 19 : 16); // HB_STAGE_DROP = test aid
-  const xml = game.grantDrop(db, pl, dropId);
-  if (!xml) return game.awardFull({});
-  const had = Number((xml.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
-  // <award type=N> is where the story-stage wheel stops (CDialogRunLevelTurnView::StartTurn, read from libgame.so): the client maps type 1,2,3,4,5 to wheel
-  // segment 4,3,1,0,2. Segments (counter-clockwise from the top): 0 "work harder", 1 EXP x2, 2 gold, 3 silver x2, 4 cards. A dropped card always lands on the cards
-  // segment; otherwise the wheel is luck (ours): 40% work harder, 20% EXP x2, 20% silver x2, 20% gold (3 gold). The client already credits the stage's own exp and
-  // silver, so a doubled segment adds ONE more copy through the award fields (the client adds <exp>/<coin>/<cash> from the award itself) and the server pays the same.
-  const hasCard = /<card>/.test(xml);
-  const luck = Number(process.env.HB_WHEEL) || (hasCard ? 1 : [4, 4, 4, 4, 3, 3, 2, 2, 5, 5][Math.floor(Math.random() * 10)]);
-  const pick = hasCard && !process.env.HB_WHEEL ? 1 : luck === 1 && !hasCard ? 4 : luck;
-  let out = xml.replace('<award ', `<award type="${pick}" `);
-  if (pick === 3) { game.addExp(db, db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id), exp); out = out.replace('<exp>0</exp>', `<exp>${exp}</exp>`); } // EXP x2
-  else if (pick === 2) { db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); out = out.replace(/ coin="\d+"/, ` coin="${coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin}</coin>`); } // silver x2
-  else if (pick === 5) { db.prepare('UPDATE players SET gold=gold+3 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id); out = out.replace(/<cash>\d+<\/cash>/, '<cash>3</cash>'); } // gold
+  const fresh = () => db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
+  if (row[38]) { // boss
+    const r = Math.random();
+    const named = process.env.HB_BOSS_NAMED === '1' || Math.random() < game.BOSS_NAMED_CHANCE ? game.bossNamedDrop(row) : 0; // HB_BOSS_NAMED = test aid
+    const dropId = Number(process.env.HB_STAGE_DROP) || named || (Math.random() < 0.08 ? 513 : r < 0.5 ? 21 : 17); // HB_STAGE_DROP = test aid
+    const xml = game.grantDrop(db, pl, dropId);
+    return xml ? xml.replace('<award ', '<award type="1" ') : game.awardFull({});
+  }
+  const [kind, , type] = wheelRoll(row);
+  let out = null;
+  if (kind === 'chest') {
+    const r = Math.random();
+    out = game.grantDrop(db, pl, Number(process.env.HB_STAGE_DROP) || (r < 0.25 ? 16 : r < 0.5 ? 24 : r < 0.75 ? 175 : 514));
+  }
+  out = (out || game.awardFull({})).replace('<award ', `<award type="${type}" `);
+  if (kind === 'exp') { game.addExp(db, fresh(), exp); out = out.replace('<exp>0</exp>', `<exp>${exp}</exp>`); }
+  else if (kind === 'silver') { db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(coin, pl.uid, pl.server_id); out = out.replace(/ coin="\d+"/, ` coin="${coin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin}</coin>`); }
+  else if (kind === 'gold') { const g = Number(row[32]) || 5; db.prepare('UPDATE players SET gold=gold+? WHERE uid=? AND server_id=?').run(g, pl.uid, pl.server_id); out = out.replace(/<cash>\d+<\/cash>/, `<cash>${g}</cash>`); }
+  else if (kind === 'power') { const e = Number(row[34]) || 5; db.prepare('UPDATE players SET energy=energy+? WHERE uid=? AND server_id=?').run(e, pl.uid, pl.server_id); out = out.replace(/<action>\d+<\/action>/, `<action>${e}</action>`); }
   return out;
 }
 

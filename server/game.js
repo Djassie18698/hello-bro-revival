@@ -1782,33 +1782,14 @@ function spUse(db, pl) {
   return true;
 }
 // ---- Training enemies (GitHub #4 "full scaling through the whole campaign") -----------------------------------------------
-// Boss rows of roundinfo list their enemies in cols 7-21 (npc ninjainfo ids). An npc row has its level in col 7 and its star in col 11
-// but no stats (they lived on the dead server), so (ours) an npc gets the AVERAGE stats of the game's own playable cards of the same star
-// at that level: base (cols 19-24) + growth (cols 25-30) x (level - 1). A normal stage fights the followers of its part's boss
-// (without the leader, at most 3) at the boss's level. At most 5 enemies are sent (the fight screen has 5 places; (ours)).
-// ENEMY_SCALE (ours): enemies get this share of an average card's stats. 0.6 keeps the first boss (1-2) winnable with the starter card;
-// raise it to make the whole campaign harder, lower it for easier. One number, so the owner can tune it after playtesting.
-const ENEMY_SCALE = Number(process.env.HB_ENEMY_SCALE) || 0.6;
-let starAvg = null;
-function npcStats(star, level) {
-  if (!starAvg) {
-    starAvg = {};
-    for (const r of ninjas().values()) {
-      if (r[4] !== 1 || r[6] !== 0 || !(r[19] > 0)) continue;
-      const a = (starAvg[r[11]] = starAvg[r[11]] || { n: 0, v: new Array(12).fill(0) });
-      a.n++; for (let i = 0; i < 12; i++) a.v[i] += r[19 + i] || 0;
-    }
-  }
-  const a = starAvg[star] || starAvg[Math.min(6, Math.max(1, star || 2))] || starAvg[3];
-  const v = (i) => Math.round((a.v[i] / a.n + (a.v[i + 6] / a.n) * Math.max(0, level - 1)) * ENEMY_SCALE);
-  return { al: v(0), ah: v(1), dl: v(2), dh: v(3), cl: v(4), ch: v(5) };
-}
-// Enemy strength (the originals lived on the dead server). In a fight only my side attacks and every enemy's defence is taken off my attack,
+// Story bosses use their ORIGINAL enemies since 7 Nov 2026 (stageFoes / npcFoe below). The curve that follows is ours and is now only
+// used by the Battles tower (towerFoes).
+// Enemy strength for the Battles tower (ours). In a fight only my side attacks and every enemy's defence is taken off my attack,
 // so what matters is the enemy team's TOTAL defence. Stage 1-2 = 285 (the owner's video of the original game: Mizuki 140 + Iruka 125...
 // "total defence 285"). The rest is ours: CURVE_POINTS = total defence at the last stage of a chapter, growing by the same factor every
 // stage between two points. 6 Nov 2026 (owner): steeper, because with the free top-ups players reach ~7 000 attack in their first hour
 // (Riskeric, level 60, chapter 3) and level-350 players have 8-20 million: was one even curve 285 -> 2.5 million (end of chapter 1 = 477).
-// The Battles tower (towerFoes) and the control panel's "beats up to stage" (stageForDefence) use the same curve.
+// The story used this curve from 1 to 7 Nov 2026; now only the Battles tower (towerFoes) does.
 const CURVE_POINTS = [[1, 2000], [3, 8000], [10, 300000], [19, 10000000]]; // [chapter, total defence of its last stage]
 const CURVE_FIRST = 285;
 let storyIndex = null, curvePts = null;
@@ -1828,18 +1809,16 @@ function teamDefence(frac) {
   }
   return CURVE_FIRST;
 }
-// Where a given enemy team defence sits in the story (inverse of teamDefence): { chap, stage } or null when above the last boss.
+// Where a given enemy team defence sits in the story: { chap, stage } or null when above the last boss.
+// Since 7 Nov 2026 the story uses the original boss enemies (stageFoes), so this walks the real bosses in story order: the last boss
+// before the first one whose average total defence is above d.
+let bossTotals = null;
 function stageForDefence(d) {
-  const pts = curve(), n = storyIndex[19];
-  if (d > pts[pts.length - 1][1]) return null;
-  let frac = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const [f0, d0] = pts[i - 1], [f1, d1] = pts[i];
-    if (d <= d1) { frac = f0 + (f1 - f0) * Math.max(0, Math.log(Math.max(d, d0) / d0) / Math.log(d1 / d0)); break; }
-  }
-  const at = Math.round(frac * (n - 2)) + 1;
-  for (let c = 1; c <= 19; c++) if (at < storyIndex[c]) return { chap: c, stage: at - storyIndex[c - 1] + 1 };
-  return { chap: 19, stage: chapterStages(19) };
+  if (!bossTotals) bossTotals = table('roundinfo').rows.filter((r) => r[38] && r[4] >= 1 && r[4] <= 19)
+    .sort((a, b) => a[4] - b[4] || a[2] - b[2]).map((r) => ({ chap: r[4], stage: r[2], def: stageFoes(r[4], r[2]).reduce((t, f) => t + f.def, 0) }));
+  let last = { chap: 1, stage: 1 }; // below the first boss: only the stages before it
+  for (const b of bossTotals) { if (b.def > d) return last; last = { chap: b.chap, stage: b.stage }; }
+  return null; // stronger than the last story boss
 }
 function spreadFoes(ids, total, level) { // split a total defence over the enemies (first one x1.12) and give each a matching look
   const w = ids.map((_, i) => (i === 0 ? 1.12 : 1)), sw = w.reduce((t, x) => t + x, 0);
@@ -1848,6 +1827,17 @@ function spreadFoes(ids, total, level) { // split a total defence over the enemi
     return { id, low: Math.round(def * 1.3), high: Math.round(def * 1.6), def, end: def, level, star: n[11] || 2, power: def };
   });
 }
+// ORIGINAL (7 Nov 2026): a story boss brings EVERY npc of its roundinfo row (m_npc1..15 = [7]..[21]: 2 at stage 1-2, up to 15 in
+// chapters 18-19), each with its OWN stats in ninjainfo: [7] level, [11] star, [31]/[32] attack low/high, [33]/[34] defence low/high.
+// Five victory photos show exactly their sum (Kakuzu 9-70 21 162, Hidan 10-17 19 474, Obito 11-65 31 425, Nagato 12-25 39 574,
+// Night Kai 19-47 1 600 544; docs/FINDINGS-PHOTOS.md). Until 7 Nov the server used the CURVE_POINTS curve above with at most 5 enemies,
+// which made bosses from chapter 4 on 2-15x stronger than the original. Normal stages have no npcs (no fight: the wheel); they get the
+// part boss's helpers, which the client never shows.
+function npcFoe(id) {
+  const n = ninjas().get(id) || [];
+  const dl = n[33] || 1, dh = n[34] || dl, al = n[31] || dl, ah = n[32] || dh, def = Math.round((dl + dh) / 2);
+  return { id, low: al, high: ah, def, end: def, dl, dh, level: n[7] || 1, star: n[11] || 2, power: def };
+}
 function stageFoes(chap, stage) {
   const parts = chapterParts(chap), sp = stagePart(chap, stage), part = parts[sp.part - 1];
   if (!part) return [];
@@ -1855,8 +1845,7 @@ function stageFoes(chap, stage) {
   const ids = (r) => r.slice(7, 22).filter((x) => x > 0);
   let list = own[38] ? ids(own) : ids(boss).slice(1, 4);
   if (!list.length) list = ids(boss).slice(0, 1);
-  const pos = storyPos(chap, stage), frac = Math.max(0, (pos.at - 1) / Math.max(1, pos.of - 2)); // stage 1-2 = the 285 anchor
-  return spreadFoes(list.slice(0, 5), teamDefence(frac), chap * 5 + Math.ceil(stage / 4));
+  return list.map(npcFoe);
 }
 // Battles ("dup", rushtower chapters 1-25): towerfloor rows with [2] = chapter, 7 rounds each in id order (the map: 6 shinobi then the boss);
 // [4..8] the five enemies (the first is the named one), [20] exp, [21] silver (the reward the round's popup shows).
@@ -1879,9 +1868,11 @@ function stageEnsure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS stage_clears (uid INTEGER, server_id INTEGER, chap INTEGER, stage INTEGER, clears INTEGER DEFAULT 0, boss_day TEXT, boss_used INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id, chap, stage))');
 }
 // Boss stages: 3 free fights a day, a 4th and later cost BOSS_COST gold (the client shows a gold button when 0 are left).
-// Owner: "in the original you only got 3 per boss fight" (roundinfo [43] says 10-20, which the owner says is not what the game did).
+// ORIGINAL: roundinfo [42] m_limit_times = 3 for every boss (3 tries a day, as the owner remembered). [43] m_npc_kill_needmoney is the
+// retry price, 10 / 15 / 20 gold by boss size; the owner set 10 for every boss (6 Nov 2026, hot update 28.0.37 shows it on the button).
 const BOSS_FREE = 3, BOSS_COST = 10;
-// Clears a stage needs before the next one opens. roundinfo [42] says 3 for every boss, but the owner says the original needed ONE boss win.
+// Clears a stage needs before the next one opens: roundinfo [42] m_limit_times for a normal stage ("Progress 0/2"); for a boss [42] is its
+// daily tries, and one win opens the next stage (owner).
 const clearsNeeded = (row) => (row[38] ? 1 : row[42] || 1);
 // clears so far (capped at what the stage needs, like the screen) and boss tries left today
 function stageState(db, pl, chap, stage) {
@@ -2048,4 +2039,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, npcStats, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, teamDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
