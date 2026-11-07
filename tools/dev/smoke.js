@@ -596,6 +596,13 @@ for (const pick of [55, 56, 57]) {
     try { tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '2' }); } finally { Math.random = rnd; }
     ck((game.propCounts(db, 78802, 1)[9994] || 0) === m0 + 5, 'a guard who holds should get 5 merit');
   }
+  // "max reached" refusals show "You have reached the highest possible level" (190008), not "Currently not open" (166): Breakthrough at 10, pets, Akatsuki buildings
+  {
+    const fix = require('../../server/errcodes').fix;
+    for (const m of ['already at the highest level', 'max level', 'level max', 'max rank', 'max star']) {
+      if (!/code="190008"/.test(fix(`<root code="5"><message>${m}</message></root>`))) { bad++; console.log('ERROR TEXT for', m, fix(`<root code="5"><message>${m}</message></root>`)); }
+    }
+  }
   // special ninjutsu (ids 56-89, m_rate 1.0) count like normal ones (15 %): same team-attack bonus as The Six Paths Rinnegan (52)
   {
     const g = require('../../server/game'), st = { al: 1000, ah: 1000, dl: 0, dh: 0, cl: 0, ch: 0 };
