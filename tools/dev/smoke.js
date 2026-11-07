@@ -540,6 +540,62 @@ for (const pick of [55, 56, 57]) {
     const pres = game.pull(db, fpl(), 1, 10, false);
     if (!pres.got.some((g) => g.ninja && ((game.ninjas().get(g.ninja) || [])[11] || 0) >= 5)) { bad++; console.log('PITY: ten purple pulls gave no 5-star'); }
   }
+  // Country war (7 Nov 2026): the original cooldown (3 attacks, then 600 s; 30 gold clears it), Auto-Attack (50 gold; the game's
+  // auto-attacker stop code when out of lives; autoTick attacks for offline players); national treasure raids wait 1 hour (15 gold
+  // skips it) and a guard who holds gets 5 merit; fights carry each card's reincarnation count.
+  {
+    const war = require('../../server/war'), fix = require('../../server/errcodes').fix, game = require('../../server/game');
+    const mk = (uid, nick, country) => {
+      const q = { ...base, Uid: String(uid), Session: 's' + uid };
+      handlers.rl_w_login2({ db, params: { ...q, Cmd: 0 } });
+      handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: nick, Card: 55 } });
+      db.prepare('UPDATE players SET gold=10000, country=? WHERE uid=?').run(country, uid);
+      return q;
+    };
+    const ck = (ok, what) => { if (!ok) { bad++; console.log('WAR / TREASURE:', what); } };
+    const qa = mk(78801, 'WarA', 1), qb = mk(78802, 'WarB', 2);
+    const call = (q, cmd, extra) => fix(handlers.rl_w_warnew({ db, params: { ...q, Cmd: String(cmd), ...extra } }));
+    const gold = (uid) => db.prepare('SELECT gold FROM players WHERE uid=?').get(uid).gold;
+    const info = (q) => handlers.rl_r_warnew({ db, params: { ...q, Cmd: '4100' } });
+    db.prepare("UPDATE cards SET newlife=2 WHERE uid=78801 AND type=1").run();
+    const first = call(qa, 4102);
+    ck(/<CountryWar batter="\d" resttime="\d+"\/>/.test(first), 'attack reply has no war resttime: ' + first.slice(0, 120));
+    ck(/<newlife>2<\/newlife>/.test(first), 'fight does not carry the card reincarnation (newlife 2)');
+    call(qa, 4102); call(qa, 4102);
+    ck(/code="180001"/.test(call(qa, 4102)), '4th attack was not refused by the cooldown');
+    const inf = info(qa);
+    ck(/fightlefttime="(59\d|600)"/.test(inf) && /curintercost="30"/.test(inf), 'war info cooldown: ' + (/<preview[^>]*>/.exec(inf) || [''])[0]);
+    let g0 = gold(78801);
+    ck(/cost_cash="30"/.test(call(qa, 4104)) && gold(78801) === g0 - 30 && /code="0"/.test(call(qa, 4102)), 'clearing the cooldown (30 gold) did not work');
+    g0 = gold(78801);
+    ck(/cost_cash="200"/.test(call(qa, 4103, { AutoType: '2' })) && gold(78801) === g0 - 200, 'Auto-Attack with 5 clears should cost 50 + 150 gold');
+    ck(/<autowar>1<\/autowar>/.test(info(qa)) && /<auto_cost1>50<\/auto_cost1>/.test(info(qa)), 'war info does not show Auto-Attack on / its price');
+    ck(/code="290105"/.test(call(qa, 4103, { AutoType: '1' })), 'Auto-Attack could be bought twice in a day');
+    db.prepare("UPDATE war SET cd_until=strftime('%s','now')+600 WHERE uid=78801").run();
+    ck(/code="0"/.test(call(qa, 4102)) && db.prepare('SELECT clears FROM war WHERE uid=78801').get().clears === 4, 'Auto-Attack did not use a paid cooldown clear');
+    db.prepare('UPDATE war SET alive=0 WHERE uid=78801').run();
+    ck(/code="149494"/.test(call(qa, 4102)), 'no lives with Auto-Attack should send the auto-attacker stop code');
+    ck(/cost_cash="50"/.test(call(qb, 4103, { AutoType: '1' })), 'Auto-Attack should cost 50 gold');
+    db.prepare('UPDATE war SET last_attack=0 WHERE uid=78802').run();
+    const n0 = db.prepare('SELECT COUNT(*) n FROM war_log WHERE uid=78802').get().n;
+    war.autoTick(db);
+    ck(db.prepare('SELECT COUNT(*) n FROM war_log WHERE uid=78802').get().n === n0 + 1, 'autoTick did not attack for an offline Auto-Attack player');
+    // national treasure
+    const tcall = (q, name, extra) => fix(handlers[name]({ db, params: { ...q, ...extra } }));
+    db.prepare('UPDATE players SET gold=10000 WHERE uid IN (78801, 78802)').run();
+    ck(/code="0"/.test(tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '3' })), 'first treasure raid refused');
+    ck(/code="180001"/.test(tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '3' })), 'second raid within the hour was not refused');
+    ck(/<resttime>(35\d\d|3600)<\/resttime>/.test(tcall(qa, 'rl_r_tear', {})), 'treasure screen does not show the 1-hour wait');
+    g0 = gold(78801);
+    tcall(qa, 'rl_w_tearcountry', { Cmd: '13001' });
+    ck(gold(78801) === g0 - 15 && /<resttime>0<\/resttime>/.test(tcall(qa, 'rl_r_tear', {})), 'skipping the raid wait should cost 15 gold');
+    tcall(qb, 'rl_w_tearguard', {});
+    db.prepare('UPDATE cards SET level=50 WHERE uid=78802 AND type=1').run(); // a much stronger guard
+    const m0 = (game.propCounts(db, 78802, 1)[9994] || 0), rnd = Math.random;
+    Math.random = () => 0; // the raider rolls low against an equal guard: the guard holds
+    try { tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '2' }); } finally { Math.random = rnd; }
+    ck((game.propCounts(db, 78802, 1)[9994] || 0) === m0 + 5, 'a guard who holds should get 5 merit');
+  }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {
     const list = (env) => require('child_process').execFileSync(process.execPath, ['-e',

@@ -14,3 +14,6 @@ with what is fixed and what not. The fixes themselves are rows in `docs/PROGRESS
 | 1567390561441153025 | 4 Nov 2026 | pet ("beast") still doesn't claw (level 350 team) | fixed on a test save (claw skipped when a ninjutsu fired); ✅ + reply |
 | 1567390858418982912 | 4 Nov 2026 | elements wrong way round: Fire counters Water (+ 1567390645566316599 "only the Water element") | fixed on a test save (restrain sign); ✅ + reply, asked what "only Water" means |
 | 1567392488426053733 | 4 Nov 2026 | Daily Task "display error" (screenshot) | unclear: texts are original, numbers look right; asked the reporter |
+| 1567614732360351845 | 4 Nov 2026 | game won't run on 64-bit-only Android phones | not possible (32-bit engine, no source); a player (bakeddean) already answered, no bot reply |
+| 1568478363167883306 | 7 Nov 2026 | "I can't install Auto War" (War screen screenshot) | fixed, seen in game (Auto-Attack 50 gold, offline too; original war cooldown back); ✅ + reply |
+| 1568478566830702695 | 7 Nov 2026 | reincarnation not shown when comparing line-ups (fight Comparison) | fixed, seen in game (reincarnation corners on the card); ✅ + reply |

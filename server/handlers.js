@@ -557,7 +557,9 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
-    const r = cmd === 4102 ? war.attack(db, pl) : cmd === 4101 ? war.revive(db, pl) : cmd === 4100 ? war.exchange(db, pl, Number(p.PackID)) : { xml: '<preview cost_cash="0"/>' };
+    const r = cmd === 4102 ? war.attack(db, pl) : cmd === 4101 ? war.revive(db, pl) : cmd === 4100 ? war.exchange(db, pl, Number(p.PackID))
+      : cmd === 4103 ? war.buyAuto(db, pl, Number(p.AutoType) || 1) : cmd === 4104 ? war.clearCd(db, pl) : { xml: '<preview cost_cash="0"/>' };
+    if (r.code) return `<root code="${r.code}"/>`; // AUTO_STOP: the game's auto-attacker stops (no lives left)
     return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
   rl_r_warresultnew: ({ db, params: p }) => {
@@ -1414,7 +1416,8 @@ module.exports = {
   rl_r_tear: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: tear.bankXml(db, pl) })),
   rl_r_tearcountry: (c) => borderCall(c, (db, pl) => ({ code: 0, xml: tear.snatchXml(db, pl) })),
   rl_w_tear: (c) => borderCall(c, (db, pl) => tearRes(tear.handin(db, pl))),
-  rl_w_tearcountry: (c) => borderCall(c, (db, pl, p) => tearRes(tear.raid(db, pl, Number(p.ToCountry)))),
+  // Cmd 13000 raid ToCountry, 13001 skip the raid wait (15 gold)
+  rl_w_tearcountry: (c) => borderCall(c, (db, pl, p) => tearRes(Number(p.Cmd) === 13001 ? tear.cancelCd(db, pl) : tear.raid(db, pl, Number(p.ToCountry)))),
   rl_w_tearguard: (c) => borderCall(c, (db, pl) => tearRes(tear.toggleGuard(db, pl))),
 
   // Growth / star strengthening (rl_w_star): Cmd 3 = rate table, others = do one upgrade attempt.

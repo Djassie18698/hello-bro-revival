@@ -7,12 +7,20 @@ const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const RAIDS = 5, SILVER_EACH = 3000; // the client's own text says 3000 silver per treasure
+const now = () => Math.floor(Date.now() / 1000);
+const nc = (id, d) => { const r = game.table('normalconfig').rows.find((x) => x[0] === id); return r && r[3] != null ? r[3] : d; };
+// ORIGINAL (normalconfig 23 / 25 / 26, owner: yes, 7 Nov 2026): after a raid you wait 1 hour (3600 s) before the next one; 15 gold skips the
+// wait (Cmd 13001; the client asks first and takes the 15 gold off itself, CCountryTreasure::init reads row 25); a guard who beats a raider
+// gets 5 merit (war exploit). Was no wait and nothing for guards.
+const RAID_CD = nc(23, 3600), CD_GOLD = nc(25, 15), GUARD_MERIT = nc(26, 5);
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS tear (server_id INTEGER, uid INTEGER, day TEXT, raids INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
       guard INTEGER DEFAULT 0, coin_his INTEGER DEFAULT 0, merit_his INTEGER DEFAULT 0, PRIMARY KEY(server_id, uid));
     CREATE TABLE IF NOT EXISTS tear_win (server_id INTEGER, day TEXT, from_country INTEGER, to_country INTEGER, n INTEGER DEFAULT 0, PRIMARY KEY(server_id, day, from_country, to_country))`);
+  try { db.exec('ALTER TABLE tear ADD COLUMN cd_until INTEGER DEFAULT 0'); } catch (e) { /* already there */ }
 }
+const cdLeft = (t) => Math.max(0, (t.cd_until || 0) - now());
 function me(db, pl) {
   ensure(db);
   db.prepare('INSERT OR IGNORE INTO tear(server_id,uid,day) VALUES(?,?,?)').run(pl.server_id, pl.uid, day());
@@ -29,7 +37,7 @@ function wins(db, sid, from, to) {
 function bankXml(db, pl) {
   const t = me(db, pl);
   const victory = others(pl.country).map((c) => `<country id="${c}" attack="${wins(db, pl.server_id, pl.country, c)}" defnese="${wins(db, pl.server_id, c, pl.country)}"/>`).join('');
-  return '<trea><attack>' + el('canattack', t.raids < RAIDS ? 1 : 0) + el('resttime', 0) + el('restattacknum', RAIDS - t.raids) + '</attack>' +
+  return '<trea><attack>' + el('canattack', t.raids < RAIDS ? 1 : 0) + el('resttime', cdLeft(t)) + el('restattacknum', RAIDS - t.raids) + '</attack>' +
     `<victory>${victory}</victory><award num="${t.bank}"/><awardhis coin="${t.coin_his}" merit="${t.merit_his}"/>` +
     '<country>' + el('count', nationTotal(db, pl)) + el('isguard', t.guard) + '</country></trea>';
 }
@@ -51,7 +59,8 @@ function raid(db, pl, to) {
   const t = me(db, pl);
   if (!others(pl.country).includes(to)) return { error: 'pick an enemy country' };
   if (t.raids >= RAIDS) return { error: 'no raids left today' };
-  db.prepare('UPDATE tear SET raids=raids+1 WHERE server_id=? AND uid=?').run(pl.server_id, pl.uid);
+  if (cdLeft(t) > 0) return { error: 'cooling down, try again later' };
+  db.prepare('UPDATE tear SET raids=raids+1, cd_until=? WHERE server_id=? AND uid=?').run(now() + RAID_CD, pl.server_id, pl.uid);
   const guard = db.prepare(`SELECT p.* FROM tear t JOIN players p ON p.uid=t.uid AND p.server_id=t.server_id
     WHERE t.server_id=? AND t.guard=1 AND p.country=? ORDER BY RANDOM() LIMIT 1`).get(pl.server_id, to);
   let win = true;
@@ -61,6 +70,11 @@ function raid(db, pl, to) {
     const myPw = pw(pl.uid), theirPw = pw(guard.uid);
     win = myPw * (0.8 + Math.random() * 0.4) >= theirPw;
     fight = game.battleXml(db, pl, 1, 1, { win, enemyIds: game.foeTeam(db, guard.uid, pl.server_id, 0, guard.level), ratio: theirPw / Math.max(1, myPw), enemyName: guard.nick, enemyUid: guard.uid, enemyLevel: guard.level, enemyCountry: guard.country });
+  }
+  if (guard && !win) { // the guard held: 5 merit to them (also counted in their treasure merit history)
+    me(db, guard);
+    db.prepare('UPDATE tear SET merit_his=merit_his+? WHERE server_id=? AND uid=?').run(GUARD_MERIT, pl.server_id, guard.uid);
+    game.propAdd(db, guard.uid, pl.server_id, 9994, GUARD_MERIT);
   }
   if (win) {
     db.prepare('UPDATE tear SET bank=bank+1 WHERE server_id=? AND uid=?').run(pl.server_id, pl.uid);
@@ -78,10 +92,19 @@ function handin(db, pl) {
   game.propAdd(db, pl.uid, pl.server_id, 9994, merit);
   return { xml: `<award coin="${coin}" merit="${merit}"/>` + snatchXml(db, pl) };
 }
+// Cmd 13001: skip the raid wait for 15 gold (the client shows the price and takes it off itself; it reads nothing back but code 0)
+function cancelCd(db, pl) {
+  const t = me(db, pl);
+  if (cdLeft(t) <= 0) return { xml: '' };
+  if (pl.gold < CD_GOLD) return { error: 'not enough gold' };
+  db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(CD_GOLD, pl.uid, pl.server_id);
+  db.prepare('UPDATE tear SET cd_until=0 WHERE server_id=? AND uid=?').run(pl.server_id, pl.uid);
+  return { xml: '' };
+}
 function toggleGuard(db, pl) {
   const t = me(db, pl);
   db.prepare('UPDATE tear SET guard=? WHERE server_id=? AND uid=?').run(t.guard ? 0 : 1, pl.server_id, pl.uid);
   return { xml: '<guard direct="1"/>' };
 }
 
-module.exports = { bankXml, snatchXml, raid, handin, toggleGuard };
+module.exports = { bankXml, snatchXml, raid, handin, toggleGuard, cancelCd, RAID_CD, CD_GOLD, GUARD_MERIT };

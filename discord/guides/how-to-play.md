@@ -29,7 +29,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Arena** (Home, from level 25): climb the ranks for daily silver and reputation. 25 challenges a day (+1 per VIP level); after every 3 there is a 10-minute wait, or pay 30 gold to skip it. Claim the daily reward with the **Claim** button on your own row in the Compete list (once a day, until midnight). Ranks 1-1000 also get a **ladder prize** with it (gear, a seal, gold or silver: see the Arena Rules); it goes to your backpack. Spend reputation in the **Exchange** tab (some items once ever, pills twice a day).
 • **Battles** (Home): 25 chapters of 7 rounds, the 7th is the chapter boss. **Ranking > Achievement** pays a reward every 7 floors.
 • **News**: the Battle tab shows who sparred or plundered you (press **Revenge** to fight back), the Friend tab shows messages from friends.
-• **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight.
+• **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight. After every 3 attacks you wait 10 minutes (or pay 30 gold). **Autoplay** (50 gold) attacks for you for the rest of the day, even when you are offline. National treasure: 1 hour between raids (15 gold skips it).
 • Real players fight with their **whole team**. Bots bring about as many cards as you do, and every enemy card's stats vary a little each fight. Watching a fight or pressing **Skip** always gives the same result.
 
 ## 6. Cross-server battle

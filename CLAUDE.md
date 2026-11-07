@@ -123,7 +123,9 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     127.0.0.1/status every minute and stops the server after 3 failed checks; systemd (Restart=always) starts it again.
     Discord **#server-status** (owner, 3 Nov 2026): `discord/statuswatch.js` runs inside `online.js` (START-BOT-ONLINE.bat, owner's PC) and
     checks `http://ninjaonline.duckdns.org:18080/status` (server.js: `{version: git hash, started}`) every minute: posts offline (2 failed
-    checks), back online, updated (new version) or restarted. Only while the owner's PC is on. Pinned there: how to connect + the item page.
+    checks), back online, updated (new version) or restarted. Only while the owner's PC is on AND START-BOT-ONLINE.bat runs (it was silent
+    4-7 Nov: the PC restarted and BOT-AUTOSTART.bat was never run; if posts stop, check for a node `online.js` process and start the .bat with
+    `explorer.exe "...\discord\START-BOT-ONLINE.bat"`). Pinned there: how to connect + the item page.
     The old PC public server (`START-PUBLIC-SERVER.bat`, its pre-move public.db, backups-public, admin-password.txt) was moved out of the
     play folder on 3 Nov 2026 to `Documents\HelloBro-old-files` (with 3 old .apk builds): it must NOT run any more.
     The play folder now holds exactly the GitHub files plus the owner's save (hellobro.db + backups/) and two .xapk files.

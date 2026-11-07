@@ -20,6 +20,7 @@ for (const k of ['log', 'error']) {
 // The save: SQLite in WAL mode with a health check and backups on start and every 6 h (db.js).
 const dbm = require('./db');
 const db = dbm.open(process.env.DB || 'hellobro.db');
+require('./war').startAuto(db); // country war Auto-Attack for players who are offline
 require('./schema')(db);
 require('./consumption').ensure(db); // gold-spending log (trigger) for the spending event
 dbm.indexes(db);

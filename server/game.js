@@ -525,7 +525,8 @@ function pullXml(res, count, type = 0) {
 // ---- Training battles -----------------------------------------------------------------------
 // The client replays whatever fight we describe: <fight><preview/><guard>(enemies)<killer>(my team)<roundlist>.
 function ninjaXml(n) {
-  const f = { id: n.id, bagid: n.bagid, low: n.low, high: n.high, end: n.end, level: n.level, attri: n.attri || 0, starlevel: n.star, newlife: 0 };
+  // newlife = the card's reincarnation count (CFightResultData::AddMyNinja / AddEnemyNinja read it; the Comparison list shows it). Was always 0.
+  const f = { id: n.id, bagid: n.bagid, low: n.low, high: n.high, end: n.end, level: n.level, attri: n.attri || 0, starlevel: n.star, newlife: n.newlife || 0 };
   return '<ninja>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</ninja>';
 }
 // <master_pet> in a fight: CFightResultData::AddMyNinja reads BOTH <id> and <pet_id> (a missing one = SIGSEGV),
@@ -550,12 +551,12 @@ function teamSizeAt(level) {
 const BOT_DEF = Number(process.env.HB_BOT_DEF) || 1;
 function foeTeam(db, uid, sid, first, level, botAtk, around) {
   if (uid) { // a bot / guard has no team rows, so it falls through to the made-up team below
-    const rows = db.prepare('SELECT c.ninja_id, c.attri, c.level, c.starlevel FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
+    const rows = db.prepare('SELECT c.ninja_id, c.attri, c.level, c.starlevel, c.newlife FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
     if (rows.length) {
       const fsx = teamStats(db, uid, sid).fight;
       const t = rows.map((r) => r.ninja_id);
       t.attris = rows.map((r) => r.attri || 1); // a real player's cards keep their own element in the fight
-      t.cards = rows.map((r, i) => ({ id: r.ninja_id, attri: r.attri || 1, level: r.level, star: r.starlevel || 0, al: (fsx[i] || {}).al, ah: (fsx[i] || {}).ah, dl: (fsx[i] || {}).dl, dh: (fsx[i] || {}).dh }));
+      t.cards = rows.map((r, i) => ({ id: r.ninja_id, attri: r.attri || 1, level: r.level, star: r.starlevel || 0, newlife: r.newlife || 0, al: (fsx[i] || {}).al, ah: (fsx[i] || {}).ah, dl: (fsx[i] || {}).dl, dh: (fsx[i] || {}).dh }));
       return t;
     }
   }
@@ -584,13 +585,13 @@ const foeAttri = (id) => ((Math.abs(Number(id) || 0) * 7) % 5) + 1;
 // ORIGINAL (normalconfig 58 "多少级以前技能必触发" = 20): below player level 20 every worn ninjutsu fires.
 const SKILL_SURE_LEVEL = 20;
 function battleXml(db, pl, chap, stage, opt = {}) {
-  const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel, c.attri FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
+  const team = db.prepare('SELECT t.slot, c.seq, c.ninja_id, c.level, c.starlevel, c.attri, c.newlife FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(pl.uid, pl.server_id);
   const ts = teamStats(db, pl.uid, pl.server_id);
   // ninjutsu worn (equipped kinds 5-8) by each team ninja: they can fire when that ninja starts attacking
   const jRows = db.prepare('SELECT e.slot, c.seq, c.ninja_id, c.level FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=? AND e.kind BETWEEN 5 AND 8')
     .all(pl.uid, pl.server_id);
   const petSkill = require('./pet').skillHurt(db, pl.uid, pl.server_id);
-  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel, attri: t.attri || 1 }; });
+  const mine = team.map((t, i) => { const q = ts.fight[i] || {}; return { jutsu: jRows.filter((r) => r.slot === i + 1), chakra: Math.round(((q.cl || 0) + (q.ch || 0)) / 2), id: t.ninja_id, bagid: t.seq, low: q.al || 40, high: q.ah || 60, end: Math.round(((q.al || 40) + (q.ah || 60)) / 2), def: Math.round(((q.dl || 0) + (q.dh || 0)) / 2) || 60, level: t.level, star: t.starlevel, newlife: t.newlife || 0, attri: t.attri || 1 }; });
   // Every enemy card has a defence RANGE (dl-dh, the value is rolled each fight): +-7 % around its value (ours; like a team that hits 7-8 M).
   const VAR = 0.07, spread = (f) => ({ ...f, dl: f.dl || Math.max(1, Math.round(f.def * (1 - VAR))), dh: f.dh || Math.max(1, Math.round(f.def * (1 + VAR))) });
   const given = opt.foes ? opt.foes.map((f, i) => spread({ ...f, bagid: 1000 + i })) : null; // real stage enemies (game.stageFoes)
@@ -603,7 +604,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     const ids = opt.enemyIds || [21, 22, 23];
     const cards = ids.cards || ids.map((id, i) => ({ id, attri: ids.attris ? ids.attris[i] : 0, level: opt.enemyLevel || 1, star: 0, w: 1 }));
     if (!(opt.ratio > 0) && cards.length && cards.every((c) => c.dl !== undefined && c.al !== undefined)) { // true stats: the replay decides
-      return cards.map((c, i) => { const def = Math.round((c.dl + c.dh) / 2); return { id: c.id, bagid: 1000 + i, low: c.al, high: c.ah, def, end: def, dl: c.dl, dh: c.dh, level: c.level || 1, star: c.star || 0, attri: c.attri || 0 }; });
+      return cards.map((c, i) => { const def = Math.round((c.dl + c.dh) / 2); return { id: c.id, bagid: 1000 + i, low: c.al, high: c.ah, def, end: def, dl: c.dl, dh: c.dh, level: c.level || 1, star: c.star || 0, newlife: c.newlife || 0, attri: c.attri || 0 }; });
     }
     const myAtk = mine.reduce((t, m) => t + (m.low + m.high) / 2, 0);
     // A real player's true defence when it already agrees with the decision (a loss: their total defence above my total attack; a win:
@@ -612,7 +613,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     if (opt.win !== undefined && cards.length && cards.every((c) => c.dl !== undefined && c.al !== undefined)) {
       const realDef = cards.reduce((t, c) => t + (c.dl + c.dh) / 2, 0);
       if (opt.win ? realDef < myAtk * 0.9 : realDef > myAtk * 1.1) {
-        return cards.map((c, i) => { const def = Math.round((c.dl + c.dh) / 2); return { id: c.id, bagid: 1000 + i, low: c.al, high: c.ah, def, end: def, dl: c.dl, dh: c.dh, level: c.level || 1, star: c.star || 0, attri: c.attri || 0 }; });
+        return cards.map((c, i) => { const def = Math.round((c.dl + c.dh) / 2); return { id: c.id, bagid: 1000 + i, low: c.al, high: c.ah, def, end: def, dl: c.dl, dh: c.dh, level: c.level || 1, star: c.star || 0, newlife: c.newlife || 0, attri: c.attri || 0 }; });
       }
     }
     const ratio = opt.ratio > 0 ? opt.ratio : fallback;
@@ -621,7 +622,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     return cards.map((c, i) => {
       const def = Math.max(1, Math.round((total * w[i]) / sw));
       const low = c.al !== undefined ? c.al : Math.round((def / 0.55) * (1 - VAR)), high = c.ah !== undefined ? c.ah : Math.round((def / 0.55) * (1 + VAR));
-      return { id: c.id, bagid: 1000 + i, low, high, def, end: def, dl: Math.max(1, Math.round(def * (1 - VAR))), dh: Math.max(1, Math.round(def * (1 + VAR))), level: c.level || opt.enemyLevel || 1, star: c.star || 0, attri: c.attri || 0 };
+      return { id: c.id, bagid: 1000 + i, low, high, def, end: def, dl: Math.max(1, Math.round(def * (1 - VAR))), dh: Math.max(1, Math.round(def * (1 + VAR))), level: c.level || opt.enemyLevel || 1, star: c.star || 0, newlife: c.newlife || 0, attri: c.attri || 0 };
     });
   };
   // The original fight (owner's video of v28, Mizuki 1-2): only my side attacks. My first ninja hits the first standing enemy with its attack;
@@ -870,8 +871,10 @@ function rivalsXml(db, pl) {
     // got the bot value too (found 5 Nov 2026: a list row read 32-52 while the fight used that player's real 549 defence).
     const real = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(r.id, pl.server_id);
     const t = real ? teamStats(db, r.id, pl.server_id).total : null;
+    // the reincarnation count of the card shown (same card as firstNinja picks); was always 0
+    const fc = real ? db.prepare('SELECT newlife FROM cards WHERE uid=? AND server_id=? ORDER BY starlevel DESC, seq LIMIT 1').get(r.id, pl.server_id) : null;
     const o = { id: r.id, level: lv, nick: r.nick, attacklow: t ? t.al : a, attackhigh: t ? t.ah : a + 20, defenselow: t ? t.dl : Math.floor(a / 2), defenseHigh: t ? t.dh : Math.floor(a / 2) + 10,
-      chakralow: t ? t.cl : a, chakrahigh: t ? t.ch : a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
+      chakralow: t ? t.cl : a, chakrahigh: t ? t.ch : a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: (fc && fc.newlife) || 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
     return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
   };
   const bench = benchRivals(db).map((r) => '<user>' + Object.entries({ id: r.id, level: r.level, nick: r.nick, attacklow: r.bench, attackhigh: r.bench, defenselow: r.bench, defenseHigh: r.bench,

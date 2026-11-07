@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 8 | 1 | 0 | 0 |
+| Discord reports | 10 | 1 | 0 | 1 |
 
 ## Bug list 1
 
@@ -112,6 +112,9 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Ninjutsu cut-in showed a black silhouette ("update the full package") instead of the ninja | The fight told the game the attacker's CARD number where it expects the NINJA id, so the cut-in found no picture. Seen in game: Gentle Fist shows Neji and her line |
 | ✅ | Elements the wrong way round: Water hitting Fire showed "Fire beats Water" (4 Nov) | The fight screen reads the server's "who beats whom" flag the other way round (CRoundTeamFightView::initLimitData). Now the winning element's icon shows on the beaten side with -15% (their defence, or my attack when they beat me). Seen in game both ways: the hit shows "水 克制 火" (Water restrains Fire) on the beaten Fire ninja, and the result screen's Restrain number lands on the beaten side |
 | ✅ | Pets still did not claw for strong teams (4 Nov) | The claw skipped any hit where a ninjutsu fired, which for a strong team is almost every first hit. Now a missed claw waits for that ninja's next hit. Seen in game: ninjutsu on hit 1, the pet jumps in and claws on hit 2 |
+| ✅ | War: Auto-Attack could not be bought ("I can't install Auto War", 7 Nov) | The server never handled the Autoplay button. Now Auto-Attack costs 50 gold (original) for the day and attacks for you, also offline; the original war cooldown is back (3 attacks, then 10 minutes, 30 gold skips it) and the two extra options skip it by themselves (5 times 150 gold, 10 times 300 gold, ours). Seen in game: 200 gold taken, "auto attack on", attacks every minute, cooldown after 3 with the paid clears used |
+| ✅ | Reincarnation not shown in the fight Comparison list (7 Nov) | The fight data said "reincarnated 0" for every card (and for the first card in the Spar / Plunder lists). Now each card carries its real count. Seen in game: a twice-reincarnated card gets the silver reincarnation corners in Compare |
+| 🚫 | The game does not run on 64-bit-only phones (4 Nov) | The game's engine (libgame.so) exists only as a 32-bit file and there is no source code to rebuild it; phones that dropped 32-bit apps can't run it (a player answered this on Discord) |
 
 ## Built on request (chat)
 
@@ -228,6 +231,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Battles sweep paid made-up EXP / silver (60 / 90 x chapter) and no item (found 7 Nov night while double-checking). Now it pays exactly what winning that round pays: its own EXP and silver from the game's table and its drop (a Sage Stone I for rounds 1-6). Checked on a test save |
 | ✅ | Plunder paid like a spar (a share of the rival's silver on a win). Now it pays what the game's own Plunder Preview shows: EXP for your level, no silver for a win, and a lost plunder costs a little silver (10 to 500 by level). Seen in game: the preview says win EXP 44 / silver 0, lose EXP 15 / silver -126 at level 100, and a win paid +44 EXP and no silver |
 | ✅ | Recruit free waits and pity like the original (7 Nov, owner: "switch everything to the original"). The game's own recruit table (recruitinfo, column m_refresh) holds the old server's free waits: purple 3 days, blue 2 days (was 24 h / 8 h). A sure 5-star now comes every 10th purple pull (was 20; the game's news and the Chinese client say 10). Seen in game: blue "Free after 1 days 23 hours" right after its free pull (the same words as a 2016 video), purple window "Recruit 9 more will get one Five-Star Purple" |
+| 🧪 | National treasure like the original (7 Nov, owner: yes). The game's own data: after a raid you wait 1 hour before the next (15 gold skips it, the screen asks first), and a guard who beats a raider gets 5 merit. Was no wait and nothing for guards. Checked on a test save |
 | ✅ | Spar and Plunder list (found while playing, 5 Nov): players from the old login (account numbers above 22 million, like yours on your own server) showed a made-up strength from their level (32-52) instead of their real team, so a "weak" rival could beat you. The list now shows their real team. Checked on a test save |
 | ✅ | Seal synthesis (found while testing the tutorial): every seal showed "Claim" and was made at once, the green Synthesis button did nothing and the price showed your gold. Now like the original: Claim starts a 30-minute synthesis, Synthesis finishes it now for 30 gold, then Claim takes the seal. Seen in game |
 | ✅ | Arena list stayed empty for new players after an admin "reset a player" (a gap in the ranks). Fixed; admin reset also no longer deletes the player's login. Seen in game |
