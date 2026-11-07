@@ -287,6 +287,9 @@ function migratePrice(db, sid, to) {
 const SWEEP_DAILY = 5; // (ours)
 // ORIGINAL (normalconfig 290/291/296): finishing a tower round at once costs 3 gold a round and needs VIP3; 2 tower resets a day
 const SWEEP_GOLD = 3, SWEEP_VIP = 3, TOWER_RESETS = 2;
+// Battles round 7: one of the four prizes the game's "Possibility of boss landing" window shows (rushtower [9]-[12]): 1332 Shukaku Seal Card,
+// 1285 Recruitment Order, 1297 Refresh Order, 176 Five-Star Purple Card Fragment; equal chances (ours).
+const TOWER_BOSS_DROPS = [1332, 1285, 1297, 176];
 const TOWER_CHAPS = 25, TOWER_ROUNDS = 7;
 // open chapters = 1 + chapters passed (process 8), at most 25
 const towerMaxChap = (db, uid, sid) => { let c = 1; while (c < TOWER_CHAPS && game.getStage(db, uid, sid, 1000 + c) > TOWER_ROUNDS) c++; return c; };
@@ -1525,11 +1528,16 @@ module.exports = {
       for (const id of ids) {
         const c = Math.ceil(id / TOWER_ROUNDS), r = ((id - 1) % TOWER_ROUNDS) + 1;
         if (game.getStage(db, pl.uid, sid, 1000 + c) <= r) return '<root code="5"><message>round not cleared</message></root>';
-        const ex = 60 * c, co = 90 * c;
+        // the same as winning the round (7 Nov 2026): its own towerfloor exp / silver ([20] / [21]) and drop (rounds 1-6 their chest
+        // [22], round 7 one of the boss prizes). Until 7 Nov a sweep paid a made-up 60 / 90 x chapter and no drop.
+        const row = game.towerRow(c, r) || [], ex = row[20] || 60 * c, co = row[21] || 90 * c;
         game.addExp(db, pl, ex);
         pl = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(pl.uid, sid);
         db.prepare('UPDATE players SET coin=coin+? WHERE uid=? AND server_id=?').run(co, pl.uid, sid);
-        list += `<dup name="${c}-${r}">${game.awardFull({ coin: co, exp: ex })}</dup>`;
+        const drop = game.grantDrop(db, pl, r === TOWER_ROUNDS ? TOWER_BOSS_DROPS[Math.floor(Math.random() * TOWER_BOSS_DROPS.length)] : row[22] || 914);
+        const dc = Number(((drop || '').match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
+        const aw = drop ? drop.replace(/<exp>\d+<\/exp>/, `<exp>${ex}</exp>`).replace(/ coin="\d+"/, ` coin="${co + dc}"`).replace(/<coin>\d+<\/coin>/, `<coin>${co + dc}</coin>`) : game.awardFull({ coin: co, exp: ex });
+        list += `<dup name="${c}-${r}">${aw}</dup>`;
       }
       game.setStage(db, pl.uid, sid, sweepKey(), used + ids.length + 1);
       return '<root code="0"><dup_list>' + list + '</dup_list></root>';
@@ -1555,7 +1563,7 @@ module.exports = {
     // 284 Shukaku Seal Card, 285 Recruitment Order, 286 Refresh Order, 288 Five-Star Purple Card Fragment). Which one, equal chances (ours).
     // Rounds 1-6: ORIGINAL (7 Nov 2026) the round's own chest, towerfloor [22] m_chestid (914 Sage Stone I in almost every round). Until 7 Nov
     // they shared the story drop; after the story wheel change that could be a dropid-0 award, which crashes this result screen.
-    const chestXml = round === TOWER_ROUNDS ? game.grantDrop(db, pl, [1332, 1285, 1297, 176][Math.floor(Math.random() * 4)]) : game.grantDrop(db, pl, trow[22] || 914);
+    const chestXml = round === TOWER_ROUNDS ? game.grantDrop(db, pl, TOWER_BOSS_DROPS[Math.floor(Math.random() * TOWER_BOSS_DROPS.length)]) : game.grantDrop(db, pl, trow[22] || 914);
     let towerAward = (chestXml || game.grantDrop(db, pl, 914)).replace('<award ', '<award type="1" ');
     const towerDropCoin = Number((towerAward.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
     towerAward = towerAward.replace(/<exp>\d+<\/exp>/, `<exp>${exp}</exp>`).replace(/ coin="\d+"/, ` coin="${coin + towerDropCoin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin + towerDropCoin}</coin>`);

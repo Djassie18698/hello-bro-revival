@@ -478,6 +478,11 @@ for (const pick of [55, 56, 57]) {
     const dup = handlers.rl_w_dup({ db, params: { ...base, Cmd: 3100, Chap: 1, Round: 1 } });
     delete process.env.HB_PVE;
     if (!/<award [^>]*dropid="914"/.test(dup)) { bad++; console.log('TOWER round 1 award should be its own chest 914 (Sage Stone I):', dup.slice(-300)); }
+    // tower sweep pays what a win pays: the round's own exp / silver and its chest (round 1 of chapter 1: 22 / 33 + Sage Stone I)
+    require('../../server/vip').setLevel(db, 77, 1, 5); db.prepare('UPDATE players SET gold=gold+100 WHERE uid=77').run();
+    game.setStage(db, 77, 1, 1001, 8);
+    const sw = handlers.rl_w_dup({ db, params: { ...base, Cmd: 3102, DupId: '1' } });
+    if (!/<award dropid="914"[^>]*coin="33"/.test(sw) || !/<exp>22<\/exp>/.test(sw)) { bad++; console.log('TOWER SWEEP reward:', sw.slice(0, 300)); }
     // sage growth: a failure falls back to m_cuttolevel (level 5 -> 3)
     const seq = db.prepare('SELECT seq FROM cards WHERE uid=77 AND server_id=1 AND type=1 LIMIT 1').get().seq;
     db.prepare('UPDATE cards SET starlevel=5 WHERE seq=?').run(seq); game.propAdd(db, 77, 1, 7, 10); db.prepare('UPDATE players SET coin=coin+100000 WHERE uid=77').run();
