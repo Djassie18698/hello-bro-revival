@@ -465,8 +465,8 @@ function bestTeam(db, pl, goal, mode) {
     max, candidates: cand.length, evals, ms: Date.now() - t0, gain: Math.round(((goal === 'defense' ? fmt(B.total).def / Math.max(1, fmt(A.total).def) : fmt(B.total).atk / Math.max(1, fmt(A.total).atk)) - 1) * 1000) / 10 };
 }
 
-// The search in its own thread (bestteam-worker.js), so the game keeps answering players while it runs; one at a time, 2 minutes at most.
-// An in-memory save (tests) has no file to open: then it runs here.
+// The search in a separate process at the lowest CPU priority (bestteam-worker.js), so the game keeps answering players while it runs
+// (on the cloud machine Riskeric's team takes ~2 minutes); one at a time, 5 minutes at most. An in-memory save (tests) has no file: it runs here.
 let bestTeamBusy = false;
 function bestTeamInThread(db, pl, goal, mode) {
   const file = db.location ? db.location() : null;
@@ -474,13 +474,14 @@ function bestTeamInThread(db, pl, goal, mode) {
   if (bestTeamBusy) return Promise.resolve({ ok: false, error: 'a Best team search is already running, try again in a moment' });
   bestTeamBusy = true;
   return new Promise((resolve) => {
-    const { Worker } = require('node:worker_threads');
-    const w = new Worker(path.join(__dirname, 'bestteam-worker.js'), { workerData: { dbPath: file, uid: pl.uid, sid: pl.server_id, goal, mode, leaderOnce: game.RULES.leaderOnce } });
-    const done = (r) => { bestTeamBusy = false; clearTimeout(timer); resolve(r); };
-    const timer = setTimeout(() => { w.terminate(); done({ ok: false, error: 'the search took too long' }); }, 120000);
-    w.once('message', done);
-    w.once('error', (e) => done({ ok: false, error: e.message }));
-    w.once('exit', (code) => { if (bestTeamBusy) done({ ok: false, error: 'the search stopped (' + code + ')' }); });
+    const child = require('child_process').fork(path.join(__dirname, 'bestteam-worker.js'), [], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    try { require('os').setPriority(child.pid, 19); } catch (e) { /* not allowed here: it still runs */ }
+    const done = (r) => { if (!bestTeamBusy) return; bestTeamBusy = false; clearTimeout(timer); resolve(r); };
+    const timer = setTimeout(() => { child.kill(); done({ ok: false, error: 'the search took too long' }); }, 300000);
+    child.once('message', done);
+    child.once('error', (e) => done({ ok: false, error: e.message }));
+    child.once('exit', (code) => done({ ok: false, error: 'the search stopped (' + code + ')' }));
+    child.send({ dbPath: file, uid: pl.uid, sid: pl.server_id, goal, mode, leaderOnce: game.RULES.leaderOnce });
   });
 }
 

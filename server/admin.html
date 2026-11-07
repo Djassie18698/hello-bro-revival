@@ -521,7 +521,7 @@ async function bestGear(mode) {
 async function bestTeamRun(mode) {
   if (!sel) return;
   const goal = $('bgoal').value, word = goal === 'defense' ? 'defence' : 'attack';
-  toast('Searching the best team for ' + word + '... this can take up to a minute.');
+  toast('Searching the best team for ' + word + '... on the cloud server this can take 1-3 minutes for a big team. Keep this page open.');
   const r = await api('bestteam', { uid: sel, goal, mode });
   if (!r.ok) return toast(esc(r.error || 'failed'), false);
   const now = goal === 'defense' ? r.before.def : r.before.atk, after = goal === 'defense' ? r.after.def : r.after.atk;
