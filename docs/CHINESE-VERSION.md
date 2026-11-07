@@ -23,6 +23,6 @@ The apks, their exported tables and the comparison scripts stay in the scratchpa
 - The story-wheel odds (roundinfo columns 26-36) are the same in all three versions.
 
 ## Not found in the Chinese client either
-Recruit odds and pity count, VIP thresholds (VIP exp per level), boss drop contents, the story-wheel's meaning of the rates: all of it lived
-on the server. The Chinese texts only say the same as ours ("a chance of a 5-star, at least a 4-star"). The web research found
-"7 premium recruits = a sure 5-star" (Dec 2014, later "10") for the Chinese game; our pity is 20 (ours).
+Recruit odds, VIP thresholds (VIP exp per level), boss drop contents, the story-wheel's meaning of the rates: all of it lived
+on the server. (The free-recruit waits did not: recruitinfo m_refresh holds them, CN 7 / 3 days, ours 3 / 2 days, used since 7 Nov.) The Chinese texts only say the same as ours ("a chance of a 5-star, at least a 4-star"). The web research found
+"7 premium recruits = a sure 5-star" (Dec 2014, later "10") for the Chinese game; our pity is 10 since 7 Nov (was 20).

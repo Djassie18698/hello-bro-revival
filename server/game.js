@@ -279,10 +279,20 @@ function rollOne(type, forceStar) {
   const pool = recruitPools()[star] || recruitPools()[3];
   return pool[Math.floor(Math.random() * pool.length)];
 }
-// Free recruits (owner/friend: in the original the blue 150-gold recruit was free once every 8 hours and the purple 300-gold one once every 24).
-const FREE_EVERY = { 1: 24 * 3600, 2: 8 * 3600 };
-// Pity counter ("recruit N more times and you are sure to get a 5-star"): the original number is lost, so (ours) = 20 pulls.
-const PITY = 20;
+// Free recruits. ORIGINAL (7 Nov 2026): the game's own recruitinfo [4] m_refresh, days|hours|minutes|seconds: purple 300 gold "3|0|0|0",
+// blue 150 gold "2|0|0|0" (the Chinese 380/180-gold edition had 7 and 3 days). The client only shows the server's free_recruit_time_left, so
+// this column is the old server's own setting. A v28 video (Jun 2016) fits: "Free after 1 days 19 hours" on the purple one and "1 days
+// 23 hours" on the blue one right after its free pull. (Before 7 Nov: 24 h / 8 h from the owner's memory.)
+function refreshSecs(id) {
+  const r = table('recruitinfo').rows.find((x) => x[0] === id) || [];
+  const [d, h, m, s] = String(r[4] || '').split('|').map((v) => Number(v) || 0);
+  return ((d || 0) * 24 + (h || 0)) * 3600 + (m || 0) * 60 + (s || 0);
+}
+const FREE_EVERY = { 1: refreshSecs(1) || 3 * 86400, 2: refreshSecs(2) || 2 * 86400 };
+// Pity counter ("Recruit N more will get one Five-Star Purple"). ORIGINAL (7 Nov 2026): every 10th. The server-side number is lost; the
+// game's news (Jan 2015 "10 draws = a sure 5-star"; Dec 2014 said 7), the Chinese client's own pity text ("1?0") and the English Limited
+// Super Ninja screen (the same "Recruit N more" label, N seen 0-9 on the photos) all say 10. (Before 7 Nov: 20, ours.)
+const PITY = 10;
 const FIRST_PURPLE_DROP = 368; // normalconfig 72
 // The 300-gold recruit can also give gold. ORIGINAL (Facebook photos 2339-2348): "Gold*210", "Gold*500", "Gold*1000", "Gold*2000" on the
 // Rewards card (the game's own dropinfo rows 137, 290, 295, 298). (ours): the chances, % a pull: 4 / 1.5 / 0.4 / 0.1 (about 22 gold back

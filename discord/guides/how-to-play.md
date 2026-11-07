@@ -20,7 +20,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • From level 100 the **Team 2** tab opens: build a second line-up (it may use the same cards) and press **Activate** to fight with it.
 
 ## 4. Getting cards and gear
-• **Recruit** (Shop): the blue recruit is free every 8 hours, the purple one every 24 hours. After 20 purple pulls a 5-star card is guaranteed.
+• **Recruit** (Shop): the blue recruit is free every 2 days, the purple one every 3 days (like the original). Every 10th purple pull without a 5-star card is a sure 5-star (the window counts down: "Recruit N more will get one").
 • Shop gift bags give gear, and their description tells you the stars (a 3-star bag gives 2 to 4 stars, a 4-star bag 3 to 5).
 • **Advance** in the Base upgrades 5-star level-50 gear (50 000 silver).
 

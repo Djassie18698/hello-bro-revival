@@ -528,6 +528,17 @@ for (const pick of [55, 56, 57]) {
     db.prepare('UPDATE players SET gold=1000 WHERE uid=78777').run();
     const fp = game.pull(db, db.prepare('SELECT * FROM players WHERE uid=78777').get(), 1, 1, false);
     if (!fp.got || !fp.got[0] || fp.got[0].ninja !== 65) { bad++; console.log('FIRST PURPLE RECRUIT should be Kimimaro (65):', JSON.stringify(fp).slice(0, 200)); }
+    // free recruit waits = recruitinfo m_refresh (purple 3 days, blue 2 days); pity = every 10th purple pull is a sure 5-star
+    if (game.FREE_EVERY[1] !== 3 * 86400 || game.FREE_EVERY[2] !== 2 * 86400) { bad++; console.log('FREE RECRUIT waits', game.FREE_EVERY, '(want 3 days / 2 days)'); }
+    const fpl = () => db.prepare('SELECT * FROM players WHERE uid=78777').get();
+    game.pull(db, fpl(), 1, 1, true); // the free purple pull starts its 3-day wait
+    const fs1 = game.recruitState(db, fpl(), 1);
+    if (fs1.left < 3 * 86400 - 60 || fs1.left > 3 * 86400) { bad++; console.log('FREE RECRUIT purple wait after a free pull:', fs1.left); }
+    db.prepare('UPDATE recruit_state SET pity=0 WHERE uid=78777 AND type=1').run();
+    db.prepare('UPDATE players SET gold=100000 WHERE uid=78777').run();
+    if (game.recruitState(db, fpl(), 1).toGo !== 10) { bad++; console.log('PITY: a fresh counter should say 10 to go, says', game.recruitState(db, fpl(), 1).toGo); }
+    const pres = game.pull(db, fpl(), 1, 10, false);
+    if (!pres.got.some((g) => g.ninja && ((game.ninjas().get(g.ninja) || [])[11] || 0) >= 5)) { bad++; console.log('PITY: ten purple pulls gave no 5-star'); }
   }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {

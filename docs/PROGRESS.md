@@ -30,8 +30,8 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | ✅ | Reward wheel always "work harder" | Lands on every segment |
 | ✅ | Enemies 0 defence, then you lose | Fights rebuilt like the original (from a video of the old game) |
 | ✅ | Level rewards can't be claimed | Pay the items shown |
-| ✅ | Recruit always free | Blue free every 8 h, purple every 24 h |
-| ✅ | No pity counter on recruit | "Recruit N more will get one" counts down and resets |
+| ✅ | Recruit always free | Blue free every 2 days, purple every 3 days (the game's own recruit table, 7 Nov; was 8 h / 24 h) |
+| ✅ | No pity counter on recruit | "Recruit N more will get one" counts down and resets; every 10th pull is a sure 5-star (original, 7 Nov; was 20) |
 | ✅ | Rewards show "Sample text" and give nothing | Real rewards |
 | ✅ | Recharge / top-up rewards can't be claimed | Work, once each |
 | ✅ | Can't claim items, backpack empty | Items arrive |
@@ -227,6 +227,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | More original numbers from the game's own tables (7 Nov, owner: "any other tables you missed?"): Battles tower enemies and round drops (Sage Stone I), sage growth falls back to its safe level (3/6/9/12), Lucky Wheel 100 gold with a 1000 pot, border wander 2 500 silver and 5-minute stations, change-country price by population (1500/800/300/150/100), ninjutsu always fire below level 20, first purple recruit = Kimimaro. Also fixed: Battles rounds 1-6 gave an empty award since the morning update (hotfix on the public server). Seen in game: tower win 5 enemies 1 858 DEF + Sage Stone I, wheel asks 0 then 100 gold |
 | 🧪 | Battles sweep paid made-up EXP / silver (60 / 90 x chapter) and no item (found 7 Nov night while double-checking). Now it pays exactly what winning that round pays: its own EXP and silver from the game's table and its drop (a Sage Stone I for rounds 1-6). Checked on a test save |
 | ✅ | Plunder paid like a spar (a share of the rival's silver on a win). Now it pays what the game's own Plunder Preview shows: EXP for your level, no silver for a win, and a lost plunder costs a little silver (10 to 500 by level). Seen in game: the preview says win EXP 44 / silver 0, lose EXP 15 / silver -126 at level 100, and a win paid +44 EXP and no silver |
+| ✅ | Recruit free waits and pity like the original (7 Nov, owner: "switch everything to the original"). The game's own recruit table (recruitinfo, column m_refresh) holds the old server's free waits: purple 3 days, blue 2 days (was 24 h / 8 h). A sure 5-star now comes every 10th purple pull (was 20; the game's news and the Chinese client say 10). Seen in game: blue "Free after 1 days 23 hours" right after its free pull (the same words as a 2016 video), purple window "Recruit 9 more will get one Five-Star Purple" |
 | ✅ | Spar and Plunder list (found while playing, 5 Nov): players from the old login (account numbers above 22 million, like yours on your own server) showed a made-up strength from their level (32-52) instead of their real team, so a "weak" rival could beat you. The list now shows their real team. Checked on a test save |
 | ✅ | Seal synthesis (found while testing the tutorial): every seal showed "Claim" and was made at once, the green Synthesis button did nothing and the price showed your gold. Now like the original: Claim starts a 30-minute synthesis, Synthesis finishes it now for 30 gold, then Claim takes the seal. Seen in game |
 | ✅ | Arena list stayed empty for new players after an admin "reset a player" (a gap in the ranks). Fixed; admin reset also no longer deletes the player's login. Seen in game |
