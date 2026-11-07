@@ -1544,7 +1544,10 @@ module.exports = {
     // <exp>/<coin>. They were 0, so it showed 0 / 0 and the top bar lagged until the next login (the server did pay).
     // Round 7 is the boss: its drop is one of the four the game's "Possibility of boss landing" window shows (rushtower [9]-[12] = fillDropData
     // 284 Shukaku Seal Card, 285 Recruitment Order, 286 Refresh Order, 288 Five-Star Purple Card Fragment). Which one, equal chances (ours).
-    let towerAward = round === TOWER_ROUNDS ? game.grantDrop(db, pl, [1332, 1285, 1297, 176][Math.floor(Math.random() * 4)]).replace('<award ', '<award type="1" ') : stageAward(db, pl, [], 0, 0);
+    // Rounds 1-6: ORIGINAL (7 Nov 2026) the round's own chest, towerfloor [22] m_chestid (914 Sage Stone I in almost every round). Until 7 Nov
+    // they shared the story drop; after the story wheel change that could be a dropid-0 award, which crashes this result screen.
+    const chestXml = round === TOWER_ROUNDS ? game.grantDrop(db, pl, [1332, 1285, 1297, 176][Math.floor(Math.random() * 4)]) : game.grantDrop(db, pl, trow[22] || 914);
+    let towerAward = (chestXml || game.grantDrop(db, pl, 914)).replace('<award ', '<award type="1" ');
     const towerDropCoin = Number((towerAward.match(/<coin>(\d+)<\/coin>/) || [0, 0])[1]);
     towerAward = towerAward.replace(/<exp>\d+<\/exp>/, `<exp>${exp}</exp>`).replace(/ coin="\d+"/, ` coin="${coin + towerDropCoin}"`).replace(/<coin>\d+<\/coin>/, `<coin>${coin + towerDropCoin}</coin>`);
     return '<root code="0"><userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.battleXml(db, pl, chap, round * 5, { foes: tfoes.length ? tfoes : undefined, win: true, enemyName: String((game.ninjas().get((trow[4] || 0)) || [])[2] || 'Enemy'), enemyLevel: 10 * chap }) + towerAward + '</root>'; // dropid must be non-zero or the result screen crashes (GitHub #3)
