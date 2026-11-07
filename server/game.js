@@ -74,9 +74,12 @@ const STARTER_JUTSU = { 55: 12, 57: 54, 56: 14 }; // Neji Gentle Fist, Shikamaru
 
 // Ninjutsu (card type 6, ninjutsuinfo): in the original a ninjutsu triggers in battle with chance [4] for extra damage.
 // Fights here are worked out from team stats, so an equipped ninjutsu adds its expected value: chance x 20% to attack (ours).
+// The 34 special ninjutsu (ids 56-89, m_rate 1.0, damage 10-40) count with the normal 15 % (owner, 7 Nov 2026): at 100 % each read as
+// +20 % team attack (four on every ninja doubled a team) and fired on every hit in fights (+20 % of the ninja's chakra each time).
+const jutsuRate = (r) => { const v = Number(r && r[4]) || 0; return v >= 1 ? 0.15 : v; };
 function ninjutsuBonus(st, id) {
   const r = table('ninjutsuinfo').rows.find((x) => x[0] === id);
-  const pct = r ? (Number(r[4]) || 0) * 0.2 : 0;
+  const pct = r ? jutsuRate(r) * 0.2 : 0;
   return { ...st, al: Math.round(st.al * (1 + pct)), ah: Math.round(st.ah * (1 + pct)) };
 }
 function giveCard(db, uid, sid, ninjaId, type = 1) {
@@ -645,7 +648,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
       for (const r of m.jutsu) {
         if (skills.length >= 2) break;
         const n = table('ninjutsuinfo').rows.find((x) => x[0] === r.ninja_id);
-        if (!n || !(process.env.HB_SKILLS || pl.level < SKILL_SURE_LEVEL || Math.random() < (Number(n[4]) || 0))) continue; // below level 20 always (normalconfig 58)
+        if (!n || !(process.env.HB_SKILLS || pl.level < SKILL_SURE_LEVEL || Math.random() < jutsuRate(n))) continue; // below level 20 always (normalconfig 58)
         const chakra = Math.round(m.chakra * 0.2), dmg = (n[10] || 0) + (n[18] || 0) * Math.max(0, (r.level || 1) - 1) + chakra;
         skills.push({ cardid: r.ninja_id, chakraattack: dmg, chakra }); // cardid = the ninjutsu's id (the client shows that ninjutsu's name)
       }
@@ -2067,4 +2070,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

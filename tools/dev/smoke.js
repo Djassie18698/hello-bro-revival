@@ -596,6 +596,11 @@ for (const pick of [55, 56, 57]) {
     try { tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '2' }); } finally { Math.random = rnd; }
     ck((game.propCounts(db, 78802, 1)[9994] || 0) === m0 + 5, 'a guard who holds should get 5 merit');
   }
+  // special ninjutsu (ids 56-89, m_rate 1.0) count like normal ones (15 %): same team-attack bonus as The Six Paths Rinnegan (52)
+  {
+    const g = require('../../server/game'), st = { al: 1000, ah: 1000, dl: 0, dh: 0, cl: 0, ch: 0 };
+    if (g.ninjutsuBonus(st, 86).al !== g.ninjutsuBonus(st, 52).al || g.ninjutsuBonus(st, 52).al !== 1030) { bad++; console.log('SPECIAL NINJUTSU bonus', g.ninjutsuBonus(st, 86).al, 'vs normal', g.ninjutsuBonus(st, 52).al, '(want both 1030)'); }
+  }
   // Eight Gates percent = the photos: LV100 +81 % (photo 0924), LV150 +140.5 % (photo 0334); the plain curve gave 165 % at LV150
   {
     const g = require('../../server/game');

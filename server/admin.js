@@ -552,7 +552,7 @@ function benchmark(db, pl, targets, runs = 300) {
   const jt = game.table('ninjutsuinfo').rows;
   const mine = team.map((t, i) => {
     const q = ts.fight[i] || {}, chakra = Math.round(((q.cl || 0) + (q.ch || 0)) / 2);
-    const jutsu = jRows.filter((r) => r.slot === i + 1).map((r) => { const n = jt.find((x) => x[0] === r.ninja_id) || []; return { rate: Number(n[4]) || 0, dmg: (n[10] || 0) + (n[18] || 0) * Math.max(0, (r.level || 1) - 1) + Math.round(chakra * 0.2) }; });
+    const jutsu = jRows.filter((r) => r.slot === i + 1).map((r) => { const n = jt.find((x) => x[0] === r.ninja_id) || []; return { rate: game.jutsuRate(n), dmg: (n[10] || 0) + (n[18] || 0) * Math.max(0, (r.level || 1) - 1) + Math.round(chakra * 0.2) }; });
     return { name: cardName(1, t.ninja_id), low: q.al || 0, high: q.ah || 0, jutsu };
   });
   const roll = (m) => { let a = m.low + Math.random() * (m.high - m.low); let n = 0; for (const j of m.jutsu) if (n < 2 && Math.random() < j.rate) { a += j.dmg; n++; } return a; };
