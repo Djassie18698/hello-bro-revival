@@ -1644,11 +1644,16 @@ function friendsXml(db, pl, nick) {
 // + 15 x those souls in silver ("1018 souls + 15 270 silver" ... "7120 + 106 800"); levels seen up to 150. Fitted to the photos:
 // souls a point = 80 x level (LV1 80, LV45 3600 vs 3514, LV53 4240 vs 4403, LV100 8000 vs 7120); team bonus after n points
 // (x = n / 8 levels): flat = 340 x x^1.5 to attack, defence and chakra (LV10 10 750 vs 10 312, LV25 42 500 vs 41 939, LV100 340 000
-// vs 334 236) and percent = 0.006 x^2 + 0.2 x (LV45 21% seen 21%, LV53 27.5% vs 28-31%, LV100 80% vs 81%). The client shows the
-// percent in tenths (add_attack_per 210 = 21%).
+// vs 334 236, LV150 623 000 vs 606 422) and percent = 0.006 x^2 + 0.2 x up to LV60, then +1.19 % a level (7 Nov 2026, owner asked; photo
+// 0334 shows LV150 = +140.5 %, the plain curve gave 165 %): LV45 21% seen 21%, LV53 27% vs 28-31%, LV73 49% vs 50-53%, LV79 56% vs 56-59%,
+// LV100 81% vs 81%, LV150 140.4% vs 140.5%. The client shows the percent in tenths (add_attack_per 210 = 21%).
+// Not matched: the LV150 photo's point cost, 45 163 souls + 355 500 silver (ours 12 080 + 181 200; one photo, and its silver is not 15x).
 const GATE_SOUL = 9998, GATE_MAX = 150 * 8;
 function gateLevel(db, uid, sid) { return Math.min(GATE_MAX, propCounts(db, uid, sid)[9997] || 0); } // points opened
-function gateBonus(n) { const x = n / 8; return { flat: Math.round(340 * x ** 1.5), pct: (0.006 * x * x + 0.2 * x) / 100 }; }
+function gateBonus(n) {
+  const x = n / 8, q = (v) => 0.006 * v * v + 0.2 * v;
+  return { flat: Math.round(340 * x ** 1.5), pct: (x <= 60 ? q(x) : q(60) + 1.19 * (x - 60)) / 100 };
+}
 const gateCost = (n) => { const soul = 80 * (Math.floor(n / 8) + 1); return { soul, coin: 15 * soul }; };
 function gateXml(db, pl) {
   const c = propCounts(db, pl.uid, pl.server_id);

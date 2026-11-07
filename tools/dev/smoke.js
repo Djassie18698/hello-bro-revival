@@ -596,6 +596,12 @@ for (const pick of [55, 56, 57]) {
     try { tcall(qa, 'rl_w_tearcountry', { Cmd: '13000', ToCountry: '2' }); } finally { Math.random = rnd; }
     ck((game.propCounts(db, 78802, 1)[9994] || 0) === m0 + 5, 'a guard who holds should get 5 merit');
   }
+  // Eight Gates percent = the photos: LV100 +81 % (photo 0924), LV150 +140.5 % (photo 0334); the plain curve gave 165 % at LV150
+  {
+    const g = require('../../server/game');
+    const at = (lv) => g.gateBonus(lv * 8 - 2).pct * 100; // level lv, 6 of its 8 points open (as on the photos)
+    if (Math.abs(at(100) - 81) > 1 || Math.abs(at(150) - 140.5) > 1 || Math.abs(at(45) - 21) > 1.5) { bad++; console.log('EIGHT GATES percent', at(45).toFixed(1), at(100).toFixed(1), at(150).toFixed(1), '(want 21 / 81 / 140.5)'); }
+  }
   // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
   // goal stat, may use copies, and the split team math (teamSlots + teamTotals) still gives what teamStats gives
   {
