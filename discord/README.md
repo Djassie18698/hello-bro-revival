@@ -26,7 +26,11 @@ It can read channels, post, edit and delete **its own** messages, and read the p
 Never commit `.env` (it is git-ignored) and never paste the token or key into chat or Discord. If one leaks, reset it in its dashboard.
 
 ## Show the bot as online
-Double-click `START-BOT-ONLINE.bat` in this folder. It runs `online.js`, which only keeps the bot connected so it shows a green dot and "Playing Hello Bro" in the member list (it reads and posts nothing, needs only `DISCORD_TOKEN`, no `npm install`). Leave the window open (minimized is fine); closing it takes the bot offline. It reconnects by itself after an internet drop.
+**Since 7 Nov 2026 the bot runs on the cloud server, day and night** (service `hellobro-bot`, installed with `sudo sh /opt/hellobro/tools/vps/bot.sh`;
+it needs this `.env` copied to `/opt/hellobro/discord/.env`). Nothing to keep open on the PC. To run it on the PC instead, first stop the cloud one
+(`sudo sh /opt/hellobro/tools/vps/bot.sh stop`), otherwise every #server-status message comes twice.
+
+On the PC: double-click `START-BOT-ONLINE.bat` in this folder. It runs `online.js`, which only keeps the bot connected so it shows a green dot and "Playing Hello Bro" in the member list (it reads and posts nothing, needs only `DISCORD_TOKEN`, no `npm install`). Leave the window open (minimized is fine); closing it takes the bot offline. It reconnects by itself after an internet drop.
 
 To start it with Windows, double-click `BOT-AUTOSTART.bat` once (it puts a shortcut in the Windows Startup folder; double-click again to switch it off). The bot is online whenever this PC is on; for 24/7 while the PC is off it would need a server that is always on.
 

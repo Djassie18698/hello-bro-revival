@@ -96,7 +96,7 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
 | `tools/dev/` | `check.sh` all checks · `smoke.js` every handler on a temp DB · `fuzz.js` bad input · `exploit.js` cheat check · `realsave.js` every screen for every player of a real save (read-only copy) · `probe.js` call one endpoint · `dev.js` set level / VIP / items on the test account, `relog` · `emu.sh` emulator (restart, tap, shot, log, update) · `boot.sh` / `go.sh` / `survey.sh` quick emulator walks · `restart.sh` dev server on :18081 · `upgrades.js` card upgrade walk-through · `sim_balance.js` balance simulations |
 | `tools/` | `table_columns.py` -> `docs/TABLE-COLUMNS.md` (every table's column names from the game code: read it before guessing a column) · `ocr_photos.ps1` (Windows OCR of the Facebook photos -> `G:\HELLO BRO\Pictures\ocr.tsv`, grep it to find screens) · `setup_re.py` (+ `setup_from_xapk.py` for a fresh public install) · `armdis.py` disassembler · `build_cdn.py` hot update zip · `patch_apk.py` / `make_game_for.py` game file for an address · `patch_login_smali.py` + `patch_dex.py` account window / billing crash patches (→ `release/classes-revival.dex`) · `patch_tables.py` + `mbs.py` + `export_tables.py` the client's tables.bin · `ccbi.py` .ccbi layouts · `pvrccz.py` sprite sheets (read only: re-encoding breaks them) · `patch_winview.py` / `patch_winanim.py` victory screen patches · `sync_test_folder.sh` · `make_public.py` (public copy, archived) |
 | `release/` | `revival.keystore` (password/alias `revival`; ALWAYS sign with it, never make a new one), `classes-revival.dex`; built `HelloBro-for-*.apk` stay local (git-ignored) |
-| `discord/` | `dc.js` read/post as the bot (token in `discord/.env`, git-ignored) · `guides.js` + `guides/*.md` the guide channels · `layout.js` channel layout · `online.js` + `START-BOT-ONLINE.bat` keeps the bot shown online · `bot.js`/`cli.js`/`agent.js`/`tools.js`/`adapter.js` an AI manager bot (needs a paid API key, not in use) · `test.js`, `test-dc.js` offline tests |
+| `discord/` | `dc.js` read/post as the bot (token in `discord/.env`, git-ignored) · `guides.js` + `guides/*.md` the guide channels · `layout.js` channel layout · `online.js` (cloud service `hellobro-bot`, tools/vps/bot.sh; `START-BOT-ONLINE.bat` = on the PC instead) keeps the bot shown online · `bot.js`/`cli.js`/`agent.js`/`tools.js`/`adapter.js` an AI manager bot (needs a paid API key, not in use) · `test.js`, `test-dc.js` offline tests |
 | docs | `README.md` GitHub front page · `docs/PROGRESS.md` every bug and request with its state · `docs/NEXT-STEPS.md` findings log · `docs/FIXES-<date>.md` plain-words fix days · `docs/BASE-FEATURES.md` Base rules + (ours) values · `docs/FINDINGS-PHOTOS.md` original numbers read from ~3 580 Facebook photos (source folder `G:\HELLO BRO\Pictures`, keep both copies in sync) · `docs/HOT-UPDATE.md` · `docs/BALANCE-SIMULATIONS.md` · `docs/GEAR-REPORT.md` · `docs/history/` old plans and notes (outdated, for reference) · `docs/HOST-YOUR-OWN-SERVER.md` · `docs/PLAY-ON-TAILSCALE.md` |
 
 ## 5. Running and testing
@@ -121,11 +121,13 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     idle Always Free machine; the owner was advised to upgrade to Pay As You Go (stays free) with a budget alert.
     **Watchdog** (3 Nov 2026, after a 10-min freeze): run.sh sets HB_WATCHDOG=1, server.js forks `server/watchdog.js`, which checks
     127.0.0.1/status every minute and stops the server after 3 failed checks; systemd (Restart=always) starts it again.
-    Discord **#server-status** (owner, 3 Nov 2026): `discord/statuswatch.js` runs inside `online.js` (START-BOT-ONLINE.bat, owner's PC) and
-    checks `http://ninjaonline.duckdns.org:18080/status` (server.js: `{version: git hash, started}`) every minute: posts offline (2 failed
-    checks), back online, updated (new version) or restarted. Only while the owner's PC is on AND START-BOT-ONLINE.bat runs (it was silent
-    4-7 Nov: the PC restarted and BOT-AUTOSTART.bat was never run; if posts stop, check for a node `online.js` process and start the .bat with
-    `explorer.exe "...\discord\START-BOT-ONLINE.bat"`). Pinned there: how to connect + the item page.
+    Discord **#server-status** (owner, 3 Nov 2026): `discord/statuswatch.js` runs inside `online.js` and checks `/status` (server.js:
+    `{version: git hash, started}`) every minute: posts offline (2 failed checks), back online, updated (new version) or restarted.
+    **The bot runs on the cloud machine since 7 Nov 2026** (owner: "so I can't close it by accident"): systemd service `hellobro-bot`
+    (`tools/vps/bot.sh` installs / restarts it, `bot.sh stop` switches it off; `sudo journalctl -u hellobro-bot`), token in
+    `/opt/hellobro/discord/.env` (copied from the PC with scp, mode 600, git-ignored), STATUS_URL=127.0.0.1:18080. It can't report the whole
+    cloud machine being down (it is on it). The PC's START-BOT-ONLINE.bat now asks before starting a second copy (double posts); it was silent
+    4-7 Nov while it still ran on the PC. Pinned there: how to connect + the item page.
     The old PC public server (`START-PUBLIC-SERVER.bat`, its pre-move public.db, backups-public, admin-password.txt) was moved out of the
     play folder on 3 Nov 2026 to `Documents\HelloBro-old-files` (with 3 old .apk builds): it must NOT run any more.
     The play folder now holds exactly the GitHub files plus the owner's save (hellobro.db + backups/) and two .xapk files.
@@ -203,7 +205,7 @@ Current: **28.0.37** (boss retry price 10 gold for every boss; 28.0.36 = Chinese
 - Public code-only repo `Djassie18698/hello-bro-revival-public` is ARCHIVED by the owner (2 Nov 2026, read-only): don't rebuild or push it.
 - **Discord invite (never expires): https://discord.gg/2Cbp4UDHrU**: use this link everywhere (README badge, issue template, repo homepage).
 - Discord: `cd discord && node --env-file=.env dc.js channels|read <ch>|post <ch> <file.md>` (≤2000 chars per message,
-  write the text to a file first). The bot shows online while `START-BOT-ONLINE.bat` runs on the owner's PC (a minimized window); `BOT-AUTOSTART.bat` (the owner double-clicks it: making a Startup shortcut ourselves is blocked) starts it with Windows.
+  write the text to a file first). The bot is online day and night as the cloud service `hellobro-bot` (section 5); `START-BOT-ONLINE.bat` / `BOT-AUTOSTART.bat` on the PC are only for running it there instead (stop the cloud one first: `bot.sh stop`).
   Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
   START HERE (read-only): #welcome (Carl-bot welcomes) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update) · #server-status (public server up/down/updated, bot-posted; pinned connect + item page) · #faq ("can't connect after an update -> make a new game file with HOST-MY-SERVER.bat").
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
