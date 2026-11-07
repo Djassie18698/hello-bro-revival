@@ -436,7 +436,8 @@ for (const pick of [55, 56, 57]) {
   // Sakon Ukon 6-70 9 643 (7), Jiroubou 7-27 9 383 (7), Night Kai 19-47 1 600 544. Each must fall inside the team's range.
   {
     const g = require('../../server/game');
-    const photos = [[9, 70, 21162, 9], [10, 17, 19474, 9], [11, 65, 31425, 10], [12, 25, 39574, 10], [6, 70, 9643, 7], [7, 27, 9383, 7], [19, 47, 1600544, 15]];
+    const photos = [[9, 70, 21162, 9], [10, 17, 19474, 9], [11, 65, 31425, 10], [12, 25, 39574, 10], [6, 70, 9643, 7], [7, 27, 9383, 7], [19, 47, 1600544, 15],
+      [17, 30, 441962, 14], [19, 87, 3381870, 15], [19, 74, 2439099, 15], [18, 40, 804791, 15], [13, 58, 75739, 12], [12, 49, 48119, 11], [12, 25, 40744, 10], [12, 25, 40699, 10]]; // + photos 0199 0319 0785 1310 1847 2569 0232 1866
     for (const [c, st, def, n] of photos) {
       const f = g.stageFoes(c, st), lo = f.reduce((t, x) => t + x.dl, 0), hi = f.reduce((t, x) => t + x.dh, 0);
       if (f.length !== n || def < lo || def > hi) { bad++; console.log(`ORIGINAL BOSS ${c}-${st}: ${f.length} enemies, defence ${lo}-${hi}; photo ${n} enemies, ${def}`); }
@@ -464,6 +465,45 @@ for (const pick of [55, 56, 57]) {
       if (!ok) { bad++; console.log(`STORY WHEEL ${kind}: type ${type} (want ${want}), gold +${af.gold - b4.gold}, silver +${af.coin - b4.coin}, energy ${af.energy - b4.energy}`, x.slice(-400)); }
     }
     delete process.env.HB_WHEEL;
+  }
+  // 7 Nov 2026 audit of the game's own tables (docs/TABLE-COLUMNS.md): original values that replaced our guesses
+  {
+    const game = require('../../server/game');
+    const me = () => db.prepare('SELECT * FROM players WHERE uid=77 AND server_id=1').get();
+    // Battles tower: every npc of the round with its own stats; rounds 1-6 pay the round's own chest (never a dropid-0 award: crash)
+    const t1 = game.towerFoes(1, 7), t25 = game.towerFoes(25, 7);
+    if (t1.length !== 5 || t25.length !== 15) { bad++; console.log('TOWER enemies: chapter 1 boss', t1.length, 'chapter 25 boss', t25.length, '(want 5 / 15)'); }
+    process.env.HB_PVE = 'win';
+    db.prepare('DELETE FROM progress WHERE uid=77 AND server_id=1 AND chap>=1000').run();
+    const dup = handlers.rl_w_dup({ db, params: { ...base, Cmd: 3100, Chap: 1, Round: 1 } });
+    delete process.env.HB_PVE;
+    if (!/<award [^>]*dropid="914"/.test(dup)) { bad++; console.log('TOWER round 1 award should be its own chest 914 (Sage Stone I):', dup.slice(-300)); }
+    // sage growth: a failure falls back to m_cuttolevel (level 5 -> 3)
+    const seq = db.prepare('SELECT seq FROM cards WHERE uid=77 AND server_id=1 AND type=1 LIMIT 1').get().seq;
+    db.prepare('UPDATE cards SET starlevel=5 WHERE seq=?').run(seq); game.propAdd(db, 77, 1, 7, 10); db.prepare('UPDATE players SET coin=coin+100000 WHERE uid=77').run();
+    const rnd = Math.random; Math.random = () => 0.999;
+    const gr = game.sageGrow(db, me(), seq, 7, 1);
+    Math.random = rnd;
+    if (gr.lv !== 3) { bad++; console.log('SAGE GROWTH failure at level 5 should fall back to 3, got', JSON.stringify(gr)); }
+    // lucky wheel: 100 gold a spin, pot 1000
+    const wl = handlers.rl_r_wheel({ db, params: { ...base, Cmd: 1401 } });
+    const pot = Number((/<bigcash>(\d+)<\/bigcash>/.exec(wl) || [])[1]);
+    if (!/<costsingle>100<\/costsingle>/.test(wl) || !(pot >= 1000 && pot < 2000) || pot % 10) { bad++; console.log('LUCKY WHEEL price / pot:', wl.slice(0, 200)); }
+    // border: wandering costs 2500 silver
+    const bx = require('../../server/border').infoXml(db, me(), 2, 1);
+    if (!/<wander_coin>2500<\/wander_coin>/.test(bx)) { bad++; console.log('BORDER wander price:', (/<wander_coin>\d+/.exec(bx) || [bx.slice(0, 200)])[0]); }
+    // change country: price by the target country's population rank (biggest 1500 ... 4th 150)
+    const counts = {}; for (const r of db.prepare('SELECT country, COUNT(*) c FROM players WHERE server_id=1 GROUP BY country').all()) counts[r.country] = r.c;
+    const order = [1, 2, 3, 4].sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
+    const price = (to) => Number((/<price>(\d+)<\/price>/.exec(handlers.rl_r_migrate_price({ db, params: { ...base, ToCountry: String(to) } })) || [])[1]);
+    if (price(order[0]) !== 1500 || price(order[3]) !== 150) { bad++; console.log('CHANGE COUNTRY prices', order.map(price).join(' / '), '(want 1500 / 800 / 300 / 150)'); }
+    // first purple recruit = Kimimaro (normalconfig 72 -> dropinfo 368)
+    const q = { ...base, Uid: '78777', Session: 's78777' };
+    handlers.rl_w_login2({ db, params: { ...q, Cmd: 0 } });
+    handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'FirstPull', Card: 55 } });
+    db.prepare('UPDATE players SET gold=1000 WHERE uid=78777').run();
+    const fp = game.pull(db, db.prepare('SELECT * FROM players WHERE uid=78777').get(), 1, 1, false);
+    if (!fp.got || !fp.got[0] || fp.got[0].ninja !== 65) { bad++; console.log('FIRST PURPLE RECRUIT should be Kimimaro (65):', JSON.stringify(fp).slice(0, 200)); }
   }
   // HB_ONE_WORLD=1 (public server, 6 Nov 2026): the server list holds only Konoha (main); without it the 3 starter slots stay
   {

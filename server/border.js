@@ -1,6 +1,6 @@
 // Border war ("Boundary Monument", borderWar*.lua). Countries 0-4 (Wind, Thunder, Water, Fire, Earth) each have a
 // monument. A player stations in an enemy country: Provoke (gold, attackType 1) or Wander (silver, attackType 2) for
-// 30 minutes, which damages that monument. Defenders can "clear" stationed enemies with a fight. Damage done and
+// 5 minutes (300 s, normalconfig 138/139), which damages that monument. Defenders can "clear" stationed enemies with a fight. Damage done and
 // enemies cleared become score for the daily attack/defence rankings; a finished station pays exp + merit.
 const game = require('./game');
 
@@ -10,9 +10,11 @@ const now = () => Math.floor(Date.now() / 1000);
 const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // ORIGINAL (Facebook photos 0540, 0666): monument HP 300; per day 2 taunt rewards, 2 wander rewards, 4 taunt-clear and 4 wander-clear
 // rewards; "At Thunder wandered 2 time(s), reward received: EXP 6600, merit 1572" = 3300 + 786 a wander; breaking a country's border
-// = special award Gold*50 + Super Ninja Pill + Reincarnation Pill. (ours): taunts pay like wanders, a clear pays half, the damage a
-// station does (taunt 10, wander 5 of the 300), and that only the player who breaks the monument gets the special award.
-const STAY = 1800, TOTAL_HP = 300, PROVOKE_GOLD = 20, WANDER_SILVER = 20000, PROVOKE_HP = 10, WANDER_HP = 5;
+// = special award Gold*50 + Super Ninja Pill + Reincarnation Pill. (ours): taunts pay like wanders, a clear pays half,
+// and that only the player who breaks the monument gets the special award.
+// ORIGINAL (normalconfig 136-141, 7 Nov 2026): taunt 20 gold, wander 2500 silver, a taunt or wander succeeds after 300 s (photos show
+// stations counting down "2min", "8s"), damage 10 / 5 of the 300 HP. Until 7 Nov: wander 20 000 silver and 30-minute stations (ours).
+const STAY = 300, TOTAL_HP = 300, PROVOKE_GOLD = 20, WANDER_SILVER = 2500, PROVOKE_HP = 10, WANDER_HP = 5;
 const REWARD = { 1: { exp: 3300, merit: 786 }, 2: { exp: 3300, merit: 786 } };
 const CLEAR_REWARD = { exp: 1650, merit: 393 };
 const DAILY = { 1: 2, 2: 2, 3: 4, 4: 4 }; // award kind -> rewarded times a day: 1 taunt, 2 wander, 3 taunt cleared, 4 wander cleared

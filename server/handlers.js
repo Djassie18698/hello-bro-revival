@@ -212,6 +212,7 @@ function wheelRoll(row) {
   const forced = process.env.HB_WHEEL && WHEEL.find((w) => w[0] === process.env.HB_WHEEL); // test aid: exp / silver / chest / gold / power / none
   if (forced) return forced;
   const total = WHEEL.reduce((t, w) => t + (Number(row[w[1]]) || 0), 0);
+  if (!(total > 0)) return WHEEL[2]; // a row without odds: the card (never a dropid-0 award; tower result screens crash on that)
   let x = Math.random() * total;
   for (const w of WHEEL) { x -= Number(row[w[1]]) || 0; if (x < 0) return w; }
   return WHEEL[WHEEL.length - 1];
@@ -273,7 +274,15 @@ const TOPUPS = [
 const hasPaid = (db, uid, sid) => vip.progress(db, uid, sid).exp > 0; // (accounts kept from before 30 Oct have VIP exp too)
 const topupGold = (db, uid, sid, t) => (hasPaid(db, uid, sid) ? t.gold + t.give : t.gold * 3);
 
-const MIGRATE_PRICE = 300; // change country, gold (photo 3270)
+// Change country: ORIGINAL (normalconfig 77-81, 7 Nov 2026) the price follows the TARGET country's rank by number of players on that world:
+// the biggest 1500 gold, then 800, 300, 150, 100 (the game's text: "related to population of target country"; photo 3270 shows 300 = a
+// middle country). Until 7 Nov: 300 for every country (ours).
+const MIGRATE_PRICES = [1500, 800, 300, 150, 100];
+function migratePrice(db, sid, to) {
+  const n = {}; for (const r of db.prepare('SELECT country, COUNT(*) c FROM players WHERE server_id=? GROUP BY country').all(sid)) n[r.country] = r.c;
+  const order = [1, 2, 3, 4].sort((a, b) => (n[b] || 0) - (n[a] || 0) || a - b);
+  return MIGRATE_PRICES[Math.max(0, order.indexOf(Number(to)))] || MIGRATE_PRICES[2];
+}
 // Tower sweep counter: one progress row per day (stage = uses + 1; setStage keeps the max).
 const SWEEP_DAILY = 5; // (ours)
 // ORIGINAL (normalconfig 290/291/296): finishing a tower round at once costs 3 gold a round and needs VIP3; 2 tower resets a day
@@ -884,14 +893,15 @@ module.exports = {
       const r = box.open(db, pl, Number(p.Goodsid));
       return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
     }
-    // Immigration Card (prop 18) from switchCountry.lua: Cmd 1802 + ToCountry; costs the card and MIGRATE_PRICE gold.
+    // Immigration Card (prop 18) from switchCountry.lua: Cmd 1802 + ToCountry; costs the card and migratePrice gold.
     if (p.ToCountry !== undefined) {
       const to = Number(p.ToCountry);
       if (!(to >= 1 && to <= 4) || to === pl.country) return '<root code="5"><message>choose another country</message></root>';
       if ((game.propCounts(db, pl.uid, pl.server_id)[18] || 0) < 1) return '<root code="5"><message>no Immigration Card</message></root>';
-      if (pl.gold < MIGRATE_PRICE) return '<root code="5"><message>not enough gold</message></root>';
+      const price = migratePrice(db, pl.server_id, to);
+      if (pl.gold < price) return '<root code="5"><message>not enough gold</message></root>';
       game.propAdd(db, pl.uid, pl.server_id, 18, -1);
-      db.prepare('UPDATE players SET country=?, gold=gold-? WHERE uid=? AND server_id=?').run(to, MIGRATE_PRICE, pl.uid, pl.server_id);
+      db.prepare('UPDATE players SET country=?, gold=gold-? WHERE uid=? AND server_id=?').run(to, price, pl.uid, pl.server_id);
       return '<root code="0"></root>';
     }
     const r = game.propUse(db, pl, Number(p.Goodsid));
@@ -909,9 +919,8 @@ module.exports = {
     return sc.infoXml(db, pl);
   },
 
-  // Change-country price (switchCountry.lua reads <price>). The original said "related to population of target country"; the
-  // Facebook photo 3270 shows 300 gold, used for every country (ours: no population rule).
-  rl_r_migrate_price: () => `<root code="0"><price>${MIGRATE_PRICE}</price></root>`,
+  // Change-country price (switchCountry.lua sends ToCountry and reads <price>): see migratePrice.
+  rl_r_migrate_price: ({ db, params: p }) => `<root code="0"><price>${migratePrice(db, Number(p.ServerID || 1), p.ToCountry)}</price></root>`,
 
   rl_w_strengthen: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
