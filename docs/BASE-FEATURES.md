@@ -35,11 +35,11 @@ raises depend on the card's element (fire ATK + chakra, water chakra, wind DEF +
 | Needs | Where it comes from |
 |---|---|
 | A god card (6-star) | recruiting, events, or merging 50 of its fragments in the Backpack |
-| That card's own fragments | mystery shop, Ninja Test exchange shop, event drops |
-| Fragments per level | 5, 10, 15 ... (5 + 5 x level) **(ours)** |
-| Silver per level | 50 000 x (level + 1) **(ours)** |
+| That card's own fragments | mystery shop, Ninja Test exchange shop, event drops (the game's tables have fragment drops for only 18 of the 83 god cards; the original server's other sources are lost) |
+| Fragments per level | **10** for +1 (ORIGINAL, photos 0365 / 1706), then 15, 20 ... (10 + 5 x level) **(ours)** |
+| Silver per level | +1 = **60 000** (Kyuubi Naruto) or **250 000** (Six Paths Sasuke) ORIGINAL; **(ours)**: 250 000 for god cards with a base max attack of 690+ (the Six Paths tier: Six Paths Madara, Susa cards, Kaguya, Hokage Naruto ...), 60 000 for the rest, times (level + 1) |
 | Max level | 10 **(ours)** |
-| Gain per level | +4% on the element's stats, +2% ninjutsu trigger, +1% restrain **(ours)** |
+| Gain per level | **+1% ninjutsu trigger, +2% restrain** (ORIGINAL, photos); +4% on the element's stats **(ours)** (the photos show flat ATK / DEF / chakra gains whose rule is lost) |
 
 ## Pets (`pet.js`, endpoint `rl_x_pet`)
 

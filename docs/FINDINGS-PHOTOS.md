@@ -18,7 +18,7 @@ values the server marks **(ours)** are guesses that these pictures could replace
 | Boss tries | 3 free a day, then 10 gold | FIXES-2026-10-31 |
 | Spar grudge | +1 every 2 h | `game.js` |
 | Ninja Test | 3 tries a day, 20 gold extra; chests 30/80 gold; score 10 x stage | `exam.js` |
-| Breakthrough | 5+5 x level fragments, 50 000 x (level+1) silver, max 10, +4% stats | `tupo.js` |
+| Breakthrough | 10+5 x level fragments, 60 000 / 250 000 x (level+1) silver by card tier, max 10, +4% stats, +1% trigger, +2% restrain (8 Nov 2026) | `tupo.js` |
 | Millionaire | board, 20 gold a throw, rewards | `monopoly.js` |
 
 ## Findings
@@ -76,7 +76,7 @@ from the game at all; those are skipped. Most screenshots are from the English H
 ### Batch 2 (`batch-02`, photos 0300-0595)
 | Topic | Original (picture) | Server now |
 |---|---|---|
-| God breakthrough +1 (Kyuubi Naruto) | needs **10** of the card's fragments ("0/10") + **60 000 silver**; +1 gives ATK +615, DEF +966, Chakra +175 (flat), ninjutsu trigger **+1%**, element restrain **+2%** (`0365`) | 10 fragments + 50 000 silver, +4% stats, +2% trigger, +1% restrain (trigger/restrain swapped) |
+| God breakthrough +1 (Kyuubi Naruto) | needs **10** of the card's fragments ("0/10") + **60 000 silver**; +1 gives ATK +615, DEF +966, Chakra +175 (flat), ninjutsu trigger **+1%**, element restrain **+2%** (`0365`) | matches since 8 Nov 2026 (10 fragments, 60 000 silver, +1% trigger, +2% restrain); the flat ATK/DEF/chakra gains are not copied (rule lost) |
 | Reincarnation | Reincarnation 4 (5-star Madara): basic value +70%, restrain 35% -> 35%; needs **1 same card OR 500 Reincarnation Pills** (`0413`); results screens show "attributes con 20% -> 25%, skill activation 16% -> 21%" (`0517`, `0563`) | game table says 480 pills for Reincarnation 4 (kept); photo 500 = older version |
 | Mystery (secret) shop | refresh by Refresh Order or **20 gold**; **80 refreshes a day** (+5 per VIP level shown "VIP1 +5"; one shows 100/100 at higher VIP); auto refresh every **2 h** (countdown 1:58:15); prices in ninja souls: Sage Jiraiya frags x3 650, Mei Terumi 130, Second Mizukage 170, Fourth Raikage x5 600, Jashin Hidan x5 2500, Orochimaru 170, Pakkun 600/400, Naruto 15000, Kaguya for New Year 1500, Gamakichi 620 (`0357`, `0446`, `0508`) | refresh free, 99 a day, once a day |
 | Scratch card ("Lottery", `rl_w_guaguale`, not built) | 3x3 board, match 3 to win; prizes seen 800, 500, 150, 20, 5 gold; costs gold (player had "Free chances 0") (`0425`) | built 1 Nov (`scratch.js`) |

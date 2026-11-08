@@ -603,6 +603,37 @@ for (const pick of [55, 56, 57]) {
       if (!/code="190008"/.test(fix(`<root code="5"><message>${m}</message></root>`))) { bad++; console.log('ERROR TEXT for', m, fix(`<root code="5"><message>${m}</message></root>`)); }
     }
   }
+  // Breakthrough 0 -> +1 = the photos: 10 fragments, ninjutsu trigger +1 %, restrain +2 %, silver 60 000 (Kyuubi Naruto (God) 2106) /
+  // 250 000 (Six Paths Sasuke (God) 5010); paying takes exactly that; the Ninja Test shop finds a god card with a fragment drop
+  // even when the oldest god card has none (Minato (God) 2039 has none, Santa of the Six Paths (God) 5037 has)
+  {
+    const g = require('../../server/game'), tupo = require('../../server/tupo');
+    const ck = (ok, what) => { if (!ok) { bad++; console.log('BREAKTHROUGH:', what); } };
+    const mk = (uid, nick) => {
+      const q = { ...base, Uid: String(uid), Session: 's' + uid };
+      handlers.rl_w_login2({ db, params: { ...q, Cmd: 0 } });
+      handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: nick, Card: 55 } });
+      return db.prepare('SELECT * FROM players WHERE uid=?').get(uid);
+    };
+    const pl = mk(78811, 'TupoA');
+    const kyu = g.giveCard(db, 78811, 1, 2106), sas = g.giveCard(db, 78811, 1, 5010);
+    const x1 = tupo.info(db, pl, kyu).xml || '', x2 = tupo.info(db, pl, sas).xml || '';
+    const tag = (x, t) => (x.match(new RegExp(`<${t}>(\\d+)</${t}>`)) || [])[1];
+    const after = (x) => x.slice(x.indexOf('<attr_after>'));
+    ck(tag(x1, 'need_chip_num') === '10' && tag(x1, 'cost_coin') === '60000' && tag(x2, 'cost_coin') === '250000', `+1 cost ${tag(x1, 'need_chip_num')} fragments, ${tag(x1, 'cost_coin')} / ${tag(x2, 'cost_coin')} silver (want 10, 60000 / 250000)`);
+    ck(tag(after(x1), 'add_skill') === '1' && tag(after(x1), 'add_kezhi') === '2', `+1 trigger ${tag(after(x1), 'add_skill')} % restrain ${tag(after(x1), 'add_kezhi')} % (want 1 / 2)`);
+    const piece = g.table('piece_info').rows.find((r) => r[4] === 3 && r[6] === 2106)[0];
+    g.propAdd(db, 78811, 1, g.CHIP_BASE + piece, 12);
+    db.prepare('UPDATE players SET coin=100000 WHERE uid=78811').run();
+    const r = tupo.breakThrough(db, pl, kyu);
+    const left = db.prepare('SELECT coin FROM players WHERE uid=78811').get().coin;
+    ck(!r.error && left === 40000 && g.chipCount(db, 78811, 1, piece) === 2 && tag(r.xml, 'need_chip_num') === '15' && tag(r.xml, 'cost_coin') === '120000', `paying +1: ${r.error || ''} silver left ${left}, fragments left ${g.chipCount(db, 78811, 1, piece)}, next ${tag(r.xml || '', 'need_chip_num')} / ${tag(r.xml || '', 'cost_coin')}`);
+    const pl2 = mk(78812, 'TupoB');
+    g.giveCard(db, 78812, 1, 2039); g.giveCard(db, 78812, 1, 5037);
+    const drop = tupo.fragmentDropFor(db, pl2), dr = g.table('dropinfo').rows.find((q) => q[0] === drop);
+    const santa = g.table('piece_info').rows.find((q) => q[4] === 3 && q[6] === 5037)[0];
+    ck(dr && dr[8] === santa, `Ninja Test fragments should be for Santa of the Six Paths (God) when Minato (God) has no drop (got drop ${drop})`);
+  }
   // special ninjutsu (ids 56-89, m_rate 1.0) count like normal ones (15 %): same team-attack bonus as The Six Paths Rinnegan (52)
   {
     const g = require('../../server/game'), st = { al: 1000, ah: 1000, dl: 0, dh: 0, cl: 0, ch: 0 };
