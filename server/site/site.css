@@ -52,10 +52,6 @@ section { position: relative; }
 .hero { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; overflow: hidden; isolation: isolate; padding-top: 64px; }
 .sky { position: absolute; inset: 0; z-index: -3;
   background:
-    radial-gradient(1.5px 1.5px at 12% 18%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 28% 8%, #cfe8ff 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 44% 26%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 8% 44%, #bcdcff 50%, transparent 51%),
-    radial-gradient(1px 1px at 36% 52%, #fff 50%, transparent 51%), radial-gradient(1.5px 1.5px at 20% 70%, #dff 50%, transparent 51%),
-    radial-gradient(1px 1px at 52% 12%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 60% 40%, #cfe8ff 50%, transparent 51%),
     radial-gradient(ellipse 70% 60% at 72% 34%, #1f58a8 0%, #12346f 38%, transparent 72%),
     linear-gradient(180deg, #061026 0%, #0b1d45 55%, #10275a 100%); }
 .moon { position: absolute; z-index: -2; top: -8%; right: max(-10vw, calc((100% - 1560px) / 2)); height: 120%; width: auto; max-width: none;
