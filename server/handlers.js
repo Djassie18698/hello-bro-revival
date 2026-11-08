@@ -388,9 +388,11 @@ module.exports = {
     const acc = accountBySession(db, p);
     if (!acc) return '<root code="3"><message>session expired</message></root>';
     const sid = Number(p.ServerID || 1);
+    const nm = require('./specialnames').nickFor(db, acc.uid, p.Nick); // purple-name accounts keep their name after a reset
+    if (nm.error) return `<root code="5"><message>${nm.error}</message></root>`;
     db.prepare(
       'INSERT OR IGNORE INTO players(uid,server_id,nick,country,card,created) VALUES(?,?,?,?,?,?)'
-    ).run(acc.uid, sid, p.Nick || `Ninja${acc.uid}`, Number(p.Country || 1), Number(p.Card || 1), Date.now());
+    ).run(acc.uid, sid, nm.nick || `Ninja${acc.uid}`, Number(p.Country || 1), Number(p.Card || 1), Date.now());
     game.ensure(db);
     if (db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=? AND server_id=?').get(acc.uid, sid).n === 0)
       db.prepare('UPDATE players SET gold=50, coin=18000 WHERE uid=? AND server_id=?').run(acc.uid, sid); // normalconfig 38/39
@@ -848,7 +850,9 @@ module.exports = {
     // uid + 5 digits: ui_hallOfFameView.lua cuts the last 5 characters off before Challenge (ToUid) and before hiding the button on its own
     // row, so the original sent the uid with a 5-digit suffix. A plain uid became ToUid=220 for 22079117 (GitHub #6, 6 Nov 2026): every
     // challenge from this list fought a made-up "Rival". Suffix = the world id, padded (ours).
-    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}${String(sid).padStart(5, '0')}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"/>`).join('');
+    // glow="1": a purple name (specialnames.js); the hot-updated ui_hallOfFameCell.lua (28.0.42) draws it glowing purple, the original ignores it
+    const purple = require('./specialnames').uids(db);
+    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}${String(sid).padStart(5, '0')}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"${purple.has(r.uid) ? ' glow="1"' : ''}/>`).join('');
     return `<root code="0"><player><rank>${i + 1}</rank><min_score>${mine.lo}</min_score><max_score>${mine.hi}</max_score></player><rank_list>${items}</rank_list></root>`;
   },
 

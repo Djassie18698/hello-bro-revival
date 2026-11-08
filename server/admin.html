@@ -188,6 +188,7 @@ html.embed .wrap{padding-top:18px}
         <button class="tab" data-v="inv">🎒 Inventory</button>
         <button class="tab" data-v="team">🛡️ Team editor</button>
         <button class="tab" data-v="mail">📬 Award Center</button>
+        <button class="tab" data-v="purple">💜 Purple name</button>
         <button class="tab" data-v="danger">⚠️ Reset</button>
       </nav>
 
@@ -292,6 +293,17 @@ html.embed .wrap{padding-top:18px}
         <div id="tlists"></div>
       </section>
 
+      <section class="panel view" id="v-purple">
+        <h3>💜 Purple name</h3>
+        <p class="hint">The name glows purple in the <b>No.1 Shinobi list</b> (the 榜 scroll on Home) and stays with this login: after a reset the new character gets the same name back,
+          and nobody else can make a character with it. Changing the name here renames the character right away (they see it after reopening the game).
+          The other rankings (Arena, War) are built into the game app: the name shows there in the normal color.</p>
+        <div class="row"><input class="in" id="pn-name" placeholder="Name" maxlength="16" style="flex:1;min-width:200px">
+          <button class="btn purple" onclick="setPurple(true)">Give purple name</button>
+          <button class="btn ghost" onclick="setPurple(false)">Remove</button></div>
+        <p class="hint" id="pn-state"></p>
+      </section>
+
       <section class="panel view" id="v-danger">
         <div class="danger-box">
           <h3>Reset this player</h3>
@@ -326,17 +338,17 @@ async function loadPlayers() {
   players = await api('players');
   const first = !sel && players.length;
   if (first) sel = players[0].key;
-  renderPlayers(); renderHero();
+  renderPlayers(); renderHero(); renderPurple();
   if (first && $('v-team').classList.contains('on')) loadTeam();
 }
 function renderPlayers() {
   const q = $('pq').value.toLowerCase();
   const list = players.filter((p) => !q || (p.nick + ' ' + p.uid).toLowerCase().includes(q));
   $('plist').innerHTML = list.map((p) => '<div class="pcard' + (p.key === sel ? ' on' : '') + '" data-key="' + p.key + '" onclick="pick(this.dataset.key)">' + avatar(p) +
-    '<div style="min-width:0"><div class="pname">' + esc(p.nick) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
+    '<div style="min-width:0"><div class="pname">' + (p.purple ? '💜 ' : '') + esc(p.nick) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
     '<div class="pmeta">Lv ' + p.level + ' · ' + fmt(p.gold) + ' gold · #' + p.uid + (p.server_id > 1 ? ' · starter slot ' + (p.server_id - 1) : '') + '</div></div></div>').join('') || '<div class="empty">No players yet</div>';
 }
-function pick(uid) { sel = uid; renderPlayers(); renderHero(); if ($('v-inv').classList.contains('on')) loadInv(); if ($('v-team').classList.contains('on')) loadTeam(); }
+function pick(uid) { sel = uid; renderPlayers(); renderHero(); renderPurple(); if ($('v-inv').classList.contains('on')) loadInv(); if ($('v-team').classList.contains('on')) loadTeam(); }
 function current() { return players.find((p) => p.key === sel); }
 function renderHero() {
   const p = current();
@@ -556,6 +568,17 @@ function maxAll() {
 async function delCard(seq) {
   if (!confirm('Remove this card from ' + current().nick + '?')) return;
   const r = await api('delcard', { uid: sel, seq }); toast(r.ok ? 'Card removed' : r.error, r.ok); loadInv(); loadPlayers();
+}
+function renderPurple() {
+  const p = current(); if (!p) return;
+  $('pn-name').value = p.purple || p.nick;
+  $('pn-state').innerHTML = p.purple ? '💜 <b>' + esc(p.nick) + '</b> has the purple name <b>' + esc(p.purple) + '</b>.' : esc(p.nick) + ' has no purple name.';
+}
+async function setPurple(on) {
+  const p = current(); if (!p) return toast('Pick a player first', false);
+  const r = await api('purplename', { uid: sel, on, nick: $('pn-name').value.trim() });
+  toast(r.ok ? (on ? '💜 ' + esc(r.nick) + ' now has a purple name' : 'Purple name removed') : esc(r.error || 'failed'), r.ok);
+  await loadPlayers();
 }
 async function resetPlayer() {
   const p = current(); if (!p) return;

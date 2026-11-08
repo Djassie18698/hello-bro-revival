@@ -15,7 +15,7 @@ function resetPlayer(db, uid, sid = 1) {
   } catch (e) { /* backup is best effort */ }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((r) => r.name);
   for (const t of tables) {
-    if (t === 'accounts' || t === 'logins' || t === 'sqlite_sequence') continue; // keep the login (accounts + the app's account window)
+    if (t === 'accounts' || t === 'logins' || t === 'sqlite_sequence' || t === 'special_names') continue; // keep the login (accounts + the app's account window) and a purple name
     const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
     if (cols.includes('uid')) { if (cols.includes('server_id')) db.prepare(`DELETE FROM ${t} WHERE uid=? AND server_id=?`).run(uid, sid); else if (sid === 1) db.prepare(`DELETE FROM ${t} WHERE uid=?`).run(uid); }
   }
@@ -573,7 +573,7 @@ function benchmark(db, pl, targets, runs = 300) {
 
 // ADMIN_OPEN=1: players may use the item pages (/admin) without the password (owner, 3 Nov 2026: players add resources themselves on
 // the public server "for now"; later only their own account). The control panel (/, /manager) and wiping a player stay the owner's.
-const OWNER_ONLY = new Set(['/admin/api/reset']);
+const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename']);
 const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
 
 module.exports = async function admin(req, res, u, db, readBody) {
@@ -587,7 +587,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (u.pathname === '/admin' || u.pathname === '/admin/') {
     if (!pageCache || process.env.HB_DEBUG) pageCache = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    return res.end(owner ? pageCache : pageCache.replace('<body>', '<body class="player"><style>.player [data-v="danger"],.player a[href="/manager"]{display:none!important}</style>'));
+    return res.end(owner ? pageCache : pageCache.replace('<body>', '<body class="player"><style>.player [data-v="danger"],.player [data-v="purple"],.player a[href="/manager"]{display:none!important}</style>'));
   }
   game.ensure(db);
   if (u.pathname === '/admin/playerlog') { // progress log per player (playerlog.js), the panel's "Player log" tab
@@ -601,7 +601,8 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (u.pathname === '/admin/api/players') {
     const rows = db.prepare(`SELECT p.uid,p.nick,p.level,p.gold,p.coin,p.energy,p.server_id,
       (SELECT COUNT(*) FROM cards c WHERE c.uid=p.uid AND c.server_id=p.server_id) cards FROM players p ORDER BY p.level DESC, p.uid`).all();
-    return json(res, rows.map((p) => ({ ...p, key: p.uid + ':' + p.server_id, vip: vip.level(db, p.uid, p.server_id) })));
+    const purple = require('./specialnames');
+    return json(res, rows.map((p) => ({ ...p, key: p.uid + ':' + p.server_id, vip: vip.level(db, p.uid, p.server_id), purple: purple.get(db, p.uid) })));
   }
   if (u.pathname === '/admin/api/catalog') {
     const q = String(u.query.q || '').toLowerCase(), cat = String(u.query.cat || ''), stars = Number(u.query.stars) || 0;
@@ -696,6 +697,11 @@ module.exports = async function admin(req, res, u, db, readBody) {
       db.prepare('DELETE FROM cards WHERE uid=? AND server_id=? AND seq=?').run(pl.uid, pl.server_id, b.seq);
       return json(res, { ok: true });
     }
+    if (u.pathname === '/admin/api/purplename') { // specialnames.js: the name glows purple in the No.1 Shinobi list and survives a reset
+      const sn = require('./specialnames');
+      const r = b.on ? sn.set(db, pl.uid, b.nick || pl.nick) : sn.clear(db, pl.uid);
+      return json(res, r.error ? { ok: false, error: r.error } : { ok: true, nick: r.nick });
+    }
     if (u.pathname === '/admin/api/reset') {
       resetPlayer(db, pl.uid, pl.server_id);
       return json(res, { ok: true });
@@ -711,6 +717,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
 };
 
 module.exports.authorized = authorized;
+module.exports.resetPlayer = resetPlayer; // for tools/dev/smoke.js
 module.exports.panel = panel;
 module.exports.bestTeam = bestTeam; // for tools/dev and smoke
 module.exports.bestTeamInThread = bestTeamInThread;

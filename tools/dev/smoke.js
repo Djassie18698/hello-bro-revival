@@ -310,8 +310,8 @@ for (const pick of [55, 56, 57]) {
     process.env.ADMIN_PASSWORD = 'smoke-secret';
     const shut = await hit(admin, '/admin/api/players');
     process.env.ADMIN_OPEN = '1';
-    const r = { players: await hit(admin, '/admin/api/players'), reset: await hit(admin, '/admin/api/reset', 'POST'), manager: await hit(manager, '/manager') };
-    if (shut !== 401 || r.players !== 200 || r.reset !== 401 || r.manager !== 401) { bad++; console.log('ADMIN_OPEN:', JSON.stringify({ shut, ...r })); }
+    const r = { players: await hit(admin, '/admin/api/players'), reset: await hit(admin, '/admin/api/reset', 'POST'), purple: await hit(admin, '/admin/api/purplename', 'POST'), manager: await hit(manager, '/manager') };
+    if (shut !== 401 || r.players !== 200 || r.reset !== 401 || r.purple !== 401 || r.manager !== 401) { bad++; console.log('ADMIN_OPEN:', JSON.stringify({ shut, ...r })); }
     // a player gets the item page alone (the control panel around it polls /manager, which asked for the password) without the Reset tab
     const st = await hit(admin, '/admin');
     if (st !== 200 || page.includes('f-server') || !page.includes('<body class="player">')) { bad++; console.log('ADMIN_OPEN page:', st, page.slice(0, 80)); }
@@ -663,6 +663,30 @@ for (const pick of [55, 56, 57]) {
     const ids = (x) => [...x.matchAll(/<server><id>(\d+)<\/id>/g)].map((m) => m[1]).join();
     if (ids(list({ HB_ONE_WORLD: '1' })) !== '1') { bad++; console.log('ONE WORLD: server list', ids(list({ HB_ONE_WORLD: '1' }))); }
     if (ids(list({ HB_ONE_WORLD: '' })) !== '1,2,3,4') { bad++; console.log('STARTER SLOTS gone without HB_ONE_WORLD:', ids(list({ HB_ONE_WORLD: '' }))); }
+  }
+  // Purple names (owner, 8 Nov 2026, specialnames.js): glow="1" in the No.1 Shinobi list, the name comes back after a reset
+  // (resetPlayer keeps special_names), nobody else can create a character with it, and Remove stops the glow
+  {
+    const sn = require('../../server/specialnames'), admin = require('../../server/admin');
+    const q = { Uid: '79001', Session: 'x', ServerID: '1', GroupID: '2' };
+    const nick = () => (db.prepare('SELECT nick FROM players WHERE uid=79001 AND server_id=1').get() || {}).nick;
+    handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'PlainName', Card: 55 } });
+    const set = sn.set(db, 79001, 'Purple Boss');
+    const list = handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } });
+    if (!set.ok || nick() !== 'Purple Boss' || !/nick="Purple Boss"[^>]*glow="1"/.test(list) || /nick="Smoke"[^>]*glow=/.test(list)) { bad++; console.log('PURPLE NAME set / list:', JSON.stringify(set), nick(), list.slice(0, 200)); }
+    const bk = path.join(os.tmpdir(), 'hb-smoke-bk-' + process.pid), keepBk = process.env.HB_BACKUPS;
+    process.env.HB_BACKUPS = path.relative(process.cwd(), bk); // the reset's save backup goes to a temp folder
+    admin.resetPlayer(db, 79001, 1);
+    if (keepBk === undefined) delete process.env.HB_BACKUPS; else process.env.HB_BACKUPS = keepBk;
+    try { fs.rmSync(bk, { recursive: true, force: true }); } catch {}
+    const gone = nick();
+    handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'NewName', Card: 55 } });
+    if (gone !== undefined || nick() !== 'Purple Boss') { bad++; console.log('PURPLE NAME after a reset:', gone, '->', nick()); }
+    const other = handlers.rl_w_reg2({ db, params: { Uid: '79002', Session: 'x', ServerID: '1', GroupID: '2', Cmd: 0, Nick: 'purple boss ', Card: 55 } });
+    if (!/code="5"/.test(other) || db.prepare('SELECT 1 FROM players WHERE uid=79002').get()) { bad++; console.log('PURPLE NAME taken by another account:', other.slice(0, 120)); }
+    if (!sn.set(db, 79003, 'PURPLE BOSS').error) { bad++; console.log('PURPLE NAME given to two accounts'); }
+    sn.clear(db, 79001);
+    if (/glow=/.test(handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } }))) { bad++; console.log('PURPLE NAME still glows after Remove'); }
   }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
