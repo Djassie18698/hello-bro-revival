@@ -23,6 +23,13 @@ FIXED = [
 ] + [(f'promo-{n}', 'ccbResources/advertise.pvr.ccz', f'advertise{n}', 420, 80) for n in range(1, 8)]  # original event posters
 # story chapter banners: level_chapter_<n> lives on level_page1 (1-6), level_page2 (7-12), level_page3 (13-18), level_page4 (19-24)
 FIXED += [(f'ch-{n}', f'ccbResources/level_background/level_page{(n - 1) // 6 + 1}.pvr.ccz', f'level_chapter_{n}', 690, 78) for n in range(1, 20)]
+# the game's own interface pieces (com_res sprite sheets), full size: buttons and the dialog window are 9-slice border images in site.css
+FIXED += [(f'ui/{n}', f'com_res/{sheet}.png', fr, 2000, 92) for n, sheet, fr in [
+    ('btn-green', 'Resident', 'com_btn_green_01'), ('btn-blue', 'Resident', 'com_btn_blue_01'), ('btn-red', 'Resident', 'com_btn_red_01'),
+    ('wood', 'Resident', 'com_normal_btn_bk'), ('dialog', 'Resident_2', 'Resident_bk_001'),
+    ('el-fire', 'Resident', 'com_text_fire_big_icon'), ('el-water', 'Resident', 'com_text_water_big_icon'),
+    ('el-wind', 'Resident', 'com_text_wind_big_icon'), ('el-thunder', 'Resident', 'com_text_thunder_big_icon'),
+    ('el-soil', 'Resident', 'com_text_soild_big_icon'), ('el-god', 'Resident', 'com_text_god_big_icon')]]
 
 
 def ffmpeg():

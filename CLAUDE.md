@@ -177,10 +177,11 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
 ## 6. The website: https://ninjaonlinereborn.com (owner, 8 Nov 2026)
 **What it is.** A home page (the owner loved https://platinumtogether.online: big game scene, chunky logo, big Play button) at `/`, and the
 wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the game files, numbers and names from its tables.
+- **Look (8 Nov 2026 evening, owner: "the page feels too AI"):** the page wears the game's own interface: buttons are the game's green / blue / red buttons (`.btn.green/.blue/.red`, 9-slice `border-image` of `img/ui/btn-*.webp`), How to play is the game's dialog window (`.dialog`), the header turns into the wooden bar on scroll, features are a list with the element icons next to the 7 posters pinned up. Kept out on purpose (template habits): labels above headings, stat boxes, pill badges, fade-ins on scroll, glows/halos, self-scrolling rows. `impeccable detect` still reports the dialog text as low contrast (it cannot see the parchment picture) and the god cards' rays: both fine.
 - **Home page** `server/site/`: hero (the game's blue moon with crows, falling petals on a canvas, five god cards bobbing: Itachi, Kakashi,
   Kyuubi Naruto, Sasuke, Sakura; logo = the owner's NINJA ONLINE picture `img/logo-ninjaonline.webp` (8 Nov; source with black background: owner's Pictures/Ninja Online Logo.png, made see-through + 1100 px WebP) with the text REBORN under it; Play + Join Discord; live line
   "Server online · N ninjas playing now · M ninjas so far" from `/status`), "The game" (Hello Bro logo, counts), Features (6 tiles + the 7
-  original event posters), Shinobi (14 god cards → wiki pages), Screenshots (5 emulator shots), Story (19 chapter banners sliding, → wiki
+  original event posters), Shinobi (14 god cards → wiki pages), Screenshots (5 emulator shots), Story (19 chapter banners in two rows you scroll by hand, → wiki
   training pages), How to play (download `HelloBro-ninjaonline.xapk` from the release, install guide, Discord), News (README's newest 4), footer.
   Fonts: Lilita One + Nunito (Google Fonts). Theme: night blue + fire orange + parchment bands. Respects reduced motion. Works at phone size.
   Design notes: the logo outline is the span's own text-stroke, the coloured letters are its `::after` (background-clip:text on the span itself
@@ -210,7 +211,7 @@ wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the 
   | home page text, sections, links, buttons | `server/site/index.html` (+ `site.css` for looks) | check.sh |
   | home page behaviour (status line, petals, card rows) | `server/site/site.js` | check.sh |
   | the five hero cards / the 14 shinobi cards | `HERO` / `FEATURED` card ids (ours) in `tools/build_wiki.js` | `node tools/build_wiki.js` then `python -I tools/build_site_art.py` |
-  | backgrounds, posters, chapter banners, Hello Bro logo | `FIXED` list in `tools/build_site_art.py` | `python -I tools/build_site_art.py` |
+  | backgrounds, posters, chapter banners, Hello Bro logo, the game's interface pieces (img/ui: buttons, dialog window, wooden bar, element icons) | `FIXED` list in `tools/build_site_art.py` | `python -I tools/build_site_art.py` |
   | news (home page + wiki) | README "What changed recently" | `node tools/build_wiki.js` |
   | wiki content (cards, sources, chains, stages, guides) | `server/data`, the event modules, `discord/guides/*.md`, `tools/build_wiki.js` | `node tools/build_wiki.js` |
   | wiki icons | `tools/build_wiki_icons.py` | `python -I tools/build_wiki_icons.py` then `node tools/build_wiki.js` |

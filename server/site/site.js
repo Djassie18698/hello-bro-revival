@@ -1,5 +1,5 @@
 // Ninja Online Reborn home page: fills the line-up, shinobi cards, story chapters and news from home.json (made by tools/build_wiki.js),
-// shows the live server status (/status, passed through by Caddy to the game server), and runs the small animations.
+// shows the live server status (/status, passed through by Caddy to the game server), and runs the falling petals over the hero.
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -17,13 +17,6 @@
   nav.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
 
-  // things fade in when they scroll into view
-  const seen = 'IntersectionObserver' in window ? new IntersectionObserver((list) => {
-    for (const e of list) if (e.isIntersecting) { e.target.classList.add('in'); seen.unobserve(e.target); }
-  }, { rootMargin: '0px 0px -8% 0px' }) : null;
-  const reveal = (root = document) => root.querySelectorAll('.reveal:not(.in)').forEach((el) => (seen ? seen.observe(el) : el.classList.add('in')));
-  reveal();
-
   // ---- the page's data ----
   fetch('home.json').then((r) => r.json()).then((H) => {
     document.querySelectorAll('[data-count]').forEach((el) => { const v = H.counts[el.dataset.count]; if (v) el.textContent = num(v); });
@@ -37,14 +30,13 @@
       <div class="card-txt"><h3>${esc(c.name.replace(/\s*\(God\)|\(God\)/, ''))}</h3><div class="stars" aria-label="${c.stars} stars">${'★'.repeat(c.stars)}</div>
       ${c.get && c.get.length ? `<p>Get it: ${c.get.map(esc).join(' · ')}</p>` : ''}</div></div></a>`).join('');
 
-    // story chapters: two rows sliding opposite ways (each row twice in a row, so the loop has no seam)
+    // story chapters: two rows, scrolled by hand
     const tile = (c) => `<a class="chap" href="/wiki/#/training/${c.id}"><img src="img/ch-${c.id}.webp" alt="" loading="lazy"><span><em>${c.id}</em>${esc(c.name)}</span></a>`;
     const half = Math.ceil(H.chapters.length / 2);
     const rows = [H.chapters.slice(0, half), H.chapters.slice(half)];
-    $('#marquee').innerHTML = rows.map((r, i) => `<div class="track${i ? ' rev' : ''}" style="--t:${70 + i * 12}s">${r.map(tile).join('')}${r.map(tile).join('').replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ')}</div>`).join('');
+    $('#marquee').innerHTML = rows.map((r) => `<div class="track">${r.map(tile).join('')}</div>`).join('');
 
-    $('#newslist').innerHTML = H.news.map((n) => `<article class="note reveal"><time>${esc(n.day)}</time><p>${esc(n.text)}</p></article>`).join('');
-    reveal();
+    $('#newslist').innerHTML = H.news.map((n) => `<li><time>${esc(n.day)}</time><p>${esc(n.text)}</p></li>`).join('');
   }).catch(() => {});
 
   // ---- live server status (only where Caddy passes /status through: the public site) ----
