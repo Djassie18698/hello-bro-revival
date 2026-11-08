@@ -14,10 +14,13 @@ fi
 [ -s "$DIR/discord/.env" ] || { echo "no $DIR/discord/.env: copy the bot token file from the PC first"; exit 1; }
 chown hellobro:hellobro "$DIR/discord/.env"; chmod 600 "$DIR/discord/.env"
 [ -f "$DIR/discord/status-state.json" ] && chown hellobro:hellobro "$DIR/discord/status-state.json"
+[ -f "$DIR/discord/bughelper-state.json" ] && chown hellobro:hellobro "$DIR/discord/bughelper-state.json"
+# the #bugs-and-issues helper (bughelper.js) talks to Claude with the official SDK (ANTHROPIC_API_KEY in .env); only that package is installed
+if [ ! -d "$DIR/discord/node_modules/@anthropic-ai/sdk" ]; then (cd "$DIR/discord" && sudo -u hellobro npm install --no-save --no-audit --no-fund --omit=dev @anthropic-ai/sdk@1 >/dev/null) && echo "== Claude SDK installed"; fi
 NODE=$(command -v node)
 cat > /etc/systemd/system/hellobro-bot.service <<EOF
 [Unit]
-Description=Hello Bro Discord bot (online + #server-status)
+Description=Hello Bro Discord bot (online + #server-status + #bugs-and-issues helper)
 After=network-online.target hellobro.service
 Wants=network-online.target
 

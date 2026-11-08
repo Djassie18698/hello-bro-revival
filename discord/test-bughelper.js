@@ -1,0 +1,155 @@
+// Offline test of the #bugs-and-issues helper (bughelper.js): a fake Discord and a fake Claude, nothing is posted anywhere.
+//   node discord/test-bughelper.js        (also run by tools/dev/check.sh)
+const { createHelper, buildMessages, reportText, SCHEMA } = require('./bughelper');
+
+let bad = 0;
+const ok = (cond, what) => { if (!cond) { bad++; console.log('FAIL', what); } };
+let nextId = 1000n;
+const id = () => String(++nextId);
+
+function fakeDiscord() {
+  const ch = { bugs: [], logs: [] }, threads = {}, reactions = [];
+  const BOT = { id: 'bot', username: 'HelloBro', bot: true };
+  const msg = (author, content, extra = {}) => ({ id: id(), type: 0, author, content, attachments: [], ...extra });
+  const call = async (method, p, body) => {
+    let m;
+    if (p === '/users/@me') return BOT;
+    if (p === '/users/@me/guilds') return [{ id: 'g' }];
+    if (p === '/guilds/g/channels') return [{ id: 'bugs', name: 'bugs-and-issues', type: 0 }, { id: 'logs', name: 'bot-logs', type: 0 }];
+    if ((m = /^\/channels\/(\w+)\/messages\?(.*)$/.exec(p)) && method === 'GET') {
+      const q = new URLSearchParams(m[2]); const list = (ch[m[1]] || threads[m[1]] || []).slice();
+      const after = q.get('after');
+      let out = after ? list.filter((x) => BigInt(x.id) > BigInt(after)) : list;
+      out = out.slice().reverse().slice(0, Number(q.get('limit') || 50)); // newest first, like Discord
+      return out;
+    }
+    if ((m = /^\/channels\/(\w+)\/messages\/(\w+)$/.exec(p)) && method === 'GET') return (ch[m[1]] || threads[m[1]]).find((x) => x.id === m[2]);
+    if ((m = /^\/channels\/(\w+)\/messages\/(\w+)\/threads$/.exec(p))) { const tid = id(); threads[tid] = []; ch[m[1]].find((x) => x.id === m[2]).thread = { id: tid }; return { id: tid, name: body.name }; }
+    if ((m = /^\/channels\/(\w+)\/messages$/.exec(p)) && method === 'POST') { const x = msg(BOT, body.content); x.allowed = body.allowed_mentions; (ch[m[1]] || threads[m[1]]).push(x); return x; }
+    if ((m = /^\/channels\/(\w+)\/messages\/(\w+)\/reactions\/([^/]+)\/@me$/.exec(p))) { reactions.push([m[2], decodeURIComponent(m[3])]); return null; }
+    throw new Error('unexpected call ' + method + ' ' + p);
+  };
+  return { ch, threads, reactions, call, msg, BOT };
+}
+
+// fake Claude: answers from a script, remembers what it was sent
+function fakeClaude(script) {
+  const seen = [];
+  return {
+    seen,
+    beta: { messages: { create: async (req) => {
+      seen.push(req);
+      const next = script.shift();
+      if (next instanceof Error) throw next;
+      return { stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(next) }] };
+    } } },
+  };
+}
+const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', where: 'Arena', what_happened: 'nothing happens', expected: 'the arena opens', steps: 'tap Arena', every_time: 'yes', character: 'Ninja1', server: 'ninjaonline', device: '', notes: '', ...o });
+
+(async () => {
+  const P1 = { id: 'p1', username: 'kid', global_name: 'Kid' }, OWNER = { id: 'own', username: 'bakeddean' };
+
+  // 1. a new report: thread, a question, then the player's answer completes it -> report in #bot-logs, 📝 on the post
+  {
+    const d = fakeDiscord();
+    const claude = fakeClaude([{ action: 'ask', reply: '1. Which screen?\n2. Your character name?', report: rep({ where: '', character: '' }) },
+      { action: 'complete', reply: 'Thanks! The developer has it now.', report: rep() }]);
+    const h = createHelper({ call: d.call, client: claude, env: { OWNER_IDS: 'own' }, log: () => {} });
+    await h.init();
+    d.ch.bugs.push(d.msg(OWNER, 'Perfect reports, looking into it!')); // the owner: left alone
+    d.ch.bugs.push(d.msg(P1, 'the arena button does nothing @everyone', { attachments: [{ url: 'https://cdn.discordapp.com/a/shot.png', filename: 'shot.png', content_type: 'image/png' }] }));
+    await h.tick();
+    const tid = Object.keys(d.threads)[0];
+    ok(tid && d.threads[tid].length === 1 && /Which screen/.test(d.threads[tid][0].content), 'question posted in a new thread');
+    ok(d.threads[tid] && d.threads[tid][0].allowed && d.threads[tid][0].allowed.parse.length === 0, 'no pings allowed');
+    ok(Object.keys(d.threads).length === 1, 'owner post got no thread');
+    const first = claude.seen[0];
+    ok(first && first.output_config.format.type === 'json_schema' && first.model === 'claude-opus-5-5' && first.fallbacks === 'default', 'Claude call: model, JSON format, fallbacks');
+    ok(first && first.messages[0].content.some((c) => c.type === 'image'), 'the screenshot is shown to Claude');
+    await h.tick(); // nothing new: no second Claude call
+    ok(claude.seen.length === 1, 'no call without a new player message');
+    d.threads[tid].push(d.msg(P1, 'arena, my name is Ninja1'));
+    await h.tick();
+    ok(/developer has it/.test(d.threads[tid][d.threads[tid].length - 1].content), 'thanks posted');
+    const log = d.ch.logs[0];
+    ok(log && /Bug report/.test(log.content) && /Arena button does nothing/.test(log.content) && log.content.includes('report-id: ' + tid) && log.content.includes('shot.png'), 'report in #bot-logs');
+    ok(d.reactions.some(([m, e]) => e === '📝'), '📝 on the post');
+    ok(claude.seen[1].messages.length === 3 && claude.seen[1].messages[1].role === 'assistant', 'the conversation goes back to Claude');
+    d.threads[tid].push(d.msg(P1, 'thanks!'));
+    await h.tick();
+    ok(claude.seen.length === 2 && d.ch.logs.length === 1, 'finished thread stays quiet');
+  }
+
+  // 2. no key / API down: the fixed checklist, then the answer is forwarded as it is
+  {
+    const d = fakeDiscord();
+    const h = createHelper({ call: d.call, client: fakeClaude([new Error('401 invalid key')]), env: {}, log: () => {} });
+    await h.init();
+    d.ch.bugs.push(d.msg(P1, 'game crashes when I open the shop'));
+    await h.tick();
+    const tid = Object.keys(d.threads)[0];
+    ok(/Which screen or feature/.test(d.threads[tid][0].content), 'checklist when Claude fails');
+    d.threads[tid].push(d.msg(P1, 'shop, Ninja1, ninjaonline'));
+    await h.tick();
+    ok(d.ch.logs.length === 1 && /crashes when I open the shop/.test(d.ch.logs[0].content) && /Ninja1, ninjaonline/.test(d.ch.logs[0].content), 'raw thread forwarded without Claude');
+    const h2 = createHelper({ call: fakeDiscord().call, client: null, env: {}, log: () => {} });
+    await h2.init(); // no client at all works too
+  }
+
+  // 3. limits: a question round cap, a daily call cap, a day without an answer, chat, replies to other posts
+  {
+    const d = fakeDiscord();
+    let t = 0;
+    const asks = Array.from({ length: 10 }, () => ({ action: 'ask', reply: 'more?', report: rep() }));
+    const claude = fakeClaude(asks);
+    const h = createHelper({ call: d.call, client: claude, env: {}, now: () => t, log: () => {} });
+    await h.init();
+    d.ch.bugs.push(d.msg(P1, 'boss 1-2 too hard'));
+    d.ch.bugs.push(d.msg(P1, 'also this', { message_reference: { message_id: '1' } })); // a reply: no thread
+    await h.tick();
+    const tid = Object.keys(d.threads)[0];
+    ok(Object.keys(d.threads).length === 1, 'replies to other posts get no thread');
+    for (let i = 0; i < 4; i++) { d.threads[tid].push(d.msg(P1, 'answer ' + i)); await h.tick(); }
+    ok(d.ch.logs.length === 1, 'forwarded after 4 rounds of questions');
+    // idle
+    const d2 = fakeDiscord();
+    const h2 = createHelper({ call: d2.call, client: fakeClaude([{ action: 'ask', reply: 'which screen?', report: rep() }]), env: {}, now: () => t, log: () => {} });
+    await h2.init();
+    d2.ch.bugs.push(d2.msg(P1, 'it broke'));
+    await h2.tick();
+    t += 25 * 3600e3; await h2.tick();
+    ok(d2.ch.logs.length === 1 && /did not answer/.test(d2.ch.logs[0].content), 'forwarded after a day without an answer');
+    // daily cap: no Claude call, checklist instead
+    const d3 = fakeDiscord(), c3 = fakeClaude([]);
+    const h3 = createHelper({ call: d3.call, client: c3, env: { BUG_DAILY_CALLS: '1' }, now: () => t, log: () => {} });
+    await h3.init(); h3.state.day = new Date(t).toISOString().slice(0, 10); h3.state.calls = 1;
+    d3.ch.bugs.push(d3.msg(P1, 'help'));
+    await h3.tick();
+    ok(c3.seen.length === 0 && /Which screen/.test(Object.values(d3.threads)[0][0].content), 'daily limit uses the checklist');
+    // chat / a question: pointed elsewhere, nothing forwarded
+    const d4 = fakeDiscord();
+    const h4 = createHelper({ call: d4.call, client: fakeClaude([{ action: 'not_a_bug', reply: 'Questions are welcome in #support!', report: rep({ kind: 'question' }) }]), env: {}, log: () => {} });
+    await h4.init();
+    d4.ch.bugs.push(d4.msg(P1, 'how do I get Kakashi?'));
+    await h4.tick();
+    ok(d4.ch.logs.length === 0 && /#support/.test(Object.values(d4.threads)[0][0].content), 'a question is pointed to #support');
+  }
+
+  // 4. safety: a reply with a secret or an IP address is not posted as it is
+  {
+    const d = fakeDiscord();
+    const h = createHelper({ call: d.call, client: fakeClaude([{ action: 'ask', reply: 'connect to 134.98.153.241 please', report: rep() }]), env: {}, log: () => {} });
+    await h.init();
+    d.ch.bugs.push(d.msg(P1, 'cannot connect'));
+    await h.tick();
+    const text = Object.values(d.threads)[0][0].content;
+    ok(!/\d+\.\d+\.\d+\.\d+/.test(text), 'no IP address posted');
+    ok(buildMessages({ id: '1', author: P1, content: 'x', attachments: [] }, [], 'bot')[0].role === 'user', 'conversation starts with the player');
+    ok(SCHEMA.properties.report.required.length === Object.keys(SCHEMA.properties.report.properties).length, 'schema: every report field required (strict JSON)');
+    ok(/Wish/.test(reportText({ name: 'Kid', id: '9' }, rep({ kind: 'wish' }), 'x')), 'wishes are labelled');
+  }
+
+  console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety)');
+  process.exit(bad ? 1 : 0);
+})().catch((e) => { console.log('CRASH', e.stack); process.exit(1); });

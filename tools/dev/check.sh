@@ -3,4 +3,4 @@
 #   sh tools/dev/check.sh && git add -A && git commit -m "..." && git push
 cd "$(dirname "$0")/../.." || exit 1
 run() { out=$(node "$1" 2>&1); s=$?; echo "$out" | tail -3; return $s; }
-run tools/dev/smoke.js && run tools/dev/watchdog-test.js && run tools/dev/socket-test.js && run tools/dev/wiki-test.js && run tools/dev/fuzz.js && run tools/dev/exploit.js && run tools/dev/realsave.js
+run tools/dev/smoke.js && run discord/test-bughelper.js && run tools/dev/watchdog-test.js && run tools/dev/socket-test.js && run tools/dev/wiki-test.js && run tools/dev/fuzz.js && run tools/dev/exploit.js && run tools/dev/realsave.js

@@ -26,3 +26,4 @@ tools/dev/emu.account
 # Python caches
 __pycache__/
 *.pyc
+discord/bughelper-state.json

@@ -44,3 +44,6 @@ function connect() {
 }
 connect();
 if (process.env.STATUS_WATCH !== '0') require('./statuswatch').start(token);
+// #bugs-and-issues helper (bughelper.js): asks players for the missing details of a bug in a thread, posts the report in #bot-logs.
+// It reads the channel over the REST API (the gateway connection above still needs no intents). BUG_HELPER=0 in .env turns it off.
+require('./bughelper').start(token);

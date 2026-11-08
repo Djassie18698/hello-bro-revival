@@ -7,6 +7,7 @@
 //   node --env-file=.env dc.js reply <channel> <message-id> <file.md | ->   (answer one message, e.g. a bug report: what got fixed)
 //   node --env-file=.env dc.js react <channel> <message-id> [emoji]         (default ✅ = the report is handled)
 //   node --env-file=.env dc.js pin <channel> <message-id>                   (pin a message, e.g. the bot's info post)
+// <channel> may also be a thread number (the bug report threads of bughelper.js: "Thread: .../<guild>/<thread>" in #bot-logs).
 // Same safety rules as the bot: no secrets/IP addresses, no @everyone pings, only own messages are changed.
 const fs = require('fs');
 const { secretProblem, splitMessage } = require('./tools');
@@ -41,7 +42,8 @@ async function run(argv, { token, guildId, readText = (p) => (p === '-' ? fs.rea
   if (!chan) throw new Error('missing channel');
   const r = String(chan).replace(/^<#(\d+)>$/, '$1').replace(/^#/, '').toLowerCase();
   const exact = chans.filter((c) => c.id === r || c.name.toLowerCase() === r);
-  const found = exact.length ? exact : chans.filter((c) => c.name.toLowerCase().includes(r));
+  // a thread (e.g. a bug report thread of bughelper.js) is not in the channel list: its number is used as it is
+  const found = exact.length ? exact : /^\d{17,20}$/.test(r) ? [{ id: r, name: 'thread ' + r }] : chans.filter((c) => c.name.toLowerCase().includes(r));
   if (found.length !== 1) throw new Error(found.length ? `"${chan}" matches several channels: ${found.map((c) => c.name).join(', ')}` : `no channel called "${chan}" (run: channels)`);
   const ch = found[0];
   const guard = (text) => { const bad = secretProblem(text); if (bad) throw new Error(`refused: the text contains ${bad}`); };
