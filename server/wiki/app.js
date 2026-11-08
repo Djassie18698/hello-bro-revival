@@ -2,6 +2,8 @@
 (() => {
   'use strict';
   const $ = (s, el = document) => el.querySelector(s);
+  // on https://ninjaonlinereborn.com the wiki sits under the home page (/wiki/); a game server's own /wiki/ (:18080) has no home page
+  if (!location.port && location.pathname.indexOf('/wiki/') === 0) document.getElementById('homelink').hidden = false;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = (n) => Number(n || 0).toLocaleString('en-US');
   let D = null;

@@ -58,8 +58,8 @@ If a DuckDNS updater runs on your PC, turn it off, or it puts your PC's address 
 - **Discord bot** (shows online, posts in #server-status): runs here too, as the service `hellobro-bot`, so it is on day and night.
   Install or restart: `sudo sh /opt/hellobro/tools/vps/bot.sh` (needs the bot's `.env` from the PC in `/opt/hellobro/discord/`);
   switch off: `... bot.sh stop`; log: `sudo journalctl -u hellobro-bot`. It can't tell you when this whole machine is down (it is on it).
-- **Wiki address** https://ninjaonlinereborn.com: Caddy (`sudo systemctl status caddy`, log `sudo journalctl -u caddy`) serves the files
-  of `/opt/hellobro/server/wiki`, so an update refreshes the wiki by itself; `www.`, `wiki.ninjaonline.duckdns.org` and the plain `ninjaonline.duckdns.org` (no port) in a browser lead there too.
+- **Website** https://ninjaonlinereborn.com (home page) and https://ninjaonlinereborn.com/wiki/: Caddy (`sudo systemctl status caddy`, log `sudo journalctl -u caddy`) serves the files
+  of `/opt/hellobro/server/site` and `server/wiki`, so an update refreshes them by itself; `www.` and the plain `ninjaonline.duckdns.org` (no port) lead to the home page, `wiki.ninjaonline.duckdns.org` to the wiki.
   Set up again / switch off: `sudo sh /opt/hellobro/tools/vps/wiki-site.sh` / `... wiki-site.sh stop`. The game's own `:18080/wiki/` keeps working.
 - **Watchdog:** if the server stops answering for 3 minutes (stuck, not crashed), it restarts itself. `sudo journalctl -u hellobro | grep watchdog` shows when.
 - Change the admin password: `sudo sh /opt/hellobro/tools/vps/password.sh`

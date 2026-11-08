@@ -38,11 +38,32 @@ function parseBody(req) {
 const RATE = Number(process.env.RATE_LIMIT || 300);
 const hits = new Map();
 setInterval(() => hits.clear(), 10000).unref();
-function limited(req) {
+// Requests that come through the web server on the same machine (Caddy in front of the home page, tools/vps/wiki-site.sh) count per visitor:
+// Caddy puts the visitor's address last in X-Forwarded-For. Only trusted from this machine itself.
+const LOCAL = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+function clientIp(req) {
   const ip = req.socket.remoteAddress || '?';
+  const fwd = LOCAL.has(ip) && req.headers['x-forwarded-for'];
+  return fwd ? String(fwd).split(',').pop().trim() || ip : ip;
+}
+function limited(req) {
+  const ip = clientIp(req);
   const n = (hits.get(ip) || 0) + 1;
   hits.set(ip, n);
   return n > RATE;
+}
+
+// For the home page (ninjaonlinereborn.com) and /status: how many characters exist and how many played in the last 5 minutes. Counts only, no names.
+let counted = { at: 0 };
+function playerCounts() {
+  if (Date.now() - counted.at < 30000) return counted.v;
+  try {
+    const has = db.prepare('SELECT 1 FROM players WHERE uid=? LIMIT 1');
+    const online = settings.online().filter((o) => has.get(o.uid)).length; // start-up requests use placeholder ids: only real characters
+    const players = db.prepare('SELECT COUNT(DISTINCT uid) n FROM players').get().n;
+    counted = { at: Date.now(), v: { online, players } };
+  } catch { counted = { at: Date.now(), v: {} }; }
+  return counted.v;
 }
 
 // Errors also go to logs/error.log so problems on a public server can be read later.
@@ -72,7 +93,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   if (u.pathname.endsWith('.do')) return require('./gumplogin').handle(req, resp, parseBody, db); // the APK's account window (gumplogin.js)
   if (u.pathname === '/status') { // version + start time, for the Discord #server-status watcher (discord/statuswatch.js)
     resp.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    return resp.end(JSON.stringify({ ok: true, version: VERSION, started: STARTED }));
+    return resp.end(JSON.stringify({ ok: true, version: VERSION, started: STARTED, ...playerCounts() }));
   }
   if (u.pathname === '/progress.md') { // the progress page (docs/PROGRESS.md), shown in the control panel's Progress tab
     resp.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store' });

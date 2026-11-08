@@ -31,7 +31,7 @@ reports are fixed as they come in. Fixes reach your game by themselves: tap **Co
 
 🌍 **The public server `ninjaonline` is online 24/7** (it runs in the cloud since 3 Nov 2026): [join it](#-join-the-public-server).
 
-📖 **Wiki:** every shinobi, piece of gear, ninjutsu, seal and training stage, and where to get it: **[ninjaonlinereborn.com](https://ninjaonlinereborn.com)** (made from the game's own data).
+🌐 **Website: [ninjaonlinereborn.com](https://ninjaonlinereborn.com)**, with the 📖 **[wiki](https://ninjaonlinereborn.com/wiki/)**: every shinobi, piece of gear, ninjutsu, seal and training stage, and where to get it (made from the game's own data).
 
 ---
 
@@ -43,7 +43,8 @@ reports are fixed as they come in. Fixes reach your game by themselves: tap **Co
 | ⚔️ **Spar, Arena, Battles, War, Border war, Cross-server battle** | 🎁 **Daily tasks, sign-in, login & level gifts, top-up rewards** | 🐾 **Pets, Seals, Breakthrough, Ninja Test** |
 | 🏯 **Base buildings, guilds (Akatsuki)** | 👑 **VIP, shop, mystery shop, events** (festivals, God of Wealth, Flower Worship, Month card) | 🛠️ **Admin page**: give anything or everything, inventory, reset |
 | 🖥️ **Control panel** (one site): server status, events on/off, banner, backups, restart, players & items, **team builder** | ♻️ **Reincarnation up to 8**, sage growth with the original chances | 🧪 **Shinobi training** with Super Ninja Pills like the original |
-| 📖 **Wiki** at [ninjaonlinereborn.com](https://ninjaonlinereborn.com) (and `/wiki/` on every server): shinobi, gear, ninjutsu, seals, pets, items, sets, training stages, guides, search | | |
+| 🌐 **Website** [ninjaonlinereborn.com](https://ninjaonlinereborn.com): home page with the game's own art, screenshots, live server status and how to start | | |
+| 📖 **Wiki** at [ninjaonlinereborn.com/wiki](https://ninjaonlinereborn.com/wiki/) (and `/wiki/` on every server): shinobi, gear, ninjutsu, seals, pets, items, sets, training stages, guides, search | | |
 | 🚪 **Eight Gates** with levels (LV1-150), ⭐ **Limited Super Ninja** (a new god card every hour) | 🎫 **Scratch card, treasure chests, Growth Fund, group purchase, total-recharge gifts, Time limited GiftPack, Akatsuki mall** | 📷 Numbers checked against **~3 580 photos** of the original game |
 
 Every number that came from the game's own data is kept as it was. Where the original value was lost on the dead server we picked one and marked it **(ours)** in the code and in the docs.
@@ -136,7 +137,7 @@ A good report says **where** it happened, the **taps**, what **should** happen, 
 
 | Day | What |
 |---|---|
-| **8 Nov 2026** | The **wiki** opens at [ninjaonlinereborn.com](https://ninjaonlinereborn.com) (its own address, with https): every card, gear, ninjutsu, seal and stage from the game's own data, with where to get it and every chain. **Breakthrough** costs and bonuses like the original screens (10 fragments and 60 000 / 250 000 silver for +1, +1% trigger and +2% restrain a level). [Full list](docs/FIXES-2026-11-08.md) |
+| **8 Nov 2026** | Our own website **[ninjaonlinereborn.com](https://ninjaonlinereborn.com)**: a home page with the game's own art, screenshots and live server status, and the **wiki** at [/wiki](https://ninjaonlinereborn.com/wiki/): every card, gear, ninjutsu, seal and stage from the game's own data, with where to get it and every chain. **Breakthrough** costs and bonuses like the original screens (10 fragments and 60 000 / 250 000 silver for +1, +1% trigger and +2% restrain a level). [Full list](docs/FIXES-2026-11-08.md) |
 | **7 Nov 2026** | Training and Battles exactly like the original: every boss brings its own enemies with their real strength (checked against 15 old screenshots), the story wheel uses the game's own odds; more original numbers from the game's own tables (Lucky Wheel, sage growth, border war, change country, free recruits every 3 / 2 days, a sure 5-star every 10th purple pull); war Auto-Attack works (also offline) with the original war cooldown; reincarnation shows in fights; VIP up to 23. [Full list](docs/FIXES-2026-11-07.md) |
 | **6 Nov 2026** | Late-game test round at level 100: cards stop at level 50 so Reincarnate works, Evolve only takes a real attack + defense pair and gives training pills back, country war texts, original prices and gifts for country officials, Akatsuki log text. [Full list](docs/FIXES-2026-11-06.md) |
 | **4-5 Nov 2026** | Elements the right way round, pets claw more often, the public server no longer restarts at night, the tutorial switched off for everyone (game update 28.0.35), English button texts (28.0.36), real strength in the Spar and Plunder list. A weekend test round with a brand-new character. [Full list](docs/FIXES-2026-11-05.md) |

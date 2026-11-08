@@ -1,5 +1,6 @@
 // The wiki (server/wiki, served at /wiki/ by server/wikiserve.js): the data file is complete and every link and picture in it points at
-// something that exists, and the file server only hands out files from server/wiki (no ../, no encoded ../, GET/HEAD only). Run by check.sh.
+// something that exists, and the file server only hands out files from server/wiki (no ../, no encoded ../, GET/HEAD only).
+// Also the home page (server/site, https://ninjaonlinereborn.com): home.json matches the wiki data, every picture it uses exists. Run by check.sh.
 const http = require('http'), fs = require('fs'), path = require('path');
 const serve = require('../../server/wikiserve');
 const W = path.join(__dirname, '..', '..', 'server', 'wiki');
@@ -32,6 +33,25 @@ for (const c of D.chapters) for (const p of c.parts) for (const r of p.rounds) {
   for (const f of r.foes) ck(iconOk(f.icon), `stage ${r.name} enemy ${f.name} has a bad icon`);
 }
 ck(D.shinobi.find((c) => c.id === 2106 && (c.get || []).some((w) => w.how === 'Fragments')), 'Kyuubi Naruto (God) should list Fragments as a way to get it');
+
+// ---- the home page ------------------------------------------------------------------------------------------------------------
+{
+  const S = path.join(__dirname, '..', '..', 'server', 'site');
+  const H = JSON.parse(fs.readFileSync(path.join(S, 'home.json'), 'utf8')); // up to date with the wiki: build_wiki.js --check above
+  ck(H.hero.length === 5 && H.featured.length >= 8 && H.chapters.length === D.chapters.length && H.news.length > 0, 'home.json is missing parts');
+  ck(H.counts.shinobi === D.shinobi.length, 'home.json counts differ from the wiki');
+  const pics = new Set();
+  for (const c of H.hero.concat(H.featured)) { pics.add('img/art/' + c.art + '.webp'); ck(ids.shinobi.has(c.id), `home page card ${c.id} is not in the wiki`); }
+  for (const c of H.chapters) pics.add(`img/ch-${c.id}.webp`);
+  const html = fs.readFileSync(path.join(S, 'index.html'), 'utf8'), css = fs.readFileSync(path.join(S, 'site.css'), 'utf8');
+  for (const m of html.matchAll(/src="(img\/[^"]+)"/g)) pics.add(m[1]);
+  for (const m of css.matchAll(/url\((img\/[^)]+)\)/g)) pics.add(m[1]);
+  for (const p of pics) ck(fs.existsSync(path.join(S, p)), `home page picture ${p} is missing (python -I tools/build_site_art.py)`);
+  const SITES = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|discord\.gg|github\.com|ninjaonlinereborn\.com)$/;
+  for (const m of html.matchAll(/(?:href|src|content)="(https?:\/\/[^"/]+)/g)) ck(SITES.test(m[1]), `home page links to an unexpected site: ${m[1]}`);
+  for (const m of html.matchAll(/href="\/wiki\/#\/guides\/([a-z-]+)"/g)) ck(D.guides.some((g) => g.file === m[1]), `home page links a wiki guide that does not exist: ${m[1]}`);
+  ck(html.includes("if (location.hash.indexOf('#/') === 0) location.replace('/wiki/' + location.hash);"), 'home page lost the redirect of old wiki links (/#/shinobi/... -> /wiki/#/...)');
+}
 
 // ---- the file server ----------------------------------------------------------------------------------------------------------
 const srv = http.createServer((req, resp) => {

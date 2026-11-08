@@ -288,13 +288,35 @@ const data = {
   shinobi: strip(shinobi), gear: strip(gear), jutsu: strip(jutsu), seals: strip(seals), pets: strip(pets), items: strip(items), sets,
   chapters, guides, news,
 };
-if (process.argv.includes('--check')) { // check.sh (wiki-test.js): the committed data.json must match the tables, guides and README
+// ---- the home page (server/site, https://ninjaonlinereborn.com): a small file with the numbers, the line-up and the news ----------
+// Pictures: python -I tools/build_site_art.py cuts every "art" below out of re/obb (npc/<art>.pvr.ccz = the card's big picture).
+const SITE = path.join(ROOT, 'server', 'site');
+const HERO = [2091, 2082, 2106, 5010, 2097]; // (ours) the line-up on top, left to right: Itachi, Kakashi, Kyuubi Naruto, Sasuke, Sakura
+const FEATURED = [2106, 5010, 2091, 2082, 2029, 2085, 2097, 2103, 2100, 2030, 2039, 2112, 2078, 2088]; // (ours) the shinobi row
+const pictureOf = new Map(JSON.parse(fs.readFileSync(path.join(ROOT, 'server', 'data', 'ninjainfo.json'), 'utf8')).rows.map((r) => [r[0], r[3]]));
+const card = (id) => {
+  const c = shinobi.find((x) => x.id === id);
+  if (!c || !pictureOf.get(id)) throw new Error('home page card ' + id + ' is not in the wiki or has no picture');
+  return { id, name: c.name, stars: c.stars, kind: c.kind, art: pictureOf.get(id), get: (c.get || []).map((g) => g.how).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3) };
+};
+const home = {
+  counts: { shinobi: shinobi.length, gear: gear.length, jutsu: jutsu.length, seals: seals.length, pets: pets.length, chapters: chapters.length,
+    stages: chapters.reduce((n, c) => n + c.parts.reduce((m, p) => m + p.rounds.length, 0), 0) },
+  hero: HERO.map(card), featured: FEATURED.map(card),
+  chapters: chapters.map((c) => ({ id: c.id, name: c.name })),
+  news: news.slice(0, 4),
+};
+
+if (process.argv.includes('--check')) { // check.sh (wiki-test.js): the committed data.json + home.json must match the tables, guides and README
   const old = (() => { try { return JSON.parse(fs.readFileSync(path.join(OUT, 'data.json'), 'utf8')); } catch { return {}; } })();
-  const same = JSON.stringify({ ...old, built: '' }) === JSON.stringify({ ...data, built: '' });
+  const oldHome = (() => { try { return fs.readFileSync(path.join(SITE, 'home.json'), 'utf8'); } catch { return ''; } })();
+  const same = JSON.stringify({ ...old, built: '' }) === JSON.stringify({ ...data, built: '' }) && oldHome === JSON.stringify(home);
   console.log(same ? 'wiki data is up to date' : 'wiki data is OUT OF DATE: run node tools/build_wiki.js');
   process.exit(same ? 0 : 1);
 }
 fs.writeFileSync(path.join(OUT, 'data.json'), JSON.stringify(data));
+fs.mkdirSync(SITE, { recursive: true });
+fs.writeFileSync(path.join(SITE, 'home.json'), JSON.stringify(home));
 const counts = Object.fromEntries(['shinobi', 'gear', 'jutsu', 'seals', 'pets', 'items', 'sets', 'chapters', 'guides'].map((k) => [k, data[k].length]));
 const noGet = shinobi.filter((c) => !c.get.length).length;
 console.log('wiki data:', JSON.stringify(counts), `${Math.round(fs.statSync(path.join(OUT, 'data.json')).size / 1024)} KB;`, `${noGet} cards with no known source`);
