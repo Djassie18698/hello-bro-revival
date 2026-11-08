@@ -314,7 +314,7 @@ section { position: relative; }
 .player h2 { color: #fff; font-size: 30px; margin-bottom: 16px; }
 .p-team { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .p-team a { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 14px 10px 12px; text-decoration: none; color: var(--text);
-  background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; height: 100%; }
+  background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; flex: 1; }
 .p-team a:hover { border-color: rgba(255, 210, 63, .6); }
 .c-name { font: 400 17px/1.2 var(--display); color: #fff; }
 .c-line { color: var(--mute); font-size: 13.5px; font-weight: 700; }
@@ -322,6 +322,27 @@ section { position: relative; }
 .godtag { font: 400 12px/1 var(--display); color: var(--ink); background: linear-gradient(#fff3a6, #ffc93a); border: 2px solid var(--ink); padding: 3px 6px 2px; border-radius: 6px; }
 .foot .short { color: #9fb0d3; font-size: 14px; font-weight: 700; flex-basis: 100%; margin: 0; }
 .foot .short a { color: #cddbf7; }
+
+/* where the power comes from (player page) */
+.p-from { background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; padding: 18px 18px 14px; margin: 0 0 34px; max-width: 760px; }
+.pf-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.p-from h2 { font-size: 24px; margin: 0; }
+.pf-bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; background: rgba(255, 255, 255, .08); }
+.pf-bar span { display: block; min-width: 2px; }
+.pf-bar span + span { box-shadow: inset 2px 0 0 rgba(9, 18, 40, .55); }
+.pf-list { list-style: none; padding: 0; margin: 14px 0 0; }
+.pf-list li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 46px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, .07); }
+.pf-list i { width: 12px; height: 12px; border-radius: 3px; }
+.pf-l { font-weight: 700; color: #e6eeff; }
+.pf-l small { color: var(--mute); font-weight: 700; }
+.pf-v { font-weight: 800; color: #ffc98a; font-variant-numeric: tabular-nums; text-align: right; }
+.pf-p { color: var(--mute); font-weight: 700; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; }
+.pf-tot { border-top: 2px solid rgba(255, 255, 255, .25) !important; }
+.pf-tot .pf-l, .pf-tot .pf-v { font: 400 19px/1.2 var(--display); color: #fff; }
+.p-team li { display: flex; flex-direction: column; gap: 6px; }
+.c-ch { font-size: 13px; color: var(--mute); padding: 0 6px; }
+.c-ch summary { cursor: pointer; font-weight: 800; color: #ffb0c8; }
+.c-ch ul { margin: 6px 0 0; padding-left: 16px; }
 
 /* ---- smaller screens ---- */
 @media (max-width: 1020px) {

@@ -129,11 +129,33 @@
             <span>Level <b>${p.level}</b></span>${p.rank ? `<span>No. <b>${p.rank}</b> in the No.1 Shinobi list</span>` : ''}</p>
         </header>
         <div class="p-stats"><div><span class="t-lbl">Team attack</span><b>${rng(p.atk)}</b></div><div><span class="t-lbl">Team defence</span><b>${rng(p.def)}</b></div></div>
+        <section class="p-from" aria-labelledby="pf-title">
+          <div class="pf-head"><h2 id="pf-title">Where the power comes from</h2>
+            <div class="graph-tabs" role="group" aria-label="Attack or defence"><button type="button" data-side="atk" aria-pressed="true">Attack</button><button type="button" data-side="def" aria-pressed="false">Defence</button></div></div>
+          <div id="pf-body"></div>
+        </section>
         <h2>Team</h2>
         <ul class="p-team">${p.team.map((c) => `<li><a href="/wiki/#/shinobi/${c.id}">${cardIcon(H, c.id, 80, c.name)}
           <span class="c-name">${esc(c.name.replace(/\s*\(God\)$/, ''))}</span>${starsOf(c.stars)}
           <span class="c-line">Lv ${c.level}${c.breakthrough ? ` · <b>+${c.breakthrough}</b>` : ''}${c.growth ? ` · growth ${c.growth}` : ''}${c.rebirth ? ` · rebirth ${c.rebirth}` : ''}</span>
-          <span class="c-line">ATK ${rng(c.atk)}</span></a></li>`).join('')}</ul>`;
+          <span class="c-line">ATK ${rng(c.atk)}</span></a>${c.chains && c.chains.length ? `<details class="c-ch"><summary>${c.chains.length} chain${c.chains.length > 1 ? 's' : ''} on</summary><ul>${c.chains.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></details>` : ''}</li>`).join('')}</ul>`;
+      // the breakdown: the parts add up to the team number above (server/webapi.js breakdown)
+      const COLORS = { level: '#ffd23f', rebirth: '#ff8a1f', breakthrough: '#ff5f7e', growth: '#7ad36b', training: '#a9b8d8', gear: '#4fb3ff', seals: '#b884ff',
+        ninjutsu: '#2fd3c7', sets: '#6f8dff', chains: '#ffb0c8', cardsets: '#f6a35c', gates: '#e8e05a', title: '#c9a227', pets: '#5ce0a0', other: '#888' };
+      const body = $('#pf-body');
+      const show = (side) => {
+        const parts = (p.from && p.from[side] || []).slice().sort((a, b) => (b.v[0] + b.v[1]) - (a.v[0] + a.v[1]));
+        const all = parts.reduce((t, x) => t + x.v[0] + x.v[1], 0) || 1;
+        const pct = (x) => (x.v[0] + x.v[1]) / all * 100;
+        body.innerHTML = `<div class="pf-bar" role="img" aria-label="${side === 'atk' ? 'Attack' : 'Defence'} split">${parts.map((x) => `<span style="width:${pct(x).toFixed(2)}%;background:${COLORS[x.key] || '#888'}" title="${esc(x.label)}"></span>`).join('')}</div>
+          <ol class="pf-list">${parts.map((x) => `<li><i style="background:${COLORS[x.key] || '#888'}" aria-hidden="true"></i><span class="pf-l">${esc(x.label)}${x.key === 'gates' && p.gates ? ` <small>(${p.gates} points opened)</small>` : ''}</span>
+            <span class="pf-v">+${rng(x.v)}</span><span class="pf-p">${pct(x) < 1 ? '<1' : Math.round(pct(x))}%</span></li>`).join('')}
+            <li class="pf-tot"><i aria-hidden="true"></i><span class="pf-l">Total</span><span class="pf-v">${rng(p[side])}</span><span class="pf-p">100%</span></li></ol>`;
+      };
+      page.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => {
+        page.querySelectorAll('[data-side]').forEach((o) => o.setAttribute('aria-pressed', String(o === b))); show(b.dataset.side);
+      }));
+      show('atk');
       sparkle(page);
     }).catch((e) => {
       page.innerHTML = e === 404

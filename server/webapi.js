@@ -47,6 +47,60 @@ function top(db) {
   });
 }
 
+// Where a team's attack and defence come from (owner, 8 Nov 2026: "where the damage is coming from. Eight gate, beasts, etc"). Walks the
+// same steps as game.teamStats (teamSlots per card, then teamTotals for the whole team) and keeps what each step added, so the parts add
+// up exactly to the number the game shows. Per card: level stats, rebirth, god breakthrough, sage growth, training points (game.ninjaStats
+// with one field switched on at a time), then each worn piece in the order teamSlots applies it (gear adds, seals and ninjutsu multiply),
+// gear / ninjutsu sets, chains. Whole team: card sets, Eight Gates, the W.A. title, pets.
+const PARTS = [['level', 'Card level and stars'], ['rebirth', 'Rebirth'], ['breakthrough', 'God breakthrough'], ['growth', 'Sage growth'], ['training', 'Training points'],
+  ['gear', 'Gear'], ['seals', 'Seals'], ['ninjutsu', 'Ninjutsu'], ['sets', 'Gear and ninjutsu sets'], ['chains', 'Chains'],
+  ['cardsets', 'Card sets'], ['gates', 'Eight Gates'], ['title', 'W.A. title'], ['pets', 'Pets'], ['other', 'Other']];
+function breakdown(db, uid, sid) {
+  const K = game.KEYS || ['al', 'ah', 'dl', 'dh', 'cl', 'ch'];
+  const zero = () => Object.fromEntries(K.map((k) => [k, 0]));
+  const acc = Object.fromEntries(PARTS.map(([k]) => [k, zero()]));
+  const put = (part, before, after) => { for (const k of K) acc[part][k] += (after[k] || 0) - (before[k] || 0); };
+  // the same rows as game.teamStats
+  const team = db.prepare('SELECT t.slot, c.* FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? ORDER BY t.slot').all(uid, sid);
+  const eqRows = db.prepare('SELECT e.slot, e.kind, c.* FROM equipped e JOIN cards c ON c.seq=e.seq WHERE e.uid=? AND e.server_id=?').all(uid, sid);
+  const owned = new Set(db.prepare('SELECT DISTINCT ninja_id FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid).map((r) => r.ninja_id));
+  const slots = game.teamSlots(team, eqRows, owned);
+  const chainsOn = [];
+  team.forEach((c, i) => {
+    const steps = [{ ...c, newlife: 0, breaklvl: 0, starlevel: 0, pot_att: 0, pot_def: 0, pot_ckr: 0 }];
+    steps.push({ ...steps[0], newlife: c.newlife }); steps.push({ ...steps[1], breaklvl: c.breaklvl }); steps.push({ ...steps[2], starlevel: c.starlevel }); steps.push(c);
+    let st = game.ninjaStats(steps[0]);
+    put('level', zero(), st);
+    ['rebirth', 'breakthrough', 'growth', 'training'].forEach((part, n) => { const next = game.ninjaStats(steps[n + 1]); put(part, st, next); st = next; });
+    const mine = eqRows.filter((x) => x.slot === i + 1);
+    for (const e of mine) { // teamSlots' order and maths
+      const next = e.type === 5 ? game.sealBonus(st, e.ninja_id) : e.type === 6 ? game.ninjutsuBonus(st, e.ninja_id) : game.addStats(st, game.equipStats(e));
+      put(e.type === 5 ? 'seals' : e.type === 6 ? 'ninjutsu' : 'gear', st, next); st = next;
+    }
+    const next = game.setBonus(st, game.skillSets(mine)); put('sets', st, next); st = next;
+    const s = slots[i] || {};
+    for (const k of K) acc.chains[k] += (s.chain && s.chain[k]) || 0;
+    const after = game.addStats(st, s.chain || {});
+    for (const k of K) acc.other[k] += (s[k] || 0) - (after[k] || 0); // 0 unless teamSlots changes
+    if ((s.active || []).length) chainsOn.push({ id: s.ninja_id, name: cardName(s.ninja_id), chains: s.active.map((id) => chainText(id)).filter(Boolean) });
+  });
+  // whole team: the same steps as game.teamTotals
+  const tt = game.teamTotals(db, uid, sid, slots);
+  let tot = slots.reduce((a, s) => game.addStats(a, s), {});
+  const cs = game.addStats(tot, tt.bonus || {}); put('cardsets', tot, cs); tot = cs;
+  const gb = game.gateBonus(game.gateLevel(db, uid, sid));
+  if (gb.flat) { const g = {}; for (const k of K) g[k] = gb.flat + Math.round((tot[k] || 0) * gb.pct); const t2 = game.addStats(tot, g); put('gates', tot, t2); tot = t2; }
+  const medal = game.table('playemedal').rows.find((r) => r[0] === game.meritLevel(db, uid, sid));
+  if (medal) { const t2 = game.addStats(tot, { al: medal[3], ah: medal[4], dl: medal[5], dh: medal[6], cl: medal[7], ch: medal[8] }); put('title', tot, t2); tot = t2; }
+  const pb = require('./pet').teamBonus(db, uid, sid);
+  const t3 = game.addStats(tot, { al: pb.attack, ah: pb.attack, dl: pb.defense, dh: pb.defense, cl: pb.chakala, ch: pb.chakala }); put('pets', tot, t3); tot = t3;
+  for (const k of K) acc.other[k] += (tt.total[k] || 0) - (tot[k] || 0); // anything teamTotals adds that this walk does not know (0 today)
+  const side = (lo, hi) => PARTS.map(([key, label]) => ({ key, label, v: range(acc[key][lo], acc[key][hi]) })).filter((p) => p.v[0] || p.v[1]);
+  return { atk: side('al', 'ah'), def: side('dl', 'dh'), chains: chainsOn, gateLevel: game.gateLevel(db, uid, sid), total: tt.total };
+}
+let chainTexts = null;
+const chainText = (id) => { if (!chainTexts) chainTexts = new Map(game.table('ninjamatch').rows.map((r) => [r[0], String(r[4] || '').trim()])); return chainTexts.get(id) || ''; };
+
 function player(db, name) {
   const want = clean(name).slice(0, 32);
   if (!want) return null;
@@ -54,16 +108,18 @@ function player(db, name) {
     const pl = db.prepare("SELECT uid, nick, level FROM players WHERE server_id=? AND nick<>'' AND lower(nick)=lower(?) ORDER BY level DESC LIMIT 1").get(WORLD, want);
     if (!pl) return null;
     const ts = game.teamStats(db, pl.uid, WORLD);
+    const bd = breakdown(db, pl.uid, WORLD);
     const card = db.prepare('SELECT breaklvl, starlevel, newlife FROM cards WHERE seq=?');
     const team = ts.slots.map((s) => {
       const c = card.get(s.seq) || {};
       const n = game.ninjas().get(s.ninja_id) || [];
       return { id: s.ninja_id, name: cardName(s.ninja_id), stars: n[11] || 0, level: s.level || 1, breakthrough: c.breaklvl || 0, growth: c.starlevel || 0,
-        rebirth: c.newlife || 0, atk: range(s.al, s.ah), def: range(s.dl, s.dh) };
+        rebirth: c.newlife || 0, atk: range(s.al, s.ah), def: range(s.dl, s.dh), chains: (s.active || []).map(chainText).filter(Boolean) };
     });
     const rank = ranked(db).findIndex((r) => r.uid === pl.uid) + 1;
     return { name: clean(pl.nick), level: pl.level, vip: vip.shown(vip.level(db, pl.uid, WORLD)), rank, glow: glowOf(names.styles(db), pl.uid),
-      atk: range(ts.total.al, ts.total.ah), def: range(ts.total.dl, ts.total.dh), team };
+      atk: range(ts.total.al, ts.total.ah), def: range(ts.total.dl, ts.total.dh), gates: bd.gateLevel,
+      from: { atk: bd.atk, def: bd.def }, team };
   });
 }
 

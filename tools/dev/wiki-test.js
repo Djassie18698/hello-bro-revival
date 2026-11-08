@@ -25,6 +25,9 @@ const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
   const pl = web.player(db, 'webby');
   ck(pl && pl.name === 'Webby' && pl.team.length >= 1 && pl.vip >= 0 && pl.vip <= 18 && pl.rank === 1, 'api player: ' + JSON.stringify(pl));
   ck(web.player(db, '') === null && web.player(db, 'nobody here') === null, 'api player: an unknown name must give nothing');
+  // where the power comes from: the parts add up exactly to the team numbers
+  for (const side of ['atk', 'def']) { const sum = (pl.from[side] || []).reduce((a, x) => [a[0] + x.v[0], a[1] + x.v[1]], [0, 0]);
+    ck(sum[0] === pl[side][0] && sum[1] === pl[side][1] && !(pl.from[side] || []).some((x) => x.key === 'other'), `api player: the ${side} parts ${sum} do not add up to ${pl[side]}`); }
   const priv = JSON.stringify([web.top(db), pl, web.today(db)]);
   ck(!/"(uid|account|session|device|email|password|ip)"/i.test(priv) && !/70001/.test(priv), 'api: private fields leak: ' + priv.slice(0, 200));
   const t = web.today(db);

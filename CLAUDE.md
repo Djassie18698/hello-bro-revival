@@ -225,7 +225,7 @@ wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the 
 - **Design notes (Impeccable, 8 Nov 2026):** `server/PRODUCT.md` = who the site is for, its main goal (download and play), voice (plain words, never AI-template copy), constraints and what must never be invented. Impeccable design commands (`/impeccable ...`) read it; `server/.impeccable/` holds their config. Not served by Caddy; `update.sh` skips the game restart for `server/*.md` and `server/.impeccable`.
 - **Live parts (8 Nov 2026 late, owner's 8-idea project via the main session):** home page section `#live` = Strongest players (top 10, glowing names glow and
   sparkle like in the game), Today in the game (god card of the hour, free ramen 12-14 / 18-20, energy 22:00, events running; server clock + the visitor's own time),
-  Players online graph (24 h / 7 days); player pages `/p/<name>` (VIP badge pictures `img/ui/vip-0..18.webp`, team cards with the wiki's icons via `home.json` `icons`);
+  Players online graph (24 h / 7 days); player pages `/p/<name>` ("Where the power comes from": webapi.js breakdown(), parts add up exactly; VIP badge pictures `img/ui/vip-0..18.webp`, team cards with the wiki's icons via `home.json` `icons`);
   wiki `#/calculator` (team calculator, state in the address). All in `live.js` + `server/webapi.js`; checks in `tools/dev/wiki-test.js`. `robots.txt` + `sitemap.xml` in
   server/site. Waiting on the owner: Namecheap e-mail forwarding (contact@) and the Google Search Console TXT record (click steps given, he does them).
 - **Look before shipping:** `bash tools/dev/restart.sh` (dev server, for /status) + `node tools/dev/site-preview.js` → http://127.0.0.1:18090/ and /wiki/.
