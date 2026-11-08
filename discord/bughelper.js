@@ -6,7 +6,8 @@
 // (a scheduled Claude Code task, see CLAUDE.md section 2) picks it up there, fixes it and answers in the thread.
 // Without a working key (it expired, ran out, or the API is down) it asks with a fixed checklist instead and forwards the thread
 // once the player answered (or after a day).
-// The owner's posts (OWNER_IDS), replies to other posts and bot posts are left alone; it only ever writes in threads it opened
+// The owner's posts (OWNER_IDS), replies to other posts and bot posts are left alone (an owner post that starts with "test" is handled like a
+// player's, to try the bot out: its report in #bot-logs is marked TEST and has no report-id, so the fixer skips it); it only ever writes in threads it opened
 // and in #bot-logs, never pings anyone (allowed_mentions none) and never posts text that looks like a secret or an IP address.
 // Settings in discord/.env: BUG_HELPER=0 (off), BUG_CHANNEL (bugs-and-issues), BUG_STAFF_CHANNEL (bot-logs),
 // BUG_MODEL (claude-opus-5-5), BUG_DAILY_CALLS (150 Claude calls a day at most), BUG_STATE (state file).
@@ -114,13 +115,13 @@ async function decide(client, model, messages) {
 
 function reportText(t, r, link, missingAnswer) {
   const line = (k, v) => (v && String(v).trim() ? `• **${k}:** ${String(v).trim()}\n` : '');
-  const head = r.kind === 'wish' ? '💡 **Wish**' : '🐞 **Bug report**';
+  const head = (t.test ? '🧪 **TEST** (the owner trying the bot, not for fixing) ' : '') + (r.kind === 'wish' ? '💡 **Wish**' : '🐞 **Bug report**');
   return `${head} from #bugs-and-issues (${t.name})\n**${(r.title || t.title || 'untitled').trim()}**\n` +
     line('Where', r.where) + line('What happened', r.what_happened) + line('Expected', r.expected) +
     line('Steps', r.steps) + line('Every time', r.every_time) + line('Character', r.character) + line('Server', r.server) +
     line('Device', r.device) + line('Screenshots', (t.shots || []).join(' ')) + line('Notes', r.notes) +
     (missingAnswer ? '• _The player did not answer the last questions; this is what is known._\n' : '') +
-    `Thread: ${link}\nreport-id: ${t.id} · post-id: ${t.post}`;
+    `Thread: ${link}` + (t.test ? '' : `\nreport-id: ${t.id} · post-id: ${t.post}`);
 }
 
 function createHelper({ call, client, env = process.env, now = () => Date.now(), log = (m) => console.log('[bughelper] ' + m), state = {} }) {
@@ -199,12 +200,13 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     const posts = (await call('GET', `/channels/${bugId}/messages?after=${state.last}&limit=50`)).sort(byId);
     for (const p of posts) {
       if (newer(p.id, state.last)) state.last = p.id;
-      if (!p.author || p.author.bot || owners.has(p.author.id) || p.type !== 0 || p.thread || p.message_reference) continue;
+      const test = !!(p.author && owners.has(p.author.id) && /^\s*test\b/i.test(p.content || '')); // the owner trying it out
+      if (!p.author || p.author.bot || (owners.has(p.author.id) && !test) || p.type !== 0 || p.thread || p.message_reference) continue;
       if (!String(p.content || '').trim() && !(p.attachments || []).length) continue;
       const name = ('Bug: ' + (p.content || 'screenshot').replace(/\s+/g, ' ')).slice(0, 90);
       let th;
       try { th = await call('POST', `/channels/${bugId}/messages/${p.id}/threads`, { name, auto_archive_duration: 1440 }); } catch (e) { log(`could not open a thread on ${p.id}: ${e.message}`); continue; }
-      const t = state.threads[th.id] = { id: th.id, post: p.id, author: p.author.id, name: who(p), title: name.slice(5), started: now(), questions: 0, done: false };
+      const t = state.threads[th.id] = { id: th.id, post: p.id, author: p.author.id, name: who(p), title: name.slice(5), started: now(), questions: 0, done: false, test };
       log(`new report ${p.id} by ${t.name}: thread ${th.id}`);
       await handle(t);
     }

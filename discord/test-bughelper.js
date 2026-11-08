@@ -150,6 +150,17 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
     ok(/Wish/.test(reportText({ name: 'Kid', id: '9' }, rep({ kind: 'wish' }), 'x')), 'wishes are labelled');
   }
 
+  // 5. the owner trying it out: a post starting with "test" is handled, its report is marked TEST and has no report-id (the fixer skips it)
+  {
+    const d = fakeDiscord();
+    const h = createHelper({ call: d.call, client: fakeClaude([{ action: 'complete', reply: 'Thanks!', report: rep() }]), env: { OWNER_IDS: 'own' }, log: () => {} });
+    await h.init();
+    d.ch.bugs.push(d.msg({ id: 'own', username: 'bakeddean' }, 'Test: the arena button does nothing'));
+    await h.tick();
+    const log = d.ch.logs[0];
+    ok(Object.keys(d.threads).length === 1 && log && /TEST/.test(log.content) && !/report-id/.test(log.content), 'owner test post: thread + TEST report without report-id');
+  }
+
   console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety)');
   process.exit(bad ? 1 : 0);
 })().catch((e) => { console.log('CRASH', e.stack); process.exit(1); });
