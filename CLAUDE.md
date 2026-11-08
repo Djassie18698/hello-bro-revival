@@ -178,7 +178,7 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
 **What it is.** A home page (the owner loved https://platinumtogether.online: big game scene, chunky logo, big Play button) at `/`, and the
 wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the game files, numbers and names from its tables.
 - **Home page** `server/site/`: hero (the game's blue moon with crows, falling petals on a canvas, five god cards bobbing: Itachi, Kakashi,
-  Kyuubi Naruto, Sasuke, Sakura; logo = the owner's NINJA ONLINE picture `img/logo-ninjaonline.webp` (8 Nov; source with black background: owner's PicturesNinja Online Logo.png, made see-through + 1100 px WebP) with the text REBORN under it; Play + Join Discord; live line
+  Kyuubi Naruto, Sasuke, Sakura; logo = the owner's NINJA ONLINE picture `img/logo-ninjaonline.webp` (8 Nov; source with black background: owner's Pictures/Ninja Online Logo.png, made see-through + 1100 px WebP) with the text REBORN under it; Play + Join Discord; live line
   "Server online · N ninjas playing now · M ninjas so far" from `/status`), "The game" (Hello Bro logo, counts), Features (6 tiles + the 7
   original event posters), Shinobi (14 god cards → wiki pages), Screenshots (5 emulator shots), Story (19 chapter banners sliding, → wiki
   training pages), How to play (download `HelloBro-ninjaonline.xapk` from the release, install guide, Discord), News (README's newest 4), footer.
