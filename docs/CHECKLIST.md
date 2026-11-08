@@ -16,6 +16,10 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
 - [ ] **Cloud server safety:** Oracle can take back an idle "Always Free" machine. Switching the account to "Pay As You Go" (stays free)
       with a budget alert prevents that. Ask me for the steps when you want it.
 
+### Website (when you have 10 minutes)
+- [ ] **E-mail address** contact@ninjaonlinereborn.com that lands in your Gmail: Namecheap's free Email Forwarding (the website session gave you the click steps).
+- [ ] **Google Search Console:** prove the site is yours with one DNS record at Namecheap, so Google lists it (click steps from the website session).
+
 ### Keep doing
 - [ ] Play and write down anything odd. Put it in **GitHub issue #6** (bug list 5) or tell me in chat. A screenshot helps.
 - [ ] Look in Discord **#bugs-and-issues** and **#support** now and then. I read them too when you ask me to, and the bot replies to

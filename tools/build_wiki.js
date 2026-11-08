@@ -305,6 +305,9 @@ const home = {
   hero: HERO.map(card), featured: FEATURED.map(card),
   chapters: chapters.map((c) => ({ id: c.id, name: c.name })),
   news: news.slice(0, 4),
+  // card pictures for the live parts (top 10, player pages, god card of the hour): the wiki's shinobi icon sheet, by card id
+  icons: { cell: icons.cell, cols: icons.cols, sheet: '/wiki/img/' + icons.sheets.n.file, rows: icons.sheets.n.rows,
+    cards: Object.fromEntries(shinobi.filter((c) => c.icon && c.icon.startsWith('n:')).map((c) => [c.id, Number(c.icon.slice(2))])) },
 };
 
 if (process.argv.includes('--check')) { // check.sh (wiki-test.js): the committed data.json + home.json must match the tables, guides and README

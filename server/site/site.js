@@ -18,7 +18,7 @@
   addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
 
   // ---- the page's data ----
-  fetch('home.json').then((r) => r.json()).then((H) => {
+  if ($('#lineup')) fetch('home.json').then((r) => r.json()).then((H) => {
     document.querySelectorAll('[data-count]').forEach((el) => { const v = H.counts[el.dataset.count]; if (v) el.textContent = num(v); });
 
     $('#lineup').innerHTML = H.hero.map((c, i) => `<a class="char in-${i}" href="${wiki(c.id)}" aria-label="${esc(c.name)}">
@@ -41,7 +41,7 @@
 
   // ---- live server status (only where Caddy passes /status through: the public site) ----
   const box = $('#status'), txt = $('#status-text');
-  const status = () => fetch('/status', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject())).then((s) => {
+  const status = () => !box ? Promise.resolve() : fetch('/status', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject())).then((s) => {
     if (!s || !s.ok) throw 0;
     box.hidden = false; box.className = 'status on';
     const on = Number(s.online) || 0, all = Number(s.players) || 0;

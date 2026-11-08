@@ -226,3 +226,43 @@ table.t .r { text-align: right; white-space: nowrap; }
   .filters label { flex: 1 1 130px; }
   .results { position: fixed; left: 12px; right: 12px; top: 60px; }
 }
+
+/* ---- team calculator (#/calculator) ---- */
+.calc { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 18px; align-items: start; margin-top: 16px; }
+.cslots { display: grid; gap: 14px; }
+.cslot { position: relative; margin: 0; padding: 14px 16px 16px; min-width: 0; }
+.cslot legend { display: flex; align-items: center; gap: 8px; padding: 0 6px; font: 500 15px Kanit, sans-serif; color: var(--ink-2); }
+.cdel { position: absolute; top: 8px; right: 10px; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink-3); font-size: 20px; line-height: 1; cursor: pointer; }
+.cdel:hover { color: var(--red); border-color: var(--red); }
+.crow { display: flex; flex-wrap: wrap; gap: 10px 12px; margin-top: 10px; }
+.cf { display: grid; gap: 3px; font-size: 13px; color: var(--ink-3); font-weight: 600; min-width: 0; }
+.cf.wide { flex: 1 1 100%; }
+.cf.gear { flex: 1 1 150px; }
+.cf input, .cf select { font: 600 15px 'Nunito Sans', sans-serif; color: var(--ink); background: var(--paper); border: 1px solid var(--line-2); border-radius: 8px; padding: 7px 9px; min-width: 0; width: 100%; }
+.cf input[type="number"] { width: 84px; }
+.cf input:focus, .cf select:focus { outline: 2px solid var(--orange); outline-offset: 1px; }
+.cside { position: sticky; top: 76px; display: grid; gap: 10px; justify-items: start; }
+.cres { padding: 16px 18px; width: 100%; }
+.cres h2 { margin: 0 0 8px; }
+.ctot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 12px; }
+.ctot div { background: var(--paper-2); border-radius: 8px; padding: 8px 10px; }
+.ctot dt { font-size: 12px; color: var(--ink-3); font-weight: 700; }
+.ctot dd { margin: 2px 0 0; font: 500 17px Kanit, sans-serif; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cone { border-top: 1px dashed var(--line-2); padding: 10px 0 6px; }
+.cone h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; }
+.cone h3 small { color: var(--ink-3); font-weight: 600; }
+.cst { margin: 4px 0; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.con { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--green); }
+.cno, .cset { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-3); }
+.cset { color: var(--blue); }
+@media (max-width: 900px) {
+  .calc { grid-template-columns: 1fr; }
+  .cside { position: static; }
+}
+.cbar { display: none; }
+@media (max-width: 900px) {
+  .cbar:not([hidden]) { display: flex; gap: 8px; align-items: center; justify-content: center; position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 30;
+    padding: 12px 14px; border: 0; border-radius: 12px; background: var(--wood); color: var(--wood-ink); font: 500 15px Kanit, sans-serif; box-shadow: 0 8px 20px rgba(0, 0, 0, .35); cursor: pointer; font-variant-numeric: tabular-nums; }
+  .cbar b { color: var(--gold); font-weight: 500; }
+  .calc { padding-bottom: 64px; }
+}

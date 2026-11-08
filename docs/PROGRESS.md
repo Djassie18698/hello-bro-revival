@@ -120,6 +120,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 
 | | What |
 |---|---|
+| ⏳ | Website project (8 Nov, owner: "make it a full project"): short links /download /install /discord /play, top 10 players with glowing names, player pages, Today in the game, players-online graph, team calculator in the wiki, robots.txt + sitemap. Built and checked locally; live after the cloud update. E-mail forwarding and Google Search Console need the owner's clicks at Namecheap / Google |
 | ✅ | Control panel: Server, Players & items, Team builder in one site |
 | ✅ | Server Manager: who's online, events on/off, top banner, announcement, backups, restart |
 | ✅ | Admin: give anything, edit levels / rebirth / growth / item amounts, Unlock everything, reset |

@@ -30,6 +30,8 @@ FIXED += [(f'ui/{n}', f'com_res/{sheet}.png', fr, 2000, 92) for n, sheet, fr in 
     ('el-fire', 'Resident', 'com_text_fire_big_icon'), ('el-water', 'Resident', 'com_text_water_big_icon'),
     ('el-wind', 'Resident', 'com_text_wind_big_icon'), ('el-thunder', 'Resident', 'com_text_thunder_big_icon'),
     ('el-soil', 'Resident', 'com_text_soild_big_icon'), ('el-god', 'Resident', 'com_text_god_big_icon')]]
+# VIP badges for the player pages (66 x 33): vip_003-vip_014 = VIP1-12, vip_015 = VIP0, vip_s_13-18 = VIP13-18
+FIXED += [(f'ui/vip-{n}', 'com_res/Resident_2.png', 'vip_015' if n == 0 else f'vip_{n + 2:03d}' if n <= 12 else f'vip_s_{n}', 200, 92) for n in range(19)]
 
 
 def ffmpeg():

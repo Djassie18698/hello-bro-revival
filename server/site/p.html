@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Player · Ninja Online Reborn</title>
+<meta name="description" content="A player on the Ninja Online Reborn server: level, team and power.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#091228">
+<script>
+  // the wiki lived on this address for one evening (8 Nov 2026): old links like /#/shinobi/2106 now open it at /wiki/
+  if (location.hash.indexOf('#/') === 0) location.replace('/wiki/' + location.hash);
+  document.documentElement.className += ' js';
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 2l7 23 23 7-23 7-7 23-7-23-23-7 23-7z' fill='%23ff8a1f' stroke='%233a1405' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%233a1405'/%3E%3C/svg%3E">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-star" viewBox="0 0 64 64"><path d="M32 2l7 23 23 7-23 7-7 23-7-23-23-7 23-7z"/><circle cx="32" cy="32" r="6" fill="var(--hole, #3a1405)"/></symbol>
+  <symbol id="i-discord" viewBox="0 0 24 24"><path fill="currentColor" d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18a19.8 19.8 0 0 0 6 3l1.3-2.1a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1L18 21a19.7 19.7 0 0 0 6-3c.5-5.1-.8-9.6-3.7-13.6zM8 15.3c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.5 8 10.5s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path fill="currentColor" d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5a.5.5 0 0 0 0 1H20v3H6.5A2.5 2.5 0 0 1 4 19.5z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path fill="currentColor" d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to the page</a>
+
+<header class="top" id="top">
+  <a class="mark" href="/" aria-label="Ninja Online Reborn, top of the page">
+    <svg class="mark-star" aria-hidden="true"><use href="#i-star"/></svg>
+    <span><b>NINJA ONLINE</b><i>REBORN</i></span>
+  </a>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="/wiki/">Wiki</a>
+    <a href="/#live">Top players</a>
+    <a href="/#shinobi">Shinobi</a>
+    <a href="/#play">How to play</a>
+    <a href="/#news">News</a>
+    <a href="https://discord.gg/2Cbp4UDHrU" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="/#i-discord"/></svg>Discord</a>
+  </nav>
+  <button class="menu" id="menu" aria-expanded="false" aria-controls="nav">Menu</button>
+</header>
+
+<main id="main" class="ppage">
+  <div class="wrap">
+    <a class="back" href="/#live">← Top players</a>
+    <article class="player" id="player" aria-live="polite"><p class="wait">Loading…</p></article>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <a class="mark" href="/" aria-label="Home page">
+      <svg class="mark-star" aria-hidden="true"><use href="#i-star"/></svg>
+      <span><b>NINJA ONLINE</b><i>REBORN</i></span>
+    </a>
+    <nav aria-label="More">
+      <a href="/wiki/">Wiki</a>
+      <a href="/wiki/#/guides/install-help">Install guide</a>
+      <a href="https://discord.gg/2Cbp4UDHrU" target="_blank" rel="noopener">Discord</a>
+      <a href="https://github.com/Djassie18698/hello-bro-revival" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-gh"/></svg>GitHub</a>
+    </nav>
+    <p class="short">Short links: <a href="/download">ninjaonlinereborn.com/download</a> · <a href="/install">/install</a> · <a href="/discord">/discord</a></p>
+    <p>A free fan revival of Hello Bro / Ninja Online (2015), made by its players.</p>
+  </div>
+</footer>
+
+<script src="/site.js"></script>
+<script src="/live.js"></script>
+</body>
+</html>

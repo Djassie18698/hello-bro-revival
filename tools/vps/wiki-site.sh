@@ -32,11 +32,30 @@ $WIKI_HOST {
 	header X-Content-Type-Options nosniff
 	@pictures path /img/* /wiki/img/*
 	header @pictures Cache-Control "public, max-age=86400"
-	@text not path /img/* /wiki/img/* /status
+	@text not path /img/* /wiki/img/* /status /api/*
 	header @text Cache-Control "no-cache"
 	# live numbers for the home page (version, start time, players online); the game server counts each visitor by X-Forwarded-For
 	handle /status {
 		reverse_proxy 127.0.0.1:18080
+	}
+	# short links (home page footer, Discord guides)
+	@discord path /discord /discord/
+	redir @discord https://discord.gg/2Cbp4UDHrU 302
+	@download path /download /download/
+	redir @download https://github.com/Djassie18698/hello-bro-revival/releases/download/tailscale-play/HelloBro-ninjaonline.xapk 302
+	@install path /install /install/
+	redir @install /wiki/#/guides/install-help 302
+	@play path /play /play/
+	redir @play /#play 302
+	# public read-only data from the game server (server/webapi.js): top 10, player pages, today in the game, players-online graph, team calculator
+	handle /api/* {
+		reverse_proxy 127.0.0.1:18080
+	}
+	# player pages: every /p/<name> is the one page p.html, which reads the name from the address
+	handle /p/* {
+		root * $DIR/server/site
+		rewrite * /p.html
+		file_server
 	}
 	redir /wiki /wiki/ 308
 	handle_path /wiki/* {

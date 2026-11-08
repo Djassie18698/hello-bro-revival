@@ -7,6 +7,60 @@ const W = path.join(__dirname, '..', '..', 'server', 'wiki');
 let bad = 0;
 const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
 
+// ---- the website's live data (server/webapi.js, /api/* through Caddy) and its site files ----------------------------------------
+{
+  const { DatabaseSync } = require('node:sqlite');
+  const db = new DatabaseSync(':memory:');
+  require('../../server/schema')(db);
+  const handlers = require('../../server/handlers');
+  const game = require('../../server/game');
+  const web = require('../../server/webapi');
+  const p = (uid, extra) => ({ Uid: String(uid), Session: 'web' + uid, ServerID: '1', GroupID: '2', ...extra });
+  handlers.rl_w_login2({ db, params: p(70001), host: 'localhost', method: 'POST', body: '' });
+  handlers.rl_w_reg2({ db, params: p(70001, { Nick: 'Webby', Card: 1 }), host: 'localhost', method: 'POST', body: '' });
+  require('../../server/specialnames').set(db, 70001, 'Webby', 'ffd23f', 'sparkle');
+  const top = web.top(db).top;
+  ck(top.length === 1 && top[0].name === 'Webby' && top[0].rank === 1 && top[0].atk[1] > 0, 'api top: ' + JSON.stringify(top));
+  ck(top[0] && top[0].glow && top[0].glow.color === 'ffd23f' && top[0].glow.effect === 'sparkle', 'api top: the glowing name is missing');
+  const pl = web.player(db, 'webby');
+  ck(pl && pl.name === 'Webby' && pl.team.length >= 1 && pl.vip >= 0 && pl.vip <= 18 && pl.rank === 1, 'api player: ' + JSON.stringify(pl));
+  ck(web.player(db, '') === null && web.player(db, 'nobody here') === null, 'api player: an unknown name must give nothing');
+  const priv = JSON.stringify([web.top(db), pl, web.today(db)]);
+  ck(!/"(uid|account|session|device|email|password|ip)"/i.test(priv) && !/70001/.test(priv), 'api: private fields leak: ' + priv.slice(0, 200));
+  const t = web.today(db);
+  ck(t.god && t.god.id && t.ramen.length && t.energyRefill === 22 && Array.isArray(t.running), 'api today: ' + JSON.stringify(t).slice(0, 200));
+  // calculator = the game's own team maths for the same picks
+  const calc = web.calc('n2106.50.3.6.2,e1.50,m5,j48|n57.40');
+  const ref = game.teamSlots([{ seq: 1, ninja_id: 2106, level: 50, breaklvl: 3, starlevel: 6, attri: 2, newlife: 0 }, { seq: 2, ninja_id: 57, level: 40, breaklvl: 0, starlevel: 0, attri: 1, newlife: 0 }],
+    [{ slot: 1, seq: 0, ninja_id: 1, type: 2, level: 50, newlife: 0 }, { slot: 1, seq: 0, ninja_id: 5, type: 5 }, { slot: 1, seq: 0, ninja_id: 48, type: 6 }], null);
+  ck(calc.slots.length === 2 && calc.slots[0].atk[0] === Math.round(ref[0].al) && calc.slots[1].def[1] === Math.round(ref[1].dh) && calc.total.atk[0] === Math.round(ref[0].al) + Math.round(ref[1].al),
+    'api calc differs from game.teamSlots: ' + JSON.stringify(calc.total));
+  for (const junk of ['', '|||', 'n999999.50', 'nabc', 'x1,y2', 'n2106.99999.99.99.99.99', Array(60).fill('n57.1').join('|'), 'n57,e1,e1,e1,e1,e1,j48,j48,j48,j48,j48,m5,m5']) {
+    let r = null; try { r = web.calc(junk); } catch (e) { r = null; }
+    ck(r && r.slots.length <= 26 && r.slots.every((x) => x.level <= game.cardMaxLevel(1)), 'api calc does not cope with ' + junk.slice(0, 40));
+  }
+  // the HTTP route: GET only, JSON, unknown paths 404
+  const call = (method, url) => { let code = 0, body = '', head = {}; const resp = { writeHead: (c, h) => { code = c; head = h; }, end: (b) => { body = b || ''; } };
+    web.handle({ method }, resp, require('url').parse(url, true), db); return { code, body, head }; };
+  const g = call('GET', '/api/top');
+  ck(g.code === 200 && /application\/json/.test(g.head['Content-Type']) && JSON.parse(g.body).top, 'GET /api/top gave ' + g.code);
+  ck(call('POST', '/api/top').code === 405, 'POST /api/top must be refused');
+  ck(call('GET', '/api/nothing').code === 404 && call('GET', '/api/player?name=zzz').code === 404, '/api unknown should be 404');
+  ck(call('GET', '/api/online?days=7').code === 200, 'GET /api/online gave an error');
+  db.close();
+  // site files: short links in the Caddy script, search-engine files, the player page and live script, the calculator in the wiki
+  const site = (n) => fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'site', n), 'utf8');
+  const caddy = fs.readFileSync(path.join(__dirname, '..', 'vps', 'wiki-site.sh'), 'utf8');
+  for (const l of ['/discord', '/download', '/install', '/play']) ck(new RegExp('@\\w+ path ' + l + ' ').test(caddy), 'short link ' + l + ' is missing in wiki-site.sh');
+  ck(/handle \/api\/\* \{\s*reverse_proxy 127\.0\.0\.1:18080/.test(caddy) && /rewrite \* \/p\.html/.test(caddy), 'wiki-site.sh lost the /api or /p/ route');
+  ck(/Sitemap: https:\/\/ninjaonlinereborn\.com\/sitemap\.xml/.test(site('robots.txt')) && /Disallow: \/api\//.test(site('robots.txt')), 'robots.txt is incomplete');
+  ck(/<loc>https:\/\/ninjaonlinereborn\.com\/wiki\/<\/loc>/.test(site('sitemap.xml')), 'sitemap.xml lacks the wiki');
+  ck(!/naruto|konoha/i.test((site('index.html').match(/<title>[^<]*<\/title>/) || [''])[0]), 'the home page title must not say Naruto or Konoha');
+  ck(/id="player"/.test(site('p.html')) && /src="\/live\.js"/.test(site('p.html')) && /src="live\.js"/.test(site('index.html')) && /id="top10"/.test(site('index.html')), 'player page or live section is missing');
+  for (let n = 0; n <= 18; n++) ck(fs.existsSync(path.join(__dirname, '..', '..', 'server', 'site', 'img', 'ui', 'vip-' + n + '.webp')), 'VIP badge ' + n + ' is missing');
+  ck(/calcPage\(q\)/.test(fs.readFileSync(path.join(W, 'app.js'), 'utf8')), 'the wiki lost its team calculator');
+}
+
 // ---- the data ----------------------------------------------------------------------------------------------------------------
 {
   const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, '..', 'build_wiki.js'), '--check'], { encoding: 'utf8' });

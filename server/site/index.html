@@ -3,10 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ninja Online Reborn</title>
+<title>Ninja Online Reborn: play Hello Bro / Ninja Online again</title>
 <meta name="description" content="The ninja card game from 2015, known as Hello Bro and Ninja Online, is playable again for free, with its original cards, story and events. Download it, read the wiki, or come say hi on Discord.">
 <meta name="theme-color" content="#091228">
-<meta property="og:title" content="Ninja Online Reborn">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Ninja Online Reborn","alternateName":["Hello Bro","Ninja Online"],"url":"https://ninjaonlinereborn.com/"}</script>
+<meta property="og:title" content="Ninja Online Reborn: play Hello Bro / Ninja Online again">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ninjaonlinereborn.com/">
+<link rel="canonical" href="https://ninjaonlinereborn.com/">
 <meta property="og:description" content="The ninja card game from 2015 is playable again, for free.">
 <meta property="og:image" content="https://ninjaonlinereborn.com/img/art/npc45_6.webp">
 <script>
@@ -39,6 +43,7 @@
   </a>
   <nav class="nav" id="nav" aria-label="Main">
     <a href="/wiki/">Wiki</a>
+    <a href="#live">Top players</a>
     <a href="#shinobi">Shinobi</a>
     <a href="#play">How to play</a>
     <a href="#news">News</a>
@@ -88,6 +93,32 @@
       <img src="img/logo-hellobro.webp" alt="The Hello Bro logo from the game" width="562" height="328" loading="lazy">
       <figcaption>Same game, more than one name. You may know it as <b>Hello Bro</b> or <b>Ninja Online</b>.</figcaption>
     </figure>
+  </div>
+</section>
+
+<section class="dark live" id="live">
+  <div class="wrap live-in">
+    <div class="ranks">
+      <h2>Strongest players</h2>
+      <p class="live-sub">The top 10 of the No.1 Shinobi list in the game, by team attack. Tap a name to see their team.</p>
+      <ol class="top10" id="top10"><li class="wait">The list shows up when the server answers.</li></ol>
+    </div>
+    <div class="side-live">
+      <div class="dialog today" id="today">
+        <h2 class="dialog-head">Today in the game</h2>
+        <div class="today-in" id="today-in"><p class="wait">Loading…</p></div>
+      </div>
+      <div class="graph" id="graph" hidden>
+        <div class="graph-head">
+          <h3>Players online</h3>
+          <div class="graph-tabs" role="group" aria-label="Time range">
+            <button type="button" data-days="1" aria-pressed="true">24 hours</button>
+            <button type="button" data-days="7" aria-pressed="false">7 days</button>
+          </div>
+        </div>
+        <div class="graph-box" id="graph-box"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -218,10 +249,12 @@
       <a href="https://discord.gg/2Cbp4UDHrU" target="_blank" rel="noopener">Discord</a>
       <a href="https://github.com/Djassie18698/hello-bro-revival" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-gh"/></svg>GitHub</a>
     </nav>
+    <p class="short">Short links: <a href="/download">ninjaonlinereborn.com/download</a> · <a href="/install">/install</a> · <a href="/discord">/discord</a></p>
     <p>A free fan revival of Hello Bro / Ninja Online (2015), made by its players.</p>
   </div>
 </footer>
 
 <script src="site.js"></script>
+<script src="live.js"></script>
 </body>
 </html>

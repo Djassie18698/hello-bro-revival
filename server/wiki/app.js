@@ -91,18 +91,19 @@
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5z"/><path d="M4 19a2 2 0 012-2h13"/>',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 2-2.5 2-2.5 4"/><path d="M12 17h.01"/>',
     down: '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M5 20h14"/>',
+    calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/>',
   };
   const ico = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[k] || SVG.book}</svg>`;
 
   function sideMenu(active) {
     const main = [['', 'home', 'Main page'], ['shinobi', 'shinobi', 'Shinobi'], ['gear', 'gear', 'Gear'], ['ninjutsu', 'jutsu', 'Ninjutsu'], ['seals', 'seals', 'Seals'],
-      ['pets', 'pets', 'Pets'], ['items', 'items', 'Items'], ['sets', 'sets', 'Sets'], ['training', 'training', 'Training']];
+      ['pets', 'pets', 'Pets'], ['items', 'items', 'Items'], ['sets', 'sets', 'Sets'], ['training', 'training', 'Training'], ['calculator', 'calc', 'Team calculator']];
     const g = (file, icon) => D.guides.filter((x) => x.file === file).map((x) => `<a class="${active === 'guide/' + x.slug ? 'on' : ''}" href="#/guide/${x.slug}">${ico(icon)}${esc(x.title)}</a>`).join('');
     $('#side').innerHTML = '<h4>The scroll</h4>' + main.map(([p, k, t]) => `<a class="${active.split('/')[0] === p ? 'on' : ''}" href="#/${p}">${ico(k)}${t}</a>`).join('') +
       '<h4>Getting started</h4>' + g('install-help', 'down') + '<h4>How to play</h4>' + g('how-to-play', 'book') + '<h4>Questions</h4>' + g('faq', 'help');
   }
   function tabs(active) {
-    const t = [['', 'Main page'], ['shinobi', 'Shinobi'], ['gear', 'Gear'], ['ninjutsu', 'Ninjutsu'], ['seals', 'Seals'], ['training', 'Training'], ['guides', 'How to play']];
+    const t = [['', 'Main page'], ['shinobi', 'Shinobi'], ['gear', 'Gear'], ['ninjutsu', 'Ninjutsu'], ['seals', 'Seals'], ['training', 'Training'], ['calculator', 'Calculator'], ['guides', 'How to play']];
     const top = active.split('/')[0];
     $('#tabs').innerHTML = t.map(([p, l]) => `<a class="${top === p || (p === 'guides' && top === 'guide') ? 'on' : ''}" href="#/${p}">${l}</a>`).join('');
   }
@@ -120,6 +121,7 @@
       ['seals', 'seals', 'Seals', 'The tailed-beast seals and their fragments from Plunder.', `${D.seals.filter((s) => !s.fragment).length} seals`],
       ['training', 'training', 'Training', 'Every chapter and stage: energy, EXP, silver, enemies and boss rewards.', `${rounds} stages`],
       ['guides', 'book', 'How to play', 'Installing, connecting, and how everything in the game works.', `${D.guides.length} guides`],
+      ['calculator', 'calc', 'Team calculator', 'Pick cards, gear, seals and ninjutsu: see attack, defence and which chains turn on.', 'try a team'],
     ].map(([p, k, t, d, n]) => `<a class="box" href="#/${p}"><h3>${ico(k)}${t}</h3><p>${d}</p><small>${n} →</small></a>`).join('');
     const quick = D.guides.slice(0, 10).map((g) => `<li><a href="#/guide/${g.slug}"><span>${esc(g.title)}</span><span aria-hidden="true">›</span></a></li>`).join('');
     return crumbs('Main page') +
@@ -436,6 +438,106 @@
     document.addEventListener('keydown', (ev) => { if (ev.key === '/' && !/input|select|textarea/i.test(document.activeElement.tagName)) { ev.preventDefault(); q.focus(); } });
   }
 
+  // ---- team calculator ----------------------------------------------------------------------------------------------------------
+  // Pick cards, gear, a seal and ninjutsu; the game server works the numbers out with its own team maths (server/webapi.js /api/calc ->
+  // game.teamSlots): card stats, gear, gear and ninjutsu sets, seals, ninjutsu chance and every chain. The team is kept in the address
+  // (#/calculator?s=...), so it can be shared. Card sets, Eight Gates, pets and the W.A. title depend on the whole account: not counted.
+  const CALC = { slots: 26, level: 50, gearLevel: 50, rebirth: 9 };
+  const ELEMENTS = [[1, 'Water'], [2, 'Fire'], [3, 'Wind'], [4, 'Earth'], [5, 'Thunder']];
+  const calcSlot = () => ({ n: 0, lv: 50, bk: 0, gr: 0, el: 2, rb: 0, w: 0, wl: 50, a: 0, al: 50, t: 0, tl: 50, m: 0, j: [0, 0, 0, 0] });
+  function calcParse(str) {
+    return String(str || '').split('|').filter(Boolean).slice(0, CALC.slots).map((part) => {
+      const o = calcSlot(); let js = 0;
+      for (const tok of part.split(',')) {
+        const k = tok[0], v = tok.slice(1).split('.').map(Number);
+        if (k === 'n') Object.assign(o, { n: v[0] || 0, lv: v[1] || 1, bk: v[2] || 0, gr: v[3] || 0, el: v[4] || 2, rb: v[5] || 0 });
+        else if (k === 'e') { const g = by.gear.get(v[0]); if (!g) continue; const key = g.slot === 'Weapon' ? 'w' : g.slot === 'Trinket' ? 't' : 'a'; o[key] = v[0]; o[key + 'l'] = v[1] || 1; }
+        else if (k === 'm') o.m = v[0] || 0;
+        else if (k === 'j' && js < 4) o.j[js++] = v[0] || 0;
+      }
+      return o;
+    });
+  }
+  const calcStr = (slots) => slots.filter((o) => o.n).map((o) => [`n${o.n}.${o.lv}.${o.bk}.${o.gr}.${o.el}.${o.rb}`,
+    ...['w', 'a', 't'].filter((k) => o[k]).map((k) => `e${o[k]}.${o[k + 'l']}`), ...(o.m ? [`m${o.m}`] : []), ...o.j.filter(Boolean).map((id) => `j${id}`)].join(',')).join('|');
+  const opts = (list, sel, none) => `<option value="0">${none}</option>` + list.map((e) => `<option value="${e.id}"${e.id === sel ? ' selected' : ''}>${esc(e.name)}${e.stars >= 6 ? ' (God)' : e.stars ? ' ' + '★'.repeat(e.stars) : ''}</option>`).join('');
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  function calcSlotHtml(o, i) {
+    const gear = (slot) => D.gear.filter((g) => g.slot === slot).sort(byName);
+    const card = by.shinobi.get(o.n);
+    const num = (key, v, min, max, label) => `<label class="cf"><span>${label}</span><input type="number" inputmode="numeric" data-k="${key}" value="${v}" min="${min}" max="${max}"></label>`;
+    return `<fieldset class="box cslot" data-i="${i}">
+      <legend>${card ? icon(card.icon, 34, card.name) : ''}<span>Place ${i + 1}</span></legend>
+      <button type="button" class="cdel" data-del="${i}" aria-label="Take place ${i + 1} out">×</button>
+      <label class="cf wide"><span>Shinobi</span><input list="calc-ninjas" data-k="name" value="${card ? esc(card.name) : ''}" placeholder="Type a name…" autocomplete="off"></label>
+      <div class="crow">${num('lv', o.lv, 1, CALC.level, 'Level')}${num('rb', o.rb, 0, CALC.rebirth, 'Rebirth')}${num('gr', o.gr, 0, 15, 'Sage growth')}
+        ${card && card.stars >= 6 ? num('bk', o.bk, 0, 10, 'Breakthrough') + `<label class="cf"><span>Element</span><select data-k="el">${ELEMENTS.map(([v, l]) => `<option value="${v}"${v === o.el ? ' selected' : ''}>${l}</option>`).join('')}</select></label>` : ''}</div>
+      <div class="crow">${[['w', 'Weapon'], ['a', 'Armour'], ['t', 'Trinket']].map(([k, slot]) => `<label class="cf gear"><span>${slot}</span><select data-k="${k}">${opts(gear(slot), o[k], 'none')}</select></label>` +
+        num(k + 'l', o[k + 'l'], 1, CALC.gearLevel, 'Lv')).join('')}</div>
+      <div class="crow"><label class="cf wide"><span>Seal</span><select data-k="m">${opts(D.seals.filter((x) => !x.fragment).sort(byName), o.m, 'none')}</select></label></div>
+      <div class="crow">${o.j.map((id, n) => `<label class="cf"><span>Ninjutsu ${n + 1}</span><select data-k="j${n}">${opts(D.jutsu.slice().sort(byName), id, 'none')}</select></label>`).join('')}</div>
+    </fieldset>`;
+  }
+  function calcPage(q) {
+    document.title = 'Team calculator · Ninja Online Wiki';
+    const slots = calcParse(q.s);
+    if (!slots.length) slots.push(calcSlot());
+    return crumbs('Team calculator') +
+      `<section class="box lead"><h1>Team calculator</h1>
+        <p class="intro">Pick shinobi, gear, a seal and ninjutsu for each place. The game server works out attack, defence and chakra with the same team maths the game uses, and shows which chains and sets turn on. Card sets, Eight Gates, pets and the W.A. title count on top in the game (they depend on your whole account).</p></section>
+      <datalist id="calc-ninjas">${D.shinobi.slice().sort(byName).map((c) => `<option value="${esc(c.name)}">`).join('')}</datalist>
+      <div class="calc"><div class="cslots" id="cslots">${slots.map(calcSlotHtml).join('')}</div>
+        <div class="cside"><div class="box cres" id="cres" aria-live="polite"><p class="intro">Pick a shinobi to start.</p></div>
+          <button type="button" class="btn main" id="cadd">Add a place</button> <button type="button" class="btn" id="cclear">Start over</button></div></div>
+      <button type="button" class="cbar" id="cbar" hidden></button>`;
+  }
+  function calcWire(q) {
+    const slots = calcParse(q.s);
+    if (!slots.length) slots.push(calcSlot());
+    const names = new Map(D.shinobi.map((c) => [c.name.toLowerCase(), c.id]));
+    const list = $('#cslots'), res = $('#cres');
+    let timer = 0, ask = 0;
+    const save = () => { const str = calcStr(slots); history.replaceState(null, '', '#/calculator' + (str ? '?s=' + str : '')); return str; };
+    const rng = (a) => (a[0] === a[1] ? fmt(a[0]) : `${fmt(a[0])}-${fmt(a[1])}`);
+    const setName = (id) => (D.sets.find((x) => x.id === id) || {}).name || 'Set ' + id;
+    const run = () => {
+      const str = save();
+      if (!str) { res.innerHTML = '<p class="intro">Pick a shinobi to start.</p>'; return; }
+      const mine = ++ask;
+      res.innerHTML = '<p class="intro">Working it out…</p>';
+      fetch('/api/calc?s=' + encodeURIComponent(str)).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
+        if (mine !== ask) return;
+        const bar = $('#cbar'); bar.hidden = false; bar.innerHTML = `<b>ATK</b> ${rng(d.total.atk)} <b>DEF</b> ${rng(d.total.def)} <span aria-hidden="true">↓</span>`;
+        res.innerHTML = `<h2>Team</h2><dl class="ctot"><div><dt>Attack</dt><dd>${rng(d.total.atk)}</dd></div><div><dt>Defence</dt><dd>${rng(d.total.def)}</dd></div><div><dt>Chakra</dt><dd>${rng(d.total.ckr)}</dd></div></dl>` +
+          d.slots.map((x) => { const c = by.shinobi.get(x.id); return `<div class="cone"><h3>${c ? icon(c.icon, 30, c.name) : ''}${esc(c ? c.name : x.name)} <small>Lv ${x.level}</small></h3>
+            <p class="cst">ATK ${rng(x.atk)} · DEF ${rng(x.def)} · Chakra ${rng(x.ckr)}</p>
+            ${x.chains.length ? `<ul class="con">${x.chains.map((ch) => `<li>${esc(ch.text || 'Chain ' + ch.id)}</li>`).join('')}</ul>` : '<p class="cno">No chains on.</p>'}
+            ${x.sets.length ? `<p class="cset">${x.sets.map((st) => `${esc(setName(st.id))} set: ${st.num} pieces`).join(' · ')}</p>` : ''}</div>`; }).join('');
+      }).catch(() => { if (mine === ask) res.innerHTML = '<p class="intro">The calculator needs the game server, and it does not answer right now. Try again in a minute.</p>'; });
+    };
+    const later = () => { clearTimeout(timer); timer = setTimeout(run, 350); };
+    const redraw = () => { list.innerHTML = slots.map(calcSlotHtml).join(''); later(); };
+    list.addEventListener('change', (ev) => {
+      const el = ev.target, box = el.closest('.cslot'); if (!box) return;
+      const o = slots[Number(box.dataset.i)], k = el.dataset.k;
+      if (k === 'name') {
+        const id = names.get(el.value.trim().toLowerCase()) || 0;
+        const had = o.n; o.n = id;
+        if (!id) { el.setCustomValidity('Pick a name from the list'); el.reportValidity(); return; }
+        el.setCustomValidity('');
+        if ((by.shinobi.get(id) || {}).stars >= 6 !== (by.shinobi.get(had) || {}).stars >= 6 || !had) { redraw(); return; } // breakthrough fields come and go
+        box.querySelector('legend').innerHTML = `${icon(by.shinobi.get(id).icon, 34, '')}<span>Place ${Number(box.dataset.i) + 1}</span>`;
+      } else if (/^j\d$/.test(k)) o.j[Number(k[1])] = Number(el.value) || 0;
+      else if (k) { const n = Number(el.value) || 0; o[k] = el.type === 'number' ? Math.max(Number(el.min), Math.min(Number(el.max), n)) : n; if (el.type === 'number') el.value = o[k]; }
+      later();
+    });
+    list.addEventListener('click', (ev) => { const b = ev.target.closest('[data-del]'); if (!b) return; slots.splice(Number(b.dataset.del), 1); if (!slots.length) slots.push(calcSlot()); redraw(); });
+    $('#cadd').addEventListener('click', () => { if (slots.length >= CALC.slots) return; slots.push(calcSlot()); redraw(); list.lastElementChild.querySelector('input').focus(); });
+    $('#cbar').addEventListener('click', () => res.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    $('#cclear').addEventListener('click', () => { slots.splice(0, slots.length, calcSlot()); redraw(); });
+    run();
+  }
+
   // ---- router -------------------------------------------------------------------------------------------------------------------
   function route() {
     const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
@@ -456,6 +558,7 @@
     else if (a === 'training') html = b ? chapterPage(id, q) : trainingList();
     else if (a === 'guides') html = guidesPage(b && GROUPS[b] ? b : '');
     else if (a === 'guide') html = guidePage(b);
+    else if (a === 'calculator') html = calcPage(q);
     else html = notFound();
     if (!b && a && document.title === 'Ninja Online Wiki') document.title = `${(KIND[Object.keys(KIND).find((k) => KIND[k].path === a)] || {}).label || 'Guides'} · Ninja Online Wiki`;
     $('#main').innerHTML = html;
@@ -463,7 +566,8 @@
     tabs(p);
     document.body.classList.remove('nav-open');
     $('#menu').setAttribute('aria-expanded', 'false');
-    if (!q.r) window.scrollTo(0, 0);
+    if (a === 'calculator') calcWire(q);
+    if (!q.r && !(a === 'calculator' && window.scrollY)) window.scrollTo(0, 0);
   }
 
   // ---- start --------------------------------------------------------------------------------------------------------------------

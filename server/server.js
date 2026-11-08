@@ -66,6 +66,8 @@ function playerCounts() {
   return counted.v;
 }
 
+require('./webapi').record(db, playerCounts); // players online every 5 minutes, for the website's graph (/api/online)
+
 // Errors also go to logs/error.log so problems on a public server can be read later.
 function logError(...a) {
   console.error(...a);
@@ -95,6 +97,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     resp.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     return resp.end(JSON.stringify({ ok: true, version: VERSION, started: STARTED, ...playerCounts() }));
   }
+  if (u.pathname.startsWith('/api/')) return require('./webapi').handle(req, resp, u, db); // public read-only data for the website (webapi.js)
   if (u.pathname === '/progress.md') { // the progress page (docs/PROGRESS.md), shown in the control panel's Progress tab
     resp.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store' });
     return resp.end(require('fs').readFileSync(require('path').join(__dirname, '..', 'docs', 'PROGRESS.md'), 'utf8'));
