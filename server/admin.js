@@ -602,7 +602,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
     const rows = db.prepare(`SELECT p.uid,p.nick,p.level,p.gold,p.coin,p.energy,p.server_id,
       (SELECT COUNT(*) FROM cards c WHERE c.uid=p.uid AND c.server_id=p.server_id) cards FROM players p ORDER BY p.level DESC, p.uid`).all();
     const purple = require('./specialnames');
-    return json(res, rows.map((p) => ({ ...p, key: p.uid + ':' + p.server_id, vip: vip.level(db, p.uid, p.server_id), purple: purple.get(db, p.uid), purplecolor: (purple.info(db, p.uid) || {}).color || '' })));
+    return json(res, rows.map((p) => ({ ...p, key: p.uid + ':' + p.server_id, vip: vip.level(db, p.uid, p.server_id), purple: purple.get(db, p.uid), purplecolor: (purple.info(db, p.uid) || {}).color || '', purplefx: (purple.info(db, p.uid) || {}).effect || '' })));
   }
   if (u.pathname === '/admin/api/catalog') {
     const q = String(u.query.q || '').toLowerCase(), cat = String(u.query.cat || ''), stars = Number(u.query.stars) || 0;
@@ -699,8 +699,8 @@ module.exports = async function admin(req, res, u, db, readBody) {
     }
     if (u.pathname === '/admin/api/purplename') { // specialnames.js: the name glows (No.1 Shinobi list + Home top bar), in its colour, and survives a reset
       const sn = require('./specialnames');
-      const r = b.on ? sn.set(db, pl.uid, b.nick || pl.nick, b.color) : sn.clear(db, pl.uid);
-      return json(res, r.error ? { ok: false, error: r.error } : { ok: true, nick: r.nick, color: r.color });
+      const r = b.on ? sn.set(db, pl.uid, b.nick || pl.nick, b.color, b.effect) : sn.clear(db, pl.uid);
+      return json(res, r.error ? { ok: false, error: r.error } : { ok: true, nick: r.nick, color: r.color, effect: r.effect });
     }
     if (u.pathname === '/admin/api/reset') {
       resetPlayer(db, pl.uid, pl.server_id);

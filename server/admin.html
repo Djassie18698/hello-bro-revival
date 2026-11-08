@@ -299,10 +299,11 @@ html.embed .wrap{padding-top:18px}
           after a reset the new character gets the same name back, and nobody else can make a character with it. Changing the name or colour here works right away
           for the name; the player sees the change after closing and reopening the game. The other rankings (Arena, War) are built into the game app: the name shows there in the normal color.</p>
         <div class="row"><input class="in" id="pn-name" placeholder="Name" maxlength="16" style="flex:1;min-width:200px" oninput="pnPreview()">
-          <input type="color" id="pn-color" value="#af46ff" title="Glow colour" oninput="pnPreview()" style="width:52px;height:44px;border:0;border-radius:10px;background:none;cursor:pointer"></div>
+          <input type="color" id="pn-color" value="#af46ff" title="Glow colour" oninput="pnPreview()" style="width:52px;height:44px;border:0;border-radius:10px;background:none;cursor:pointer">
+          <select class="in" id="pn-fx" onchange="pnPreview()" title="Effect"><option value="">No effect</option><option value="sparkle">✨ Sparkles (diamond twinkles)</option></select></div>
         <div class="row" id="pn-swatches"></div>
-        <div class="pn-preview"><span id="pn-show">Name</span></div>
-        <div class="row"><button class="btn purple" onclick="setPurple(true)">Save name and colour</button>
+        <div class="pn-preview"><span class="pn-wrap"><span id="pn-show">Name</span><i class="pn-tw"></i><i class="pn-tw"></i><i class="pn-tw"></i><i class="pn-tw"></i></span></div>
+        <div class="row"><button class="btn purple" onclick="setPurple(true)">Save</button>
           <button class="btn ghost" onclick="setPurple(false)">Remove</button></div>
         <p class="hint" id="pn-state"></p>
         <style>
@@ -311,6 +312,11 @@ html.embed .wrap{padding-top:18px}
           .pn-preview{margin:10px 0 14px;padding:16px 20px;border-radius:14px;background:#f3e6c8;font:800 26px Arial,sans-serif}
           #pn-show{--c:#af46ff;color:var(--c);-webkit-text-stroke:1px rgba(0,0,0,.55);text-shadow:0 0 4px #fff,0 0 9px var(--c),0 0 16px var(--c);animation:pnpulse 1.6s ease-in-out infinite}
           @keyframes pnpulse{50%{filter:brightness(1.35)}}
+          .pn-wrap{position:relative;display:inline-block}
+          .pn-tw{display:none;position:absolute;width:22px;height:22px;background:radial-gradient(circle,#fff 0 2px,transparent 3px),conic-gradient(from 45deg,transparent 0 20%,#fff 24% 26%,transparent 30% 45%,#fff 49% 51%,transparent 55% 70%,#fff 74% 76%,transparent 80% 95%,#fff 99%);clip-path:polygon(50% 0,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0 50%,42% 42%);filter:drop-shadow(0 0 3px #fff);transform:scale(0);animation:pntw 2.2s ease-in-out infinite}
+          .pn-fx .pn-tw{display:block}
+          .pn-tw:nth-of-type(1){left:8%;top:-6px}.pn-tw:nth-of-type(2){left:38%;top:16px;animation-delay:.6s}.pn-tw:nth-of-type(3){left:66%;top:-4px;animation-delay:1.1s}.pn-tw:nth-of-type(4){left:90%;top:12px;animation-delay:1.6s}
+          @keyframes pntw{0%,60%,100%{transform:scale(0) rotate(0)}20%{transform:scale(1) rotate(45deg)}40%{transform:scale(0) rotate(90deg)}}
         </style>
       </section>
 
@@ -585,18 +591,20 @@ function pnPreview() {
   const c = $('pn-color').value;
   $('pn-show').textContent = $('pn-name').value.trim() || 'Name';
   $('pn-show').style.setProperty('--c', c);
+  document.querySelector('.pn-wrap').classList.toggle('pn-fx', $('pn-fx').value === 'sparkle');
   document.querySelectorAll('.pn-sw').forEach((b) => b.classList.toggle('on', b.title && ('#' + (PN_COLORS.find((x) => x[1] === b.title) || [''])[0]) === c));
 }
 function renderPurple() {
   const p = current(); if (!p) return;
   $('pn-name').value = p.purple || p.nick;
   $('pn-color').value = '#' + (p.purplecolor || 'af46ff');
+  $('pn-fx').value = p.purplefx || '';
   $('pn-state').innerHTML = p.purple ? '💜 <b>' + esc(p.nick) + '</b> has the glowing name <b>' + esc(p.purple) + '</b>.' : esc(p.nick) + ' has no glowing name.';
   pnPreview();
 }
 async function setPurple(on) {
   const p = current(); if (!p) return toast('Pick a player first', false);
-  const r = await api('purplename', { uid: sel, on, nick: $('pn-name').value.trim(), color: $('pn-color').value });
+  const r = await api('purplename', { uid: sel, on, nick: $('pn-name').value.trim(), color: $('pn-color').value, effect: $('pn-fx').value });
   toast(r.ok ? (on ? '💜 Saved: ' + esc(r.nick) + '<br><small>They see it after reopening the game.</small>' : 'Glowing name removed') : esc(r.error || 'failed'), r.ok);
   await loadPlayers();
 }

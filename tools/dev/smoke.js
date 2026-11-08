@@ -689,7 +689,12 @@ for (const pick of [55, 56, 57]) {
     const gold = sn.set(db, 79001, 'Purple Boss', '#FFD21F'), keep = sn.set(db, 79001, 'Purple Boss', 'nonsense');
     const home = handlers.rl_r_purplename({ db, params: { ...q, Cmd: '1' } }), plain = handlers.rl_r_purplename({ db, params: { ...q, Uid: '79002', Cmd: '1' } });
     if (gold.color !== 'ffd21f' || keep.color !== 'ffd21f' || !/glowcolor="ffd21f"/.test(handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } }))
-      || !/<purple glow="1" color="ffd21f"\/>/.test(home) || !/<purple glow="0"/.test(plain)) { bad++; console.log('GLOW COLOUR:', JSON.stringify([gold, keep]), home, plain); }
+      || !/<purple glow="1" color="ffd21f" fx=""\/>/.test(home) || !/<purple glow="0"/.test(plain)) { bad++; console.log('GLOW COLOUR:', JSON.stringify([gold, keep]), home, plain); }
+    // effect (28.0.46): "sparkle" reaches the list and Home, an unknown effect or a save without one keeps it
+    const sp = sn.set(db, 79001, 'Purple Boss', null, 'sparkle'), odd = sn.set(db, 79001, 'Purple Boss', null, 'fireworks'), same = sn.set(db, 79001, 'Purple Boss');
+    const home2 = handlers.rl_r_purplename({ db, params: { ...q, Cmd: '1' } }), list2 = handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } });
+    if (sp.effect !== 'sparkle' || odd.effect !== 'sparkle' || same.effect !== 'sparkle' || sp.color !== 'ffd21f' || !/ fx="sparkle"/.test(home2) || !/glowfx="sparkle"/.test(list2)
+      || sn.set(db, 79001, 'Purple Boss', null, '').effect !== '') { bad++; console.log('GLOW EFFECT:', JSON.stringify([sp, odd, same]), home2); }
     sn.clear(db, 79001);
     if (/glow=/.test(handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } }))) { bad++; console.log('PURPLE NAME still glows after Remove'); }
   }

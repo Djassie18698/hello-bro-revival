@@ -669,7 +669,8 @@ end
 -- Glowing names (Ninja Online Reborn server, 28.0.44). hex = "RRGGBB", the colour picked in the control panel (purple when missing).
 -- Copies of the label around it (tag 7378): two rings of a light halo that pulses (5 and 3 px) and a thin dark outline (1.5 px);
 -- the label itself (tag 7377) pulses between the colour and a lighter one. The copies go in the label's parent at the label's z,
--- the label one higher. Called again with another colour or name, the old glow is taken off first.
+-- the label one higher. fx "sparkle" (28.0.46) adds diamond twinkles (ccbResources/name_sparkle.png, tools/make_name_sparkle.js)
+-- that pop up, turn and fade at random spots on the name. Called again with another colour, effect or name, the old glow is taken off first.
 PURPLE_LAST = PURPLE_LAST or {}
 PURPLE_ORIG = PURPLE_ORIG or {}
 function PurpleGlowOff(label)
@@ -684,12 +685,39 @@ function PurpleGlowOff(label)
 	label:setTag(-1)
 	PURPLE_LAST[id] = nil
 end
-function PurpleGlow(label, hex)
+-- 8 twinkles (tag 7378, so PurpleGlowOff removes them too): every one waits, jumps to a random spot on the name, grows and shrinks
+-- again while it turns; every other one is tinted the name's light colour, the rest stay white.
+local function nameSparkles(parent, label, z, tr, tg, tb)
+	local size, ap = label:getContentSize(), label:getAnchorPoint()
+	local w, h = size.width * label:getScaleX(), size.height * label:getScaleY()
+	local left, bottom = label:getPositionX() - ap.x * w, label:getPositionY() - ap.y * h
+	local scale = h / 40
+	for i = 1, 8 do
+		local s = CCSprite:create("ccbResources/name_sparkle.png")
+		if s == nil then return end
+		s:setScale(0)
+		s:setPosition(ccp(left + w * i / 9, bottom + h / 2))
+		if i % 2 == 0 then s:setColor(ccc3(tr, tg, tb)) end
+		parent:addChild(s, z + 2, 7378)
+		local function hop()
+			s:setPosition(ccp(left - 4 + math.random() * (w + 8), bottom + h * (0.15 + math.random() * 0.8)))
+		end
+		local big = (0.5 + math.random() * 0.4) * scale
+		local arr = CCArray:create()
+		arr:addObject(CCDelayTime:create(0.1 + i * 0.12 + math.random() * 0.9))
+		arr:addObject(CCCallFunc:create(hop))
+		arr:addObject(CCScaleTo:create(0.35, big))
+		arr:addObject(CCScaleTo:create(0.55, 0))
+		s:runAction(CCRepeatForever:create(CCSequence:create(arr)))
+		s:runAction(CCRepeatForever:create(CCRotateBy:create(1.5, 90)))
+	end
+end
+function PurpleGlow(label, hex, fx)
 	if label == nil then return end
 	local parent = label:getParent()
 	if parent == nil then return end
-	hex = tostring(hex or "")
-	local id, want = tostring(label), hex .. "|" .. label:getString()
+	hex, fx = tostring(hex or ""), tostring(fx or "")
+	local id, want = tostring(label), hex .. "|" .. fx .. "|" .. label:getString()
 	if label:getTag() == 7377 then
 		if PURPLE_LAST[id] == want then return end
 		PurpleGlowOff(label)
@@ -730,13 +758,14 @@ function PurpleGlow(label, hex)
 	label:setColor(ccc3(lr, lg, lb))
 	label:runAction(CCRepeatForever:create(CCSequence:createWithTwoActions(CCTintTo:create(0.8, r, g, b), CCTintTo:create(0.8, lr, lg, lb))))
 	label:setTag(7377)
+	if fx == "sparkle" then nameSparkles(parent, label, z, mix(0.6)) end
 	PURPLE_LAST[id] = want
 end
 
 -- The Home top bar name (drawn by C++ ISubMenu::InitNormalHeader) glows too. ui_mainActivityBtn calls this every time Home opens
 -- (mainActivity.lua initMainMenuActivityBtn builds those buttons). Each time it asks the server (rl_r_purplename) whether this
 -- account has a glowing name and its colour, so a change in the control panel shows the next time Home opens (a new name needs
--- a restart: the game reads the name at login). PURPLE_ME[uid] = "RRGGBB" or "" (no), used until the answer comes.
+-- a restart: the game reads the name at login). PURPLE_ME[uid] = {colour, effect} or false (no), used until the answer comes.
 PURPLE_ME = PURPLE_ME or {}
 function PurpleTopBarLabel()
 	local mm = GetMainMenu()
@@ -751,13 +780,13 @@ function PurpleTopBar()
 	local label = PurpleTopBarLabel()
 	if label == nil then return end
 	local uid = tostring(CPlayerDataMgr:instance():GetPlayerInfoData().m_uid)
-	if PURPLE_ME[uid] ~= nil and PURPLE_ME[uid] ~= "" then PurpleGlow(label, PURPLE_ME[uid]) end
+	if PURPLE_ME[uid] then PurpleGlow(label, PURPLE_ME[uid][1], PURPLE_ME[uid][2]) end
 	CCHttpRequest:open(GetUrlNormalHeader(uid, 1, "rl_r_purplename"), kHttpPost, "query=param1&other=params"):sendWithHandler(function(res, hnd)
 		local ok, item = pcall(function() return xml.parse(res:getResponseData()):find("purple") end)
 		if not ok or item == nil then return end
-		PURPLE_ME[uid] = (item.glow == "1") and tostring(item.color or "af46ff") or ""
+		PURPLE_ME[uid] = (item.glow == "1") and {tostring(item.color or "af46ff"), tostring(item.fx or "")} or false
 		local l = PurpleTopBarLabel()
 		if l == nil then return end
-		if PURPLE_ME[uid] ~= "" then PurpleGlow(l, PURPLE_ME[uid]) else PurpleGlowOff(l) end
+		if PURPLE_ME[uid] then PurpleGlow(l, PURPLE_ME[uid][1], PURPLE_ME[uid][2]) else PurpleGlowOff(l) end
 	end)
 end

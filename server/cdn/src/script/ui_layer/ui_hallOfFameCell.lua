@@ -102,7 +102,7 @@ end
 
 -- Glowing name (Ninja Online Reborn server): the server sends glow="1" glowcolor="RRGGBB"; PurpleGlow is in util/common.lua (28.0.44).
 function purple_name(self)
-	PurpleGlow(self.label_name, self.cellData.glowcolor)
+	PurpleGlow(self.label_name, self.cellData.glowcolor, self.cellData.glowfx)
 end
 
 function onNodeCleanup(self)

@@ -122,6 +122,7 @@ function startRequestRankInfo(self, infoType)
 						tempitem.max_score = tonumber(itemList[i].max_score)
 						tempitem.glow = itemList[i].glow -- glowing name (Ninja Online Reborn server, 28.0.43; colour 28.0.44)
 						tempitem.glowcolor = itemList[i].glowcolor
+						tempitem.glowfx = itemList[i].glowfx
 						table.insert(self.m_playerDatas, tempitem)
 					end
 
