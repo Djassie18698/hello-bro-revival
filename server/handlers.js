@@ -850,10 +850,19 @@ module.exports = {
     // uid + 5 digits: ui_hallOfFameView.lua cuts the last 5 characters off before Challenge (ToUid) and before hiding the button on its own
     // row, so the original sent the uid with a 5-digit suffix. A plain uid became ToUid=220 for 22079117 (GitHub #6, 6 Nov 2026): every
     // challenge from this list fought a made-up "Rival". Suffix = the world id, padded (ours).
-    // glow="1": a purple name (specialnames.js); the hot-updated ui_hallOfFameCell.lua (28.0.42) draws it glowing purple, the original ignores it
-    const purple = require('./specialnames').uids(db);
-    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}${String(sid).padStart(5, '0')}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"${purple.has(r.uid) ? ' glow="1"' : ''}/>`).join('');
+    // glow="1" glowcolor="RRGGBB": a purple name (specialnames.js); the hot-updated ui_hallOfFameCell.lua (28.0.43 purple, 28.0.44 any colour)
+    // draws it glowing, the original ignores it
+    const purple = require('./specialnames').colors(db);
+    const items = rows.slice(0, 50).map((r, n) => `<item rank="${n + 1}" uid="${r.uid}${String(sid).padStart(5, '0')}" nick="${String(r.nick).replace(/[<>&"]/g, '')}" country="${r.country}" level="${r.level}" min_score="${r.lo}" max_score="${r.hi}"${purple.has(r.uid) ? ` glow="1" glowcolor="${purple.get(r.uid)}"` : ''}/>`).join('');
     return `<root code="0"><player><rank>${i + 1}</rank><min_score>${mine.lo}</min_score><max_score>${mine.hi}</max_score></player><rank_list>${items}</rank_list></root>`;
+  },
+
+  // Ours (not an original endpoint): does my name glow, and in which colour? Asked once per login by the hot-updated util/common.lua
+  // (PurpleTopBar, 28.0.44) so the Home top bar name (drawn by C++ ISubMenu::InitNormalHeader) glows like in the No.1 Shinobi list.
+  rl_r_purplename: ({ db, params: p }) => {
+    const acc = accountBySession(db, p);
+    const sn = require('./specialnames'), me = acc && sn.info(db, acc.uid);
+    return `<root code="0"><purple glow="${me ? 1 : 0}" color="${me ? sn.hex(me.color) || sn.DEFAULT_COLOR : ''}"/></root>`;
   },
 
   // Eight Gates (Dun): Cmd 1 = info, Cmd 2 = open the next gate.

@@ -100,37 +100,9 @@ function init_ext_ui(self)
 	end
 end
 
--- Purple name (Ninja Online Reborn server, 28.0.42): the server sends glow="1" for a few chosen accounts.
--- A light purple glow that pulses (two rings of 8 copies of the name, 5 and 3 px around), a thin dark purple outline
--- (8 copies 1.5 px around) and the name itself shifting between two purples. The copies sit next to the label, the label goes on top.
+-- Glowing name (Ninja Online Reborn server): the server sends glow="1" glowcolor="RRGGBB"; PurpleGlow is in util/common.lua (28.0.44).
 function purple_name(self)
-	local label = self.label_name
-	local parent = label and label:getParent()
-	if parent == nil then return end
-	local text, font, size = label:getString(), label:getFontName(), label:getFontSize()
-	local x, y, z = label:getPositionX(), label:getPositionY(), label:getZOrder()
-	local around = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {0.7, 0.7}, {-0.7, 0.7}, {0.7, -0.7}, {-0.7, -0.7}}
-	local function copy(dx, dy, r, g, b, opacity)
-		local c = CCLabelTTF:create(text, font, size)
-		c:setAnchorPoint(label:getAnchorPoint())
-		c:setPosition(ccp(x + dx, y + dy))
-		c:setColor(ccc3(r, g, b))
-		c:setOpacity(opacity)
-		parent:addChild(c, z)
-		return c
-	end
-	for _, ring in ipairs({{5, 215, 140, 255, 40, 170}, {3, 245, 210, 255, 70, 230}}) do
-		for _, d in ipairs(around) do
-			local halo = copy(d[1] * ring[1], d[2] * ring[1], ring[2], ring[3], ring[4], ring[6])
-			halo:runAction(CCRepeatForever:create(CCSequence:createWithTwoActions(CCFadeTo:create(0.8, ring[5]), CCFadeTo:create(0.8, ring[6]))))
-		end
-	end
-	for _, d in ipairs(around) do
-		copy(d[1] * 1.5, d[2] * 1.5, 50, 0, 90, 255)
-	end
-	parent:reorderChild(label, z + 1)
-	label:setColor(ccc3(215, 140, 255))
-	label:runAction(CCRepeatForever:create(CCSequence:createWithTwoActions(CCTintTo:create(0.8, 165, 60, 255), CCTintTo:create(0.8, 215, 140, 255))))
+	PurpleGlow(self.label_name, self.cellData.glowcolor)
 end
 
 function onNodeCleanup(self)

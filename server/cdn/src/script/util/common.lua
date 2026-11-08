@@ -665,3 +665,99 @@ function showPayRanking( )
     openHyperlink(url)
     -- body
 end
+
+-- Glowing names (Ninja Online Reborn server, 28.0.44). hex = "RRGGBB", the colour picked in the control panel (purple when missing).
+-- Copies of the label around it (tag 7378): two rings of a light halo that pulses (5 and 3 px) and a thin dark outline (1.5 px);
+-- the label itself (tag 7377) pulses between the colour and a lighter one. The copies go in the label's parent at the label's z,
+-- the label one higher. Called again with another colour or name, the old glow is taken off first.
+PURPLE_LAST = PURPLE_LAST or {}
+PURPLE_ORIG = PURPLE_ORIG or {}
+function PurpleGlowOff(label)
+	if label == nil or label:getTag() ~= 7377 then return end
+	local parent = label:getParent()
+	if parent ~= nil then
+		while parent:getChildByTag(7378) ~= nil do parent:removeChildByTag(7378, true) end
+	end
+	label:stopAllActions()
+	local id = tostring(label)
+	if PURPLE_ORIG[id] ~= nil then label:setColor(PURPLE_ORIG[id]) end
+	label:setTag(-1)
+	PURPLE_LAST[id] = nil
+end
+function PurpleGlow(label, hex)
+	if label == nil then return end
+	local parent = label:getParent()
+	if parent == nil then return end
+	hex = tostring(hex or "")
+	local id, want = tostring(label), hex .. "|" .. label:getString()
+	if label:getTag() == 7377 then
+		if PURPLE_LAST[id] == want then return end
+		PurpleGlowOff(label)
+	else
+		PURPLE_ORIG[id] = label:getColor()
+	end
+	local r, g, b = tonumber(string.sub(hex, 1, 2), 16), tonumber(string.sub(hex, 3, 4), 16), tonumber(string.sub(hex, 5, 6), 16)
+	if r == nil or g == nil or b == nil or string.len(hex) ~= 6 then r, g, b = 175, 70, 255 end
+	local function mix(t) return math.floor(r + (255 - r) * t), math.floor(g + (255 - g) * t), math.floor(b + (255 - b) * t) end
+	local text, font, size = label:getString(), label:getFontName(), label:getFontSize()
+	local x, y, z = label:getPositionX(), label:getPositionY(), label:getZOrder()
+	local sx, sy = label:getScaleX(), label:getScaleY()
+	local around = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {0.7, 0.7}, {-0.7, 0.7}, {0.7, -0.7}, {-0.7, -0.7}}
+	local function copy(dx, dy, cr, cg, cb, opacity)
+		local c = CCLabelTTF:create(text, font, size)
+		c:setAnchorPoint(label:getAnchorPoint())
+		c:setPosition(ccp(x + dx, y + dy))
+		c:setScaleX(sx)
+		c:setScaleY(sy)
+		c:setColor(ccc3(cr, cg, cb))
+		c:setOpacity(opacity)
+		parent:addChild(c, z, 7378)
+		return c
+	end
+	local fr, fg, fb = mix(0.55)
+	local nr, ng, nb = mix(0.8)
+	for _, ring in ipairs({{5, fr, fg, fb, 40, 170}, {3, nr, ng, nb, 70, 230}}) do
+		for _, d in ipairs(around) do
+			local halo = copy(d[1] * ring[1], d[2] * ring[1], ring[2], ring[3], ring[4], ring[6])
+			halo:runAction(CCRepeatForever:create(CCSequence:createWithTwoActions(CCFadeTo:create(0.8, ring[5]), CCFadeTo:create(0.8, ring[6]))))
+		end
+	end
+	for _, d in ipairs(around) do
+		copy(d[1] * 1.5, d[2] * 1.5, math.floor(r * 0.25), math.floor(g * 0.25), math.floor(b * 0.3), 255)
+	end
+	local lr, lg, lb = mix(0.45)
+	parent:reorderChild(label, z + 1)
+	label:setColor(ccc3(lr, lg, lb))
+	label:runAction(CCRepeatForever:create(CCSequence:createWithTwoActions(CCTintTo:create(0.8, r, g, b), CCTintTo:create(0.8, lr, lg, lb))))
+	label:setTag(7377)
+	PURPLE_LAST[id] = want
+end
+
+-- The Home top bar name (drawn by C++ ISubMenu::InitNormalHeader) glows too. ui_mainActivityBtn calls this every time Home opens
+-- (mainActivity.lua initMainMenuActivityBtn builds those buttons). Each time it asks the server (rl_r_purplename) whether this
+-- account has a glowing name and its colour, so a change in the control panel shows the next time Home opens (a new name needs
+-- a restart: the game reads the name at login). PURPLE_ME[uid] = "RRGGBB" or "" (no), used until the answer comes.
+PURPLE_ME = PURPLE_ME or {}
+function PurpleTopBarLabel()
+	local mm = GetMainMenu()
+	if mm == nil or mm:GetCurrentSubMenuType() ~= E_DEFAULTMENU then return nil end
+	local sub = mm:GetCurrentSubMenu()
+	if sub == nil then return nil end
+	local node = sub:getNode("label_name")
+	if node == nil then return nil end
+	return tolua.cast(node, "CCLabelTTF")
+end
+function PurpleTopBar()
+	local label = PurpleTopBarLabel()
+	if label == nil then return end
+	local uid = tostring(CPlayerDataMgr:instance():GetPlayerInfoData().m_uid)
+	if PURPLE_ME[uid] ~= nil and PURPLE_ME[uid] ~= "" then PurpleGlow(label, PURPLE_ME[uid]) end
+	CCHttpRequest:open(GetUrlNormalHeader(uid, 1, "rl_r_purplename"), kHttpPost, "query=param1&other=params"):sendWithHandler(function(res, hnd)
+		local ok, item = pcall(function() return xml.parse(res:getResponseData()):find("purple") end)
+		if not ok or item == nil then return end
+		PURPLE_ME[uid] = (item.glow == "1") and tostring(item.color or "af46ff") or ""
+		local l = PurpleTopBarLabel()
+		if l == nil then return end
+		if PURPLE_ME[uid] ~= "" then PurpleGlow(l, PURPLE_ME[uid]) else PurpleGlowOff(l) end
+	end)
+end

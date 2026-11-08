@@ -685,6 +685,11 @@ for (const pick of [55, 56, 57]) {
     const other = handlers.rl_w_reg2({ db, params: { Uid: '79002', Session: 'x', ServerID: '1', GroupID: '2', Cmd: 0, Nick: 'purple boss ', Card: 55 } });
     if (!/code="5"/.test(other) || db.prepare('SELECT 1 FROM players WHERE uid=79002').get()) { bad++; console.log('PURPLE NAME taken by another account:', other.slice(0, 120)); }
     if (!sn.set(db, 79003, 'PURPLE BOSS').error) { bad++; console.log('PURPLE NAME given to two accounts'); }
+    // colour (28.0.44): the list and the Home reply carry it, a bad colour keeps the old one
+    const gold = sn.set(db, 79001, 'Purple Boss', '#FFD21F'), keep = sn.set(db, 79001, 'Purple Boss', 'nonsense');
+    const home = handlers.rl_r_purplename({ db, params: { ...q, Cmd: '1' } }), plain = handlers.rl_r_purplename({ db, params: { ...q, Uid: '79002', Cmd: '1' } });
+    if (gold.color !== 'ffd21f' || keep.color !== 'ffd21f' || !/glowcolor="ffd21f"/.test(handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } }))
+      || !/<purple glow="1" color="ffd21f"\/>/.test(home) || !/<purple glow="0"/.test(plain)) { bad++; console.log('GLOW COLOUR:', JSON.stringify([gold, keep]), home, plain); }
     sn.clear(db, 79001);
     if (/glow=/.test(handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } }))) { bad++; console.log('PURPLE NAME still glows after Remove'); }
   }
