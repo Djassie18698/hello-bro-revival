@@ -21,9 +21,9 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
       with a budget alert prevents that. Ask me for the steps when you want it.
 
 ### Website (when you have 10 minutes)
-- [x] **E-mail address** contact@ninjaonlinereborn.com lands in your Gmail (done 8 Nov). Send it a test mail from another address once.
+- [x] **E-mail address** contact@ninjaonlinereborn.com lands in your Gmail (done 8 Nov, tested by you 9 Nov).
 - [x] **Google Search Console:** verified (8 Nov). Keep the `google-site-verification` line in Namecheap's Advanced DNS.
-- [ ] **Sitemap:** in Search Console, left menu **Sitemaps**, type `sitemap.xml`, **Submit** (the website is live, so it works now).
+- [x] **Sitemap:** submitted in Search Console (9 Nov). Google lists the home page and the wiki; showing up in searches takes a few days.
 
 ### Keep doing
 - [ ] Play and write down anything odd. Put it in **GitHub issue #6** (bug list 5) or tell me in chat. A screenshot helps.
