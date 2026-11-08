@@ -63,9 +63,11 @@ game files, names and numbers from its own tables, screenshots taken in the game
 - Logo: the owner's NINJA ONLINE picture in the original Hello Bro logo style, `server/site/img/logo-ninjaonline.webp`
   (source on the owner's PC: Pictures/Ninja Online Logo.png), with REBORN under it. The original Hello Bro logo
   (`img/logo-hellobro.webp`) shows the game's old name.
-- Voice: **like the old game**, hyped and official like its own ads, posters and event banners (owner, 8 Nov 2026), but
-  never generic marketing or "AI-sounding" template copy (owner, 8 Nov 2026: "make it look a little less A.I."). No
-  small labels above every heading, no slogan pile-ups.
+- Voice: **plain** (owner, 8 Nov 2026: "keep them plain", after the plain rewrite of the home page): short, clear words,
+  like a player telling other players about the game. Never generic marketing or "AI-sounding" template copy (owner,
+  8 Nov 2026: "make it look a little less A.I."): no small labels above every heading, no slogans, few colons and bold
+  words. The hype lives in the game's own art and posters, not in the sentences. (In the init interview the owner first
+  picked "like the old game", hyped and official; the plain texts they saw afterwards won.)
 - The owner loved https://platinumtogether.online as a reference for the home page (big game scene, chunky logo, big
   Play button).
 
@@ -86,4 +88,4 @@ game files, names and numbers from its own tables, screenshots taken in the game
 2. **Only what the game really is.** Art, names and numbers come from the game; no invented claims, quotes or stats.
 3. **Just like the original stays true.** The site promises the original game; it never advertises "improvements".
 4. **Free, for real.** Nothing on the site asks for money or looks like a shop.
-5. **Sound like the game, not like a template.** Hyped like the old posters, in plain words a player would write.
+5. **Plain words, not a template.** Write it the way a player would say it; let the game's art bring the excitement.
