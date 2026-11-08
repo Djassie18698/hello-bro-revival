@@ -219,6 +219,7 @@ wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the 
   Every big card picture is `re/obb/npc/<ninjainfo[3]>.pvr.ccz` (394 px, all 493 wiki cards have one). Posters `advertise1-7` = super ninja, dice,
   big wheel, time limit, flowers, 5-star cards, treasures. Chapter banners `level_chapter_<n>` on `level_page1-4` (6 per page).
   `build_wiki.js --check` (in check.sh) fails when `data.json` or `home.json` is out of date: rebuild after editing tables, guides or README news.
+- **Design notes (Impeccable, 8 Nov 2026):** `server/PRODUCT.md` = who the site is for, its main goal (download and play), voice (like the old game's ads, never AI-template copy), constraints and what must never be invented. Impeccable design commands (`/impeccable ...`) read it; `server/.impeccable/` holds their config. Not served by Caddy; `update.sh` skips the game restart for `server/*.md` and `server/.impeccable`.
 - **Look before shipping:** `bash tools/dev/restart.sh` (dev server, for /status) + `node tools/dev/site-preview.js` → http://127.0.0.1:18090/ and /wiki/.
   The app's browser pane is small and blurry: judge the design with `node tools/dev/pageshot.js http://127.0.0.1:18090/ re/home.png 1440 900 1 1`
   (and `390 844` for a phone; last two args: full page, reduced motion), then view the PNG. It also reports page errors and sideways overflow.
