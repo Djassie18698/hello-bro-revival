@@ -1,15 +1,18 @@
-# Checklist: what's left (6 Nov 2026)
+# Checklist: what's left (8 Nov 2026)
 
 All 4 bug lists are done (48 fixed, 2 not possible) and GitHub issues #2-#5 are closed. Every Discord report so far is fixed.
-The public server **ninjaonline** runs in the cloud (Oracle) since 3 Nov, so it stays on when your PC is off.
+The public server **ninjaonline** runs in the cloud (Oracle) since 3 Nov, so it stays on when your PC is off. The Discord bot runs there too (since 7 Nov),
+and so does the website **https://ninjaonlinereborn.com** (home page + wiki at /wiki/, since 8 Nov).
 From here on it's mostly new bug reports. This list says who does what. Tick a box (`[x]`) when it's done.
 
 ## You (Djassie)
 
 ### Do now
 - [ ] **Restart your play server** (`Hello Bro Locked Server\START-SERVER.bat`) after an update: close its window, then double-click it again.
-- [ ] **Bot always online:** double-click `discord\BOT-AUTOSTART.bat` once, if you haven't yet. After that the bot (and the #server-status
-      messages) start with Windows. (I'm not allowed to set up auto-start myself.)
+- [ ] **Your domain** ninjaonlinereborn.com (Namecheap): auto-renew is on; it renews around **8 Nov 2027** for about €14. Keep a working card
+      on Namecheap, or the name expires and someone else can buy it.
+- [ ] **If Oracle ever gives the machine a new address:** change it in 2 places: duckdns.org (ninjaonline) and Namecheap (Domain List >
+      Manage > Advanced DNS: both A records). I can't do this for you (your accounts), but I'll give you the steps.
 - [ ] **Cloud server safety:** Oracle can take back an idle "Always Free" machine. Switching the account to "Pay As You Go" (stays free)
       with a budget alert prevents that. Ask me for the steps when you want it.
 
@@ -28,6 +31,8 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
 ### Ready to do when you say so
 - [ ] Fix every new bug from issue #6, Discord or chat (test it, push, sync, post in #updates).
 - [ ] Super Ninja: switch it from the hourly god to the original 3-day event.
+- [ ] Fragments for the 65 god cards that can't get any in the game now (for example in the Ninja Test shop): you haven't decided yet.
+- [ ] Website: anything you want changed on ninjaonlinereborn.com (the website session handles it).
 - [ ] Lock the item page so each player only sees their own account (you said: not now, let people have fun).
 - [ ] Steps to switch Oracle to Pay As You Go with a budget alert.
 
