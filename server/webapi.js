@@ -43,7 +43,8 @@ function ranked(db) {
 function top(db) {
   return cached('top', 60000, () => {
     const styles = names.styles(db);
-    return { top: ranked(db).slice(0, 10).map((r, i) => ({ rank: i + 1, name: clean(r.nick), level: r.level, atk: [r.lo, r.hi], glow: glowOf(styles, r.uid) })) };
+    const nth = sameNameOrder(db);
+    return { top: ranked(db).slice(0, 10).map((r, i) => ({ rank: i + 1, name: clean(r.nick), n: nth.get(r.uid) || 1, level: r.level, atk: [r.lo, r.hi], glow: glowOf(styles, r.uid) })) };
   });
 }
 
@@ -101,11 +102,25 @@ function breakdown(db, uid, sid) {
 let chainTexts = null;
 const chainText = (id) => { if (!chainTexts) chainTexts = new Map(game.table('ninjamatch').rows.map((r) => [r[0], String(r[4] || '').trim()])); return chainTexts.get(id) || ''; };
 
-function player(db, name) {
+// Names are not unique: two characters can both be called DEAN. n = a character's place among those with the same name (highest level
+// first, then the older character), so /p/DEAN?n=2 opens the second one without showing any account number. lower() = SQLite's (A-Z only).
+const asciiLower = (s) => String(s).replace(/[A-Z]/g, (c) => c.toLowerCase());
+function sameNameOrder(db) {
+  return cached('nth', 60000, () => {
+    const out = new Map(), seen = new Map();
+    for (const r of db.prepare("SELECT uid, nick FROM players WHERE server_id=? AND nick<>'' ORDER BY level DESC, uid ASC").all(WORLD)) {
+      const k = asciiLower(r.nick), n = (seen.get(k) || 0) + 1;
+      seen.set(k, n); out.set(r.uid, n);
+    }
+    return out;
+  });
+}
+function player(db, name, nth = 1) {
   const want = clean(name).slice(0, 32);
   if (!want) return null;
-  return cached('p:' + want.toLowerCase(), 60000, () => {
-    const pl = db.prepare("SELECT uid, nick, level FROM players WHERE server_id=? AND nick<>'' AND lower(nick)=lower(?) ORDER BY level DESC LIMIT 1").get(WORLD, want);
+  const n = Math.max(1, Math.min(50, Math.floor(Number(nth)) || 1));
+  return cached('p:' + n + ':' + want.toLowerCase(), 60000, () => {
+    const pl = db.prepare("SELECT uid, nick, level FROM players WHERE server_id=? AND nick<>'' AND lower(nick)=lower(?) ORDER BY level DESC, uid ASC LIMIT 1 OFFSET ?").get(WORLD, want, n - 1);
     if (!pl) return null;
     const ts = game.teamStats(db, pl.uid, WORLD);
     const bd = breakdown(db, pl.uid, WORLD);
@@ -225,7 +240,7 @@ function handle(req, resp, u, db) {
   try {
     switch (u.pathname) {
       case '/api/top': return send(resp, 200, top(db));
-      case '/api/player': { const p = player(db, q.name); return p ? send(resp, 200, p) : send(resp, 404, { error: 'no player with that name' }); }
+      case '/api/player': { const p = player(db, q.name, q.n); return p ? send(resp, 200, p) : send(resp, 404, { error: 'no player with that name' }); }
       case '/api/today': return send(resp, 200, today(db));
       case '/api/online': return send(resp, 200, online(db, Number(q.days) || 1));
       case '/api/calc': return send(resp, 200, calc(q.s));

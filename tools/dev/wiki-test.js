@@ -25,6 +25,15 @@ const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
   const pl = web.player(db, 'webby');
   ck(pl && pl.name === 'Webby' && pl.team.length >= 1 && pl.vip >= 0 && pl.vip <= 18 && pl.rank === 1, 'api player: ' + JSON.stringify(pl));
   ck(web.player(db, '') === null && web.player(db, 'nobody here') === null, 'api player: an unknown name must give nothing');
+  // two characters with the same name: each gets its own page (?n=2), the list links them apart
+  handlers.rl_w_login2({ db, params: p(70002), host: 'localhost', method: 'POST', body: '' });
+  handlers.rl_w_reg2({ db, params: p(70002, { Nick: 'Webby2', Card: 1 }), host: 'localhost', method: 'POST', body: '' });
+  db.prepare("UPDATE players SET nick='Twin', level=1 WHERE uid=70002").run();
+  handlers.rl_w_login2({ db, params: p(70003), host: 'localhost', method: 'POST', body: '' });
+  handlers.rl_w_reg2({ db, params: p(70003, { Nick: 'Twin3', Card: 1 }), host: 'localhost', method: 'POST', body: '' });
+  db.prepare("UPDATE players SET nick='twin', level=7 WHERE uid=70003").run();
+  const t1 = web.player(db, 'Twin', 1), t2 = web.player(db, 'Twin', 2);
+  ck(t1 && t2 && t1.level === 7 && t2.level === 1 && web.player(db, 'Twin', 3) === null, 'api player: same-named characters are mixed up');
   // where the power comes from: the parts add up exactly to the team numbers
   for (const side of ['atk', 'def']) { const sum = (pl.from[side] || []).reduce((a, x) => [a[0] + x.v[0], a[1] + x.v[1]], [0, 0]);
     ck(sum[0] === pl[side][0] && sum[1] === pl[side][1] && !(pl.from[side] || []).some((x) => x.key === 'other'), `api player: the ${side} parts ${sum} do not add up to ${pl[side]}`); }

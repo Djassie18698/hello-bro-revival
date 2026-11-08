@@ -41,7 +41,7 @@
   const top10 = $('#top10');
   if (top10) {
     const loadTop = () => api('top').then((d) => {
-      top10.innerHTML = d.top.length ? d.top.map((r) => `<li><a href="${playerHref(r.name)}"><span class="rk">${r.rank}</span>${nameHtml(r.name, r.glow)}` +
+      top10.innerHTML = d.top.length ? d.top.map((r) => `<li><a href="${playerHref(r.name)}${r.n > 1 ? '?n=' + r.n : ''}"><span class="rk">${r.rank}</span>${nameHtml(r.name, r.glow)}` +
         `<span class="lv">Lv ${r.level}</span><span class="at" title="Team attack">${rng(r.atk)}</span></a></li>`).join('') : '<li class="wait">No players yet.</li>';
       sparkle(top10);
     }).catch(() => { if (top10.querySelector('.wait')) top10.innerHTML = '<li class="wait">The list shows up when the server is online.</li>'; });
@@ -121,7 +121,8 @@
     const fromPath = location.pathname.indexOf('/p/') === 0 ? decodeURIComponent(location.pathname.slice(3).replace(/\/$/, '')) : '';
     const name = fromPath || new URLSearchParams(location.search).get('name') || '';
     if (!name) { page.innerHTML = '<p class="wait">Pick a player from the <a href="/#live">top players</a>.</p>'; return; }
-    Promise.all([api('player?name=' + encodeURIComponent(name)), home]).then(([p, H]) => {
+    const nth = Number(new URLSearchParams(location.search).get('n')) || 1;
+    Promise.all([api('player?name=' + encodeURIComponent(name) + (nth > 1 ? '&n=' + nth : '')), home]).then(([p, H]) => {
       document.title = `${p.name} · Ninja Online Reborn`;
       page.innerHTML = `<header class="p-head">
           <h1>${nameHtml(p.name, p.glow)}</h1>

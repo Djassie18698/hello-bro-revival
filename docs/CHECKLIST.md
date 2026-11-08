@@ -21,8 +21,9 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
       with a budget alert prevents that. Ask me for the steps when you want it.
 
 ### Website (when you have 10 minutes)
-- [ ] **E-mail address** contact@ninjaonlinereborn.com that lands in your Gmail: Namecheap's free Email Forwarding (the website session gave you the click steps).
-- [ ] **Google Search Console:** prove the site is yours with one DNS record at Namecheap, so Google lists it (click steps from the website session).
+- [x] **E-mail address** contact@ninjaonlinereborn.com lands in your Gmail (done 8 Nov). Send it a test mail from another address once.
+- [x] **Google Search Console:** verified (8 Nov). Keep the `google-site-verification` line in Namecheap's Advanced DNS.
+- [ ] **Sitemap:** in Search Console, left menu **Sitemaps**, type `sitemap.xml`, **Submit** (the website is live, so it works now).
 
 ### Keep doing
 - [ ] Play and write down anything odd. Put it in **GitHub issue #6** (bug list 5) or tell me in chat. A screenshot helps.

@@ -235,7 +235,9 @@ wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the 
   sparkle like in the game), Today in the game (god card of the hour, free ramen 12-14 / 18-20, energy 22:00, events running; server clock + the visitor's own time),
   Players online graph (24 h / 7 days); player pages `/p/<name>` ("Where the power comes from": webapi.js breakdown(), parts add up exactly; VIP badge pictures `img/ui/vip-0..18.webp`, team cards with the wiki's icons via `home.json` `icons`);
   wiki `#/calculator` (team calculator, state in the address). All in `live.js` + `server/webapi.js`; checks in `tools/dev/wiki-test.js`. `robots.txt` + `sitemap.xml` in
-  server/site. Waiting on the owner: Namecheap e-mail forwarding (contact@) and the Google Search Console TXT record (click steps given, he does them).
+  server/site. Same-named characters: `/p/<name>?n=2` (place among that name, highest level first). Live since 8 Nov 2026.
+  E-mail: contact@ninjaonlinereborn.com forwards to the owner's Gmail (Namecheap Email Forwarding: MX eforward1-5.registrar-servers.com + SPF TXT).
+  Google Search Console: domain property verified by the owner 8 Nov 2026 (TXT `google-site-verification=...` at Host @: never delete it); sitemap.xml submitted there by the owner.
 - **Look before shipping:** `bash tools/dev/restart.sh` (dev server, for /status) + `node tools/dev/site-preview.js` → http://127.0.0.1:18090/ and /wiki/.
   The app's browser pane is small and blurry: judge the design with `node tools/dev/pageshot.js http://127.0.0.1:18090/ re/home.png 1440 900 1 1`
   (and `390 844` for a phone; last two args: full page, reduced motion), then view the PNG. It also reports page errors and sideways overflow.
