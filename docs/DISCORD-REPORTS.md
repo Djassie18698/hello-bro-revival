@@ -4,6 +4,9 @@ Every report from Discord #bugs-and-issues, so later sessions know what was hand
 How: read `cd discord && node --env-file=.env dc.js read bugs-and-issues 50`, handle anything newer than the last entry here,
 then react ✅ on the report (`dc.js react bugs-and-issues <id>`) and reply to it (`dc.js reply bugs-and-issues <id> <file>`)
 with what is fixed and what not. The fixes themselves are rows in `docs/PROGRESS.md` ("Discord reports").
+Since 8 Nov 2026 the bug helper (discord/bughelper.js) collects the details in a thread and posts the report in #bot-logs with
+`report-id: <thread> · post-id: <post>`: put that report-id in the Message id column (the scheduled fixer checks it), answer in the
+thread (`dc.js post <thread> <file>`) and react ✅ on the post id.
 
 | Message id | Date | Report | State |
 |---|---|---|---|

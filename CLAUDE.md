@@ -58,6 +58,13 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    Bug report template (`gh issue list`); Discord #bugs-and-issues and #support
    (`cd discord && node --env-file=.env dc.js read bugs-and-issues`). Never reply in Discord chat channels, EXCEPT on bug reports in
    #bugs-and-issues (owner, 3 Nov 2026): see step 7. `docs/DISCORD-REPORTS.md` logs every report and its state: read it first.
+   **Bug helper + fixer (8 Nov 2026, owner):** `discord/bughelper.js` (inside the cloud bot) opens a thread on every new #bugs-and-issues post,
+   asks the player for the missing details with Claude (ANTHROPIC_API_KEY in the cloud `discord/.env` only; claude-opus-5-5, low effort; a fixed
+   checklist when the key fails; owner posts and replies are skipped) and posts the finished report in **#bot-logs** ("🐞 Bug report" / "💡 Wish",
+   ending `report-id: <thread> · post-id: <post>`). The scheduled task **"hellobro-bug-fixer"** on the owner's PC (every 2 h while the Claude app
+   is open, `~/.claude/scheduled-tasks/hellobro-bug-fixer/SKILL.md`) picks up reports whose report-id is not in DISCORD-REPORTS.md yet, fixes
+   them with this section's steps, answers in the thread (`dc.js post <thread> <file>`), reacts ✅ on the post and tells the owner in #dev-chat;
+   the public server is updated only after the owner's OK. The API key ends about **8 Dec 2026** (30 days); then the helper uses the checklist.
    Website/wiki problems are bugs too (section 6).
 2. **Add a row** to `docs/PROGRESS.md` (⏳) under its list, and keep the Summary counts matching the rows.
 3. **Reproduce:** `node tools/dev/probe.js <endpoint> <Cmd> k=v` against a test save, or in the game on the Claude emulator
@@ -149,7 +156,8 @@ UPDATE.bat left behind. Paths below without a folder are in `server/`.
     127.0.0.1/status every minute and stops the server after 3 failed checks; systemd (Restart=always) starts it again.
     Discord **#server-status** (owner, 3 Nov 2026): `discord/statuswatch.js` runs inside `online.js` and checks `/status` every minute:
     posts offline (2 failed checks), back online, updated (new version) or restarted.
-    **The bot runs on the cloud machine since 7 Nov 2026** (owner: "so I can't close it by accident"): systemd service `hellobro-bot`
+    It also runs the #bugs-and-issues helper (`bughelper.js`, section 2; state in `discord/bughelper-state.json`; `BUG_HELPER=0` in .env turns it off;
+    `bot.sh` installs its only package, the Claude SDK). **The bot runs on the cloud machine since 7 Nov 2026** (owner: "so I can't close it by accident"): systemd service `hellobro-bot`
     (`tools/vps/bot.sh` installs / restarts it, `bot.sh stop` switches it off; `sudo journalctl -u hellobro-bot`), token in
     `/opt/hellobro/discord/.env` (copied from the PC with scp, mode 600, git-ignored), STATUS_URL=127.0.0.1:18080. It can't report the whole
     cloud machine being down (it is on it). The PC's START-BOT-ONLINE.bat asks before starting a second copy (double posts).

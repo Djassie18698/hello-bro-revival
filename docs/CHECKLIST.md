@@ -8,6 +8,10 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
 ## You (Djassie)
 
 ### Do now
+- [ ] **Bug helper bot** (#bugs-and-issues): runs on the cloud. Your own posts are skipped, so ask a friend (e.g. Riskeric) to post a test bug.
+      The fixer runs on your PC every 2 hours while the Claude app is open: open "Scheduled" in the app sidebar > "Hello Bro: fix new Discord bug
+      reports" and set its permission mode (or press "Run now" once and approve), so it doesn't stop to ask. Fixes go live only after you say so.
+- [ ] **The Claude API key ends around 8 Dec 2026** (30 days). After that the bug helper asks with a fixed checklist; a new key keeps the smart questions.
 - [ ] **Restart your play server** (`Hello Bro Locked Server\START-SERVER.bat`) after an update: close its window, then double-click it again.
 - [ ] **Your domain** ninjaonlinereborn.com (Namecheap): auto-renew is on; it renews around **8 Nov 2027** for about €14. Keep a working card
       on Namecheap, or the name expires and someone else can buy it.
