@@ -14,7 +14,8 @@ echo "Waiting on GitHub:"; echo "$NEW" | sed 's/^/  /'
 OLD=$(G rev-parse HEAD)
 G merge -q --ff-only origin/main || exit 1
 chown -R hellobro:hellobro "$DIR"
-if G diff --quiet "$OLD" HEAD -- server tools/vps/run.sh; then
+# server/wiki is only files on disk (read fresh by the game server's /wiki/ and by Caddy, tools/vps/wiki-site.sh): no restart for those
+if G diff --quiet "$OLD" HEAD -- server ':(exclude)server/wiki' tools/vps/run.sh; then
   echo "Updated to $(G log --oneline -1 | cut -c1-60). No server changes: no restart needed."
   exit 0
 fi

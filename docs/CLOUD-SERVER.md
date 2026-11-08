@@ -29,6 +29,18 @@ Players keep the same game file: `ninjaonline.duckdns.org` is pointed at the new
    - Destination Port Range: `18080`
 3. **Add Ingress Rules**.
 
+## 3b. Open ports 80 and 443 (the wiki's own address)
+For **https://ninjaonlinereborn.com** (no port number, safe https). Same place as step 3:
+1. Instance page > under **Primary VNIC** (newer screens: the **Networking** tab) click the **Subnet** link.
+2. **Security Lists** (newer screens: the **Security** tab) > **Default Security List for ...** > **Add Ingress Rules**:
+   - Source CIDR: `0.0.0.0/0`, IP Protocol: `TCP`, Destination Port Range: `80`
+   - click **+ Another Ingress Rule**: Source CIDR `0.0.0.0/0`, IP Protocol `TCP`, Destination Port Range `443`
+3. **Add Ingress Rules**.
+On the machine `sudo sh /opt/hellobro/tools/vps/wiki-site.sh` installs the small web server (Caddy) that serves the wiki there and gets
+its free certificate by itself (Claude does this for you). At Namecheap (where the name was bought): **Domain List** > **Manage** > **Advanced DNS**: two **A Records**, Host `@` and Host `www`, Value = the
+machine's public IP (change both if the IP ever changes). `wiki.ninjaonline.duckdns.org` needs nothing: every name under `ninjaonline.duckdns.org`
+already points at this machine.
+
 ## 4. Install the server
 Close the public server on your PC first (both can't own the same save).
 Then the install, copying your save `public.db` and its admin password are done from your PC over SSH
@@ -46,6 +58,9 @@ If a DuckDNS updater runs on your PC, turn it off, or it puts your PC's address 
 - **Discord bot** (shows online, posts in #server-status): runs here too, as the service `hellobro-bot`, so it is on day and night.
   Install or restart: `sudo sh /opt/hellobro/tools/vps/bot.sh` (needs the bot's `.env` from the PC in `/opt/hellobro/discord/`);
   switch off: `... bot.sh stop`; log: `sudo journalctl -u hellobro-bot`. It can't tell you when this whole machine is down (it is on it).
+- **Wiki address** https://ninjaonlinereborn.com: Caddy (`sudo systemctl status caddy`, log `sudo journalctl -u caddy`) serves the files
+  of `/opt/hellobro/server/wiki`, so an update refreshes the wiki by itself; `www.`, `wiki.ninjaonline.duckdns.org` and the plain `ninjaonline.duckdns.org` (no port) in a browser lead there too.
+  Set up again / switch off: `sudo sh /opt/hellobro/tools/vps/wiki-site.sh` / `... wiki-site.sh stop`. The game's own `:18080/wiki/` keeps working.
 - **Watchdog:** if the server stops answering for 3 minutes (stuck, not crashed), it restarts itself. `sudo journalctl -u hellobro | grep watchdog` shows when.
 - Change the admin password: `sudo sh /opt/hellobro/tools/vps/password.sh`
 - Control panel: `http://ninjaonline.duckdns.org:18080/manager` (your admin password). Backups are made every 6 hours in `/opt/hellobro/backups-public`.
