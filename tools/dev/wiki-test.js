@@ -71,6 +71,23 @@ const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
   ck(/id="player"/.test(site('p.html')) && /src="\/live\.js"/.test(site('p.html')) && /src="live\.js"/.test(site('index.html')) && /id="top10"/.test(site('index.html')), 'player page or live section is missing');
   for (let n = 0; n <= 18; n++) ck(fs.existsSync(path.join(__dirname, '..', '..', 'server', 'site', 'img', 'ui', 'vip-' + n + '.webp')), 'VIP badge ' + n + ' is missing');
   ck(/calcPage\(q\)/.test(fs.readFileSync(path.join(W, 'app.js'), 'utf8')), 'the wiki lost its team calculator');
+  // one real page per entry for search engines (tools/wiki_pages.js): all there, in the sitemap, own title/canonical, no Naruto/Konoha in titles
+  const sm = site('sitemap.xml');
+  const dirs = ['shinobi', 'gear', 'ninjutsu', 'seals', 'pets', 'items', 'training', 'guide'];
+  const files = dirs.flatMap((d) => (fs.existsSync(path.join(W, d)) ? fs.readdirSync(path.join(W, d)).map((x) => d + '/' + x) : []));
+  const DD = JSON.parse(fs.readFileSync(path.join(W, 'data.json'), 'utf8'));
+  const want = DD.shinobi.length + DD.gear.length + DD.jutsu.length + DD.seals.filter((x) => !x.fragment).length + DD.pets.length + DD.items.length + DD.chapters.length + DD.guides.length;
+  ck(files.length === want, 'wiki pages: ' + files.length + ', expected ' + want);
+  for (const rel of files) {
+    const h = fs.readFileSync(path.join(W, rel), 'utf8');
+    const title = (h.match(/<title>([^<]*)<\/title>/) || [])[1] || '', desc = (h.match(/<meta name="description" content="([^"]*)"/) || [])[1] || '';
+    ck(title && !/naruto|konoha/i.test(title + desc), rel + ': title or description says Naruto / Konoha: ' + title);
+    ck(h.includes('<link rel="canonical" href="https://ninjaonlinereborn.com/wiki/' + rel + '">') && h.includes('<base href="/wiki/">') && /<main id="main"><nav class="crumbs"/.test(h), rel + ': canonical, base or content missing');
+    ck(sm.includes('<loc>https://ninjaonlinereborn.com/wiki/' + rel + '</loc>'), rel + ' is not in sitemap.xml');
+  }
+  ck(fs.readFileSync(path.join(W, 'app.js'), 'utf8').includes("(own ? `${own[1]}/${own[2]}` : '')"), 'app.js no longer opens an entry from its own page address');
+  ck(fs.existsSync(path.join(__dirname, '..', '..', 'server', 'site', 'img', 'og.jpg')) && site('index.html').includes('og:image" content="https://ninjaonlinereborn.com/img/og.jpg"'), 'share picture og.jpg missing');
+  ck(site('index.html').includes('"@type":"FAQPage"') && site('index.html').includes('id="faq"'), 'home page questions part missing');
 }
 
 // ---- the data ----------------------------------------------------------------------------------------------------------------

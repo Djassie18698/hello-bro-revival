@@ -344,6 +344,20 @@ section { position: relative; }
 .c-ch summary { cursor: pointer; font-weight: 800; color: #ffb0c8; }
 .c-ch ul { margin: 6px 0 0; padding-left: 16px; }
 
+/* ---- questions (also FAQPage data in index.html for search engines) ---- */
+.faq { background: linear-gradient(180deg, var(--night), #0b1838); }
+.faq h2 { color: #fff; }
+.qa { margin-top: 24px; max-width: 820px; }
+.qa details { border-top: 1px solid rgba(255, 255, 255, .1); }
+.qa details:last-child { border-bottom: 1px solid rgba(255, 255, 255, .1); }
+.qa summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; padding: 16px 4px; font: 400 21px/1.25 var(--display); color: #fff; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary::after { content: '+'; color: var(--gold); font-size: 26px; line-height: 1; transition: transform .2s; }
+.qa details[open] summary::after { transform: rotate(45deg); }
+.qa summary:hover { color: var(--gold); }
+.qa p { margin: 0 4px 18px; color: #d5e1fb; max-width: 66ch; }
+.qa a { color: var(--moon); font-weight: 800; }
+
 /* ---- smaller screens ---- */
 @media (max-width: 1020px) {
   .feat-wrap { grid-template-columns: 1fr; }

@@ -238,6 +238,13 @@ wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the 
   server/site. Same-named characters: `/p/<name>?n=2` (place among that name, highest level first). Live since 8 Nov 2026.
   E-mail: contact@ninjaonlinereborn.com forwards to the owner's Gmail (Namecheap Email Forwarding: MX eforward1-5.registrar-servers.com + SPF TXT).
   Google Search Console: domain property verified by the owner 8 Nov 2026 (TXT `google-site-verification=...` at Host @: never delete it); sitemap.xml submitted there by the owner.
+- **Search engines (9 Nov 2026, owner: "do everything, also with the cards, just no naruto in the name"):** every wiki entry has its own page
+  `server/wiki/<shinobi|gear|ninjutsu|seals|pets|items|training|guide>/<id>.html` (771, made by `tools/wiki_pages.js` from `build_wiki.js`; the wiki's index.html + own
+  title/description/canonical + the facts in <main>; app.js opens the entry from that address). **Titles and descriptions never contain Naruto/Konoha** (wiki_pages.js plain();
+  app.js filters document.title the same way; "Konohagakure" = "Leaf Village", Konohamaru = "Shinobi card 121"); page text keeps the game's names. `sitemap.xml` is generated
+  by build_wiki.js (773 addresses) and checked by --check. Home page: Questions part (#faq) + FAQPage JSON-LD, title "Hello Bro / Ninja Online revived ...", share picture
+  `img/og.jpg` 1200x630 (source `tools/og/og.html`). GitHub repo website = ninjaonlinereborn.com, README links the site. The owner set up Google Search Console + Bing
+  Webmaster (sitemap submitted, indexing requested).
 - **Look before shipping:** `bash tools/dev/restart.sh` (dev server, for /status) + `node tools/dev/site-preview.js` → http://127.0.0.1:18090/ and /wiki/.
   The app's browser pane is small and blurry: judge the design with `node tools/dev/pageshot.js http://127.0.0.1:18090/ re/home.png 1440 900 1 1`
   (and `390 844` for a phone; last two args: full page, reduced motion), then view the PNG. It also reports page errors and sideways overflow.

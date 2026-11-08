@@ -540,7 +540,9 @@
 
   // ---- router -------------------------------------------------------------------------------------------------------------------
   function route() {
-    const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+    // an entry's own page (/wiki/shinobi/2106.html, tools/wiki_pages.js) opens that entry; #/ addresses work everywhere as before
+    const own = /\/wiki\/(shinobi|gear|ninjutsu|seals|pets|items|training|guide)\/([^/]+)\.html$/.exec(location.pathname);
+    const raw = decodeURIComponent(location.hash.replace(/^#\/?/, '')) || (own ? `${own[1]}/${own[2]}` : '');
     const [p, qs] = raw.split('?');
     const q = Object.fromEntries(new URLSearchParams(qs || ''));
     const [a, b] = p.split('/');
@@ -561,6 +563,9 @@
     else if (a === 'calculator') html = calcPage(q);
     else html = notFound();
     if (!b && a && document.title === 'Ninja Online Wiki') document.title = `${(KIND[Object.keys(KIND).find((k) => KIND[k].path === a)] || {}).label || 'Guides'} · Ninja Online Wiki`;
+    // titles never say Naruto / Konoha (owner, 9 Nov 2026; search engines read them), the same rule as tools/wiki_pages.js
+    document.title = document.title.replace(/konohagakure/gi, 'Leaf Village').replace(/[^\s,.:;()]*(naruto|konoha)[^\s,.:;()]*/gi, '').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
+      .replace(/\(\s*\)/g, '').replace(/\s{2,}/g, ' ').replace(/^[\s,.:;·-]+/, '').trim() || 'Ninja Online Wiki';
     $('#main').innerHTML = html;
     sideMenu(p);
     tabs(p);

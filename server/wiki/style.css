@@ -266,3 +266,11 @@ table.t .r { text-align: right; white-space: nowrap; }
   .cbar b { color: var(--gold); font-weight: 500; }
   .calc { padding-bottom: 64px; }
 }
+
+/* an entry's own page (tools/wiki_pages.js) before app.js takes over: plain facts for search engines and no-script visitors */
+.sec { padding: 16px 20px; margin-top: 14px; }
+.sec h2 { margin: 0 0 10px; }
+.facts { border-collapse: collapse; width: 100%; max-width: 640px; }
+.facts th, .facts td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.facts th { color: var(--ink-3); font-weight: 600; width: 40%; }
+.sec blockquote { margin: 10px 0 0; padding-left: 12px; border-left: 1px solid var(--line-2); color: var(--ink-2); font-style: italic; }

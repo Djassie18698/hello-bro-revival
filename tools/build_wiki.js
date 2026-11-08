@@ -310,16 +310,31 @@ const home = {
     cards: Object.fromEntries(shinobi.filter((c) => c.icon && c.icon.startsWith('n:')).map((c) => [c.id, Number(c.icon.slice(2))])) },
 };
 
+// ---- one real page per entry (tools/wiki_pages.js) and the sitemap that lists them ----------------------------------------------
+const PAGE_DIRS = ['shinobi', 'gear', 'ninjutsu', 'seals', 'pets', 'items', 'training', 'guide'];
+const pages = require('./wiki_pages').build(data, fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'));
+const NL = String.fromCharCode(10);
+const sitemap = '<?xml version="1.0" encoding="UTF-8"?>' + NL + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + NL +
+  [['/', '1.0'], ['/wiki/', '0.8'], ...[...pages.keys()].map((rel) => ['/wiki/' + rel, rel.startsWith('guide/') || rel.startsWith('training/') ? '0.6' : '0.5'])]
+    .map(([u, p]) => `  <url><loc>https://ninjaonlinereborn.com${u}</loc><priority>${p}</priority></url>`).join(NL) + NL + '</urlset>' + NL;
+const pageFiles = () => PAGE_DIRS.flatMap((d) => { try { return fs.readdirSync(path.join(OUT, d)).filter((x) => x.endsWith('.html')).map((x) => d + '/' + x); } catch { return []; } });
+
 if (process.argv.includes('--check')) { // check.sh (wiki-test.js): the committed data.json + home.json must match the tables, guides and README
   const old = (() => { try { return JSON.parse(fs.readFileSync(path.join(OUT, 'data.json'), 'utf8')); } catch { return {}; } })();
   const oldHome = (() => { try { return fs.readFileSync(path.join(SITE, 'home.json'), 'utf8'); } catch { return ''; } })();
-  const same = JSON.stringify({ ...old, built: '' }) === JSON.stringify({ ...data, built: '' }) && oldHome === JSON.stringify(home);
+  const read = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch { return null; } };
+  const pagesOk = pageFiles().length === pages.size && [...pages].every(([rel, html]) => read(path.join(OUT, rel)) === html) && read(path.join(SITE, 'sitemap.xml')) === sitemap;
+  const same = JSON.stringify({ ...old, built: '' }) === JSON.stringify({ ...data, built: '' }) && oldHome === JSON.stringify(home) && pagesOk;
   console.log(same ? 'wiki data is up to date' : 'wiki data is OUT OF DATE: run node tools/build_wiki.js');
   process.exit(same ? 0 : 1);
 }
 fs.writeFileSync(path.join(OUT, 'data.json'), JSON.stringify(data));
 fs.mkdirSync(SITE, { recursive: true });
 fs.writeFileSync(path.join(SITE, 'home.json'), JSON.stringify(home));
+for (const rel of pageFiles()) if (!pages.has(rel)) fs.rmSync(path.join(OUT, rel)); // entries that are gone
+for (const [rel, html] of pages) { fs.mkdirSync(path.dirname(path.join(OUT, rel)), { recursive: true }); fs.writeFileSync(path.join(OUT, rel), html); }
+fs.writeFileSync(path.join(SITE, 'sitemap.xml'), sitemap);
+console.log(`wiki pages: ${pages.size} (server/wiki/<kind>/<id>.html), sitemap.xml lists ${pages.size + 2} addresses`);
 const counts = Object.fromEntries(['shinobi', 'gear', 'jutsu', 'seals', 'pets', 'items', 'sets', 'chapters', 'guides'].map((k) => [k, data[k].length]));
 const noGet = shinobi.filter((c) => !c.get.length).length;
 console.log('wiki data:', JSON.stringify(counts), `${Math.round(fs.statSync(path.join(OUT, 'data.json')).size / 1024)} KB;`, `${noGet} cards with no known source`);
