@@ -6,6 +6,7 @@ const { DatabaseSync } = require('node:sqlite');
 const tmp = path.join(os.tmpdir(), 'hb-smoke-' + process.pid + '.db');
 const db = new DatabaseSync(tmp);
 require('../../server/schema')(db);
+require('../../server/rotation').setOn(db, false); // the weekly rotation would open events by the clock: the checks below switch them themselves (rotation checked at the end)
 const handlers = require('../../server/handlers');
 const base = { Uid: '77', Session: 'smoke', ServerID: '1', GroupID: '2' };
 
@@ -697,6 +698,58 @@ for (const pick of [55, 56, 57]) {
       || sn.set(db, 79001, 'Purple Boss', null, '').effect !== '') { bad++; console.log('GLOW EFFECT:', JSON.stringify([sp, odd, same]), home2); }
     sn.clear(db, 79001);
     if (/glow=/.test(handlers.rl_r_ninja_rank({ db, params: { ...q, Cmd: '1' } }))) { bad++; console.log('PURPLE NAME still glows after Remove'); }
+  }
+  // Weekly event rotation (owner, 9 Nov 2026, rotation.js): every plan event runs at least once in 7 days, Super Ninja 11-15 and 18-22,
+  // a new festival each week, an event taken out follows its own switch, reset = day 1 today, countdowns stop at the slot end
+  {
+    const rot = require('../../server/rotation'), S = require('../../server/settings'), ls = require('../../server/limitsuper');
+    rot.setOn(db, true); rot.reset(db);
+    const base = rot.cfg(db).epoch, D = 86400, all = rot.PLAN_IDS.filter((i) => i !== 'festival');
+    const seen = new Set();
+    for (let h = 0; h < 7 * 24; h++) for (const id of [...all, ...rot.FESTIVALS]) if (rot.decide(db, id, base + h * 3600 + 60)) seen.add(id);
+    const missing = all.filter((id) => !seen.has(id));
+    if (missing.length || !rot.FESTIVALS.some((f) => seen.has(f))) { bad++; console.log('ROTATION: not seen in a week:', missing.join(', ') || 'no festival'); }
+    const sn = (d, h) => rot.decide(db, 'superninja', base + d * D + h * 3600 + 60);
+    if (!sn(0, 11) || !sn(0, 14) || sn(0, 15) || !sn(3, 18) || sn(3, 22) || sn(5, 3)) { bad++; console.log('ROTATION: Super Ninja windows wrong'); }
+    if (rot.festivalOf(rot.cfg(db), base + 4 * D) === rot.festivalOf(rot.cfg(db), base + 11 * D)) { bad++; console.log('ROTATION: the festival did not change the next week'); }
+    // god card: one step per window hour, the next window carries on
+    const g = (d, h) => ls.featured(base + d * D + h * 3600 + 60, db).id, gl = ls.godList().map((x) => x.id), ix = (id) => gl.indexOf(id);
+    const step = (a, b) => (ix(b) - ix(a) + gl.length) % gl.length;
+    if (step(g(1, 11), g(1, 12)) !== 1 || step(g(1, 14), g(1, 18)) !== 1 || step(g(1, 21), g(2, 11)) !== 1) { bad++; console.log('ROTATION: Super Ninja cards do not step one per window hour'); }
+    // out / in
+    rot.setIn(db, 'flower', false); S.setEvent(db, 'flower', true);
+    if (rot.decide(db, 'flower') !== null || !S.eventOn(db, 'flower')) { bad++; console.log('ROTATION: an event taken out does not follow its own switch'); }
+    rot.setIn(db, 'flower', true); S.setEvent(db, 'flower', false);
+    // slot start / countdown cap: a rotation event running now starts at its slot and ends with it
+    const run = rot.status(db).events.find((e) => e.running && e.id !== 'superninja' && e.endsAt);
+    if (!run || S.switchedOnAt(db, run.id) !== rot.slot(db, run.id).start || S.capLeft(db, run.id, 999999999) > run.endsAt - Math.floor(Date.now() / 1000)) { bad++; console.log('ROTATION: slot start / countdown cap wrong', run && run.id); }
+    if (rot.status(db).day !== 1) { bad++; console.log('ROTATION: reset is not day 1'); }
+    rot.setOn(db, false);
+    if (rot.decide(db, 'caishen') !== null) { bad++; console.log('ROTATION: off still decides'); }
+  }
+  // God card shards (shards.js): fragments of an owned god card below +10, the chance and the amount from the settings, Shard Rush doubles
+  {
+    const sh = require('../../server/shards'), game = require('../../server/game'), S = require('../../server/settings'), ls = require('../../server/limitsuper');
+    const q = { Uid: '79500', Session: 'x', ServerID: '1', GroupID: '2' };
+    handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'Shards', Card: 55 } });
+    const pl = db.prepare('SELECT * FROM players WHERE uid=79500').get();
+    if (sh.drop(db, pl, 'stage', () => 0)) { bad++; console.log('SHARDS: a player without god cards got fragments'); }
+    const god = ls.godList()[0].id, seq = game.giveCard(db, pl.uid, pl.server_id, god);
+    sh.setRates(db, { stage: { chance: 100, min: 2, max: 2 } });
+    const got = sh.drop(db, pl, 'stage', () => 0);
+    const piece = game.table('piece_info').rows.find((r) => r[4] === 3 && r[6] === god)[0];
+    if (!got || got.piece !== piece || got.n !== 2 || game.chipCount(db, pl.uid, pl.server_id, piece) !== 2) { bad++; console.log('SHARDS: drop', JSON.stringify(got)); }
+    const aw = sh.addToAward(game.awardFull({ coin: 5 }), got), aw2 = sh.addToAward('<award dropid="1"><cardlist></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin></award>', got);
+    if ((aw.match(/<chipitem id="\d+"/g) || []).length !== 2 || (aw2.match(/<chipitem/g) || []).length !== 2) { bad++; console.log('SHARDS: award', aw); }
+    S.setEvent(db, 'shardrush', true);
+    const rush = sh.drop(db, pl, 'stage', () => 0);
+    if (!rush || rush.n !== 4) { bad++; console.log('SHARDS: Shard Rush did not double', JSON.stringify(rush)); }
+    S.setEvent(db, 'shardrush', false);
+    db.prepare('UPDATE cards SET breaklvl=10 WHERE seq=?').run(seq);
+    if (sh.drop(db, pl, 'stage', () => 0)) { bad++; console.log('SHARDS: a +10 card still gets fragments'); }
+    const r = sh.setRates(db, { boss: { chance: 250, min: 5, max: 1 }, rush: 99 });
+    if (r.boss.chance !== 100 || r.boss.max < r.boss.min || r.rush > 10) { bad++; console.log('SHARDS: rates not clamped', JSON.stringify(r)); }
+    sh.setRates(db, sh.DEFAULTS);
   }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);

@@ -44,6 +44,8 @@ const EVENTS = [
   // The tutorial switch was removed on 5 Nov 2026: the game ignores the server for it (handlers.js TUTORIAL); it is off in hot update 28.0.35.
   // 'tutorial' stays an id here (limited, hidden) so an old saved setting can never turn the helpers on.
   { id: 'tutorial', noconf: true, limited: true, hidden: true, icon: '🎓', name: 'Tutorial for new players', desc: 'Off in the game (hot update 28.0.35).' },
+  // Shard Rush (ours, 9 Nov 2026): no game screen; while it runs, god card fragments from fights are doubled (shards.js). The rotation runs it on days 4 and 7.
+  { id: 'shardrush', noconf: true, limited: true, icon: '💠', name: 'Shard Rush', desc: 'Double god card fragments from fights (training, bosses, Spar, Arena) while it runs. The top banner says so at login.' },
   { id: 'bench', noconf: true, limited: true, icon: '📏', name: 'Benchmark rivals in Spar', desc: 'Six computer rivals at the top of Spar with 100K, 500K, 1M, 2M, 4M and 8M defence. Free, no rewards: to test a team.' },
 ];
 const DISCORD = 'https://discord.gg/2Cbp4UDHrU';
@@ -64,13 +66,18 @@ function set(db, key, value) {
 // events_off: the always-on events switched off (old setting); events: explicit on/off per id; events_on_at: when each was switched on.
 const eventsOff = (db) => new Set(get(db, 'events_off', []));
 function eventOn(db, id) {
+  const r = require('./rotation').decide(db, id); // the weekly rotation decides for the events in its plan (rotation.js)
+  if (r !== null) return r;
   const m = get(db, 'events', {});
   if (id in m) return !!m[id];
   if (eventsOff(db).has(id)) return false;
   const e = EVENTS.find((x) => x.id === id);
   return !(e && e.limited);
 }
-const switchedOnAt = (db, id) => get(db, 'events_on_at', {})[id] || 0;
+// when the event's current run started: the rotation slot's start for a rotation-run event, else when the owner switched it on
+const switchedOnAt = (db, id) => { const s = require('./rotation').slot(db, id); return s ? s.start : get(db, 'events_on_at', {})[id] || 0; };
+// an event's seconds left, never past the end of its rotation slot
+const capLeft = (db, id, left) => { const s = require('./rotation').slot(db, id); return s ? Math.max(0, Math.min(left, s.end - Math.floor(Date.now() / 1000))) : left; };
 function setEvent(db, id, on) {
   const m = get(db, 'events', {});
   m[id] = !!on;
@@ -83,7 +90,7 @@ function setEvent(db, id, on) {
 const news = (db) => get(db, 'news', DEFAULT_NEWS);
 // Shown as the System note in the game's News screen (rl_r_msg Cmd 1802), dated when it was last changed. NOT the rl_r_bulletin popup:
 // the client stores shown bulletin ids in ADMsg.xml and crashes (SaveLocalNotice, 'no node:bulletin') when a new id arrives.
-const banner = (db) => get(db, 'banner', DEFAULT_BANNER);
+const banner = (db) => get(db, 'banner', DEFAULT_BANNER) + (eventOn(db, 'shardrush') ? '   ·   SHARD RUSH today: double god card fragments from fights!' : '');
 const newsAt = (db) => get(db, 'news_at', Math.floor(started / 1000));
 function setNews(db, text) { set(db, 'news', text); set(db, 'news_at', Math.floor(Date.now() / 1000)); }
 
@@ -103,4 +110,4 @@ function addLog(kind, text) {
 }
 const online = (ms = 5 * 60000) => [...seen.entries()].filter(([, v]) => Date.now() - v.at < ms).map(([uid, v]) => ({ uid, ...v }));
 
-module.exports = { hornPending, EVENTS, DISCORD, DEFAULT_BANNER, banner, DEFAULT_NEWS, get, set, eventOn, eventsOff, setEvent, switchedOnAt, news, newsAt, setNews, started, hit, addLog, log, online, stats: () => ({ requests }) };
+module.exports = { hornPending, EVENTS, DISCORD, DEFAULT_BANNER, banner, DEFAULT_NEWS, get, set, eventOn, eventsOff, setEvent, switchedOnAt, capLeft, news, newsAt, setNews, started, hit, addLog, log, online, stats: () => ({ requests }) };

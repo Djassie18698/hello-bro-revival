@@ -36,7 +36,7 @@ function infoXml(db, pl) {
   if (!on(db)) return null;
   ensure(db);
   const have = spent(db, pl);
-  const left = Math.max(3600, start(db) + RUN_DAYS * 86400 - Math.floor(Date.now() / 1000));
+  const left = settings.capLeft(db, 'consumption', Math.max(3600, start(db) + RUN_DAYS * 86400 - Math.floor(Date.now() / 1000)));
   const items = TIERS.map(([id, cash, rewards]) => {
     const status = claimed(db, pl, id) ? 3 : have >= cash ? 1 : 2;
     const attrs = rewards.map((r, i) => ` drop${i + 1}="${r.drop || r.show}" name${i + 1}="${rewardName(r)}" icon${i + 1}=""`).join('');

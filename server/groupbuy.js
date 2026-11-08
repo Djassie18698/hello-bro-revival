@@ -17,7 +17,7 @@ const PACKS = [ // [id, gold, original price, [[dropinfo id, name, icon]]]
 ];
 const el = (k, v) => `<${k}>${v}</${k}>`;
 const start = (db) => settings.switchedOnAt(db, 'groupbuy') || Math.floor(Date.now() / 1000);
-const left = (db) => Math.max(0, start(db) + RUN_HOURS * 3600 - Math.floor(Date.now() / 1000));
+const left = (db) => settings.capLeft(db, 'groupbuy', Math.max(0, start(db) + RUN_HOURS * 3600 - Math.floor(Date.now() / 1000)));
 
 function ensure(db) { db.exec('CREATE TABLE IF NOT EXISTS groupbuy (server_id INTEGER, run INTEGER, pack INTEGER, sold INTEGER, PRIMARY KEY(server_id, run, pack))'); }
 function rest(db, pl, id) {

@@ -21,7 +21,7 @@ const GIRLS = [ // index = the picture the layout starts with (sprite_avtor_N sh
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const now = () => Math.floor(Date.now() / 1000);
-const restTime = (db) => Math.max(0, (settings.switchedOnAt(db, 'flower') || now()) + DAYS * 86400 - now());
+const restTime = (db) => settings.capLeft(db, 'flower', Math.max(0, (settings.switchedOnAt(db, 'flower') || now()) + DAYS * 86400 - now()));
 const open = (db) => settings.eventOn(db, 'flower') && restTime(db) > 0;
 const roses = (db, pl) => game.propCounts(db, pl.uid, pl.server_id)[ROSE] || 0;
 

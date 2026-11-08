@@ -42,7 +42,8 @@ function status(db, port) {
     memory: process.memoryUsage().rss, requests: settings.stats().requests, restartable: process.env.HB_MANAGED === '1',
     players: one('SELECT COUNT(*) n FROM players'), accounts: one('SELECT COUNT(*) n FROM accounts'), groups: one('SELECT COUNT(*) n FROM groups'),
     online, addresses: addresses(port), dbSize: size, backups: backups().slice(0, 8), db: require('./db').status(), cards: one('SELECT COUNT(*) n FROM cards'),
-    events: settings.EVENTS.filter((e) => !e.hidden).map((e) => ({ ...e, on: settings.eventOn(db, e.id) })),
+    events: settings.EVENTS.filter((e) => !e.hidden).map((e) => ({ ...e, on: settings.eventOn(db, e.id), rotated: require('./rotation').decide(db, e.id) !== null })),
+    rotation: require('./rotation').status(db), shards: require('./shards').rates(db),
     news: settings.news(db), banner: settings.banner(db),
   };
 }
@@ -71,9 +72,25 @@ module.exports = async function manager(req, res, u, db, readBody) {
   if (u.pathname === '/manager/api/event') {
     const e = settings.EVENTS.find((x) => String(x.id) === String(b.id));
     if (!e) return json(res, { ok: false, error: 'no such event' });
+    if (require('./rotation').decide(db, e.id) !== null) return json(res, { ok: false, error: 'This event is run by the weekly rotation. Take it out of the rotation first (Weekly rotation panel).' });
     settings.setEvent(db, e.id, !!b.on);
     console.log(`[manager] event "${e.name}" switched ${b.on ? 'ON' : 'OFF'}`);
     return json(res, { ok: true });
+  }
+  // weekly event rotation (rotation.js): on / off, take an event out or put it back, start again at day 1
+  if (u.pathname === '/manager/api/rotation') {
+    const rot = require('./rotation');
+    const st = b.action === 'on' || b.action === 'off' ? rot.setOn(db, b.action === 'on') : b.action === 'in' || b.action === 'out' ? rot.setIn(db, String(b.id || ''), b.action === 'in')
+      : b.action === 'reset' ? rot.reset(db) : null;
+    if (!st) return json(res, { ok: false, error: 'unknown action' });
+    console.log(`[manager] rotation: ${b.action}${b.id ? ' ' + b.id : ''}`);
+    return json(res, { ok: true, rotation: st });
+  }
+  // god card fragment chances and amounts (shards.js)
+  if (u.pathname === '/manager/api/shards') {
+    const r = require('./shards').setRates(db, b || {});
+    console.log('[manager] shard rates changed');
+    return json(res, { ok: true, shards: r });
   }
   if (u.pathname === '/manager/api/news') {
     const text = String(b.text || '').replace(/\s+/g, ' ').trim().slice(0, 300) || settings.DEFAULT_NEWS;

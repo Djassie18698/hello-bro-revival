@@ -21,7 +21,7 @@ const GIFTS = [
 const el = (k, v) => `<${k}>${v}</${k}>`;
 const now = () => Math.floor(Date.now() / 1000);
 const start = (db) => settings.switchedOnAt(db, 'totalgift') || now();
-const left = (db) => Math.max(0, start(db) + RUN_HOURS * 3600 - now());
+const left = (db) => settings.capLeft(db, 'totalgift', Math.max(0, start(db) + RUN_HOURS * 3600 - now()));
 
 function ensure(db) {
   require('./limited').ensure(db);

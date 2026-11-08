@@ -33,7 +33,7 @@ const save = (db, pl, f) => db.prepare(`UPDATE godrecruit SET ${Object.keys(f).m
 const on = (db) => settings.eventOn(db, 'godrecruit');
 function leftTime(db) {
   const start = settings.switchedOnAt(db, 'godrecruit') || Math.floor(Date.now() / 1000);
-  return Math.max(3600, start + RUN_DAYS * 86400 - Math.floor(Date.now() / 1000)); // keeps a little time while the owner leaves it on
+  return settings.capLeft(db, 'godrecruit', Math.max(3600, start + RUN_DAYS * 86400 - Math.floor(Date.now() / 1000))); // keeps a little time while the owner leaves it on
 }
 
 function infoXml(db, pl) {

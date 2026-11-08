@@ -12,7 +12,7 @@ const vip = require('./vip');
 
 const now = () => Math.floor(Date.now() / 1000);
 const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const runLeft = (db, id, days = 14) => Math.max(3600, (settings.switchedOnAt(db, id) || now()) + days * 86400 - now());
+const runLeft = (db, id, days = 14) => settings.capLeft(db, id, Math.max(3600, (settings.switchedOnAt(db, id) || now()) + days * 86400 - now()));
 const dropRow = (id) => game.table('dropinfo').rows.find((x) => x[0] === id) || [];
 const dropName = (id) => String(dropRow(id)[2] || '').replace(/[<>&"]/g, '');
 const err = (m) => ({ error: m });
@@ -72,7 +72,7 @@ const DISCOUNT = { mincash: 19, maxval: 60, hours: 70, items: [ // [shown drop, 
 function topupsToday(db, uid, sid) { ensure(db); const d = new Date(); d.setHours(0, 0, 0, 0); return db.prepare('SELECT COUNT(*) n FROM topup_log WHERE uid=? AND server_id=? AND at>=?').get(uid, sid, Math.floor(d / 1000)).n; }
 function logTopup(db, uid, sid, gold, cents = 0) { ensure(db); db.prepare('INSERT INTO topup_log(uid, server_id, at, gold, cents) VALUES(?,?,?,?,?)').run(uid, sid, now(), gold, cents); }
 const discountRun = (db) => settings.switchedOnAt(db, 'discount') || 0;
-const discountLeft = (db) => Math.max(0, (settings.switchedOnAt(db, 'discount') || now()) + DISCOUNT.hours * 3600 - now());
+const discountLeft = (db) => settings.capLeft(db, 'discount', Math.max(0, (settings.switchedOnAt(db, 'discount') || now()) + DISCOUNT.hours * 3600 - now()));
 function discountState(db, pl) {
   if (db.prepare('SELECT 1 FROM discount_claim WHERE uid=? AND server_id=? AND run=?').get(pl.uid, pl.server_id, discountRun(db))) return 2;
   const cents = db.prepare('SELECT COALESCE(SUM(cents),0) n FROM topup_log WHERE uid=? AND server_id=? AND at>=?').get(pl.uid, pl.server_id, discountRun(db)).n;

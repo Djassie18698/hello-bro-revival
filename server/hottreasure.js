@@ -25,7 +25,7 @@ function useFree(db, pl) {
   db.prepare('INSERT INTO hottreasure VALUES(?,?,?,?) ON CONFLICT(uid, server_id) DO UPDATE SET day=excluded.day, free_used=excluded.free_used').run(pl.uid, pl.server_id, day(), used);
 }
 const on = (db) => settings.eventOn(db, 'hottreasure');
-const left = (db) => Math.max(3600, (settings.switchedOnAt(db, 'hottreasure') || Math.floor(Date.now() / 1000)) + RUN_DAYS * 86400 - Math.floor(Date.now() / 1000));
+const left = (db) => settings.capLeft(db, 'hottreasure', Math.max(3600, (settings.switchedOnAt(db, 'hottreasure') || Math.floor(Date.now() / 1000)) + RUN_DAYS * 86400 - Math.floor(Date.now() / 1000)));
 
 // <item> for the screen: main_type/sub_type/prop_id decide the icon (rl_get_iconsprite)
 function itemXml(dropId) {

@@ -14,7 +14,7 @@ const now = () => Math.floor(Date.now() / 1000);
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const dayStart = () => Math.floor(Date.parse(today() + 'T00:00:00Z') / 1000);
 const dayEnd = () => dayStart() + 86400 - now();
-const runLeft = (db, id) => Math.max(0, (settings.switchedOnAt(db, id) || now()) + RUN_DAYS * 86400 - now());
+const runLeft = (db, id) => settings.capLeft(db, id, Math.max(0, (settings.switchedOnAt(db, id) || now()) + RUN_DAYS * 86400 - now()));
 const dropRow = (id) => game.table('dropinfo').rows.find((x) => x[0] === id) || [];
 const ICON = { 2: 'props_021', 6: 'props_012', 13: 'props_027', 7: 'props_034', 8: 'props_035', 11: 'props_033', 22: 'props_129', 23: 'props_128', 28: 'props_145', 30: 'props_170', 31: 'props_169', 34: 'props_229', 35: 'props_260' };
 const SHINOBI_2_5 = 1508; // "2~5S Shinobi" pack: the green shinobi card picture and that label, as on photo 3942

@@ -172,6 +172,12 @@ for (const [pid, r] of pieces) {
   const d = T('dropinfo').filter((x) => x[8] === pid && x[12] !== 1).sort((x, y) => (y[13] || 1) - (x[13] || 1))[0];
   if (d) source(d[0], 'Ninja Test shop', 'Base > Ninja Test > score shop, 100 score (only when you own this god card)');
 }
+// God card fragments from won fights (server/shards.js, 9 Nov 2026): every god card, for players who own it
+for (const [pid, r] of pieces) {
+  if (r[3] !== 1 || r[4] !== 3) continue;
+  const t = pieceTarget(pid);
+  if (t && !t.get.some((x) => x.how === 'Won fights')) t.get.push({ how: 'Won fights (fragments)', where: 'Won training stages, bosses, Spar and Arena fights can drop fragments of the god cards you own (double on Shard Rush days); they go to Breakthrough or, 50 of them, to a new copy' });
+}
 // Fragments merge into the card (Backpack > Fragments > Synthesis)
 for (const [pid, r] of pieces) {
   const t = pieceTarget(pid);

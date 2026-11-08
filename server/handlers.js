@@ -182,7 +182,8 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   if (stage >= game.chapterStages(chap) && now.clears >= game.clearsNeeded(row) && chap < 19) game.setStage(db, pl.uid, pl.server_id, chap + 1, 1); // next chapter opens
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   festival.dropOnWin(db, pl, 'training'); // Christmas Caps while a festival runs
-  const award = stageAward(db, pl, row, coin, exp); // before reading the energy: the wheel's energy prize shows at once
+  // god card fragments of one of the player's own god cards (shards.js, chances in the Server Manager)
+  const award = require('./shards').addToAward(stageAward(db, pl, row, coin, exp), require('./shards').drop(db, pl, row[38] ? 'boss' : 'stage')); // before reading the energy: the wheel's energy prize shows at once
   const energy = db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).energy;
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
@@ -524,6 +525,7 @@ module.exports = {
     // first spar would leave nothing to equip and the guide's mask over the screen, so with the tutorial on it still puts that weapon
     // (drop 1284) in the bag, without showing it on the loss screen. (ours)
     if (!r.win && firstSpar && inTutorial(db, pl)) game.grantDrop(db, pl, 1284);
+    if (r.win) award = require('./shards').addToAward(award, require('./shards').drop(db, pl, 'spar')); // god card fragments (shards.js)
     return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
   },
 
@@ -1507,7 +1509,7 @@ module.exports = {
     const r = game.arenaFight(db, pl, Number(p.ToRank));
     if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
     return '<root code="0">' + r.xml.replace('</fight>', '</fight>') + `<sport renown_delta="${r.renown}" fromrank="${r.from}" torank="${r.to}"/>` +
-      '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + game.awardFull({ coin: r.win ? 300 : 0 }) + '</root>';
+      '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + require('./shards').addToAward(game.awardFull({ coin: r.win ? 300 : 0 }), r.win ? require('./shards').drop(db, pl, 'arena') : null) + '</root>'; // + god card fragments (shards.js)
   },
 
   // Battles / tower ("dup"): Cmd 7000 = chapter list; rl_w_dup Cmd 3100 (Chap, Round) = fight; process = the round to fight next.

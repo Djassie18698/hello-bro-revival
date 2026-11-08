@@ -21,6 +21,7 @@ for (const k of ['log', 'error']) {
 const dbm = require('./db');
 const db = dbm.open(process.env.DB || 'hellobro.db');
 require('./war').startAuto(db); // country war Auto-Attack for players who are offline
+require('./rotation').startTick(db); // weekly event rotation: pays the Super Ninja hours that ended (rotation.js)
 require('./schema')(db);
 require('./consumption').ensure(db); // gold-spending log (trigger) for the spending event
 dbm.indexes(db);

@@ -16,6 +16,8 @@
 // FIVE_PCT is (ours) from those two). The rest is the owner's choice for now (2 Nov 2026), not the original 3-day event with a 240-480
 // minimum and prize cards down to rank 10:
 //  - every god card of the game (82) takes a turn as the headline card, a new one every ROTATE_HOURS (1 for now) on the hour;
+//  - (9 Nov 2026, owner) the weekly event rotation (rotation.js) opens it twice a day for 4 hours; the god cards then step one per hour of
+//    those windows (rotation.superNinjaHour), so every window shows the next 4 and all of them come round in about 10 days;
 //  - draws give premium-recruit cards (4-5 star), never the headline card;
 //  - the ranking is per featured card (one round = ROTATE_HOURS): when it ends, 1st place wins that god card; every prize needs
 //    LIMIT_SCORE points (so a free pull alone never pays gold), below it there is no prize.
@@ -54,14 +56,19 @@ function godList() {
   }
   return gods;
 }
-const godOf = (slot) => { const g = godList(); return g[slot % g.length]; };
-const featured = (t = now()) => godOf(slotOf(t));
+const godOf = (slot) => { const g = godList(); return g[((slot % g.length) + g.length) % g.length]; };
+// the headline card at time t: one step per hour of the rotation's Super Ninja windows, or per clock hour when the rotation does not run it
+const featured = (t = now(), db = null) => { const h = require('./rotation').superNinjaHour(db, t); return godOf(h === null ? slotOf(t) : h); };
+const roundStart = (r) => roundEnd(r) - ROTATE_HOURS * 3600;
+// the prize card of a round: kept when the round's first draw is made, so a later rotation reset can't change it
+const roundGod = (db, r) => { const row = db.prepare('SELECT god FROM superninja_rounds WHERE round=?').get(r); return (row && godList().find((g) => g.id === row.god)) || featured(roundStart(r) + 60, db); };
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS superninja (uid INTEGER, server_id INTEGER, round INTEGER, score INTEGER DEFAULT 0, at INTEGER DEFAULT 0,
       PRIMARY KEY(uid, server_id, round));
     CREATE TABLE IF NOT EXISTS superninja_me (uid INTEGER, server_id INTEGER, pity INTEGER DEFAULT 0, last_free INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id));
-    CREATE TABLE IF NOT EXISTS superninja_paid (round INTEGER PRIMARY KEY, at INTEGER)`);
+    CREATE TABLE IF NOT EXISTS superninja_paid (round INTEGER PRIMARY KEY, at INTEGER);
+    CREATE TABLE IF NOT EXISTS superninja_rounds (round INTEGER PRIMARY KEY, god INTEGER)`);
 }
 const on = (db) => settings.eventOn(db, 'superninja');
 function me(db, pl) {
@@ -93,7 +100,7 @@ function settle(db) {
       for (const { server_id: sid } of db.prepare('SELECT DISTINCT server_id FROM superninja WHERE round=?').all(round)) {
         board(db, sid, round).forEach((r, i) => {
           const p = prizeFor(i + 1, r.score);
-          const god = godOf(round);
+          const god = roundGod(db, round);
           if (p) require('./awardcenter').send(db, { uid: r.uid, server_id: sid }, 'Limited Super Ninja', `You finished #${i + 1} with ${r.score} points in the ${god.name} hour. Your prize: ${p[4] ? god.name : p[3] + ' gold'}.`, { gold: p[3], drops: p[4] ? [god.drop] : [] });
         });
       }
@@ -122,7 +129,10 @@ function infoXml(db, pl) {
   open.set(key(pl), now());
   const m = myRank(db, pl), t = now();
   const hhmm = (s) => String(Math.floor((((slotOf(t) + s) * ROTATE_HOURS * 3600) % 86400) / 3600)).padStart(2, '0') + ':00';
-  const next = [0, 1, 2, 3, 4].map((s) => ({ g: featured(t + s * ROTATE_HOURS * 3600), s }));
+  // the coming cards, only as far as the current Super Ninja window goes when the rotation runs it
+  const win = require('./rotation').slot(db, 'superninja', t);
+  const hoursLeft = win ? Math.max(1, Math.ceil((win.end - t) / 3600)) : 5;
+  const next = [0, 1, 2, 3, 4].filter((s) => s < hoursLeft).map((s) => ({ g: s ? featured(roundStart(roundOf(t) + s) + 60, db) : roundGod(db, roundOf(t)), s }));
   return `<preview resttime="${roundEnd(roundOf()) - t}" nexttime="${freeLeft(db, pl)}" protect="${toGo(db, pl) + 1}" gold="${game.COST[1]}" status="0" actstatus="1" limitscore="${LIMIT_SCORE}"/>` +
     '<ninjalist>' + next.map(({ g, s }) => `<item name="${esc(s ? `At ${hhmm(s)}: ${g.name}` : `Prize: ${g.name}`)}" ninjiaid="${g.id}" attr="3" dropid="${g.drop}"/>`).join('') + '</ninjalist>' +
     rankRows(m.board) + `<myrank rank="${m.rank || '-'}" score="${m.score}"/>` +
@@ -157,6 +167,7 @@ function pull(db, pl, count, free) {
     }
     db.prepare(`INSERT INTO superninja_me(uid, server_id, pity, last_free) VALUES(?,?,?,?)
       ON CONFLICT(uid, server_id) DO UPDATE SET pity=excluded.pity, last_free=excluded.last_free`).run(pl.uid, pl.server_id, pity, free ? now() : me(db, pl).last_free);
+    db.prepare('INSERT OR IGNORE INTO superninja_rounds(round, god) VALUES(?,?)').run(roundOf(), featured(now(), db).id);
     db.prepare(`INSERT INTO superninja(uid, server_id, round, score, at) VALUES(?,?,?,?,?)
       ON CONFLICT(uid, server_id, round) DO UPDATE SET score=score+excluded.score, at=excluded.at`).run(pl.uid, pl.server_id, roundOf(), SCORE * count, now());
     db.exec('RELEASE superninja');

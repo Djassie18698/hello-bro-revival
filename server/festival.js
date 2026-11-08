@@ -98,7 +98,8 @@ const item = (id) => game.table('consumeinfo').rows.find((r) => r[1] === id) || 
 // Dates shown on the screen: from the day the owner switched the event on, two weeks of drops (moves along while it stays on).
 function dates(db, t) {
   const on = settings.switchedOnAt(db, t.event) || Math.floor(Date.now() / 1000);
-  const end = Math.max(on + 14 * 86400, Math.floor(Date.now() / 1000) + 86400);
+  const s = require('./rotation').slot(db, t.event); // run by the rotation: the dates end with its slot
+  const end = s ? s.end : Math.max(on + 14 * 86400, Math.floor(Date.now() / 1000) + 86400);
   return { begin_drop: on, end_drop: end, begin_change: on, end_change: end, begin_buy: on, end_buy: end, del_time: end + 3 * 86400 };
 }
 

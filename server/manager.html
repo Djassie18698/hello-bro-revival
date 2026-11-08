@@ -78,6 +78,22 @@ h1{font-family:Bangers,Impact,sans-serif;font-size:46px;letter-spacing:2px;margi
 .sw input:checked+span{background:linear-gradient(135deg,var(--green),#10b981);box-shadow:0 0 18px rgba(52,211,153,.5)}
 .sw input:checked+span:after{left:25px}
 
+/* rotation + shards */
+.rot{display:flex;flex-direction:column;gap:8px}
+.ro{display:grid;grid-template-columns:34px 1fr auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.2)}
+.ro.run{border-color:rgba(52,211,153,.45);background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(34,211,238,.04))}
+.ro.out{opacity:.55}
+.ro .ic{font-size:20px;text-align:center}
+.ro b{font-size:14px}.ro small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.ro .st{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.ro.run .st{color:var(--green);font-weight:700}
+.rhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.rhead .big{font-weight:800;font-size:15px}
+.sh{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:8px;align-items:center;font-size:13px}
+.sh input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.28);color:var(--text);font:14px Inter,sans-serif}
+.sh .hd{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.ev.rot .sw{opacity:.35;pointer-events:none}
+
 /* lists */
 .who{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
 .pl{display:flex;gap:12px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.03)}
@@ -192,6 +208,22 @@ html.embed .wrap{padding-top:18px}
       </section>
     </div>
   </div>
+  <div class="grid">
+    <section class="panel">
+      <h3>🔁 Weekly rotation</h3>
+      <p class="hint">While it is on, the events below come and go by themselves, so every event shows up once a week. An event you take out keeps its own switch above. The hours in the plan are the server's clock (<span id="rotTz">UTC</span>); the times on the right are your own clock.</p>
+      <div class="rhead"><span class="big" id="rotDay">-</span>
+        <label class="sw" title="Rotation on / off"><input type="checkbox" id="rotOn" onchange="rotAction(this.checked ? 'on' : 'off')"><span></span></label>
+        <button class="btn ghost sm" onclick="if(confirm('Start the rotation again at day 1 (from today)? The events of day 1 start now.')) rotAction('reset')">↺ Reset to day 1</button></div>
+      <div class="rot" id="rot"></div>
+    </section>
+    <section class="panel">
+      <h3>💠 God card shards</h3>
+      <p class="hint">A won fight can give fragments of one of the player's own god cards (one that is not at Breakthrough +10 yet). Change the chance and the amount here; Shard Rush days multiply the amount.</p>
+      <div class="sh" id="shards"></div>
+      <div class="row" style="margin-top:14px;display:flex;gap:10px;align-items:center"><button class="btn sm" onclick="saveShards()">Save shard settings</button><small class="hint" id="shardNote"></small></div>
+    </section>
+  </div>
 
   <div class="grid">
     <section class="panel">
@@ -264,15 +296,53 @@ async function refresh() {
   $('who').innerHTML = s.online.length ? s.online.map((p) => '<div class="pl"><div class="av" style="background:linear-gradient(135deg,' + GRAD[p.uid % GRAD.length] + ')">' + esc((p.nick || '?')[0].toUpperCase()) +
     '</div><div><b>' + esc(p.nick) + '</b> <small>level ' + p.level + ' · ' + (SCREEN[p.cgi] || 'playing') + ' · ' + ago(p.at) + '</small></div></div>').join('')
     : '<div class="empty">Nobody is playing right now 💤</div>';
+  renderRotation(s.rotation); renderShards(s.shards);
   const evKey = JSON.stringify(s.events);
   if (evKey !== lastEvents) {
     lastEvents = evKey;
-    $('events').innerHTML = s.events.map((e) => '<div class="ev' + (e.on ? ' on' : '') + '"><div class="ic">' + e.icon + '</div><div class="t"><b>' + esc(e.name) + '</b><small>' + esc(e.desc) +
+    $('events').innerHTML = s.events.map((e) => '<div class="ev' + (e.on ? ' on' : '') + (e.rotated ? ' rot' : '') + '"><div class="ic">' + e.icon + '</div><div class="t"><b>' + esc(e.name) + '</b><small>' + (e.rotated ? '🔁 In the weekly rotation. ' : '') + esc(e.desc) +
       '</small></div><label class="sw"><input type="checkbox"' + (e.on ? ' checked' : '') + ' data-id="' + esc(e.id) + '" onchange="toggleEvent(this.dataset.id,this.checked)"><span></span></label></div>').join('');
   }
   if (document.activeElement !== $('news') && !$('news').dataset.dirty) { $('news').value = s.news; countNews(); }
   if (document.activeElement !== $('banner') && !$('banner').dataset.dirty) $('banner').value = s.banner;
   $('backups').innerHTML = s.backups.length ? s.backups.map((b) => '<div class="bk"><b>' + esc(b.name) + '</b><span>' + size(b.size) + ' · ' + ago(b.at) + '</span></div>').join('') : '<div class="empty">No backups yet</div>';
+}
+let lastRot = '', shardsShown = false;
+const hhmm = (t) => new Date(t * 1000).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+function renderRotation(r) {
+  if (!r) return;
+  const key = JSON.stringify([r.on, r.day, r.epoch, r.events.map((e) => [e.id, e.inRotation, e.running, e.nextAt])]);
+  if (key === lastRot) return;
+  lastRot = key;
+  $('rotOn').checked = r.on;
+  $('rotTz').textContent = 'UTC' + (r.tz >= 0 ? '+' : '') + r.tz;
+  $('rotDay').textContent = r.on ? 'Day ' + r.day + ' of 7 · week ' + r.week + (r.festival ? ' · festival this week: ' + (r.events.find((e) => e.id === r.festival) || {}).name : '') : 'Rotation is off';
+  $('rot').innerHTML = r.events.map((e) => '<div class="ro' + (e.running ? ' run' : '') + (e.inRotation ? '' : ' out') + '"><div class="ic">' + e.icon + '</div><div><b>' + esc(e.name) + '</b><small>' + esc(e.when) + '</small></div>' +
+    '<div class="st">' + (!r.on || !e.inRotation ? (e.on ? 'on by hand' : 'off by hand') : e.running ? 'running · ends ' + hhmm(e.endsAt) : e.nextAt ? 'next: ' + hhmm(e.nextAt) : '') + '</div>' +
+    '<label class="sw" title="In the rotation"><input type="checkbox"' + (e.inRotation ? ' checked' : '') + ' data-id="' + esc(e.id) + '" onchange="rotAction(this.checked ? \'in\' : \'out\', this.dataset.id)"><span></span></label></div>').join('');
+}
+async function rotAction(action, id) {
+  const r = await api('rotation', { action, id });
+  const msg = { on: 'Rotation switched <b>on</b>', off: 'Rotation switched <b>off</b>: every event follows its own switch again', in: 'Back in the rotation', out: 'Taken out of the rotation: it now follows its own switch', reset: 'Rotation started again at <b>day 1</b>' }[action];
+  toast(r.ok ? msg + '<br><small>Players see it after going back to the home screen.</small>' : r.error, r.ok);
+  lastRot = ''; lastEvents = ''; refresh();
+}
+const SH = [['stage', 'Training stage won'], ['boss', 'Boss stage won'], ['spar', 'Spar won'], ['arena', 'Arena won']];
+function renderShards(sh) {
+  if (!sh || shardsShown) return;
+  shardsShown = true;
+  const inp = (k, f, v) => '<input type="number" min="0" step="1" data-k="' + k + '" data-f="' + f + '" value="' + v + '">';
+  $('shards').innerHTML = '<span class="hd">Fight</span><span class="hd">Chance %</span><span class="hd">Min</span><span class="hd">Max</span>' +
+    SH.map(([k, n]) => '<span>' + n + '</span>' + inp(k, 'chance', sh[k].chance) + inp(k, 'min', sh[k].min) + inp(k, 'max', sh[k].max)).join('') +
+    '<span>💠 Shard Rush: amount ×</span><input type="number" min="1" max="10" step="0.5" id="shardRush" value="' + sh.rush + '"><span></span><span></span>';
+  $('shardNote').textContent = 'Example: 25 % and 1-2 = about one fragment every 3 won stages.';
+}
+async function saveShards() {
+  const b = { rush: Number($('shardRush').value) };
+  document.querySelectorAll('#shards input[data-k]').forEach((i) => { (b[i.dataset.k] = b[i.dataset.k] || {})[i.dataset.f] = Number(i.value); });
+  const r = await api('shards', b);
+  toast(r.ok ? 'Shard settings saved<br><small>They count from the next fight.</small>' : r.error, r.ok);
+  if (r.ok) { shardsShown = false; renderShards(r.shards); }
 }
 async function toggleEvent(id, on) {
   const r = await api('event', { id, on });

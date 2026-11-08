@@ -8,6 +8,8 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
 ## You (Djassie)
 
 ### Do now
+- [ ] **Events rotate by themselves now** (Server Manager > "Weekly rotation"): switch it off, take an event out (it then follows its own switch above), or press "Reset to day 1". Day 1 started on the day the update went live.
+- [ ] **God card shards** (Server Manager > "God card shards"): change the chance and amount per fight type if fragments come too fast or too slow. Note: 50 fragments also make a new copy of that god card (the game's own Synthesis).
 - [ ] **Bug helper bot** (#bugs-and-issues): runs on the cloud. Your own posts are skipped, so ask a friend (e.g. Riskeric) to post a test bug.
       The fixer runs on your PC every 2 hours while the Claude app is open: open "Scheduled" in the app sidebar > "Hello Bro: fix new Discord bug
       reports" and set its permission mode (or press "Run now" once and approve), so it doesn't stop to ask. Fixes go live only after you say so.
