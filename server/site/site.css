@@ -69,11 +69,11 @@ section { position: relative; }
   -webkit-text-stroke: .16em var(--ink); text-shadow: 0 .09em 0 #230a02, 0 .14em .3em rgba(0, 0, 0, .5); }
 .logo span::after { content: attr(data-t); position: absolute; left: 0; top: 0; -webkit-text-stroke: 0; text-shadow: none;
   background: var(--g); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
-.logo-1 { font-size: clamp(40px, 6.2vw, 84px); --g: linear-gradient(180deg, #f5fcff 8%, #a9e4ff 36%, #3ba0ef 58%, #1a62c4 100%); }
-.logo-2 { font-size: clamp(60px, 9.6vw, 132px); margin-top: -.02em; padding-right: .62em;
+/* NINJA ONLINE is the owner's logo picture (img/logo-ninjaonline.webp, 8 Nov 2026); REBORN stays text underneath */
+.logo { align-items: center; }
+.logo-img { display: block; width: clamp(280px, 40vw, 540px); height: auto; }
+.logo-2 { font-size: clamp(38px, 4.8vw, 66px); margin-top: -.12em;
   --g: linear-gradient(180deg, #fff8b8 6%, #ffd640 34%, #ff9b1f 60%, #f2541a 92%); }
-.logo-star { position: absolute; right: -.05em; top: -.08em; width: .66em; height: .66em; fill: #dfe6ee; stroke: var(--ink); stroke-width: 4; --hole: #6a7a8a;
-  filter: drop-shadow(0 .04em 0 var(--ink)); animation: spin 9s linear infinite; z-index: 1; }
 .tagline { font-size: clamp(18px, 1.9vw, 22px); font-weight: 700; color: #dbe8ff; max-width: 30ch; margin: 0 0 26px; text-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
 .cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
 .btn { --c1: #ffa148; --c2: var(--fire-2); --sh: var(--ink); display: inline-flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer;
