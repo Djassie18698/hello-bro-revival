@@ -8,5 +8,6 @@ The 2015 Naruto card game is back, free, on our own servers.
 4. <#1565697836006375542>: common questions
 5. <#1566653903972339902>: big news only (a new game app, new releases)
 6. <#1565697769874919515>: every update and new feature
+7. 📖 The wiki: every card, gear and stage, and where to get it: http://ninjaonline.duckdns.org:18080/wiki/
 
 **Talk and help:** <#1565697775549546526> to chat · <#1565697834571927694> for help · <#1566415215220752444> for bugs · <#1565697850376065024> for screenshots

@@ -66,6 +66,9 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     resp.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': fs.statSync(file).size });
     return fs.createReadStream(file).pipe(resp);
   }
+  // The wiki (server/wiki, built by tools/build_wiki.js): static pages for everyone, no password
+  if (u.pathname === '/wiki') { resp.writeHead(301, { Location: '/wiki/' }); return resp.end(); }
+  if (u.pathname.startsWith('/wiki/')) return require('./wikiserve')(req, resp, u.pathname);
   if (u.pathname.endsWith('.do')) return require('./gumplogin').handle(req, resp, parseBody, db); // the APK's account window (gumplogin.js)
   if (u.pathname === '/status') { // version + start time, for the Discord #server-status watcher (discord/statuswatch.js)
     resp.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
