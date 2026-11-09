@@ -37,6 +37,7 @@ namespace FixerViewer
         public bool Fixing; public string FinalText = ""; public int StuckMinutes;
         public HashSet<string> ReportIds = new HashSet<string>();
         public DateTime PendingSince = DateTime.MinValue; public string PendingLabel = "";
+        public string Mode = ""; // permission mode the run started in
     }
 
     class Report
@@ -232,6 +233,8 @@ namespace FixerViewer
 
                 if (type == "user")
                 {
+                    var pm = Str(j, "permissionMode");
+                    if (pm != null && run.Mode == "") run.Mode = pm;
                     if (content is string)
                     {
                         var s = (string)content;
@@ -337,6 +340,9 @@ namespace FixerViewer
                 else if (hadTool) lastWasFinalText = false;
             }
 
+            var startLine = run.Lines.FirstOrDefault(l => l.Kind == Kind.Start);
+            if (startLine != null && run.Mode != "")
+                startLine.Text += run.Mode == "bypassPermissions" ? " · permissions: Bypass (it doesn't stop to ask)" : " · permissions: Ask first (" + run.Mode + "): it stops when it needs a click";
             if (run.Start == DateTime.MinValue) run.Start = run.Lines.Count > 0 ? run.Lines[0].Time : fi.CreationTime;
             run.Last = lastEvent == DateTime.MinValue ? run.Start : lastEvent;
             var now = DateTime.Now;
@@ -359,6 +365,7 @@ namespace FixerViewer
                 run.Result = lastRefusalWait >= 0
                     ? "Stopped: waited " + Mins(lastRefusalWait) + " for a permission click, then it was refused or timed out"
                     : "Stopped: a permission was refused or timed out";
+                if (run.Mode != "" && run.Mode != "bypassPermissions") run.Result += " (it ran in Ask-first mode, not Bypass)";
             }
             else
             {
