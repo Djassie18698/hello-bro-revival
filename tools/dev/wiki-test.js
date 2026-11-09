@@ -130,7 +130,7 @@ ck(D.shinobi.find((c) => c.id === 2106 && (c.get || []).some((w) => w.how === 'F
   for (const m of html.matchAll(/src="(img\/[^"]+)"/g)) pics.add(m[1]);
   for (const m of css.matchAll(/url\((img\/[^)]+)\)/g)) pics.add(m[1]);
   for (const p of pics) ck(fs.existsSync(path.join(S, p)), `home page picture ${p} is missing (python -I tools/build_site_art.py)`);
-  const SITES = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|discord\.gg|github\.com|ninjaonlinereborn\.com)$/;
+  const SITES = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|discord\.gg|github\.com|www\.patreon\.com|ninjaonlinereborn\.com)$/;
   for (const m of html.matchAll(/(?:href|src|content)="(https?:\/\/[^"/]+)/g)) ck(SITES.test(m[1]), `home page links to an unexpected site: ${m[1]}`);
   for (const m of html.matchAll(/href="\/wiki\/#\/guides\/([a-z-]+)"/g)) ck(D.guides.some((g) => g.file === m[1]), `home page links a wiki guide that does not exist: ${m[1]}`);
   ck(html.includes("if (location.hash.indexOf('#/') === 0) location.replace('/wiki/' + location.hash);"), 'home page lost the redirect of old wiki links (/#/shinobi/... -> /wiki/#/...)');

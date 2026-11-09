@@ -234,6 +234,10 @@ section { position: relative; }
 .join-art { width: 100%; height: auto; filter: drop-shadow(0 16px 18px rgba(0, 0, 0, .5)); }
 .join h2 { color: #fff; }
 .join p { color: #d5e1fb; font-size: 19px; margin: 10px 0 24px; }
+.support { margin-top: 34px; padding-top: 26px; border-top: 1px solid var(--line); }
+.support h3 { color: #fff; margin: 0; }
+.join .support p { font-size: 16px; margin: 8px 0 16px; }
+.join .support .supporters { margin: 16px 0 0; color: var(--gold); font-weight: 800; }
 .foot { background: #050b1c; border-top: 1px solid var(--line); padding: 34px 0 calc(34px + env(safe-area-inset-bottom)); }
 .foot-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; }
 .foot nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }

@@ -18,6 +18,13 @@
   addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
 
   // ---- the page's data ----
+  // Patreon supporters list (supporters.json: { "elders": ["name", ...] }, the €5 tier's perk; filled by hand when someone asks)
+  if ($('#supporters')) fetch('supporters.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((S) => {
+    const names = (S && Array.isArray(S.elders) ? S.elders : []).map((n) => String(n).trim()).filter(Boolean).slice(0, 200);
+    if (!names.length) return;
+    $('#supporters span').textContent = names.join(' · ');
+    $('#supporters').hidden = false;
+  }).catch(() => {});
   if ($('#lineup')) fetch('home.json').then((r) => r.json()).then((H) => {
     document.querySelectorAll('[data-count]').forEach((el) => { const v = H.counts[el.dataset.count]; if (v) el.textContent = num(v); });
 
