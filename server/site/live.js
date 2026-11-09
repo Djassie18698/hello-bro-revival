@@ -65,6 +65,19 @@
         `<p class="t-ev"><span class="t-lbl">Events running now</span>${t.running.length ? t.running.map(esc).join(', ') : 'Only the everyday ones.'}</p>` +
         (t.off.length ? `<p class="t-ev"><span class="t-lbl">Switched off</span>${t.off.map(esc).join(', ')}</p>` : '') +
         `<p class="t-tz">Times are the server's clock (UTC${t.offset >= 0 ? '+' : '−'}${Math.abs(t.offset / 60)}).</p>`;
+      // this week's event rotation (hidden when the rotation is off)
+      const W = t.week, weekBox = $('#week');
+      if (!W) { weekBox.hidden = true; return; }
+      const date = (s) => new Date((s + 12 * 3600) * 1000).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+      $('#days').innerHTML = W.days.map((d) => {
+        const cls = d.day === W.day ? 'now' : d.day < W.day ? 'past' : '';
+        return `<li class="${cls}"><div class="d-head"><b>Day ${d.day}</b><span>${d.day === W.day ? 'Today' : esc(date(d.start))}</span></div>` +
+          `<ul>${d.events.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` +
+          (d.shardRush ? '<p class="rush">Shard Rush: double god card fragments</p>' : '') + '</li>';
+      }).join('');
+      $('#week-all').innerHTML = (W.allWeek.length ? `<span><b>All week:</b> ${W.allWeek.map(esc).join(', ')}.</span>` : '') +
+        (W.superNinja ? `<span><b>Every day:</b> Limited Super Ninja ${W.superNinja.map(([a, b]) => both(a, b)).join(' and ')}, a new god card every hour.</span>` : '');
+      weekBox.hidden = false;
     }).catch(() => { todayBox.innerHTML = '<p class="wait">Shows up when the server is online.</p>'; });
 
     // players online: a line for the last 24 hours or 7 days (logged every 5 minutes since 8 Nov 2026)

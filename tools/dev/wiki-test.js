@@ -41,6 +41,11 @@ const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
   ck(!/"(uid|account|session|device|email|password|ip)"/i.test(priv) && !/70001/.test(priv), 'api: private fields leak: ' + priv.slice(0, 200));
   const t = web.today(db);
   ck(t.god && t.god.id && t.ramen.length && t.energyRefill === 22 && Array.isArray(t.running), 'api today: ' + JSON.stringify(t).slice(0, 200));
+  // this week's event rotation on the home page: 7 days, every day has events, Shard Rush on days 4 and 7, the all-week ones listed once
+  const wk = t.week;
+  ck(wk && wk.days.length === 7 && wk.day >= 1 && wk.day <= 7 && wk.days.every((d) => d.events.length) && wk.allWeek.includes('Month card') &&
+    wk.days.filter((d) => d.shardRush).map((d) => d.day).join() === '4,7' && wk.superNinja && wk.superNinja.length === 2, 'api today week: ' + JSON.stringify(wk).slice(0, 300));
+  ck(fs.readFileSync(path.join(W, '..', 'site', 'index.html'), 'utf8').includes('id="days"'), 'home page has the week of events');
   // calculator = the game's own team maths for the same picks
   const calc = web.calc('n2106.50.3.6.2,e1.50,m5,j48|n57.40');
   const ref = game.teamSlots([{ seq: 1, ninja_id: 2106, level: 50, breaklvl: 3, starlevel: 6, attri: 2, newlife: 0 }, { seq: 2, ninja_id: 57, level: 40, breaklvl: 0, starlevel: 0, attri: 1, newlife: 0 }],

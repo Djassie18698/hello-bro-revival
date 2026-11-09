@@ -271,6 +271,23 @@ section { position: relative; }
   border-radius: 50%; filter: drop-shadow(0 0 3px var(--gc)); }
 @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 45% { opacity: 1; transform: scale(1.1) rotate(45deg); } 65% { opacity: .8; transform: scale(.8) rotate(70deg); } }
 .side-live { display: grid; gap: 28px; }
+/* this week's event rotation (live.js, /api/today week) */
+.week { margin-top: clamp(40px, 6vw, 72px); }
+.days { list-style: none; padding: 0; margin: 22px 0 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.days > li { background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; padding: 12px 12px 14px; }
+.days > li.past { opacity: .5; }
+.days > li.now { border: 2px solid var(--gold); background: rgba(255, 210, 63, .08); }
+.d-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, .1); }
+.d-head b { font: 400 19px/1 var(--display); color: #fff; }
+.d-head span { color: var(--mute); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.days > li.now .d-head span { color: var(--gold); }
+.days ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; color: var(--text); font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+.rush { margin: 10px 0 0; color: #7fd8ff; font-size: 13.5px; font-weight: 800; line-height: 1.3; }
+.week-all { margin: 18px 0 0; color: var(--mute); display: grid; gap: 6px; }
+.week-all b { color: #fff; }
+.week-all small { font-weight: 700; }
+@media (max-width: 1000px) { .days { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .days { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .dialog.today { border-width: 40px 70px 66px; border-image-width: 40px 70px 66px; }
 .dialog.today .dialog-head { margin: -40px -54px 0; height: 40px; font-size: 24px; -webkit-text-stroke-width: 5px; }
 .today-in { margin: 16px -50px -44px; display: grid; gap: 12px; color: var(--paper-ink); font-size: 16px; }

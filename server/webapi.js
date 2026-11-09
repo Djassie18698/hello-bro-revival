@@ -155,8 +155,36 @@ function today(db) {
       ramen: process.env.RAMEN_ALLDAY ? [[0, 24]] : [[12, 14], [18, 20]], // handlers.rl_w_ramen
       energyRefill: 22, // game.js energy: every day at 22:00 energy refills to the maximum
       running, off,
+      week: weekPlan(db, now),
     };
   });
+}
+// This week's event rotation (rotation.js), day by day, for the home page; null when the rotation is switched off.
+const SHORT = { totalgift: 'Total-recharge gift', discount: 'Time-limited GiftPack', groupbuy: 'Group purchase', xmas2: 'Christmas festival' };
+function weekPlan(db, now) {
+  const rot = require('./rotation');
+  const st = rot.status(db, now);
+  if (!st.on) return null;
+  const c = rot.cfg(db);
+  const names = Object.fromEntries(settings.EVENTS.map((e) => [String(e.id), SHORT[e.id] || e.name]));
+  const ids = rot.PLAN_IDS.filter((id) => id !== 'superninja' && id !== 'festival');
+  const first = rot.midnight(now) - (st.day - 1) * 86400; // day 1 of this week
+  const days = [1, 2, 3, 4, 5, 6, 7].map((d) => {
+    const start = first + (d - 1) * 86400, t = start + 12 * 3600;
+    const on = ids.filter((id) => rot.slot(db, id, t));
+    const fest = rot.festivalOf(c, t);
+    if (fest && rot.slot(db, fest, t)) on.push(fest);
+    return { day: d, start, on };
+  });
+  const allWeek = days[0].on.filter((id) => id !== 'shardrush' && days.every((x) => x.on.includes(id)));
+  const sn = st.events.find((e) => e.id === 'superninja');
+  return {
+    day: st.day,
+    days: days.map((x) => ({ day: x.day, start: x.start, shardRush: x.on.includes('shardrush'),
+      events: x.on.filter((id) => id !== 'shardrush' && !allWeek.includes(id)).map((id) => names[id]).filter(Boolean) })),
+    allWeek: allWeek.map((id) => names[id]).filter(Boolean),
+    superNinja: sn && sn.inRotation ? rot.SN_HOURS.map(([h, n]) => [h, h + n]) : null,
+  };
 }
 
 // ---- players online, every 5 minutes ----
