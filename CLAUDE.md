@@ -321,6 +321,10 @@ Current: **28.0.47** (glowing names in the colour and effect picked in the contr
   write the text to a file first). The bot is online day and night as the cloud service `hellobro-bot` (section 5); `START-BOT-ONLINE.bat` / `BOT-AUTOSTART.bat` on the PC are only for running it there instead (stop the cloud one first: `bot.sh stop`).
   Layout (owner, 1 Nov 2026; `discord/layout.js` keeps it, dry run first, `apply` to change; it only deletes empty channels):
   START HERE (read-only): #welcome (Carl-bot welcomes; our pinned guide links the website) · #rules (Carl-bot reaction-role message + our rules) · #announcement (big news only: a new game app / release, owner request 2 Nov 2026) · #updates (every update) · #server-status (public server up/down/updated, bot-posted; pinned connect + item page) · #faq ("can't connect after an update -> make a new game file with HOST-MY-SERVER.bat").
+  Roles (layout.js ROLES, 9 Nov 2026): "Master Shinobi" = ADMINISTRATOR (never give it to supporters) · "Moderator" (no admin: delete messages, timeout,
+  kick/ban, voice, nicknames; Goat_RyouYuuta🧛🎃 has it, owner's choice) · Patreon supporter roles (cosmetic, no permissions) "Shinobi Recruit" €1, "Shadow Ninja" €3,
+  "Shinobi Elder" €5 (also sees #patch-testing) · "Training Shinobi" = member role (Carl-bot), kept below them so their colours show.
+  💎 SUPPORTERS: #supporters (supporter roles + staff only; pinned-style welcome post by the bot). Supporter perks are never in-game things.
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
   #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
   Guides (#welcome, #install-help, #how-to-play, #faq) are built from `discord/guides/<channel>.md` ("## " = one chapter, contents with jump links on top):

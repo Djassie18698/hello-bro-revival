@@ -5,7 +5,19 @@
 const { makeApi } = require('./dc.js');
 const GUILD = '1565691956561060014';
 const SEND = 2048n, VIEW = 1024n; // permission bits
-const STAFF_ROLE = 'Master Shinobi';
+const STAFF_ROLE = 'Master Shinobi'; // = Administrator: only the owner's trusted admins, never a supporter tier
+// Extra roles the script keeps (created when missing, colour/permissions kept as set here), highest first, all below the bot's role.
+// Moderator (owner, 9 Nov 2026: "just a discord mod, nothing crazy"): delete messages, timeout, kick/ban, voice mute/move, nicknames, threads;
+// NOT admin, server settings, roles, channels, webhooks or @everyone. Supporter roles (Patreon tiers €1/€3/€5) are cosmetic (no permissions);
+// the Patreon bot hands them out once the owner connects Patreon to Discord.
+const P = { KICK: 2n, BAN: 4n, MANAGE_MESSAGES: 8192n, MUTE: 4194304n, DEAFEN: 8388608n, MOVE: 16777216n, NICKS: 134217728n, THREADS: 1n << 34n, TIMEOUT: 1n << 40n };
+const ROLES = [
+  { name: 'Moderator', color: 0x2ecc71, perms: P.KICK | P.BAN | P.MANAGE_MESSAGES | P.MUTE | P.DEAFEN | P.MOVE | P.NICKS | P.THREADS | P.TIMEOUT },
+  { name: 'Shinobi Elder', color: 0xf1c40f, perms: 0n }, // Patreon €5
+  { name: 'Shadow Ninja', color: 0x9b59b6, perms: 0n }, // Patreon €3
+  { name: 'Shinobi Recruit', color: 0xcd7f32, perms: 0n }, // Patreon €1
+];
+const SUPPORTERS = ['Shinobi Recruit', 'Shadow Ninja', 'Shinobi Elder'];
 
 const LAYOUT = [
   { cat: '📌 START HERE', readOnly: true, channels: [
@@ -27,9 +39,12 @@ const LAYOUT = [
     { name: 'screenshots', topic: 'Your teams, pulls, clips, fan art and memes.' },
     { name: 'General • Voice', voice: true },
   ] },
+  { cat: '💎 SUPPORTERS', staff: true, alsoRoles: SUPPORTERS, channels: [
+    { name: 'supporters', topic: 'Thank you for supporting Ninja Online Reborn on Patreon! Sneak peeks, votes on what comes next, and a place to chat.' },
+  ] },
   { cat: '🔧 DEV & STAFF', staff: true, channels: [
     { name: 'dev-chat', topic: 'Staff and development talk.' },
-    { name: 'patch-testing', topic: 'Test new server and game updates before they go out.' },
+    { name: 'patch-testing', topic: 'Test new server and game updates before they go out.', alsoRoles: ['Shinobi Elder'] }, // €5 perk: early access to test updates
     { name: 'bot-logs', topic: 'Bot logs.' },
     { name: 'Staff VC', voice: true },
   ] },
@@ -43,13 +58,31 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
   const apply = process.argv[2] === 'apply';
   const call = makeApi(process.env.DISCORD_TOKEN);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const roles = await call('GET', `/guilds/${GUILD}/roles`);
+  let roles = await call('GET', `/guilds/${GUILD}/roles`);
   const everyone = roles.find((r) => r.name === '@everyone').id, staff = (roles.find((r) => r.name === STAFF_ROLE) || {}).id;
   const me = await call('GET', '/users/@me');
   const botRole = (await call('GET', `/guilds/${GUILD}/members/${me.id}`)).roles[0];
+  const say = (s) => console.log((apply ? '' : '[dry] ') + s);
+  // 0. the extra roles: create when missing, keep colour / permissions / shown separately, order them just below the bot
+  for (const want of ROLES) {
+    const r = roles.find((x) => x.name === want.name);
+    const body = { name: want.name, color: want.color, permissions: String(want.perms), hoist: true, mentionable: false };
+    if (!r) { say(`create role ${want.name}`); if (apply) roles.push(await call('POST', `/guilds/${GUILD}/roles`, body)); }
+    else if (r.color !== want.color || String(r.permissions) !== String(want.perms) || !r.hoist) { say(`role ${want.name}: colour/permissions`); if (apply) await call('PATCH', `/guilds/${GUILD}/roles/${r.id}`, body); }
+  }
+  if (apply) {
+    roles = await call('GET', `/guilds/${GUILD}/roles`);
+    const botPos = roles.find((r) => r.id === botRole).position;
+    const below = roles.filter((r) => r.position < botPos && r.id !== everyone).sort((a, b) => b.position - a.position);
+    const mine = ROLES.map((w) => below.find((r) => r.name === w.name)).filter(Boolean);
+    // ours right below the bot, above the member role "Training Shinobi" (else its gold colour wins). Move only our own roles: Discord
+    // refuses a bulk move that touches another bot's managed role. If the member role ends up above them, move it down by hand in Discord.
+    if (mine.some((r, i) => r.position !== botPos - 1 - i)) { say('role order'); await call('PATCH', `/guilds/${GUILD}/roles`, mine.map((r, i) => ({ id: r.id, position: botPos - 1 - i }))); }
+  }
+  const roleId = (n) => (roles.find((r) => r.name === n) || {}).id;
+  const extraIds = ROLES.map((w) => roleId(w.name)).filter(Boolean);
   let chans = await call('GET', `/guilds/${GUILD}/channels`);
   const find = (name, type) => chans.find((c) => c.name.toLowerCase() === name.toLowerCase() && (type === undefined || (type === 'cat' ? c.type === 4 : c.type !== 4)));
-  const say = (s) => console.log((apply ? '' : '[dry] ') + s);
 
   // 1. remove the empty extras
   for (const n of REMOVE) {
@@ -78,17 +111,19 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
       if (!ch.voice && (c.topic || '') !== (ch.topic || '')) { patch.topic = ch.topic || ''; say(`topic #${ch.name}`); }
       // permissions: staff = hidden from everyone; read-only = nobody but staff/bots can post (reactions stay allowed)
       const ow = [];
-      if (group.staff) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(VIEW) }); if (staff) ow.push({ id: staff, type: 0, allow: String(VIEW), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(VIEW | SEND), deny: '0' }); }
+      if (group.staff) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(VIEW) }); if (staff) ow.push({ id: staff, type: 0, allow: String(VIEW), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(VIEW | SEND), deny: '0' });
+        for (const n of [...(group.alsoRoles || []), ...(ch.alsoRoles || [])]) if (roleId(n)) ow.push({ id: roleId(n), type: 0, allow: String(VIEW | SEND), deny: '0' }); }
       else if (group.readOnly || ch.readOnly) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(SEND) }); if (staff) ow.push({ id: staff, type: 0, allow: String(SEND), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(SEND), deny: '0' }); }
       else if (ch.name === 'bugs-and-issues') ow.push({ id: everyone, type: 0, allow: String(VIEW | SEND), deny: '0' });
-      const keep = (c.permission_overwrites || []).filter((o) => ![everyone, staff, botRole].includes(o.id)); // other roles (Carl-bot's reaction role etc.) stay
+      const keep = (c.permission_overwrites || []).filter((o) => ![everyone, staff, botRole, ...extraIds].includes(o.id)); // other roles (Carl-bot's reaction role etc.) stay
       const want = [...keep, ...ow];
       const norm = (l) => JSON.stringify(l.map((o) => [o.id, String(o.allow), String(o.deny)]).sort());
       if (norm(want) !== norm(c.permission_overwrites || [])) { patch.permission_overwrites = want; say(`permissions ${ch.name}${group.staff ? ' (staff only)' : group.readOnly || ch.readOnly ? ' (read-only)' : ''}`); }
       if (Object.keys(patch).length && apply) { await call('PATCH', `/channels/${c.id}`, patch); await sleep(400); }
       pos++;
     }
-    if (cat && apply && group.staff) await call('PATCH', `/channels/${cat.id}`, { permission_overwrites: [{ id: everyone, type: 0, allow: '0', deny: String(VIEW) }, ...(staff ? [{ id: staff, type: 0, allow: String(VIEW), deny: '0' }] : []), { id: botRole, type: 0, allow: String(VIEW | SEND), deny: '0' }] });
+    if (cat && apply && group.staff) await call('PATCH', `/channels/${cat.id}`, { permission_overwrites: [{ id: everyone, type: 0, allow: '0', deny: String(VIEW) }, ...(staff ? [{ id: staff, type: 0, allow: String(VIEW), deny: '0' }] : []), { id: botRole, type: 0, allow: String(VIEW | SEND), deny: '0' },
+      ...(group.alsoRoles || []).filter(roleId).map((n) => ({ id: roleId(n), type: 0, allow: String(VIEW | SEND), deny: '0' }))] });
   }
   // 3. categories left empty
   if (apply) chans = await call('GET', `/guilds/${GUILD}/channels`);
