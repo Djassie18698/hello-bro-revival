@@ -20,3 +20,4 @@ thread (`dc.js post <thread> <file>`) and react ✅ on the post id.
 | 1567614732360351845 | 4 Nov 2026 | game won't run on 64-bit-only Android phones | not possible (32-bit engine, no source); a player (bakeddean) already answered, no bot reply |
 | 1568478363167883306 | 7 Nov 2026 | "I can't install Auto War" (War screen screenshot) | fixed, seen in game (Auto-Attack 50 gold, offline too; original war cooldown back); ✅ + reply |
 | 1568478566830702695 | 7 Nov 2026 | reincarnation not shown when comparing line-ups (fight Comparison) | fixed, seen in game (reincarnation corners on the card); ✅ + reply |
+| 1569435156249313410 | 9 Nov 2026 | Golden Chōji EXP card gives far less EXP than the Level Up preview (Ronin, ninjaonline; brother too) | fixed on a test save (EXP cards start at their table level: Golden Chōji Lv 25 = 8125 EXP); thread reply + ✅; live after the next public update; already-eaten Chōjis not given back (owner's call) |

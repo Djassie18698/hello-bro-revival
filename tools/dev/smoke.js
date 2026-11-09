@@ -341,6 +341,26 @@ for (const pick of [55, 56, 57]) {
     const fixed = d2.prepare('SELECT level FROM cards').get().level;
     if (lv !== 50 || game.cardMaxLevel(1) !== 50 || fixed !== 50) { bad++; console.log('CARD TOP LEVEL:', JSON.stringify({ upgraded: lv, fixedOnStart: fixed })); }
   }
+  // EXP material cards start at their ninjainfo [7] level: a Golden Chōji (100016) is Lv 25 and gives 8125 EXP (ninjaupgrade row 25),
+  // so a Lv 1 five-star card reaches Lv 18 like the client's Level Up preview (Discord report 9 Nov 2026: it gave 75 EXP, Lv 1 -> 2).
+  // An old Lv 1 copy in a save is raised on start.
+  {
+    const game = require('../../server/game');
+    db.prepare('UPDATE players SET level=100, coin=99999999 WHERE uid=77').run();
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const ch = game.giveCard(db, 77, pl.server_id, 100016);
+    const chLv = db.prepare('SELECT level FROM cards WHERE seq=?').get(ch).level;
+    const tgt = game.giveCard(db, 77, pl.server_id, 1);
+    const r = game.strengthen(db, pl, tgt, [ch]);
+    const after = db.prepare('SELECT level FROM cards WHERE seq=?').get(tgt).level;
+    const { DatabaseSync } = require('node:sqlite');
+    const d3 = new DatabaseSync(':memory:'); require('../../server/schema')(d3);
+    d3.exec('CREATE TABLE IF NOT EXISTS cards (seq INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, server_id INTEGER, type INTEGER, ninja_id INTEGER, level INTEGER NOT NULL DEFAULT 1, exp INTEGER NOT NULL DEFAULT 0, starlevel INTEGER NOT NULL DEFAULT 0)');
+    d3.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level) VALUES(1,1,1,100016,1)').run();
+    game.ensure(d3);
+    const old = d3.prepare('SELECT level FROM cards').get().level;
+    if (chLv !== 25 || r.exp !== 8125 || after !== 18 || old !== 25) { bad++; console.log('EXP CARD LEVEL:', JSON.stringify({ chLv, exp: r.exp, after, old })); }
+  }
   // Country war log: "you defeated X, get 10 points and N exploit" reads <powernum>; a win gives 10 exploit (was always shown as 0)
   {
     const war = require('../../server/war');

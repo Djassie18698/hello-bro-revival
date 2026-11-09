@@ -63,6 +63,8 @@ function ensure(db) {
   for (const c of ['pot_att', 'pot_def', 'pot_ckr', 'pend_att', 'pend_def', 'pend_ckr', 'breaklvl', 'attri', 'pills_used']) { try { db.exec(`ALTER TABLE cards ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* already there */ } }
   // A card above the top level (the old 99 cap let one reach 51) is put back to the top so it can be reincarnated again.
   try { for (const t of [1, 2, 3, 4, 5, 6]) db.prepare('UPDATE cards SET level=? WHERE type=? AND level>?').run(cardMaxLevel(t), t, cardMaxLevel(t)); } catch (e) { /* cards table not there yet */ }
+  // EXP material cards made before 9 Nov 2026 sat at Lv 1: raise them to their starting level (see startLevel).
+  try { for (const r of table('ninjainfo').rows) if (r[0] >= 100000 && r[7] > 1) db.prepare('UPDATE cards SET level=? WHERE type=1 AND ninja_id=? AND level<?').run(r[7], r[0], r[7]); } catch (e) { /* cards table not there yet */ }
   ready.add(db);
 }
 
@@ -82,8 +84,13 @@ function ninjutsuBonus(st, id) {
   const pct = r ? jutsuRate(r) * 0.2 : 0;
   return { ...st, al: Math.round(st.al * (1 + pct)), ah: Math.round(st.ah * (1 + pct)) };
 }
+// ORIGINAL: ninjainfo [7] = the card's starting level. Only the EXP material cards have one above 1 among cards players get:
+// Golden Chōji (Material) 100016 = Lv 25, 100015 = Lv 3 (the 3000+ rows with [7] > 1 are training enemies). The client shows that level
+// and its Level Up preview counts the EXP of that level; before 9 Nov 2026 the server stored them at Lv 1, so a Golden Chōji gave
+// 75 EXP instead of 8125 (Discord report, Kaguya went Lv 1 -> 2 instead of -> 18).
+const startLevel = (ninjaId) => Math.max(1, Math.round(Number((ninjas().get(ninjaId) || [])[7]) || 1));
 function giveCard(db, uid, sid, ninjaId, type = 1) {
-  const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id) VALUES(?,?,?,?)').run(uid, sid, type, ninjaId);
+  const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level) VALUES(?,?,?,?,?)').run(uid, sid, type, ninjaId, type === 1 ? startLevel(ninjaId) : 1);
   return Number(r.lastInsertRowid);
 }
 
@@ -1130,14 +1137,14 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
   const src = db.prepare('SELECT * FROM cards WHERE seq=? AND uid=? AND server_id=?').get(srcSeq, pl.uid, pl.server_id);
   if (!src) return { error: 'card not found' };
   const eat = eatSeqs.filter((q) => q !== srcSeq && !inLineup(db, q))
-    .map((q) => db.prepare('SELECT seq, type, level FROM cards WHERE seq=? AND uid=? AND server_id=?').get(q, pl.uid, pl.server_id)).filter(Boolean);
+    .map((q) => db.prepare('SELECT seq, type, ninja_id, level FROM cards WHERE seq=? AND uid=? AND server_id=?').get(q, pl.uid, pl.server_id)).filter(Boolean);
   // ORIGINAL (the client's CPlayerNinja/CPlayerWeapon/...::firefly_ExpCost and GetNeedSilver): every eaten card gives [3] EXP and costs
   // [4] silver from its OWN kind's upgrade table at its level (ninjaupgrade, equipupgrade, markupgrade, ninjutsuupgrade); the card that
   // grows needs [2] EXP per level from its own kind's table. Was a flat 75 EXP / 150 silver a card and the ninja table for every kind.
   // (ours): the ninja EXP-card bonus multiplier the client has for special cards is not applied.
   const up = (type) => table(UPGRADE_TABLE(type)).rows;
   let exp = 0, cost = 0;
-  for (const e of eat) { const r = up(e.type).find((x) => x[1] === (e.level || 1)) || []; exp += r[3] || 0; cost += r[4] || 0; }
+  for (const e of eat) { const lv = Math.max(e.level || 1, e.type === 1 ? startLevel(e.ninja_id) : 1); const r = up(e.type).find((x) => x[1] === lv) || []; exp += r[3] || 0; cost += r[4] || 0; }
   if (pl.coin < cost) return { error: 'not enough silver' };
   const rows = up(src.type);
   let level = src.level, cur = src.exp + exp;
