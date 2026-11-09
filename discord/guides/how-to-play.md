@@ -45,15 +45,17 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Ninja Test** (level 45): 15 stages a day with your 4 and 5-star ninjas. Stages 5, 10 and 15 have boss chests (free, 160 and 250 gold).
 • **Breakthrough** for God cards, and **Pets** from level 150. Every God card can break through: won fights (training stages, bosses, Spar, Arena) can drop **fragments of your own God cards** (Backpack > Fragments). Shard Rush days give double.
 
-## 8. Events and VIP
+## 8. Events
 • Check the **Event** menu and the **Daily Task** list every day for free rewards.
 • **Events rotate every week**, so you see all of them in 7 days: days 1-2 God of Wealth, Gold spending rewards and the Time-limited GiftPack; days 3-4 Flower Worship, God Recruit and Group purchase; days 5-7 Hot Treasure, a festival and (days 5-6) the Total-recharge gift; day 7 God Recruit again. **Shard Rush** (double God card fragments from fights) on days 4 and 7. Diligence, Daily spending, Lottery, Recharge streak and the Month card run all week. Each event shows its own countdown.
 • **Festivals** (one each week, in the rotation): win fights for festival items (Christmas Caps and Trees, or Fireworks and Balloons for the Anniversary) and trade them in the Event menu for rare cards.
+• **Sign-in** (Event menu): log in on days in a row for ramen, Hyourou-gan and silver; from day 7 also 20 gold a day. Missing a day starts again at day 1.
+• **Lottery** and **Wheel of Fortune** open at level 10.
+• In the rotation: **God of Wealth** (invest gold in 8 steps, always get a bit more back), **Flower Worship** (every dollar topped up gives a rose; give a goddess her roses for a rare card), **Month card** (a 4.99 or 9.99 top-up gives 60 or 120 gold a day for 30 days).
+
+## 9. Super Ninja, bosses and VIP
 • **Super Ninja** (Home): open twice a day for 4 hours, **11:00-15:00 and 18:00-22:00 server time** (on ninjaonline that is UTC: 12:00-16:00 and 19:00-23:00 in the Netherlands in winter). Every hour of it a new god card is the prize. Gold draw 300 (10 for 2800) gives 4-5 star cards, every 10th draw is a sure 5-star, and you get 1 free draw a day. Every draw is 10 points; **every hour** 1st place wins that god card, 2nd-3rd get 300 gold, 4th-10th 100 gold (you need at least 50 points). When the hour ends the next card starts right away and the prizes arrive in your **Awards** chest.
 • **World Boss** (Event menu): an Akatsuki member invades every day from **14:00 to 14:30**: 10 hits, then a short wait. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
 • **Ninja Treasure** (chest on Home, left side): Explore for gold to win the 9 prizes on the board (35, 70, 300 ... gold, rising). Every board hides one big card from **Top Rewards**; a new board comes every 2 hours, or press Refresh (100 gold).
 • **Awards** chest (Home, right side): gifts the server owner sends you and event prizes (Super Ninja). Press **Claim**; they stay 7 days.
-• **Sign-in** (Event menu): log in on days in a row for ramen, Hyourou-gan and silver; from day 7 also 20 gold a day. Missing a day starts again at day 1.
-• **Lottery** and **Wheel of Fortune** open at level 10.
-• In the rotation: **God of Wealth** (invest gold in 8 steps, always get a bit more back), **Flower Worship** (every dollar topped up gives a rose; give a goddess her roses for a rare card), **Month card** (a 4.99 or 9.99 top-up gives 60 or 120 gold a day for 30 days).
 • Free top-ups (one a day) raise your VIP, up to **VIP 23**. Badges stop at VIP18, but your real level counts.
