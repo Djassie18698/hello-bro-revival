@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bug fixer</title>
+<link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141519; --panel:#1c1e23; --card:#262930; --card2:#2d3038; --line:#353943; --text:#eef0f4; --muted:#a2a8b5; --faint:#6f7684;
+  --blurple:#5865f2; --orange:#ff8c42; --orange2:#ffb067; --green:#3ba55d; --teal:#23b5a5; --red:#ed4245; --yellow:#f0b232; --pink:#eb459e; --purple:#9b6bff;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:600 16px/1.45 Nunito,"Segoe UI",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;background:linear-gradient(180deg,#1f2229,#181a1f);border-bottom:1px solid var(--line)}
+header img{width:42px;height:42px;border-radius:11px}
+.brand h1{margin:0;font:400 28px/1 "Lilita One","Segoe UI Black",sans-serif;letter-spacing:.5px}
+.brand small{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.spacer{flex:1}
+.next{color:var(--muted);text-align:right;font-size:14px}
+.next b{color:var(--text);font-size:17px;display:block}
+.pill{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 13px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-weight:800;font-size:16px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--faint);flex:none}
+.pill.working .dot{background:var(--orange);box-shadow:0 0 0 0 rgba(255,140,66,.7);animation:pulse 1.6s infinite}
+.pill.checking .dot{background:var(--blurple);animation:pulse2 1.6s infinite}
+.pill.idle .dot{background:var(--green)}
+.pill.stuck{border-color:var(--red);color:#ffd7d7}.pill.stuck .dot{background:var(--red)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,140,66,.65)}70%{box-shadow:0 0 0 10px rgba(255,140,66,0)}100%{box-shadow:0 0 0 0 rgba(255,140,66,0)}}
+@keyframes pulse2{0%{box-shadow:0 0 0 0 rgba(88,101,242,.65)}70%{box-shadow:0 0 0 10px rgba(88,101,242,0)}100%{box-shadow:0 0 0 0 rgba(88,101,242,0)}}
+main{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:18px;padding:18px 22px;min-height:0}
+.left{display:flex;flex-direction:column;gap:18px;min-height:0;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px}
+h2{margin:0;font:400 21px/1.1 "Lilita One","Segoe UI Black",sans-serif;letter-spacing:.3px}
+.hint{color:var(--muted);font-size:13.5px;font-weight:600}
+/* needs you */
+.needs{padding:16px 18px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px}
+.needs.attn{border-color:rgba(255,140,66,.55);background:linear-gradient(135deg,rgba(255,140,66,.13),rgba(28,30,35,1) 55%)}
+.needs h2 .count{display:inline-block;min-width:28px;padding:2px 9px;margin-left:8px;border-radius:999px;background:var(--orange);color:#1b1206;font:800 15px Nunito,sans-serif;vertical-align:3px;text-align:center}
+.qlist{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.q{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid rgba(255,140,66,.35)}
+.q .t{flex:1;min-width:0}.q .t b{display:block;font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q .t span{color:var(--muted);font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.allclear{display:flex;align-items:center;gap:12px;margin-top:12px;padding:14px;border-radius:12px;background:rgba(59,165,93,.1);border:1px solid rgba(59,165,93,.35);color:#c9f2d6;font-size:16px}
+.allclear i{font-style:normal;font-size:24px}
+.golive{padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;min-width:0}
+.golive.has{border-color:rgba(35,181,165,.5);background:linear-gradient(160deg,rgba(35,181,165,.14),var(--card) 60%)}
+.golive ul{margin:2px 0 0;padding-left:20px}.golive li{margin:4px 0;font-size:14.5px}
+.golive .say{color:var(--muted);font-size:13.5px}
+.golive .say b{color:var(--text)}
+.btn{border:0;border-radius:10px;padding:9px 14px;background:var(--blurple);color:#fff;font-weight:800;font-size:14.5px;white-space:nowrap;transition:filter .15s}
+.btn:hover{filter:brightness(1.12)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn.orange{background:var(--orange);color:#211103}
+.btn.teal{background:var(--teal);color:#04201c}
+/* board */
+.board{flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(185px,1fr));gap:12px;overflow-x:auto;padding-bottom:4px}
+.col{display:flex;flex-direction:column;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:18px}
+.col header{all:unset;display:block;padding:13px 14px 10px;border-bottom:1px solid var(--line)}
+.col header h2{font-size:18px}
+.col header .h{display:flex;align-items:flex-start;gap:8px;margin-top:5px}
+.col header .n{margin-left:auto;background:var(--card2);border-radius:999px;padding:1px 10px;font-weight:800;font-size:14px;color:var(--muted)}
+.col header .hint{flex:1;min-height:38px}
+.col header h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col.col-you{border-color:rgba(255,140,66,.5)}.col header .n.hot{background:var(--orange);color:#211103}
+.col .body{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:11px}
+.empty{color:var(--faint);text-align:center;padding:26px 8px;font-size:14.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.card:hover{transform:translateY(-2px);border-color:#4a4f5c;background:var(--card2)}
+.card .ttl{font-weight:800;font-size:16.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card .meta{color:var(--muted);font-size:13.5px;display:flex;gap:8px;flex-wrap:wrap}
+.card .last{color:#c9ced8;font-size:14px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;border-left:3px solid var(--line);padding-left:9px}
+.card .last b{color:var(--text)}
+.card .why{font-size:13.5px;font-weight:800;color:var(--orange2)}
+.card.now{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange);background:linear-gradient(180deg,rgba(255,140,66,.08),var(--card) 40%)}
+.card .nowtag{font-size:13px;font-weight:800;color:var(--orange2);display:flex;align-items:center;gap:7px}
+.spin{width:12px;height:12px;border:2px solid rgba(255,176,103,.35);border-top-color:var(--orange2);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:12.5px;font-weight:800;padding:2px 9px;border-radius:999px;background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+.tag.test{background:rgba(155,107,255,.18);color:#d4c2ff;border-color:rgba(155,107,255,.4)}
+.links{display:flex;gap:14px;white-space:nowrap}
+.links a{font-size:13.5px;font-weight:800;color:#aab3ff;text-decoration:none}
+.links a:hover{text-decoration:underline}
+.closedrow{padding:12px 16px}
+.closedrow summary{cursor:pointer;color:var(--muted);font-weight:800}
+.closedrow .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:11px;margin-top:12px}
+/* fixer side */
+.side{display:flex;flex-direction:column;gap:18px;min-height:0}
+.side .fixer{padding:18px;display:flex;flex-direction:column;gap:12px}
+.big{display:flex;gap:14px;align-items:center}
+.big .ico{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:28px;background:var(--card);flex:none}
+.big.working .ico{background:rgba(255,140,66,.18)}.big.checking .ico{background:rgba(88,101,242,.18)}.big.idle .ico{background:rgba(59,165,93,.15)}.big.stuck .ico{background:rgba(237,66,69,.18)}
+.big b{display:block;font-size:20px;font-weight:800}
+.big span{color:var(--muted);font-size:14.5px}
+.step{padding:11px 13px;border-radius:12px;background:var(--card);font-size:15px;display:flex;gap:10px;align-items:center}
+.feed{display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto;padding-right:4px}
+.fl{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:13.5px;padding:3px 0}
+.fl time{color:var(--faint);font-variant-numeric:tabular-nums}
+.k-say{color:#c9ced8}.k-act{color:var(--text)}.k-found{color:var(--yellow);font-weight:800}.k-bad{color:#ff9b9d;font-weight:800}.k-good{color:#8fe0a8;font-weight:800}.k-summary{color:#8fe0a8;font-weight:800}.k-start{color:#aab3ff;font-weight:800}.k-msg{color:#aab3ff}
+.runs{padding:16px 18px;flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+.runlist{overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:0;padding-right:4px}
+.run{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:11px 13px;border-radius:12px;background:var(--card);border:1px solid transparent;cursor:pointer}
+.run:hover{border-color:#4a4f5c}
+.run .when{font-weight:800;font-size:14.5px;white-space:nowrap}
+.run .res{font-size:14px;color:#c9ced8;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.run .st{grid-column:1;font-size:12.5px;font-weight:800}
+.run.quiet{background:transparent;border:1px dashed var(--line);grid-template-columns:1fr}
+.run.quiet .res{color:var(--muted)}
+.st.done{color:#8fe0a8}.st.working{color:var(--orange2)}.st.stuck{color:#ff9b9d}.st.stopped{color:var(--yellow)}
+.err{margin:0 22px;padding:10px 14px;border-radius:12px;background:rgba(237,66,69,.12);border:1px solid rgba(237,66,69,.4);color:#ffd0d1;font-size:14.5px}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(5,6,8,.7);display:none;align-items:center;justify-content:center;padding:30px;z-index:5}
+.modal.open{display:flex}
+.sheet{width:min(860px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.sheet header{display:flex;gap:12px;align-items:center;border:0;border-bottom:1px solid var(--line)}
+.sheet .feed{max-height:none;padding:16px 22px;overflow-y:auto}
+.sheet .fl{font-size:14.5px;grid-template-columns:52px 1fr;padding:4px 0}
+.x{background:var(--card);border:0;border-radius:10px;width:38px;height:38px;font-size:20px}
+.loading{color:var(--muted);padding:30px;text-align:center}
+@media (max-width:1250px){main{grid-template-columns:1fr;overflow-y:auto;align-content:start}.left,.side{min-height:auto}.board{flex:none;height:600px}.needs{grid-template-columns:1fr}.runs{flex:none}.runlist{max-height:520px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#363a44;border-radius:10px;border:2px solid var(--panel)}::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img src="/icon.png" alt="">
+    <div class="brand"><h1>Bug fixer</h1><small>Ninja Online Reborn · from player report to live fix</small></div>
+    <div class="spacer"></div>
+    <div class="next" id="next"></div>
+    <div class="pill" id="pill"><span class="dot"></span><span id="pilltext">Starting…</span></div>
+  </header>
+  <div style="min-height:0;display:flex;flex-direction:column">
+    <div id="err"></div>
+    <main>
+      <div class="left">
+        <section class="panel needs" id="needs"><div class="loading">Reading Discord…</div></section>
+        <div class="board" id="board"></div>
+        <details class="panel closedrow" id="closed"></details>
+      </div>
+      <aside class="side">
+        <section class="panel fixer" id="fixer"></section>
+        <section class="panel runs"><div><h2>Recent runs</h2><div class="hint">Every 30 minutes the fixer looks for new reports and your answers. Click a run to see what it did.</div></div><div class="runlist" id="runs"></div></section>
+      </aside>
+    </main>
+  </div>
+</div>
+<div class="modal" id="modal"><div class="sheet"><header style="padding:16px 22px"><div style="flex:1"><h2 id="mtitle"></h2><div class="hint" id="msub"></div></div><button class="x" onclick="closeModal()">×</button></header><div class="feed" id="mfeed"></div></div></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let S = null, lastKey = '', closedOpen = false;
+
+const COLS = [
+  { id: 'player', icon: '💬', name: 'Asking player', hint: 'The helper bot gets the details' },
+  { id: 'fixer', icon: '🔧', name: 'With the fixer', hint: 'Next in line, or being fixed now' },
+  { id: 'you', icon: '🙋', name: 'Your answer', hint: 'Answer inside the Discord post' },
+  { id: 'ready', icon: '📦', name: 'Not live yet', hint: 'Fixed; goes live with the next update' },
+  { id: 'live', icon: '✅', name: 'Live', hint: 'Players have the fix' },
+];
+const TAGC = {
+  'Needs info': '#f0b232', 'With the developer': '#5865f2', 'Fixed': '#3ba55d', 'Live': '#23b5a5', 'Not possible': '#ed4245', 'Wish': '#eb459e', 'Not a bug': '#80848e',
+  'New report': '#5865f2', 'Question for you': '#ff8c42', 'Working on it': '#4ea1ff', 'Fixed, not live yet': '#3ba55d', 'Request': '#9b6bff',
+};
+const WHO = { you: 'You', fixer: 'Fixer', helper: 'Helper bot' };
+
+function ago(ms) {
+  if (!ms) return '';
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.round(s / 60) + ' min ago';
+  if (s < 86400) return Math.round(s / 3600) + ' h ago';
+  const d = Math.round(s / 86400); return d === 1 ? 'yesterday' : d + ' days ago';
+}
+const hm = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+function day(ms) {
+  const d = new Date(ms), t = new Date(); const y = new Date(); y.setDate(t.getDate() - 1);
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  return (same(d, t) ? 'Today' : same(d, y) ? 'Yesterday' : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + ' ' + hm(ms);
+}
+function open(url) { if (url) fetch('/open?u=' + encodeURIComponent(url)); }
+function tag(n) { const c = TAGC[n] || '#80848e'; return `<span class="tag" style="color:${c};border-color:${c}55;background:${c}1f">${esc(n)}</span>`; }
+
+function card(c) {
+  const tags = [...new Set([...(c.tagsFixer || []), ...(c.tagsPlayer || [])])];
+  const url = c.fixerUrl || c.playerUrl;
+  const who = WHO[c.lastWho] || c.lastWho || '';
+  return `<div class="card${c.now ? ' now' : ''}" onclick="open('${esc(url)}')" title="Open in Discord">
+    ${c.now ? '<div class="nowtag"><span class="spin"></span>Being fixed right now</div>' : ''}
+    <div class="ttl">${esc(c.title)}</div>
+    <div class="meta">${c.player ? '<span>👤 ' + esc(c.player) + '</span>' : ''}<span data-ago="${c.created}">🕒 ${ago(c.created)}</span>${c.request ? '<span>📝 your request</span>' : ''}</div>
+    ${c.why ? `<div class="why">${esc(c.why)}</div>` : ''}
+    ${(tags.length || c.test) ? `<div class="tags">${c.test ? '<span class="tag test">TEST</span>' : ''}${tags.map(tag).join('')}</div>` : ''}
+    ${c.lastText ? `<div class="last"><b>${esc(who)}:</b> ${esc(c.lastText)}</div>` : ''}
+    <div class="links" onclick="event.stopPropagation()">${c.fixerUrl ? `<a href="#" title="The fixer's post in #bug-fixer" onclick="open('${esc(c.fixerUrl)}');return false">🔧 Fixer</a>` : ''}${c.playerUrl ? `<a href="#" title="The player's post in #bugs-and-issues" onclick="open('${esc(c.playerUrl)}');return false">👤 Player</a>` : ''}</div>
+  </div>`;
+}
+
+function renderHeader() {
+  const f = S.fixer, ar = S.activeRun;
+  const pill = $('pill'); let cls = f, txt;
+  if (f === 'working') { cls = ar && ar.fixing ? 'working' : 'checking'; txt = ar && ar.fixing ? 'Fixing a bug now' : 'Checking for news'; }
+  else if (f === 'stuck') txt = 'Looks stuck';
+  else if (f === 'off') txt = 'Off: Claude app closed';
+  else txt = 'Resting';
+  pill.className = 'pill ' + cls; $('pilltext').textContent = txt;
+  const left = Math.round((S.next - Date.now()) / 60000);
+  $('next').innerHTML = !S.appOpen ? '<b>Not running</b>open the Claude app to let it work'
+    : f === 'working' ? `<b>Running since ${hm(ar.start)}</b>checks every 30 minutes`
+    : `<b>${left <= 0 ? 'Next check any minute' : 'Next check in ' + left + ' min'}</b>around ${hm(S.next)}, every 30 minutes`;
+}
+
+function renderNeeds() {
+  const qs = S.cards.filter((c) => c.stage === 'you' && !c.test);
+  const gl = S.golive || [];
+  const attn = qs.length || gl.length;
+  const el = $('needs'); el.className = 'panel needs' + (attn ? ' attn' : '');
+  let left = `<div><h2>Waiting for you${qs.length ? `<span class="count">${qs.length}</span>` : ''}</h2>`;
+  if (qs.length) left += `<div class="qlist">${qs.map((c) => `<div class="q"><div class="t"><b>${esc(c.title)}</b><span>${esc(c.why || 'The fixer asked you something')}${c.lastText ? ' · “' + esc(c.lastText) + '”' : ''}</span></div><button class="btn orange" onclick="open('${esc(c.fixerUrl || c.playerUrl)}')">Answer in Discord</button></div>`).join('')}</div>`;
+  else left += `<div class="allclear"><i>✓</i><div>No questions for you right now.<div class="hint">When the fixer needs a decision, it shows up here and your tray icon pops up.</div></div></div>`;
+  left += '</div>';
+  let right;
+  if (!S.goliveKnown) right = `<div class="golive"><h2>Waiting to go live</h2><div class="say">The 📦 post in #bug-fixer was not found.</div></div>`;
+  else if (gl.length) right = `<div class="golive has"><h2>📦 Ready to go live: ${gl.length}</h2><ul>${gl.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul>${S.goliveBehind ? `<div class="say">${esc(S.goliveBehind)}</div>` : ''}<div class="say">To put it on the public server, say <b>"update the public server"</b> in the 📦 post.</div><div><button class="btn teal" onclick="open('${esc(S.goliveUrl)}')">Open the 📦 post</button></div></div>`;
+  else right = `<div class="golive"><h2>📦 Waiting to go live</h2><div class="say" style="font-size:15px;color:#c9f2d6">Nothing waiting: the public server has every fix.</div><div><button class="btn ghost" onclick="open('${esc(S.goliveUrl)}')">Open the 📦 post</button></div></div>`;
+  el.innerHTML = left + right;
+}
+
+function renderBoard() {
+  const keep = {}; document.querySelectorAll('.col .body').forEach((b) => (keep[b.dataset.col] = b.scrollTop));
+  const weekAgo = Date.now() - 14 * 86400e3;
+  $('board').innerHTML = COLS.map((col) => {
+    let list = S.cards.filter((c) => c.stage === col.id);
+    if (col.id === 'live') list = list.filter((c) => (c.lastTime || c.created) > weekAgo);
+    return `<section class="col col-${col.id}"><header><h2>${col.icon} ${col.name}</h2><div class="h"><div class="hint">${col.hint}</div><span class="n${col.id === 'you' && list.length ? ' hot' : ''}">${list.length}</span></div></header>
+      <div class="body" data-col="${col.id}">${list.length ? list.map(card).join('') : '<div class="empty">Nothing here</div>'}</div></section>`;
+  }).join('');
+  document.querySelectorAll('.col .body').forEach((b) => { if (keep[b.dataset.col]) b.scrollTop = keep[b.dataset.col]; });
+  const closed = S.cards.filter((c) => c.stage === 'closed');
+  const d = $('closed'); closedOpen = d.open;
+  d.style.display = closed.length ? '' : 'none';
+  d.innerHTML = `<summary>Wishes, not possible and not a bug (${closed.length})</summary><div class="grid">${closed.map(card).join('')}</div>`;
+  d.open = closedOpen;
+}
+
+function feedLines(lines) {
+  return lines.map((l) => `<div class="fl"><time>${l.t ? hm(l.t) : ''}</time><div class="k-${l.k}">${esc(l.x)}</div></div>`).join('');
+}
+
+function renderFixer() {
+  const f = S.fixer, ar = S.activeRun;
+  const last = S.runs.find((r) => r.state !== 'working');
+  let ico = '😴', head = 'Resting', sub = last ? `Last check ${day(last.start)}: ${last.result || ''}` : 'No runs yet', cls = 'idle';
+  if (f === 'working') { cls = ar.fixing ? 'working' : 'checking'; ico = ar.fixing ? '🔧' : '🔎'; head = ar.fixing ? 'Fixing a bug right now' : 'Checking for new reports'; sub = 'Started ' + hm(ar.start); }
+  else if (f === 'stuck') { cls = 'stuck'; ico = '⚠️'; head = 'The fixer looks stuck'; sub = ar ? ar.result : ''; }
+  else if (f === 'off') { cls = ''; ico = '⏻'; head = 'Off'; sub = 'The fixer only works while the Claude app is open on this PC.'; }
+  let html = `<div class="big ${cls}"><div class="ico">${ico}</div><div><b>${esc(head)}</b><span>${esc(sub)}</span></div></div>`;
+  if (ar) {
+    if (f === 'working') html += `<div class="step"><span class="spin"></span><div>${esc(ar.result || 'starting…')}</div></div>`;
+    html += `<div class="feed" id="livefeed">${feedLines(ar.lines)}</div><div><button class="btn ghost" onclick="showRun('${ar.id}')">See the whole run</button></div>`;
+  }
+  const el = $('fixer'); const fe = $('livefeed'); const atBottom = !fe || fe.scrollTop + fe.clientHeight >= fe.scrollHeight - 20;
+  el.innerHTML = html;
+  const nf = $('livefeed'); if (nf && atBottom) nf.scrollTop = nf.scrollHeight;
+}
+
+function renderRuns() {
+  const out = []; let quiet = [];
+  const flush = () => { if (!quiet.length) return; const a = quiet[quiet.length - 1], b = quiet[0];
+    out.push(`<div class="run quiet"><div class="res">${quiet.length === 1 ? day(b.start) + ': checked, nothing new' : quiet.length + ' quick checks, nothing new (' + hm(a.start) + ' – ' + hm(b.start) + ')'}</div></div>`); quiet = []; };
+  for (const r of S.runs) {
+    if (r.quiet && r.state === 'done') { quiet.push(r); continue; }
+    flush();
+    const st = { done: r.fixing ? 'Worked on something' : 'Done', working: 'Running now', stuck: 'Stuck?', stopped: 'Stopped' }[r.state];
+    out.push(`<div class="run" onclick="showRun('${r.id}')"><div class="when">${day(r.start)}</div><div class="res">${esc(r.state === 'working' ? (r.result || 'starting…') : r.result)}</div><div class="st ${r.state}">${st}</div></div>`);
+  }
+  flush();
+  $('runs').innerHTML = out.join('') || '<div class="empty">No runs in the last two days</div>';
+}
+
+async function showRun(id) {
+  $('modal').classList.add('open'); $('mfeed').innerHTML = '<div class="loading">Loading…</div>';
+  const r = await (await fetch('/api/run?id=' + id)).json();
+  if (r.missing) { $('mfeed').innerHTML = '<div class="loading">That run is gone.</div>'; return; }
+  $('mtitle').textContent = 'Run of ' + day(r.start);
+  $('msub').textContent = r.result + (r.mode === 'bypassPermissions' ? '' : r.mode ? ' · ran in Ask-first mode' : '');
+  $('mfeed').innerHTML = feedLines(r.lines);
+}
+function closeModal() { $('modal').classList.remove('open'); }
+$('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+async function tick() {
+  try {
+    const s = await (await fetch('/api/state', { cache: 'no-store' })).json();
+    if (s.fatal) { $('err').innerHTML = `<div class="err">Something went wrong reading the data: ${esc(s.fatal)}</div>`; return; }
+    S = s;
+    if (location.hash.startsWith('#demo')) demo(S); // sample cards to see every column filled (never shown normally)
+    const key = JSON.stringify({ ...s, now: 0 });
+    renderHeader();
+    if (key !== lastKey) {
+      lastKey = key;
+      $('err').innerHTML = s.discordError ? `<div class="err" style="margin-top:14px">Can't read Discord right now: ${esc(s.discordError)}. Showing what was read last.</div>` : '';
+      if (s.discordAt || s.discordError) { renderNeeds(); renderBoard(); }
+      renderFixer(); renderRuns();
+    }
+  } catch (e) {
+    $('pilltext').textContent = 'Program closed'; $('pill').className = 'pill stuck';
+  }
+}
+function demo(s) {
+  const h = 3600e3, n = Date.now(), L = 'https://discord.com/channels/1/2';
+  const mk = (stage, title, player, tp, tf, who, text, age, extra) => Object.assign({ id: title, title, player, stage, tagsPlayer: tp, tagsFixer: tf, created: n - age * h, lastTime: n - age * h / 3, lastWho: who, lastText: text, playerUrl: L, fixerUrl: tf.length ? L : '', test: false, why: '', now: false, request: false }, extra || {});
+  s.cards = [
+    mk('player', 'Arena rewards not arriving after rank 50', 'buva', ['Needs info'], [], 'helper', 'Thanks! Which screen shows the reward, and is it every day?', 0.3),
+    mk('fixer', 'Pet does not attack in boss fights', 'Ronin', ['With the developer'], ['Working on it'], 'fixer', 'Found it: the boss fight skips the pet. Fixing now.', 2, { now: true }),
+    mk('fixer', 'Shop shows 0 gold after a top-up', 'polterslave', ['With the developer'], ['New report'], 'helper', 'Report passed on to the developer.', 1),
+    mk('you', 'Extra stones in Sage Growth: which numbers?', 'buva', ['With the developer'], ['Question for you'], 'fixer', 'Option 1: the photo numbers (+0.2 % a stone). Option 2: ours. I would pick 1.', 5, { why: 'The fixer asked you something' }),
+    mk('ready', 'Double EXP Pill gave normal EXP', 'buva', ['Fixed'], ['Fixed, not live yet'], 'fixer', 'Fixed. Say "update the public server" to put it live.', 9),
+    mk('live', 'Golden Choji EXP card gives far less EXP', 'Ronin', ['Live'], ['Live'], 'fixer', 'Live now on the public server.', 26),
+    mk('closed', 'Add a dark mode to the shop', 'kid', ['Wish'], ['Wish'], 'you', 'Not now.', 30),
+  ];
+  s.golive = ['Double EXP Pill now doubles the EXP on screen too (buva)', 'Secret Shop grain x10 costs 400 souls again (buva)']; s.nothingWaiting = false; s.goliveBehind = 'Behind the scenes: 3 other changes'; s.goliveKnown = true;
+  if (location.hash === '#demo-working') {
+    const t = (m) => n - m * 60e3;
+    s.fixer = 'working';
+    s.activeRun = { id: s.runs.length ? s.runs[0].id : 'x', start: t(6), state: 'working', fixing: true, result: 'running all the checks', lines: [
+      { t: t(6), k: 'start', x: 'Run started' }, { t: t(6), k: 'act', x: 'looking for new reports in #bot-logs + checking the #bug-fixer forum' },
+      { t: t(6), k: 'found', x: 'New reports: Pet does not attack in boss fights' }, { t: t(5), k: 'act', x: 'setting the tag to "Working on it"' },
+      { t: t(5), k: 'say', x: 'Working on the report from Ronin: the pet skips boss fights. Looking at how the fight is built.' },
+      { t: t(4), k: 'act', x: 'reading server/game.js' }, { t: t(3), k: 'act', x: 'editing server/game.js' }, { t: t(2), k: 'act', x: 'running the smoke test' },
+      { t: t(1), k: 'good', x: 'The smoke test passed' }, { t: t(0), k: 'act', x: 'running all the checks' } ] };
+  }
+  s.cards.push(mk('you', 'Wish: a daily login calendar', 'Goat', ['Wish'], ['Wish'], 'fixer', 'Should this be built?', 3, { why: 'A wish: should it be built?' }));
+}
+setInterval(tick, 3000); tick();
+setInterval(() => { document.querySelectorAll('[data-ago]').forEach((el) => (el.textContent = '🕒 ' + ago(+el.dataset.ago))); if (S) renderHeader(); }, 20000);
+</script>
+</body>
+</html>

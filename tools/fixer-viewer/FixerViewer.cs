@@ -1,8 +1,11 @@
-// BUG-FIXER-VIEWER: shows what the scheduled "hellobro-bug-fixer" Claude runs did, live.
-// Read-only: it only reads the run logs (~/.claude/projects/<repo>/*.jsonl), docs/DISCORD-REPORTS.md
-// and #bot-logs (through `node --env-file=.env dc.js read bot-logs 50`, which never prints the token).
-// It never starts, stops or edits anything.
-// Build: tools/fixer-viewer/BUILD.bat (C# 5, .NET Framework 4 csc.exe that ships with Windows).
+// BUG-FIXER-VIEWER: the owner's window on the bug pipeline (owner, 10 Nov 2026: "a fully fledged app that looks, acts way better").
+// One .exe, no install. It runs a tiny web page on 127.0.0.1 (random port) and shows it in an Edge app window (no address bar),
+// plus a tray icon with pop-ups. Everything is READ-ONLY: it reads
+//   - the Discord forums #bugs-and-issues (players) and #bug-fixer (the fixer's desk) with the bot token from discord/.env, at runtime
+//     (the token is never shown, logged, stored or put in the exe; it only goes to discord.com),
+//   - the fixer's run transcripts (~/.claude/projects/<repo>/*.jsonl whose first message is the "hellobro-bug-fixer" scheduled task),
+// and never posts, edits, starts or stops anything. Opening a Discord link hands it to the Discord app (or the browser).
+// Build: tools/fixer-viewer/BUILD.bat (C# 5 with the .NET Framework csc.exe that ships with Windows; app.html is embedded).
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,6 +13,9 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -18,32 +24,22 @@ using System.Windows.Forms;
 
 namespace FixerViewer
 {
-    enum Kind { Start, Action, Say, Found, Problem, Good, Waiting, Summary, Message }
-
+    // ===================================================================== fixer runs (transcripts)
     class Line
     {
-        public DateTime Time; public Kind Kind; public string Text;
-        public Line(DateTime t, Kind k, string s) { Time = t; Kind = k; Text = s; }
+        public DateTime Time; public string Kind; public string Text;
+        public Line(DateTime t, string k, string s) { Time = t; Kind = k; Text = s; }
     }
-
-    enum RunState { Working, Finished, Stopped, Stuck }
 
     class Run
     {
-        public string File; public string Id; public DateTime Start; public DateTime Last;
-        public long Size; public DateTime Mtime;
+        public string File, Id; public DateTime Start, Last; public long Size; public DateTime Mtime;
         public List<Line> Lines = new List<Line>();
-        public RunState State; public string Result = ""; public string LastAction = "";
-        public bool Fixing; public string FinalText = ""; public int StuckMinutes;
-        public HashSet<string> ReportIds = new HashSet<string>();
+        public string State = "working"; // working | done | stopped | stuck
+        public string Result = "", Step = "", Mode = "";
+        public bool Fixing, Quiet; public int StuckMinutes;
+        public HashSet<string> Ids = new HashSet<string>(); // Discord numbers it touched (posts, reports)
         public DateTime PendingSince = DateTime.MinValue; public string PendingLabel = "";
-        public string Mode = ""; // permission mode the run started in
-    }
-
-    class Report
-    {
-        public DateTime Time; public string Who = ""; public string Title = ""; public string Id = "";
-        public string Url = ""; public bool Wish; public bool Test; public string State = "";
     }
 
     static class Parser
@@ -51,13 +47,13 @@ namespace FixerViewer
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 200 };
         public static string Repo = "";
 
-        static object Get(object o, string k)
+        public static object Get(object o, string k)
         {
             var d = o as Dictionary<string, object>;
             if (d == null) return null;
             object v; return d.TryGetValue(k, out v) ? v : null;
         }
-        static string Str(object o, string k) { var v = Get(o, k); return v == null ? null : v.ToString(); }
+        public static string Str(object o, string k) { var v = Get(o, k); return v == null ? null : v.ToString(); }
 
         static DateTime Ts(object o)
         {
@@ -71,17 +67,19 @@ namespace FixerViewer
         public static string Clean(string s)
         {
             if (s == null) return "";
-            // never show anything that looks like a secret
-            s = Regex.Replace(s, @"[\w-]{23,28}\.[\w-]{6,7}\.[\w-]{27,40}", "[hidden]");
+            s = Regex.Replace(s, @"[\w-]{23,28}\.[\w-]{6,7}\.[\w-]{27,40}", "[hidden]"); // Discord token shape
             s = Regex.Replace(s, @"sk-ant-[\w-]+", "[hidden]");
             s = Regex.Replace(s, @"(?i)(token|password|api[_-]?key)\s*[=:]\s*\S+", "$1=[hidden]");
+            s = Regex.Replace(s, @"\b\d{1,3}(\.\d{1,3}){3}\b", "[address]");
             return s;
         }
 
-        static string OneLine(string s, int max)
+        public static string OneLine(string s, int max)
         {
             s = Clean(s ?? "");
-            s = Regex.Replace(s, @"\*\*|`", "");
+            s = Regex.Replace(s, @"\*\*|__|`|\|\|", "");
+            s = Regex.Replace(s, @"<@!?\d+>", "@owner");
+            s = Regex.Replace(s, @"<#(\d+)>", "#post");
             s = Regex.Replace(s, @"\s+", " ").Trim();
             return s.Length > max ? s.Substring(0, max - 1) + "…" : s;
         }
@@ -97,36 +95,49 @@ namespace FixerViewer
             return p;
         }
 
+        // plain-words labels for the commands the fixer runs (first match position decides the order)
         static readonly string[][] Patterns = new string[][] {
-            new [] { @"dc\.js read bot-logs", "checking #bot-logs for new bug reports" },
-            new [] { @"dc\.js read \d{17,20}", "reading the player's thread" },
-            new [] { @"dc\.js read (?!bot-logs)([a-z-]+)", "reading Discord #$1" },
-            new [] { @"dc\.js post dev-chat", "telling the owner in #dev-chat" },
-            new [] { @"dc\.js post \d{17,20}", "answering the player in their thread" },
-            new [] { @"dc\.js reply", "replying to the player" },
-            new [] { @"dc\.js react", "putting a tick on the player's post" },
-            new [] { @"DISCORD-REPORTS", "checking which reports are already handled" },
+            new [] { @"dc\.js read bot-logs", "looking for new reports in #bot-logs" },
+            new [] { @"dc\.js posts bug-fixer", "checking the #bug-fixer forum" },
+            new [] { @"dc\.js posts bugs-and-issues", "checking the players' bug forum" },
+            new [] { @"dc\.js read dev-chat", "checking #dev-chat for your messages" },
+            new [] { @"dc\.js read \d{17,20}", "reading a Discord post" },
+            new [] { @"dc\.js read (?!bot-logs|dev-chat)([a-z-]+)", "reading Discord #$1" },
+            new [] { @"dc\.js forum bug-fixer", "opening a new post in #bug-fixer" },
+            new [] { @"dc\.js post \S+[^\n;&|]*--ping-owner", "asking YOU something in Discord" },
+            new [] { @"dc\.js post updates", "announcing the update in #updates" },
+            new [] { @"dc\.js post (?!updates)\S+(?![^\n;&|]*--ping-owner)", "writing in a Discord post" },
+            new [] { "dc\\.js tag \\S+ \"([^\"]+)\"", "setting the tag to \"$1\"" },
+            new [] { @"dc\.js edit", "updating the 📦 Waiting to go live list" },
+            new [] { @"dc\.js reply", "replying in Discord" },
+            new [] { @"dc\.js react", "putting a ✅ on the player's post" },
+            new [] { @"dc\.js pinpost", "pinning a post" },
+            new [] { @"update\.sh\s+check", "checking what is waiting to go live" },
+            new [] { @"update\.sh(?!\s+check)", "PUTTING THE FIXES LIVE on the public server" },
+            new [] { @"until false; do sleep|timeout 70", "waiting for your answer (looks again every minute, up to 10 min)" },
+            new [] { @"FINDINGS-PHOTOS|ocr\.tsv", "looking in the old game photos" },
             new [] { @"check\.sh", "running all the checks" },
             new [] { @"smoke\.js", "running the smoke test" },
             new [] { @"fuzz\.js", "running the bad-input test" },
             new [] { @"exploit\.js", "running the cheat test" },
             new [] { @"realsave\.js", "testing on a copy of a real save" },
             new [] { @"probe\.js", "trying it on the test server" },
-            new [] { @"emu\.sh (\w+)", "using the test emulator ($1)" },
+            new [] { @"emu\.sh (\w+)", "using the test phone (emulator: $1)" },
             new [] { @"restart\.sh", "restarting the test server" },
-            new [] { @"git commit", "committing" },
+            new [] { @"git commit", "saving the fix (commit)" },
             new [] { @"git push", "uploading to GitHub" },
-            new [] { @"sync_test_folder", "copying it to the owner's play folder" },
+            new [] { @"sync_test_folder", "copying it to your play folder" },
             new [] { @"build_wiki", "rebuilding the wiki" },
-            new [] { @"build_cdn", "building a game hot update" },
+            new [] { @"build_cdn", "building a game update for phones" },
             new [] { @"gh issue comment", "commenting on GitHub" },
             new [] { @"guides\.js", "updating a Discord guide" },
+            new [] { @"re/all\.txt", "reading the game's own code" },
         };
 
         public static bool IsCheckOnly(string label)
         {
-            return label.StartsWith("checking #bot-logs") || label.StartsWith("checking which reports") ||
-                   label.StartsWith("planning") || label.StartsWith("loading tools");
+            return label.StartsWith("looking for new reports") || label.StartsWith("checking the #bug-fixer") || label.StartsWith("checking the players'") ||
+                   label.StartsWith("checking #dev-chat") || label.StartsWith("checking which reports") || label.StartsWith("planning") || label.StartsWith("loading tools");
         }
 
         static string BashLabel(string cmd, string desc)
@@ -142,20 +153,19 @@ namespace FixerViewer
                 {
                     var mm = Regex.Match(cmd, "-m\\s+[\"']([^\"'\\n]{3,})");
                     if (mm.Success) label += ": \"" + OneLine(mm.Groups[1].Value, 110) + "\"";
-                    var files = Regex.Match(cmd, @"\s--\s+([^;&|\n]+)");
-                    if (files.Success) label += " (" + OneLine(files.Groups[1].Value, 120) + ")";
                 }
                 hits.Add(new KeyValuePair<int, string>(m.Index, label));
             }
+            if (Regex.IsMatch(cmd, @"DISCORD-REPORTS") && !hits.Any(h => h.Value.StartsWith("saving"))) hits.Add(new KeyValuePair<int, string>(int.MaxValue - 1, "checking which reports are already handled"));
             if (Regex.IsMatch(cmd, @"writeFileSync|>\s*(server|tools|docs|discord)/"))
             {
                 var paths = Regex.Matches(cmd, @"['""]((?:server|tools|docs|discord)/[\w./-]+\.\w+)['""]").Cast<Match>()
                     .Select(x => x.Groups[1].Value).Distinct().Take(4).ToList();
-                if (paths.Count > 0) hits.Add(new KeyValuePair<int, string>(int.MaxValue, "changing " + string.Join(", ", paths) + " with a script"));
+                if (paths.Count > 0) hits.Add(new KeyValuePair<int, string>(int.MaxValue, "changing " + string.Join(", ", paths)));
             }
             if (hits.Count > 0)
                 return string.Join(" + ", hits.OrderBy(h => h.Key).Select(h => h.Value).Distinct());
-            if (!string.IsNullOrEmpty(desc)) return "looking: " + Char.ToLower(desc[0]) + desc.Substring(1);
+            if (!string.IsNullOrEmpty(desc)) return Char.ToUpper(desc[0]) + desc.Substring(1);
             return "running a command";
         }
 
@@ -168,17 +178,16 @@ namespace FixerViewer
                 case "Write": return "writing " + RelPath(Str(input, "file_path"));
                 case "Read": return "reading " + RelPath(Str(input, "file_path"));
                 case "Grep": return "searching the code for \"" + OneLine(Str(input, "pattern"), 50) + "\"";
-                case "Glob": return "looking for files (" + OneLine(Str(input, "pattern"), 50) + ")";
+                case "Glob": return "looking for files";
                 case "ToolSearch": return "loading tools";
                 case "Skill": return "loading the skill " + Str(input, "skill");
                 case "Agent": return "starting a helper: " + OneLine(Str(input, "description"), 80);
                 case "SendMessage": return "messaging another Claude session";
-                case "mcp__ccd_turn__wrap_up": return null; // handled separately
+                case "mcp__ccd_turn__wrap_up": return null;
                 case "mcp__ccd_turn__update_plan":
                     {
                         var items = Get(input, "items") as object[];
-                        if (items != null)
-                            return "planning: " + string.Join(" → ", items.Select(i => Str(i, "content")));
+                        if (items != null) return "planning: " + string.Join(" → ", items.Select(i => Str(i, "content")));
                         return null;
                     }
             }
@@ -195,6 +204,13 @@ namespace FixerViewer
             return string.Join("\n", arr.Select(x => Str(x, "text") ?? ""));
         }
 
+        public static string Mins(int m)
+        {
+            if (m < 1) return "under a minute";
+            if (m < 60) return m + " min";
+            return (m / 60) + " h " + (m % 60) + " min";
+        }
+
         public static Run Load(string file, Run old)
         {
             var fi = new FileInfo(file);
@@ -204,12 +220,10 @@ namespace FixerViewer
             using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             using (var sr = new StreamReader(fs, Encoding.UTF8)) all = sr.ReadToEnd();
 
-            var pending = new Dictionary<string, KeyValuePair<DateTime, string>>(); // tool_use id -> (time, label)
-            var waitStart = new Dictionary<string, KeyValuePair<DateTime, string>>();
-            int lastRefusalWait = -1;
-            var toolNames = new Dictionary<string, string>();
+            var pending = new Dictionary<string, KeyValuePair<DateTime, string>>();
+            var waitStart = new Dictionary<string, DateTime>();
             var toolCmds = new Dictionary<string, string>();
-            bool lastWasFinalText = false, interrupted = false;
+            bool lastWasFinalText = false, interrupted = false; int refusalWait = -1;
             DateTime lastEvent = DateTime.MinValue;
 
             foreach (var raw in all.Split('\n'))
@@ -218,7 +232,7 @@ namespace FixerViewer
                 if (raw.StartsWith("{\"type\":\"api-request") || raw.StartsWith("{\"type\":\"file-history")) continue;
                 if (raw.Contains("\"type\":\"attachment\",\"uuid\"")) continue;
                 object j;
-                try { j = Json.DeserializeObject(raw); } catch { continue; } // last line may be half written
+                try { j = Json.DeserializeObject(raw); } catch { continue; }
                 var type = Str(j, "type");
                 var t = Ts(j);
                 if (type == "queue-operation")
@@ -228,8 +242,7 @@ namespace FixerViewer
                 }
                 if (type != "user" && type != "assistant") continue;
                 if (t != DateTime.MinValue) lastEvent = t;
-                var msg = Get(j, "message");
-                var content = Get(msg, "content");
+                var content = Get(Get(j, "message"), "content");
 
                 if (type == "user")
                 {
@@ -238,9 +251,9 @@ namespace FixerViewer
                     if (content is string)
                     {
                         var s = (string)content;
-                        if (s.Contains("<scheduled-task")) run.Lines.Add(new Line(t, Kind.Start, "Run started (scheduled every 2 hours)"));
-                        else if (s.Contains("cross-session-message")) run.Lines.Add(new Line(t, Kind.Message, "Another Claude session sent it a message"));
-                        else run.Lines.Add(new Line(t, Kind.Message, "Message: " + OneLine(s, 160)));
+                        if (s.Contains("<scheduled-task")) run.Lines.Add(new Line(t, "start", "Run started"));
+                        else if (s.Contains("cross-session-message")) run.Lines.Add(new Line(t, "msg", "Another Claude session sent it a message"));
+                        else run.Lines.Add(new Line(t, "msg", "Message: " + OneLine(s, 160)));
                         interrupted = false; lastWasFinalText = false;
                         continue;
                     }
@@ -252,53 +265,47 @@ namespace FixerViewer
                         if (ct == "text")
                         {
                             var s = Str(c, "text") ?? "";
-                            if (s.StartsWith("[Request interrupted")) { interrupted = true; }
-                            else if (s.Contains("cross-session-message")) { run.Lines.Add(new Line(t, Kind.Message, "Another Claude session sent it a message")); interrupted = false; }
-                            else if (s.Contains("<scheduled-task")) run.Lines.Add(new Line(t, Kind.Start, "Run started (scheduled every 2 hours)"));
+                            if (s.StartsWith("[Request interrupted")) interrupted = true;
+                            else if (s.Contains("cross-session-message")) { run.Lines.Add(new Line(t, "msg", "Another Claude session sent it a message")); interrupted = false; }
                         }
                         else if (ct == "tool_result")
                         {
                             var id = Str(c, "tool_use_id") ?? "";
                             pending.Remove(id);
-                            lastRefusalWait = -1;
+                            refusalWait = -1;
                             var txt = ResultText(c);
                             var isErr = Get(c, "is_error") is bool && (bool)Get(c, "is_error");
-                            string name; toolNames.TryGetValue(id, out name);
                             string cmd; toolCmds.TryGetValue(id, out cmd);
                             if (isErr && txt.Contains("doesn't want to proceed"))
                             {
-                                KeyValuePair<DateTime, string> pw;
-                                if (waitStart.TryGetValue(id, out pw) && t != DateTime.MinValue) lastRefusalWait = (int)(t - pw.Key).TotalMinutes;
+                                DateTime ws;
+                                if (waitStart.TryGetValue(id, out ws) && t != DateTime.MinValue) refusalWait = (int)(t - ws).TotalMinutes;
+                                run.Lines.Add(new Line(t, "bad", "Permission refused or timed out (nobody clicked Allow in the Claude app)"));
                             }
-                            if (isErr && txt.Contains("doesn't want to proceed"))
-                                run.Lines.Add(new Line(t, Kind.Problem, "PERMISSION: refused or timed out (nobody clicked Allow in the Claude app)"));
-                            else if (isErr)
-                                run.Lines.Add(new Line(t, Kind.Problem, "FAILED: " + OneLine(txt, 140)));
-                            if (cmd != null && cmd.Contains("bot-logs") && !isErr)
+                            else if (isErr) run.Lines.Add(new Line(t, "bad", "That failed: " + OneLine(txt, 140)));
+                            if (cmd == null || isErr) continue;
+                            if (Regex.IsMatch(cmd, @"dc\.js read bot-logs"))
                             {
-                                var found = FindReports(txt);
-                                if (found.Count == 0 && Regex.IsMatch(cmd, @"dc\.js read bot-logs"))
-                                    run.Lines.Add(new Line(t, Kind.Found, "No bug reports in that part of #bot-logs"));
-                                foreach (var r in found)
-                                {
-                                    run.ReportIds.Add(r.Id);
-                                    run.Lines.Add(new Line(t, Kind.Found, "REPORT: " + r.Title + (r.Who != "" ? " (from " + r.Who + ")" : "")));
-                                }
+                                var titles = Regex.Matches(txt, @"(?:🐞|💡) \*\*(?:Bug report|Wish)\*\*[^\n]*\n\*\*([^\n*]+)\*\*").Cast<Match>().Select(m => OneLine(m.Groups[1].Value, 120)).ToList();
+                                foreach (Match m in Regex.Matches(txt, @"report-id:\s*(\d{17,20})")) run.Ids.Add(m.Groups[1].Value);
+                                if (titles.Count > 0) run.Lines.Add(new Line(t, "found", "Reports in #bot-logs: " + string.Join(" · ", titles.Skip(Math.Max(0, titles.Count - 4)))));
                             }
-                            if (cmd != null && Regex.IsMatch(cmd, @"check\.sh") && !isErr)
+                            if (Regex.IsMatch(cmd, @"dc\.js posts"))
                             {
-                                if (Regex.IsMatch(txt, @"(?i)\bfail|problem")) run.Lines.Add(new Line(t, Kind.Problem, "PROBLEM: the checks reported a problem"));
+                                var waiting = Regex.Matches(txt, @"\] ([^\n·]+?) · [^\n]*last: OWNER").Cast<Match>().Select(m => OneLine(m.Groups[1].Value, 80)).ToList();
+                                if (waiting.Count > 0) run.Lines.Add(new Line(t, "found", "You wrote in: " + string.Join(" · ", waiting)));
+                                var news = Regex.Matches(txt, @"\] ([^\n·]+?) · New report").Cast<Match>().Select(m => OneLine(m.Groups[1].Value, 80)).ToList();
+                                if (news.Count > 0) run.Lines.Add(new Line(t, "found", "New reports: " + string.Join(" · ", news)));
                             }
-                            if (cmd != null && Regex.IsMatch(cmd, @"git push") && !isErr && Regex.IsMatch(txt, @"->\s*main"))
-                                run.Lines.Add(new Line(t, Kind.Good, "OK: uploaded to GitHub"));
-                            if (cmd != null && Regex.IsMatch(cmd, @"dc\.js (post|reply)") && txt.Contains("posted in"))
-                                run.Lines.Add(new Line(t, Kind.Good, "OK: posted in Discord"));
+                            if (Regex.IsMatch(cmd, @"check\.sh") && Regex.IsMatch(txt, @"(?i)\bfail|problem\(s\)|crash")) run.Lines.Add(new Line(t, "bad", "The checks found a problem"));
+                            if (Regex.IsMatch(cmd, @"git push") && Regex.IsMatch(txt, @"->\s*main")) run.Lines.Add(new Line(t, "good", "Uploaded to GitHub"));
+                            if (Regex.IsMatch(cmd, @"dc\.js (post|reply|forum)") && Regex.IsMatch(txt, @"posted|replied|new post")) run.Lines.Add(new Line(t, "good", "Written in Discord"));
+                            if (Regex.IsMatch(cmd, @"update\.sh(?!\s+check)") && txt.Contains("Updated to")) run.Lines.Add(new Line(t, "good", "The public server is updated"));
                         }
                     }
                     continue;
                 }
 
-                // assistant
                 var parts = content as object[];
                 if (parts == null) continue;
                 bool hadTool = false; string lastText = null;
@@ -310,7 +317,7 @@ namespace FixerViewer
                         var s = Str(c, "text") ?? "";
                         if (s.Trim().Length == 0) continue;
                         lastText = s;
-                        run.Lines.Add(new Line(t, Kind.Say, OneLine(s, 600)));
+                        run.Lines.Add(new Line(t, "say", OneLine(s, 700)));
                     }
                     else if (ct == "tool_use")
                     {
@@ -318,35 +325,35 @@ namespace FixerViewer
                         var name = Str(c, "name") ?? "";
                         var input = Get(c, "input");
                         var id = Str(c, "id") ?? "";
-                        toolNames[id] = name;
-                        if (name == "Bash" || name == "PowerShell") toolCmds[id] = Str(input, "command") ?? "";
+                        if (name == "Bash" || name == "PowerShell")
+                        {
+                            var cmd = Str(input, "command") ?? "";
+                            toolCmds[id] = cmd;
+                            foreach (Match m in Regex.Matches(cmd, @"dc\.js (?:read|post|tag|edit|react|reply) (\d{17,20})")) run.Ids.Add(m.Groups[1].Value);
+                        }
                         if (name == "mcp__ccd_turn__wrap_up")
                         {
-                            run.Lines.Add(new Line(t, Kind.Summary, "Wrap-up: " + OneLine(Str(input, "recap"), 400)));
+                            run.Lines.Add(new Line(t, "summary", OneLine(Str(input, "recap"), 400)));
                             pending[id] = new KeyValuePair<DateTime, string>(t, "wrapping up");
                             continue;
                         }
                         var label = ToolLabel(name, input);
                         if (label == null) { pending[id] = new KeyValuePair<DateTime, string>(t, "updating its task list"); continue; }
                         label = Clean(label);
-                        run.Lines.Add(new Line(t, Kind.Action, label));
-                        run.LastAction = label;
+                        run.Lines.Add(new Line(t, "act", label));
+                        run.Step = label;
                         if (!IsCheckOnly(label)) run.Fixing = true;
                         pending[id] = new KeyValuePair<DateTime, string>(t, label);
-                        waitStart[id] = pending[id];
+                        waitStart[id] = t;
                     }
                 }
-                if (!hadTool && lastText != null) { lastWasFinalText = true; run.FinalText = lastText; interrupted = false; }
+                if (!hadTool && lastText != null) { lastWasFinalText = true; interrupted = false; run.Result = lastText; }
                 else if (hadTool) lastWasFinalText = false;
             }
 
-            var startLine = run.Lines.FirstOrDefault(l => l.Kind == Kind.Start);
-            if (startLine != null && run.Mode != "")
-                startLine.Text += run.Mode == "bypassPermissions" ? " · permissions: Bypass (it doesn't stop to ask)" : " · permissions: Ask first (" + run.Mode + "): it stops when it needs a click";
             if (run.Start == DateTime.MinValue) run.Start = run.Lines.Count > 0 ? run.Lines[0].Time : fi.CreationTime;
             run.Last = lastEvent == DateTime.MinValue ? run.Start : lastEvent;
             var now = DateTime.Now;
-
             if (pending.Count > 0)
             {
                 var p = pending.Values.OrderBy(v => v.Key).First();
@@ -354,233 +361,342 @@ namespace FixerViewer
             }
             if (lastWasFinalText && pending.Count == 0)
             {
-                run.State = RunState.Finished;
-                var first = run.FinalText.Split('\n').Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0) ?? "";
-                run.Result = OneLine(first, 160);
-                if (run.Lines.Count > 0) { var l = run.Lines[run.Lines.Count - 1]; if (l.Kind == Kind.Say) l.Kind = Kind.Summary; l.Text = "Final summary: " + l.Text; }
+                run.State = "done";
+                var first = run.Result.Split('\n').Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0) ?? "";
+                run.Result = OneLine(first, 220);
+                run.Quiet = !run.Fixing || Regex.IsMatch(run.Result, @"(?i)^no new (bug )?reports|nothing new came in|had nothing to do");
+                if (run.Lines.Count > 0) { var l = run.Lines[run.Lines.Count - 1]; if (l.Kind == "say") l.Kind = "summary"; }
             }
             else if (interrupted && pending.Count == 0)
             {
-                run.State = RunState.Stopped;
-                run.Result = lastRefusalWait >= 0
-                    ? "Stopped: waited " + Mins(lastRefusalWait) + " for a permission click, then it was refused or timed out"
-                    : "Stopped: a permission was refused or timed out";
-                if (run.Mode != "" && run.Mode != "bypassPermissions") run.Result += " (it ran in Ask-first mode, not Bypass)";
+                run.State = "stopped";
+                run.Result = refusalWait >= 0 ? "Stopped: waited " + Mins(refusalWait) + " for a permission click" : "Stopped: a permission was refused";
+                if (run.Mode != "" && run.Mode != "bypassPermissions") run.Result += " (it ran in Ask-first mode)";
             }
             else
             {
                 var since = pending.Count > 0 ? run.PendingSince : run.Last;
                 var mins = (int)(now - since).TotalMinutes;
-                var fileQuiet = (DateTime.UtcNow - fi.LastWriteTimeUtc).TotalMinutes;
-                if (mins >= 10 && fileQuiet >= 10)
+                var quiet = (DateTime.UtcNow - fi.LastWriteTimeUtc).TotalMinutes;
+                if (mins >= 12 && quiet >= 12)
                 {
-                    run.State = RunState.Stuck; run.StuckMinutes = mins;
-                    run.Result = pending.Count > 0
-                        ? "STUCK? Waiting " + Mins(mins) + " on \"" + run.PendingLabel + "\" (probably a permission prompt nobody clicked)"
-                        : "STUCK? No activity for " + Mins(mins);
+                    run.State = "stuck"; run.StuckMinutes = mins;
+                    run.Result = pending.Count > 0 ? "Stuck? Waiting " + Mins(mins) + " on \"" + run.PendingLabel + "\"" : "Stuck? No activity for " + Mins(mins);
+                    run.Lines.Add(new Line(since, "bad", run.Result + ". Is a permission prompt open in the Claude app?"));
                 }
                 else
                 {
-                    run.State = RunState.Working;
-                    run.Result = "Working: " + (run.PendingLabel != "" ? run.PendingLabel : run.LastAction);
+                    run.State = "working";
+                    run.Result = run.PendingLabel != "" ? run.PendingLabel : run.Step;
                 }
-            }
-            if (run.State == RunState.Stuck || (run.State == RunState.Working && pending.Count > 0))
-            {
-                var mins = (int)(now - run.PendingSince).TotalMinutes;
-                if (pending.Count > 0)
-                    run.Lines.Add(new Line(run.PendingSince, run.State == RunState.Stuck ? Kind.Problem : Kind.Waiting,
-                        run.State == RunState.Stuck ? "STUCK? Waiting " + Mins(mins) + " for this to be allowed or to finish. Is a permission prompt open in the Claude app?"
-                                                    : "busy with: " + run.PendingLabel + " (" + Mins(mins) + ")"));
             }
             return run;
         }
-
-        public static string Mins(int m)
-        {
-            if (m < 1) return "under a minute";
-            if (m < 60) return m + " min";
-            return (m / 60) + " h " + (m % 60) + " min";
-        }
-
-        public static List<Report> FindReports(string text)
-        {
-            var list = new List<Report>();
-            foreach (var msg in Regex.Split(text.Replace("\r", ""), @"\n---\n"))
-            {
-                var m = Regex.Match(msg, @"^\[(\d+)\] (\d{4}-\d\d-\d\d \d\d:\d\d) [^:\n]*:\s*(🐞|💡) \*\*(Bug report|Wish)\*\*(?: from \S+)?(?: \(([^)\n]*)\))?[ \t]*(?:\n([^\n]*))?");
-                if (!m.Success)
-                {
-                    // a report inside other output (e.g. grep): just the header line
-                    m = Regex.Match(msg, @"\[(\d+)\] (\d{4}-\d\d-\d\d \d\d:\d\d) [^:\n]*:\s*(🐞|💡) \*\*(Bug report|Wish)\*\*(?: from \S+)?(?: \(([^)\n]*)\))?[ \t]*(?:\n([^\n]*))?");
-                    if (!m.Success) continue;
-                }
-                var r = new Report();
-                DateTime t;
-                if (DateTime.TryParseExact(m.Groups[2].Value, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out t))
-                    r.Time = t.ToLocalTime();
-                r.Wish = m.Groups[4].Value == "Wish";
-                r.Who = m.Groups[5].Value;
-                var title = m.Groups[6].Value;
-                if (title.StartsWith("report-id") || title.StartsWith("[")) title = "";
-                r.Title = OneLine(title, 140);
-                var id = Regex.Match(msg, @"report-id:\s*(\d{17,20})");
-                if (id.Success) r.Id = id.Groups[1].Value; else r.Test = true;
-                var url = Regex.Match(msg, @"Thread:\s*(https://discord\.com/channels/\d+/\d+)");
-                if (url.Success) r.Url = url.Groups[1].Value;
-                if (r.Title == "") r.Title = r.Wish ? "(wish)" : "(bug report)";
-                list.Add(r);
-            }
-            // reports found only as "report-id:" lines (e.g. after grep)
-            foreach (Match m in Regex.Matches(text, @"report-id:\s*(\d{17,20})"))
-                if (!list.Any(r => r.Id == m.Groups[1].Value))
-                    list.Add(new Report { Id = m.Groups[1].Value, Title = "report " + m.Groups[1].Value });
-            return list;
-        }
     }
 
-    class MainForm : Form
+    // ===================================================================== Discord (read-only REST)
+    class Post
+    {
+        public string Id, Forum, Title = "", Author = "", AuthorId = "", LastId = "";
+        public List<string> Tags = new List<string>();
+        public bool Archived, Pinned;
+        public long Created, LastTime; public string LastWho = "", LastText = "";
+        public string Starter = ""; public string ReportId = "";
+        public int Count;
+    }
+
+    class Discord
+    {
+        readonly string token; readonly string ownerId; string guildEnv;
+        public string Error = "", BotId = "", GuildId = "", BugsForum = "", FixerForum = "";
+        public DateTime Fetched = DateTime.MinValue;
+        readonly Dictionary<string, Post> cache = new Dictionary<string, Post>();
+        public List<Post> Posts = new List<Post>();
+        public Post Pinned;
+        static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+
+        public Discord(Dictionary<string, string> env)
+        {
+            env.TryGetValue("DISCORD_TOKEN", out token);
+            string o; env.TryGetValue("OWNER_IDS", out o); ownerId = (o ?? "").Split(',')[0].Trim();
+            env.TryGetValue("GUILD_ID", out guildEnv);
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        }
+        public bool HasToken { get { return !string.IsNullOrEmpty(token); } }
+
+        object Call(string path)
+        {
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                var req = (HttpWebRequest)WebRequest.Create("https://discord.com/api/v10" + path);
+                req.Method = "GET";
+                req.Headers["Authorization"] = "Bot " + token;
+                req.UserAgent = "HelloBroBugFixerViewer (local, 2.0)";
+                req.Timeout = 20000;
+                try
+                {
+                    using (var res = (HttpWebResponse)req.GetResponse())
+                    using (var sr = new StreamReader(res.GetResponseStream(), Encoding.UTF8))
+                        return Json.DeserializeObject(sr.ReadToEnd());
+                }
+                catch (WebException e)
+                {
+                    var r = e.Response as HttpWebResponse;
+                    if (r != null && (int)r.StatusCode == 429)
+                    {
+                        double wait = 1;
+                        try { using (var sr = new StreamReader(r.GetResponseStream())) { var j = Json.DeserializeObject(sr.ReadToEnd()); var v = Parser.Get(j, "retry_after"); if (v != null) wait = Convert.ToDouble(v, CultureInfo.InvariantCulture); } } catch { }
+                        Thread.Sleep((int)(wait * 1000) + 250);
+                        continue;
+                    }
+                    if (r != null) throw new Exception("Discord said " + (int)r.StatusCode + (r.StatusCode == HttpStatusCode.Unauthorized ? " (the bot token in discord/.env does not work)" : ""));
+                    throw new Exception("Discord can't be reached (" + e.Status + ")");
+                }
+            }
+            throw new Exception("Discord asked to slow down; trying again soon");
+        }
+
+        static long SnowMs(string id) { long v; return long.TryParse(id, out v) ? (v >> 22) + 1420070400000L : 0; }
+        static long IsoMs(string iso)
+        {
+            DateTime t;
+            if (iso != null && DateTime.TryParse(iso, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out t))
+                return (long)(t - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            return 0;
+        }
+
+        public void Refresh()
+        {
+            if (!HasToken) { Error = "No bot token found in discord/.env, so Discord can't be read."; return; }
+            try
+            {
+                if (BotId == "")
+                {
+                    BotId = Parser.Str(Call("/users/@me"), "id");
+                    if (!string.IsNullOrEmpty(guildEnv)) GuildId = guildEnv;
+                    else { var gs = Call("/users/@me/guilds") as object[]; GuildId = Parser.Str(gs[0], "id"); }
+                }
+                var chans = (Call("/guilds/" + GuildId + "/channels") as object[]) ?? new object[0];
+                var tagNames = new Dictionary<string, string>();
+                BugsForum = FixerForum = "";
+                foreach (var c in chans)
+                {
+                    if (Parser.Str(c, "type") != "15") continue;
+                    var name = Parser.Str(c, "name");
+                    if (name == "bugs-and-issues") BugsForum = Parser.Str(c, "id");
+                    else if (name == "bug-fixer") FixerForum = Parser.Str(c, "id");
+                    else continue;
+                    var tags = Parser.Get(c, "available_tags") as object[];
+                    if (tags != null) foreach (var t in tags) tagNames[Parser.Str(t, "id")] = Parser.Str(t, "name");
+                }
+                var forums = new[] { BugsForum, FixerForum }.Where(x => x != "").ToList();
+                var threads = new List<object>();
+                var active = Parser.Get(Call("/guilds/" + GuildId + "/threads/active"), "threads") as object[];
+                if (active != null) threads.AddRange(active.Where(t => forums.Contains(Parser.Str(t, "parent_id"))));
+                foreach (var f in forums)
+                {
+                    try
+                    {
+                        var arch = Parser.Get(Call("/channels/" + f + "/threads/archived/public?limit=40"), "threads") as object[];
+                        if (arch != null) threads.AddRange(arch);
+                    }
+                    catch { }
+                }
+                var list = new List<Post>();
+                var seen = new HashSet<string>();
+                foreach (var t in threads)
+                {
+                    var id = Parser.Str(t, "id");
+                    if (id == null || !seen.Add(id)) continue;
+                    Post p; cache.TryGetValue(id, out p);
+                    bool isNew = p == null;
+                    if (isNew) { p = new Post { Id = id }; cache[id] = p; }
+                    p.Forum = Parser.Str(t, "parent_id") == FixerForum ? "fixer" : "bugs";
+                    p.Title = Parser.Str(t, "name") ?? "";
+                    p.Created = SnowMs(id);
+                    var meta = Parser.Get(t, "thread_metadata");
+                    p.Archived = Parser.Get(meta, "archived") is bool && (bool)Parser.Get(meta, "archived");
+                    var flags = Parser.Get(t, "flags"); p.Pinned = flags != null && (Convert.ToInt64(flags) & 2) != 0;
+                    var cnt = Parser.Get(t, "message_count"); p.Count = cnt == null ? 0 : Convert.ToInt32(cnt);
+                    p.Tags = ((Parser.Get(t, "applied_tags") as object[]) ?? new object[0]).Select(x => { string n; return tagNames.TryGetValue(x.ToString(), out n) ? n : ""; }).Where(n => n != "").ToList();
+                    p.AuthorId = Parser.Str(t, "owner_id") ?? "";
+                    if (isNew || p.Starter == "")
+                    {
+                        try
+                        {
+                            var st = Call("/channels/" + id + "/messages/" + id);
+                            p.Starter = Parser.Str(st, "content") ?? "";
+                            var au = Parser.Get(st, "author");
+                            p.Author = Parser.Str(au, "global_name") ?? Parser.Str(au, "username") ?? "";
+                            var rm = Regex.Match(p.Starter, @"report-id:\s*(\d{17,20})");
+                            if (rm.Success) p.ReportId = rm.Groups[1].Value;
+                            if (p.Starter == "") p.Starter = " ";
+                        }
+                        catch { }
+                    }
+                    var lastId = Parser.Str(t, "last_message_id") ?? "";
+                    if (lastId != p.LastId)
+                    {
+                        try
+                        {
+                            var msgs = (Call("/channels/" + id + "/messages?limit=10") as object[]) ?? new object[0];
+                            object last = null;
+                            foreach (var m in msgs)
+                            {
+                                var au = Parser.Get(m, "author");
+                                var mine = Parser.Str(au, "id") == BotId;
+                                var txt = Parser.Str(m, "content") ?? "";
+                                if (mine && txt.StartsWith("👀 Got it")) continue; // the helper's quick receipt
+                                last = m; break;
+                            }
+                            if (last != null)
+                            {
+                                var au = Parser.Get(last, "author");
+                                var aid = Parser.Str(au, "id");
+                                p.LastWho = aid == ownerId ? "you" : aid == BotId ? (p.Forum == "fixer" ? "fixer" : "helper") : (Parser.Str(au, "global_name") ?? Parser.Str(au, "username") ?? "player");
+                                p.LastTime = IsoMs(Parser.Str(last, "timestamp"));
+                                var txt = Parser.Str(last, "content") ?? "";
+                                if (txt.Trim() == "" && Parser.Get(last, "attachments") is object[] && ((object[])Parser.Get(last, "attachments")).Length > 0) txt = "(a picture)";
+                                p.LastText = Parser.OneLine(txt, 220);
+                            }
+                            p.LastId = lastId;
+                        }
+                        catch { }
+                    }
+                    if (p.AuthorId == ownerId && p.Author != "") p.Author = "you";
+                    list.Add(p);
+                }
+                Posts = list;
+                Pinned = list.FirstOrDefault(x => x.Forum == "fixer" && x.Pinned) ?? list.FirstOrDefault(x => x.Forum == "fixer" && x.Title.StartsWith("📦"));
+                if (Pinned != null)
+                {
+                    try { Pinned.Starter = Parser.Str(Call("/channels/" + Pinned.Id + "/messages/" + Pinned.Id), "content") ?? ""; } catch { }
+                }
+                Error = ""; Fetched = DateTime.Now;
+            }
+            catch (Exception e) { Error = e.Message; }
+        }
+
+        public string Link(string id) { return "https://discord.com/channels/" + GuildId + "/" + id; }
+    }
+
+    // ===================================================================== the app
+    class App : ApplicationContext
     {
         readonly string repo, projDir;
         readonly Dictionary<string, Run> runs = new Dictionary<string, Run>();
         readonly Dictionary<string, bool> isRun = new Dictionary<string, bool>();
-        readonly Dictionary<string, string> notified = new Dictionary<string, string>();
-        List<Report> reports = new List<Report>();
-        string reportsError = "", reportsFetched = "";
-        bool fetching, firstPass = true;
-        DateTime lastFetch = DateTime.MinValue;
-        string selectedId = null; bool userPicked;
-
-        readonly Label lblStatus = new Label(), lblSub = new Label(), lblUpdated = new Label(), lblReports = new Label();
-        readonly ListView lvRuns = new ListView(), lvReports = new ListView();
-        readonly RichTextBox rtb = new RichTextBox();
+        readonly Discord discord;
+        readonly object gate = new object();
+        string stateJson = "{}";
         readonly NotifyIcon tray = new NotifyIcon();
-        readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
-        int timelineCount = -1; string timelineRun = null;
+        readonly Control ui = new Control();
+        TcpListener listener; public int Port;
+        static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+        readonly Dictionary<string, string> lastSeen = new Dictionary<string, string>(); // for pop-ups
+        bool firstPass = true, toldTray;
+        byte[] icoPng;
 
-        static readonly Color Bg = Color.FromArgb(24, 27, 34), Panel = Color.FromArgb(32, 36, 45), Fg = Color.FromArgb(225, 228, 235),
-            Dim = Color.FromArgb(140, 148, 160), Green = Color.FromArgb(110, 210, 130), Orange = Color.FromArgb(255, 170, 70),
-            Red = Color.FromArgb(255, 105, 95), Blue = Color.FromArgb(120, 180, 255), Yellow = Color.FromArgb(240, 210, 100);
-
-        public MainForm(string repo)
+        public App(string repo)
         {
             this.repo = repo;
             Parser.Repo = repo;
-            projDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects",
-                Regex.Replace(repo.TrimEnd('\\'), @"[:\\/]", "-"));
+            projDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects", Regex.Replace(repo.TrimEnd('\\'), @"[:\\/]", "-"));
+            discord = new Discord(ReadEnv(Path.Combine(repo, "discord", ".env")));
+            ui.CreateControl(); var h = ui.Handle; // for BeginInvoke from other threads
 
-            Text = "Bug fixer viewer – Hello Bro / Ninja Online";
-            Width = 1250; Height = 820; BackColor = Bg; ForeColor = Fg;
-            Font = new Font("Segoe UI", 10f);
-            StartPosition = FormStartPosition.CenterScreen;
-            var appIcon = MakeIcon();
-            if (appIcon != null) Icon = appIcon;
-
-            var head = new System.Windows.Forms.Panel { Dock = DockStyle.Top, Height = 92, BackColor = Panel, Padding = new Padding(16, 10, 16, 8) };
-            lblStatus.Dock = DockStyle.Top; lblStatus.Height = 36; lblStatus.Font = new Font("Segoe UI Semibold", 16f); lblStatus.AutoEllipsis = true;
-            lblSub.Dock = DockStyle.Top; lblSub.Height = 24; lblSub.ForeColor = Dim; lblSub.AutoEllipsis = true;
-            lblUpdated.Dock = DockStyle.Top; lblUpdated.Height = 20; lblUpdated.ForeColor = Dim; lblUpdated.Font = new Font("Segoe UI", 8.5f);
-            head.Controls.Add(lblUpdated); head.Controls.Add(lblSub); head.Controls.Add(lblStatus);
-
-            var splitMain = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, BackColor = Bg, SplitterWidth = 6 };
-            var splitTop = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical, BackColor = Bg, SplitterWidth = 6 };
-
-            SetupList(lvRuns, new[] { "Run started", "What happened" }, new[] { 150, 330 });
-            lvRuns.SelectedIndexChanged += (s, e) =>
-            {
-                if (lvRuns.SelectedItems.Count == 0) return;
-                var id = (string)lvRuns.SelectedItems[0].Tag;
-                if (id != selectedId) { selectedId = id; userPicked = lvRuns.SelectedItems[0].Index != 0; timelineRun = null; ShowTimeline(); }
-            };
-            var runsBox = Boxed("Runs (newest first)", lvRuns);
-            splitTop.Panel1.Controls.Add(runsBox);
-
-            rtb.Dock = DockStyle.Fill; rtb.ReadOnly = true; rtb.BackColor = Panel; rtb.ForeColor = Fg; rtb.BorderStyle = BorderStyle.None;
-            rtb.Font = new Font("Segoe UI", 10f); rtb.DetectUrls = false; rtb.WordWrap = true;
-            splitTop.Panel2.Controls.Add(Boxed("What this run did", rtb));
-
-            SetupList(lvReports, new[] { "Posted", "Player", "Report", "State" }, new[] { 120, 110, 640, 300 });
-            lvReports.DoubleClick += (s, e) =>
-            {
-                if (lvReports.SelectedItems.Count == 0) return;
-                var url = lvReports.SelectedItems[0].Tag as string;
-                if (!string.IsNullOrEmpty(url)) try { Process.Start(url); } catch { }
-            };
-            lblReports.Dock = DockStyle.Bottom; lblReports.Height = 22; lblReports.ForeColor = Dim; lblReports.Font = new Font("Segoe UI", 8.5f);
-            var repBox = Boxed("Bug reports from #bot-logs (double-click to open the thread)", lvReports);
-            repBox.Controls.Add(lblReports);
-            splitMain.Panel1.Controls.Add(splitTop);
-            splitMain.Panel2.Controls.Add(repBox);
-
-            Controls.Add(splitMain);
-            Controls.Add(head);
-            Load += (s, e) => { splitMain.SplitterDistance = (int)(ClientSize.Height * 0.58); splitTop.SplitterDistance = 500; };
-
-            tray.Icon = appIcon ?? SystemIcons.Information;
-            tray.Text = "Bug fixer viewer";
+            icoPng = Resource("app.png");
+            Icon icon = null;
+            try { using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("app.ico")) if (s != null) icon = new Icon(s, 32, 32); } catch { }
+            tray.Icon = icon ?? SystemIcons.Information;
+            tray.Text = "Bug fixer";
+            var menu = new ContextMenuStrip();
+            menu.Items.Add("Open Bug fixer", null, (s, e) => OpenWindow());
+            menu.Items.Add("Quit", null, (s, e) => { tray.Visible = false; ExitThread(); Environment.Exit(0); });
+            tray.ContextMenuStrip = menu;
+            tray.DoubleClick += (s, e) => OpenWindow();
+            tray.BalloonTipClicked += (s, e) => OpenWindow();
             tray.Visible = true;
-            tray.DoubleClick += (s, e) => { Show(); WindowState = FormWindowState.Normal; Activate(); };
-            tray.BalloonTipClicked += (s, e) => { Show(); WindowState = FormWindowState.Normal; Activate(); };
-            FormClosed += (s, e) => { tray.Visible = false; tray.Dispose(); };
 
-            timer.Interval = 4000;
-            timer.Tick += (s, e) => Tick();
-            Shown += (s, e) => { Tick(); timer.Start(); };
+            // the last port first (an open window keeps working after a restart), then a fixed one, then any free port
+            int last = 0;
+            try { int.TryParse(File.ReadAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HelloBroBugFixerViewer", "port.txt")).Trim(), out last); } catch { }
+            foreach (var port in new[] { last > 0 ? last : -1, 47816, 0 })
+            {
+                if (port < 0) continue;
+                try { listener = new TcpListener(IPAddress.Loopback, port); listener.Start(); break; } catch { listener = null; }
+            }
+            Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            new Thread(Serve) { IsBackground = true }.Start();
+            new Thread(Collect) { IsBackground = true }.Start();
         }
 
-        static Icon MakeIcon()
+        static Dictionary<string, string> ReadEnv(string file)
         {
+            var d = new Dictionary<string, string>();
             try
             {
-                var bmp = new Bitmap(32, 32);
-                using (var g = Graphics.FromImage(bmp))
+                foreach (var l in File.ReadAllLines(file))
                 {
-                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-                    using (var b = new SolidBrush(Color.FromArgb(255, 140, 40))) g.FillEllipse(b, 1, 1, 30, 30);
-                    using (var f = new Font("Segoe UI Black", 15f, FontStyle.Bold, GraphicsUnit.Pixel))
-                    using (var w = new SolidBrush(Color.White))
-                    {
-                        var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                        g.DrawString("BF", f, w, new RectangleF(0, 1, 32, 32), sf);
-                    }
+                    var m = Regex.Match(l, @"^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$");
+                    if (m.Success) d[m.Groups[1].Value] = m.Groups[2].Value.Trim('"', '\'');
                 }
-                return Icon.FromHandle(bmp.GetHicon());
             }
-            catch { return null; }
+            catch { }
+            return d;
         }
 
-        Control Boxed(string title, Control inner)
+        static byte[] Resource(string name)
         {
-            var p = new System.Windows.Forms.Panel { Dock = DockStyle.Fill, BackColor = Bg, Padding = new Padding(10, 6, 10, 8) };
-            var l = new Label { Text = title, Dock = DockStyle.Top, Height = 24, ForeColor = Blue, Font = new Font("Segoe UI Semibold", 10.5f) };
-            inner.Dock = DockStyle.Fill;
-            p.Controls.Add(inner); p.Controls.Add(l);
-            return p;
+            using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            {
+                if (s == null) return new byte[0];
+                var ms = new MemoryStream(); s.CopyTo(ms); return ms.ToArray();
+            }
         }
 
-        void SetupList(ListView lv, string[] cols, int[] widths)
+        // ---------- window
+        public void OpenWindow()
         {
-            lv.View = View.Details; lv.FullRowSelect = true; lv.HideSelection = false; lv.MultiSelect = false;
-            lv.BackColor = Panel; lv.ForeColor = Fg; lv.BorderStyle = BorderStyle.None; lv.HeaderStyle = ColumnHeaderStyle.Nonclickable;
-            lv.ShowItemToolTips = true;
-            for (int i = 0; i < cols.Length; i++) lv.Columns.Add(cols[i], widths[i]);
+            var url = "http://127.0.0.1:" + Port + "/";
+            var edge = new[] {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft\Edge\Application\msedge.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Microsoft\Edge\Application\msedge.exe") }.FirstOrDefault(File.Exists);
+            try
+            {
+                if (edge != null)
+                {
+                    var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HelloBroBugFixerViewer", "edge");
+                    Process.Start(new ProcessStartInfo(edge, "--app=" + url + " --user-data-dir=\"" + data + "\" --window-size=1500,950 --no-first-run --no-default-browser-check --disable-sync --disable-features=Translate,msEdgeSidebarV2") { UseShellExecute = false });
+                }
+                else Process.Start(url);
+            }
+            catch { try { Process.Start(url); } catch { } }
+            if (!toldTray)
+            {
+                toldTray = true;
+                Balloon("Bug fixer is watching", "Close the window any time: it keeps watching from the tray icon and pops up when something needs you.", ToolTipIcon.Info);
+            }
         }
 
-        // ---------- data ----------
+        void Balloon(string title, string text, ToolTipIcon icon)
+        {
+            try { ui.BeginInvoke((Action)(() => { try { tray.ShowBalloonTip(9000, title, string.IsNullOrEmpty(text) ? " " : text, icon); } catch { } })); } catch { }
+        }
+
+        // ---------- data collection
         void ScanRuns()
         {
             if (!Directory.Exists(projDir)) return;
-            var cutoff = DateTime.Now.AddDays(-3);
+            var cutoff = DateTime.Now.AddDays(-2);
             foreach (var f in Directory.GetFiles(projDir, "*.jsonl"))
             {
                 DateTime mt;
                 try { mt = File.GetLastWriteTime(f); } catch { continue; }
-                if (mt < cutoff) continue;
+                if (mt < cutoff) { runs.Remove(f); continue; }
                 bool yes;
                 if (!isRun.TryGetValue(f, out yes))
                 {
-                    yes = false;
                     try
                     {
                         using (var fs = new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
@@ -588,8 +704,7 @@ namespace FixerViewer
                             var buf = new byte[6000]; int n = fs.Read(buf, 0, buf.Length);
                             var head = Encoding.UTF8.GetString(buf, 0, n);
                             var nl = head.IndexOf('\n');
-                            var first = nl > 0 ? head.Substring(0, nl) : head;
-                            yes = first.Contains("\"content\":\"<scheduled-task name=\\\"hellobro-bug-fixer");
+                            yes = (nl > 0 ? head.Substring(0, nl) : head).Contains("\"content\":\"<scheduled-task name=\\\"hellobro-bug-fixer");
                             if (n < 200 && !yes) continue; // brand-new file: look again next time
                         }
                     }
@@ -598,251 +713,249 @@ namespace FixerViewer
                 }
                 if (!yes) continue;
                 Run old; runs.TryGetValue(f, out old);
-                // working / stuck runs are read again every tick (their state depends on the clock)
-                if (old != null && (old.State == RunState.Working || old.State == RunState.Stuck)) old = null;
-                try { runs[f] = Parser.Load(f, old); }
-                catch { }
+                if (old != null && (old.State == "working" || old.State == "stuck")) old = null; // their state depends on the clock
+                try { runs[f] = Parser.Load(f, old); } catch { }
             }
         }
 
-        HashSet<string> HandledIds()
+        void Collect()
         {
-            var set = new HashSet<string>();
-            try
+            DateTime lastDiscord = DateTime.MinValue;
+            while (true)
             {
-                var txt = File.ReadAllText(Path.Combine(repo, "docs", "DISCORD-REPORTS.md"));
-                foreach (Match m in Regex.Matches(txt, @"\d{17,20}")) set.Add(m.Value);
-            }
-            catch { }
-            return set;
-        }
-
-        void FetchReports()
-        {
-            if (fetching) return;
-            fetching = true; lastFetch = DateTime.Now;
-            var t = new Thread(() =>
-            {
-                string err = "", output = "";
                 try
                 {
-                    var psi = new ProcessStartInfo("node", "--env-file=.env dc.js read bot-logs 50")
+                    ScanRuns();
+                    var working = runs.Values.Any(r => r.State == "working");
+                    if ((DateTime.Now - lastDiscord).TotalSeconds >= (working ? 15 : 30))
                     {
-                        WorkingDirectory = Path.Combine(repo, "discord"), UseShellExecute = false, CreateNoWindow = true,
-                        RedirectStandardOutput = true, RedirectStandardError = true,
-                        StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
-                    };
-                    using (var p = Process.Start(psi))
-                    {
-                        var so = p.StandardOutput.ReadToEndAsync();
-                        var se = p.StandardError.ReadToEndAsync();
-                        if (!p.WaitForExit(45000)) { try { p.Kill(); } catch { } err = "Discord did not answer in time"; }
-                        else { output = so.Result; if (p.ExitCode != 0) err = "Could not read #bot-logs (" + Parser.Clean(se.Result).Split('\n').FirstOrDefault() + ")"; }
+                        lastDiscord = DateTime.Now;
+                        discord.Refresh();
                     }
+                    var st = BuildState();
+                    lock (gate) stateJson = Json.Serialize(st);
                 }
-                catch (Exception ex) { err = "Could not run node: " + ex.Message; }
-                List<Report> list = null;
-                if (err == "") list = Parser.FindReports(output).Where(r => r.Id != "" || r.Test).ToList();
-                try
-                {
-                    BeginInvoke((Action)(() =>
-                    {
-                        fetching = false;
-                        reportsError = err;
-                        if (list != null) { reports = list; reportsFetched = DateTime.Now.ToString("HH:mm:ss"); }
-                        Render();
-                    }));
-                }
-                catch { fetching = false; }
-            });
-            t.IsBackground = true; t.Start();
+                catch (Exception e) { lock (gate) stateJson = Json.Serialize(new Dictionary<string, object> { { "fatal", e.Message } }); }
+                Thread.Sleep(3000);
+            }
         }
 
-        DateTime NextRun(List<Run> ordered)
-        {
-            var now = DateTime.Now;
-            var slot = new DateTime(now.Year, now.Month, now.Day, now.Hour - now.Hour % 2, 20, 0);
-            for (int i = 0; i < 3; i++)
-            {
-                var s = slot;
-                bool done = ordered.Any(r => r.Start >= s.AddMinutes(-3) && r.Start <= s.AddMinutes(20));
-                if (!done && s.AddMinutes(15) > now) return s;
-                slot = slot.AddHours(2);
-            }
-            return slot;
-        }
+        static long Ms(DateTime t) { return t == DateTime.MinValue ? 0 : (long)(t.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds; }
 
         static bool ClaudeAppOpen()
         {
-            try { return Process.GetProcessesByName("Claude").Length > 0 || Process.GetProcessesByName("claude").Length > 0; }
-            catch { return true; }
+            try { return Process.GetProcessesByName("claude").Length > 0; } catch { return true; }
         }
 
-        void Tick()
-        {
-            try { ScanRuns(); } catch { }
-            var working = runs.Values.Any(r => r.State == RunState.Working);
-            if (!fetching && (DateTime.Now - lastFetch).TotalSeconds > (working ? 20 : 60)) FetchReports();
-            Render();
-        }
+        static readonly string[] Closed = { "Not possible", "Not a bug" };
 
-        // ---------- view ----------
-        void Render()
+        Dictionary<string, object> BuildState()
         {
-            var ordered = runs.Values.OrderByDescending(r => r.Start).ToList();
-            var handled = HandledIds();
             var now = DateTime.Now;
-
-            // status line
-            var active = ordered.FirstOrDefault(r => r.State == RunState.Working);
+            var ordered = runs.Values.OrderByDescending(r => r.Start).ToList();
+            var active = ordered.FirstOrDefault(r => r.State == "working");
             var latest = ordered.FirstOrDefault();
-            var next = NextRun(ordered);
+
+            // next run: every 30 minutes (cron */30 plus a few minutes of jitter)
+            DateTime next;
+            if (latest != null && (now - latest.Start).TotalMinutes < 75) { next = latest.Start.AddMinutes(30); while (next < now.AddMinutes(-2)) next = next.AddMinutes(30); }
+            else { next = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute < 30 ? 30 : 0, 0).AddHours(now.Minute < 30 ? 0 : 1).AddMinutes(4); }
+
+            string fixerState = active != null ? "working" : (latest != null && latest.State == "stuck" && (now - latest.Start).TotalMinutes < 60) ? "stuck" : "idle";
             var appOpen = ClaudeAppOpen();
-            if (active != null)
-            {
-                lblStatus.ForeColor = active.Fixing ? Orange : Green;
-                lblStatus.Text = (active.Fixing ? "🔧 The fixer is FIXING something right now" : "🔎 The fixer is checking for new reports") +
-                    " (started " + active.Start.ToString("HH:mm") + ")";
-            }
-            else if (latest != null && latest.State == RunState.Stuck && (now - latest.Start).TotalHours < 2)
-            {
-                lblStatus.ForeColor = Red;
-                lblStatus.Text = "⚠ Stuck? The run of " + latest.Start.ToString("HH:mm") + " has done nothing for " + Parser.Mins(latest.StuckMinutes);
-            }
-            else
-            {
-                lblStatus.ForeColor = Fg;
-                lblStatus.Text = "💤 Idle" + (latest != null ? ". Last run " + Day(latest.Start) + ": " + Short(latest.Result, 90) : ". No runs found yet");
-            }
-            var sub = active != null ? "Now: " + Short(active.Result.Replace("Working: ", ""), 110) + "     " : "";
-            sub += appOpen ? "Next run: around " + next.ToString("HH:mm") + "–" + next.AddMinutes(10).ToString("HH:mm") + " (every 2 hours, only while the Claude app is open)"
-                           : "The Claude app is closed, so the fixer can't run. Open it to let the fixer work.";
-            lblSub.Text = sub;
-            lblUpdated.Text = "Updated " + now.ToString("HH:mm:ss") + " · checks the run logs every 4 seconds, #bot-logs every " + (active != null ? "20" : "60") + " seconds · this window only reads, it never changes anything";
+            if (!appOpen && fixerState == "idle") fixerState = "off";
 
-            // runs list
-            lvRuns.BeginUpdate();
-            var want = ordered.Take(40).ToList();
-            while (lvRuns.Items.Count > want.Count) lvRuns.Items.RemoveAt(lvRuns.Items.Count - 1);
-            for (int i = 0; i < want.Count; i++)
+            // ---- cards: one per report (player post + its #bug-fixer post joined by report-id)
+            var posts = discord.Posts;
+            var pinnedId = discord.Pinned != null ? discord.Pinned.Id : "";
+            var fixerByReport = new Dictionary<string, Post>();
+            foreach (var p in posts.Where(p => p.Forum == "fixer" && p.ReportId != "")) if (!fixerByReport.ContainsKey(p.ReportId)) fixerByReport[p.ReportId] = p;
+            var usedFixer = new HashSet<string>();
+            var cards = new List<Dictionary<string, object>>();
+            var activeIds = active != null ? active.Ids : new HashSet<string>();
+
+            Action<Post, Post> add = (pl, fx) =>
             {
-                var r = want[i];
-                ListViewItem it;
-                if (i < lvRuns.Items.Count) it = lvRuns.Items[i];
-                else { it = new ListViewItem(new[] { "", "" }); lvRuns.Items.Add(it); }
-                SetText(it, 0, Day(r.Start));
-                SetText(it, 1, r.Result);
-                it.Tag = r.Id; it.ToolTipText = r.Result;
-                var c = r.State == RunState.Working ? Orange : r.State == RunState.Stuck ? Red : r.State == RunState.Stopped ? Yellow :
-                        (r.Result.StartsWith("No new bug reports") ? Dim : Green);
-                if (it.ForeColor != c) it.ForeColor = c;
+                var tagsP = pl != null ? pl.Tags : new List<string>();
+                var tagsF = fx != null ? fx.Tags : new List<string>();
+                Func<string, bool> has = n => tagsF.Contains(n) || tagsP.Contains(n);
+                string stage;
+                if (has("Live")) stage = "live";
+                else if (tagsF.Contains("Fixed, not live yet") || tagsP.Contains("Fixed")) stage = "ready";
+                else if (tagsF.Contains("Question for you")) stage = fx.LastWho == "you" ? "fixer" : "you";
+                else if (Closed.Any(has)) stage = "closed";
+                else if (has("Wish")) stage = (fx != null && fx.LastWho == "fixer") ? "you" : "closed";
+                else if (fx != null) stage = "fixer";
+                else if (tagsP.Contains("With the developer")) stage = "fixer";
+                else stage = "player";
+                var main = fx ?? pl;
+                var last = new[] { pl, fx }.Where(x => x != null).OrderByDescending(x => x.LastTime).First();
+                var title = (pl != null ? pl.Title : fx.Title);
+                if (fx != null && pl == null) title = fx.Title;
+                var test = Regex.IsMatch(title, @"(?i)^\s*(🧪\s*)?test\b") || (fx != null && fx.Title.Contains("🧪"));
+                bool waitingYou = stage == "you";
+                string why = "";
+                if (stage == "you") why = has("Wish") ? "A wish: should it be built?" : "The fixer asked you something";
+                else if (stage == "fixer" && fx != null && fx.LastWho == "you") why = "You answered: the fixer picks it up on its next run";
+                var ids = new[] { pl != null ? pl.Id : null, fx != null ? fx.Id : null }.Where(x => x != null);
+                cards.Add(new Dictionary<string, object> {
+                    { "id", main.Id }, { "title", Parser.OneLine(title.Replace("🧪", "").Trim(), 120) },
+                    { "player", pl != null ? pl.Author : (fx.Author == "you" ? "you" : "") },
+                    { "stage", stage }, { "tagsPlayer", tagsP }, { "tagsFixer", tagsF },
+                    { "created", Math.Min(pl != null ? pl.Created : long.MaxValue, fx != null ? fx.Created : long.MaxValue) },
+                    { "lastTime", last.LastTime }, { "lastWho", last.LastWho }, { "lastText", last.LastText },
+                    { "playerUrl", pl != null ? discord.Link(pl.Id) : "" }, { "fixerUrl", fx != null ? discord.Link(fx.Id) : "" },
+                    { "test", test }, { "why", why }, { "now", ids.Any(i => activeIds.Contains(i)) },
+                    { "request", pl == null && fx != null && fx.ReportId == "" },
+                });
+            };
+            foreach (var pl in posts.Where(p => p.Forum == "bugs"))
+            {
+                Post fx; fixerByReport.TryGetValue(pl.Id, out fx);
+                if (fx != null) usedFixer.Add(fx.Id);
+                add(pl, fx);
             }
-            if (!userPicked || selectedId == null || !want.Any(r => r.Id == selectedId))
+            foreach (var fx in posts.Where(p => p.Forum == "fixer" && p.Id != pinnedId && !usedFixer.Contains(p.Id))) add(null, fx);
+            cards = cards.OrderByDescending(c => (long)c["lastTime"]).ToList();
+
+            // ---- waiting to go live (the pinned 📦 post's first message)
+            var golive = new List<string>(); bool nothingWaiting = false; string goliveUrl = "", behind = "";
+            if (discord.Pinned != null)
             {
-                if (want.Count > 0 && (lvRuns.SelectedItems.Count == 0 || (string)lvRuns.SelectedItems[0].Tag != want[0].Id))
+                goliveUrl = discord.Link(discord.Pinned.Id);
+                var txt = discord.Pinned.Starter ?? "";
+                nothingWaiting = Regex.IsMatch(txt, @"(?i)nothing waiting");
+                if (!nothingWaiting)
+                    foreach (var l in txt.Split('\n'))
+                    {
+                        var s = l.Trim();
+                        if (Regex.IsMatch(s, @"^([-•*]|\d+\.)\s+")) golive.Add(Parser.OneLine(Regex.Replace(s, @"^([-•*]|\d+\.)\s+", ""), 200));
+                        else if (Regex.IsMatch(s, @"(?i)^behind the scenes")) behind = Parser.OneLine(s, 120);
+                    }
+                if (!nothingWaiting && golive.Count == 0 && txt.Trim() != "")
+                    golive.AddRange(txt.Split('\n').Select(x => x.Trim()).Where(x => x.Length > 3 && !Regex.IsMatch(x, @"(?i)say .update the public server")).Take(6).Select(x => Parser.OneLine(x, 200)));
+            }
+
+            // ---- runs
+            var runList = ordered.Take(60).Select(r => new Dictionary<string, object> {
+                { "id", r.Id }, { "start", Ms(r.Start) }, { "last", Ms(r.Last) }, { "state", r.State }, { "result", r.Result },
+                { "quiet", r.Quiet }, { "fixing", r.Fixing }, { "mode", r.Mode }, { "step", r.Step },
+            }).ToList();
+            object activeRun = null;
+            var show = active ?? (latest != null && latest.State == "stuck" ? latest : null);
+            if (show != null)
+                activeRun = new Dictionary<string, object> {
+                    { "id", show.Id }, { "start", Ms(show.Start) }, { "state", show.State }, { "result", show.Result }, { "fixing", show.Fixing },
+                    { "lines", show.Lines.Skip(Math.Max(0, show.Lines.Count - 14)).Select(l => new Dictionary<string, object> { { "t", Ms(l.Time) }, { "k", l.Kind }, { "x", l.Text } }).ToList() },
+                };
+
+            var st = new Dictionary<string, object> {
+                { "now", Ms(now) }, { "fixer", fixerState }, { "appOpen", appOpen }, { "next", Ms(next) },
+                { "activeRun", activeRun }, { "runs", runList }, { "cards", cards },
+                { "golive", golive }, { "goliveBehind", behind }, { "nothingWaiting", nothingWaiting }, { "goliveUrl", goliveUrl }, { "goliveKnown", discord.Pinned != null },
+                { "discordError", discord.Error }, { "discordAt", Ms(discord.Fetched) },
+            };
+            Notify(cards, golive, show, fixerState);
+            return st;
+        }
+
+        void Notify(List<Dictionary<string, object>> cards, List<string> golive, Run show, string fixerState)
+        {
+            var events = new List<Action>();
+            foreach (var c in cards)
+            {
+                var key = "card:" + c["id"];
+                var stage = (string)c["stage"];
+                string was; lastSeen.TryGetValue(key, out was);
+                lastSeen[key] = stage;
+                if (firstPass || was == stage || (bool)c["test"]) continue;
+                var title = (string)c["title"];
+                if (stage == "you") events.Add(() => Balloon("The fixer has a question for you", title, ToolTipIcon.Warning));
+                else if (stage == "ready" && was != null) events.Add(() => Balloon("Fixed, ready to go live", title, ToolTipIcon.Info));
+                else if (stage == "fixer" && was == null) events.Add(() => Balloon("New bug report", title, ToolTipIcon.Info));
+            }
+            var gl = string.Join("|", golive);
+            string wasGl; lastSeen.TryGetValue("golive", out wasGl);
+            lastSeen["golive"] = gl;
+            if (!firstPass && gl != "" && gl != wasGl && discord.Fetched != DateTime.MinValue)
+                events.Add(() => Balloon("Waiting to go live: " + golive.Count + (golive.Count == 1 ? " fix" : " fixes"), "Say \"update the public server\" in the 📦 post to put it live.", ToolTipIcon.Info));
+            string wasF; lastSeen.TryGetValue("fixer", out wasF);
+            var fkey = fixerState + (show != null ? show.Id : "");
+            lastSeen["fixer"] = fkey;
+            if (!firstPass && fixerState == "stuck" && wasF != fkey)
+                events.Add(() => Balloon("The bug fixer looks stuck", show != null ? show.Result : "", ToolTipIcon.Warning));
+            if (discord.Fetched != DateTime.MinValue) firstPass = false;
+            foreach (var e in events.Take(3)) e();
+        }
+
+        object RunDetail(string id)
+        {
+            var r = runs.Values.FirstOrDefault(x => x.Id == id);
+            if (r == null) return new Dictionary<string, object> { { "missing", true } };
+            return new Dictionary<string, object> {
+                { "id", r.Id }, { "start", Ms(r.Start) }, { "state", r.State }, { "result", r.Result }, { "mode", r.Mode },
+                { "lines", r.Lines.Select(l => new Dictionary<string, object> { { "t", Ms(l.Time) }, { "k", l.Kind }, { "x", l.Text } }).ToList() },
+            };
+        }
+
+        // ---------- tiny web server (127.0.0.1 only)
+        void Serve()
+        {
+            while (true)
+            {
+                TcpClient c;
+                try { c = listener.AcceptTcpClient(); } catch { Thread.Sleep(200); continue; }
+                ThreadPool.QueueUserWorkItem(_ => { try { Handle(c); } catch { } finally { try { c.Close(); } catch { } } });
+            }
+        }
+
+        void Handle(TcpClient c)
+        {
+            c.ReceiveTimeout = 5000;
+            var ns = c.GetStream();
+            var buf = new byte[8192]; int n = 0;
+            while (n < buf.Length)
+            {
+                int r = ns.Read(buf, n, buf.Length - n);
+                if (r <= 0) break; n += r;
+                if (Encoding.ASCII.GetString(buf, 0, n).Contains("\r\n\r\n")) break;
+            }
+            var head = Encoding.ASCII.GetString(buf, 0, n);
+            var m = Regex.Match(head, @"^GET (\S+) HTTP");
+            var host = Regex.Match(head, @"(?im)^Host:\s*(\S+)").Groups[1].Value;
+            if (!m.Success || (host != "127.0.0.1:" + Port && host != "localhost:" + Port)) { Send(ns, 403, "text/plain", Encoding.UTF8.GetBytes("no")); return; }
+            var path = m.Groups[1].Value;
+            var q = path.IndexOf('?'); var query = q >= 0 ? path.Substring(q + 1) : ""; if (q >= 0) path = path.Substring(0, q);
+            Func<string, string> arg = k => { var mm = Regex.Match(query, "(?:^|&)" + k + "=([^&]*)"); return mm.Success ? Uri.UnescapeDataString(mm.Groups[1].Value.Replace('+', ' ')) : ""; };
+            if (path == "/")
+            {
+                // BFV_DEV=1: serve tools/fixer-viewer/app.html from the repo (to work on the page without rebuilding)
+                var dev = Path.Combine(repo, "tools", "fixer-viewer", "app.html");
+                Send(ns, 200, "text/html; charset=utf-8", Environment.GetEnvironmentVariable("BFV_DEV") == "1" && File.Exists(dev) ? File.ReadAllBytes(dev) : Resource("app.html"));
+            }
+            else if (path == "/api/state") { string s; lock (gate) s = stateJson; Send(ns, 200, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(s)); }
+            else if (path == "/api/run") Send(ns, 200, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(Json.Serialize(RunDetail(arg("id")))));
+            else if (path == "/icon.png") Send(ns, 200, "image/png", icoPng);
+            else if (path == "/open")
+            {
+                var u = arg("u");
+                var mm = Regex.Match(u, @"^https://discord\.com/channels/(\d+)/(\d+)$");
+                if (mm.Success)
                 {
-                    selectedId = want[0].Id; userPicked = false;
-                    lvRuns.Items[0].Selected = true;
+                    bool app = false;
+                    try { using (var k = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey("discord")) app = k != null; } catch { }
+                    try { Process.Start(app ? "discord://-/channels/" + mm.Groups[1].Value + "/" + mm.Groups[2].Value : u); } catch { try { Process.Start(u); } catch { } }
                 }
+                Send(ns, 204, "text/plain", new byte[0]);
             }
-            lvRuns.EndUpdate();
-            ShowTimeline();
-
-            // reports
-            var activeRuns = ordered.Where(r => r.State == RunState.Working).ToList();
-            lvReports.BeginUpdate();
-            lvReports.Items.Clear();
-            foreach (var r in reports.OrderByDescending(x => x.Time).Take(30))
-            {
-                string state; Color c;
-                if (r.Test) { state = "test post (the fixer skips it)"; c = Dim; }
-                else if (handled.Contains(r.Id)) { state = r.Wish ? "✔ noted for the owner" : "✔ handled"; c = Green; }
-                else if (activeRuns.Any(a => a.ReportIds.Contains(r.Id) || a.Start >= r.Time)) { state = "🔧 being fixed now"; c = Orange; }
-                else { state = "⏳ waiting for the next run (~" + next.ToString("HH:mm") + ")"; c = Yellow; }
-                var it = new ListViewItem(new[] { Day(r.Time), r.Who, (r.Wish ? "💡 " : "🐞 ") + r.Title, state }) { ForeColor = c, Tag = r.Url, ToolTipText = r.Title };
-                lvReports.Items.Add(it);
-            }
-            lvReports.EndUpdate();
-            lblReports.Text = reportsError != "" ? "⚠ " + reportsError + (reportsFetched != "" ? " (showing the list from " + reportsFetched + ")" : "")
-                : reportsFetched == "" ? "Reading #bot-logs…" : "Read from Discord at " + reportsFetched + " · " + reports.Count + " report(s) in the last 50 messages · state from docs/DISCORD-REPORTS.md";
-
-            Notify(ordered);
-            firstPass = false;
+            else Send(ns, 404, "text/plain", Encoding.UTF8.GetBytes("not found"));
         }
 
-        static void SetText(ListViewItem it, int i, string s) { if (it.SubItems[i].Text != s) it.SubItems[i].Text = s; }
-        static string Short(string s, int n) { return s.Length > n ? s.Substring(0, n - 1) + "…" : s; }
-        static string Day(DateTime t)
+        static void Send(Stream s, int code, string type, byte[] body)
         {
-            if (t == DateTime.MinValue) return "";
-            var d = t.Date == DateTime.Today ? "today" : t.Date == DateTime.Today.AddDays(-1) ? "yesterday" : t.ToString("ddd d MMM");
-            return d + " " + t.ToString("HH:mm");
-        }
-
-        void ShowTimeline()
-        {
-            Run run = runs.Values.FirstOrDefault(r => r.Id == selectedId);
-            if (run == null) { rtb.Clear(); timelineRun = null; return; }
-            var sig = run.Lines.Count + (run.Lines.Count > 0 ? run.Lines[run.Lines.Count - 1].Text.GetHashCode() : 0);
-            if (timelineRun == run.Id && timelineCount == sig) return;
-            bool sameRun = timelineRun == run.Id;
-            timelineRun = run.Id; timelineCount = sig;
-            rtb.SuspendLayout();
-            rtb.Clear();
-            Append(run.Start.ToString("dddd d MMMM, HH:mm") + "\n", Blue, true);
-            Append(run.Result + "\n\n", run.State == RunState.Stuck ? Red : run.State == RunState.Working ? Orange : run.State == RunState.Stopped ? Yellow : Green, true);
-            foreach (var l in run.Lines)
-            {
-                Append((l.Time == DateTime.MinValue ? "     " : l.Time.ToString("HH:mm")) + "   ", Dim, false);
-                Color c; bool bold = false;
-                switch (l.Kind)
-                {
-                    case Kind.Start: c = Blue; bold = true; break;
-                    case Kind.Say: c = Color.FromArgb(200, 205, 215); break;
-                    case Kind.Found: c = Yellow; bold = true; break;
-                    case Kind.Problem: c = Red; bold = true; break;
-                    case Kind.Good: c = Green; break;
-                    case Kind.Waiting: c = Orange; break;
-                    case Kind.Summary: c = Green; bold = true; break;
-                    case Kind.Message: c = Blue; break;
-                    default: c = Fg; break;
-                }
-                Append(l.Text + "\n", c, bold);
-            }
-            rtb.ResumeLayout();
-            if (run.State == RunState.Working || !sameRun) { rtb.SelectionStart = run.State == RunState.Working ? rtb.TextLength : 0; rtb.ScrollToCaret(); }
-        }
-
-        void Append(string s, Color c, bool bold)
-        {
-            rtb.SelectionStart = rtb.TextLength; rtb.SelectionLength = 0;
-            rtb.SelectionColor = c;
-            rtb.SelectionFont = new Font(rtb.Font, bold ? FontStyle.Bold : FontStyle.Regular);
-            rtb.AppendText(s);
-        }
-
-        void Notify(List<Run> ordered)
-        {
-            foreach (var r in ordered.Take(5))
-            {
-                string key = r.State == RunState.Working ? (r.Fixing ? "fixing" : "checking") : r.State.ToString();
-                string was; notified.TryGetValue(r.Id, out was);
-                notified[r.Id] = key;
-                if (firstPass || was == key) continue;
-                if (key == "fixing" && was != "fixing")
-                    Balloon("The bug fixer is fixing something", Short(r.LastAction, 200), ToolTipIcon.Info);
-                else if (key == "Finished" && (was == "fixing" || was == "checking") && r.Fixing)
-                    Balloon("The bug fixer is done", Short(r.Result, 200), ToolTipIcon.Info);
-                else if (key == "Stuck" && was != null)
-                    Balloon("The bug fixer looks stuck", Short(r.Result, 200), ToolTipIcon.Warning);
-                else if (key == "Stopped" && was != null)
-                    Balloon("The bug fixer stopped", r.Result, ToolTipIcon.Warning);
-            }
-        }
-
-        void Balloon(string title, string text, ToolTipIcon icon)
-        {
-            try { tray.ShowBalloonTip(8000, title, string.IsNullOrEmpty(text) ? " " : text, icon); } catch { }
+            var h = "HTTP/1.1 " + code + " OK\r\nContent-Type: " + type + "\r\nContent-Length: " + body.Length + "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
+            var hb = Encoding.ASCII.GetBytes(h);
+            s.Write(hb, 0, hb.Length); s.Write(body, 0, body.Length); s.Flush();
         }
     }
 
@@ -851,25 +964,43 @@ namespace FixerViewer
         [STAThread]
         static void Main(string[] args)
         {
+            var dataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HelloBroBugFixerViewer");
+            Directory.CreateDirectory(dataDir);
+            var portFile = Path.Combine(dataDir, "port.txt");
+            bool first;
+            var mutex = new Mutex(true, "HelloBroBugFixerViewer", out first);
+            if (!first)
+            {
+                // already running: just open its window again
+                try
+                {
+                    var port = File.ReadAllText(portFile).Trim();
+                    var edge = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft\Edge\Application\msedge.exe");
+                    var url = "http://127.0.0.1:" + port + "/";
+                    if (File.Exists(edge)) Process.Start(new ProcessStartInfo(edge, "--app=" + url + " --user-data-dir=\"" + Path.Combine(dataDir, "edge") + "\" --window-size=1500,950 --no-first-run --no-default-browser-check") { UseShellExecute = false });
+                    else Process.Start(url);
+                }
+                catch { }
+                return;
+            }
             string repo = null;
             var cands = new List<string>();
-            if (args.Length > 0) cands.Add(args[0]);
+            if (args.Length > 0 && !args[0].StartsWith("--")) cands.Add(args[0]);
             var env = Environment.GetEnvironmentVariable("HB_REPO");
             if (!string.IsNullOrEmpty(env)) cands.Add(env);
-            cands.Add(Path.GetDirectoryName(Application.ExecutablePath));
-            cands.Add(Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "HelloBroServer"));
+            var exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+            cands.Add(exeDir); cands.Add(Path.Combine(exeDir, "HelloBroServer"));
             cands.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "HelloBroServer"));
             cands.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Desktop", "HelloBroServer"));
             foreach (var c in cands)
                 if (File.Exists(Path.Combine(c, "discord", "dc.js")) && File.Exists(Path.Combine(c, "CLAUDE.md"))) { repo = Path.GetFullPath(c); break; }
             Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            if (repo == null)
-            {
-                MessageBox.Show("Could not find the HelloBroServer folder. Put this program on the Desktop next to it.", "Bug fixer viewer");
-                return;
-            }
-            Application.Run(new MainForm(repo));
+            if (repo == null) { MessageBox.Show("Could not find the HelloBroServer folder. Put this program on the Desktop next to it.", "Bug fixer"); return; }
+            var app = new App(repo);
+            File.WriteAllText(portFile, app.Port.ToString());
+            if (!args.Contains("--tray")) app.OpenWindow();
+            Application.Run(app);
+            GC.KeepAlive(mutex);
         }
     }
 }
