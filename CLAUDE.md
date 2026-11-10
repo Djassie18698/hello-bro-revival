@@ -200,7 +200,7 @@ wiki at `/wiki/`. Everything on it comes from the game itself: art cut from the 
   (one looked like a speck of dust above a link, owner 8 Nov); old wiki links `/#/shinobi/...` jump to `/wiki/#/...` (script in `<head>`).
 - **Wiki** `server/wiki/`: built from the game tables; shows a "Home" link only on the website (no port in the address).
 - **Hosting:** Caddy 2.6 (Ubuntu package) on the Oracle machine, ports 80 + 443, config `/etc/caddy/Caddyfile` written by
-  `tools/vps/wiki-site.sh` (edit the SCRIPT, never the Caddyfile). Short links (8 Nov): `/discord`, `/download` (the release xapk), `/install` (wiki install guide), `/play` (#play);
+  `tools/vps/wiki-site.sh` (edit the SCRIPT, never the Caddyfile). Short links (8 Nov): `/discord`, `/download` (the release xapk), `/install` (wiki install guide), `/play` (#play), `/patreon`, `/admin` (the public server's item page, footer "Item page"), `/panel` (its control panel `:18080/manager`, password; footer "Control panel");
   `/api/*` → `reverse_proxy 127.0.0.1:18080` (server/webapi.js), `/p/<name>` → `server/site/p.html` (player pages). Routes: `/` → `server/site`, `/wiki/` → `server/wiki` (`/wiki` → 308),
   `/status` → `reverse_proxy 127.0.0.1:18080` (the only thing that reaches the game server), `/wiki/img/icons.json` 404, dotfiles hidden.
   Pictures cached a day, pages/scripts `no-cache`. `www.ninjaonlinereborn.com` and plain `ninjaonline.duckdns.org` (no port) redirect to the home
