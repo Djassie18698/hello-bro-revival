@@ -10,10 +10,17 @@ set "ADB=adb"
 if defined HB_ADB set "ADB=%HB_ADB%"
 if defined HB_ADB goto haveadb
 "%SystemRoot%\System32\where.exe" adb >nul 2>nul && goto haveadb
-echo Installing Android's USB tool (adb) ...
-winget install -e --id Google.PlatformTools --accept-source-agreements --accept-package-agreements
+rem Not on this PC: download Google's own copy into %LOCALAPPDATA%\HelloBro, one time. (winget's Google.PlatformTools was dropped on
+rem 10 Nov 2026: its manifest pointed at a version Google had removed, 404. The "latest" link below always exists.)
+set "PT=%LOCALAPPDATA%\HelloBro"
+if exist "%PT%\platform-tools\adb.exe" (set "ADB=%PT%\platform-tools\adb.exe" & goto haveadb)
+echo Downloading Android's USB tool (adb) from Google, one time (about 7 MB) ...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol='Tls12'; New-Item -ItemType Directory -Force -Path $env:PT | Out-Null; $z=Join-Path $env:PT 'pt.zip'; Invoke-WebRequest -UseBasicParsing -Uri 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip' -OutFile $z; Expand-Archive -Force -Path $z -DestinationPath $env:PT; Remove-Item $z"
+if exist "%PT%\platform-tools\adb.exe" (set "ADB=%PT%\platform-tools\adb.exe" & echo Done. & echo. & goto haveadb)
 echo.
-echo Installed. CLOSE this window and double-click INSTALL-WITH-USB.bat again.
+echo Could not download adb. Download it by hand:
+echo   https://dl.google.com/android/repository/platform-tools-latest-windows.zip
+echo unzip it, and put the folder "platform-tools" in %PT%  - then double-click INSTALL-WITH-USB.bat again.
 pause & exit /b
 :haveadb
 
