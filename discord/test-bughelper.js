@@ -118,8 +118,10 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
     await h2.init();
     d2.ch.bugs.push(d2.msg(P1, 'it broke'));
     await h2.tick();
-    t += 25 * 3600e3; await h2.tick();
-    ok(d2.ch.logs.length === 1 && /did not answer/.test(d2.ch.logs[0].content), 'forwarded after a day without an answer');
+    t += 10 * 60e3; await h2.tick();
+    ok(d2.ch.logs.length === 0, "not forwarded after 10 minutes");
+    t += 6 * 60e3; await h2.tick();
+    ok(d2.ch.logs.length === 1 && /did not answer/.test(d2.ch.logs[0].content), 'forwarded after 15 minutes without an answer');
     // daily cap: no Claude call, checklist instead
     const d3 = fakeDiscord(), c3 = fakeClaude([]);
     const h3 = createHelper({ call: d3.call, client: c3, env: { BUG_DAILY_CALLS: '1' }, now: () => t, log: () => {} });
@@ -181,7 +183,7 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
     ok(claude.seen.length === 1 && th[th.length - 1].author.id === 'p1', 'claimed: the bot stays quiet when the player answers');
     ok(d.reactions.some(([m, e]) => m === cl.id && e === '🤐'), 'claim gets a 🤐 reaction');
     t += 25 * 3600e3; await h.tick();
-    ok(d.ch.logs.length === 0, 'claimed: not forwarded after a day');
+    ok(d.ch.logs.length === 0, 'claimed: not forwarded when the player goes quiet');
     const rc = d.msg(OWNER, '.reclaim'); th.push(rc);
     await h.tick();
     ok(claude.seen.length === 1 && d.reactions.some(([m, e]) => m === rc.id && e === '🤖'), 'reclaim: 🤖, no answer to old messages');

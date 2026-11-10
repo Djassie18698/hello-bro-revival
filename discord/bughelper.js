@@ -5,22 +5,23 @@
 // it thanks the player, reacts 📝 on the post and posts the whole report in #bot-logs (staff only). The fixer on the owner's PC
 // (a scheduled Claude Code task, see CLAUDE.md section 2) picks it up there, fixes it and answers in the thread.
 // Without a working key (it expired, ran out, or the API is down) it asks with a fixed checklist instead and forwards the thread
-// once the player answered (or after a day).
+// once the player answered (or after 15 minutes without an answer).
 // The owner's posts (OWNER_IDS), replies to other posts and bot posts are left alone (an owner post that starts with "test" is handled like a
 // player's, to try the bot out: its report in #bot-logs is marked TEST and has no report-id, so the fixer skips it); it only ever writes in threads it opened
 // and in #bot-logs, never pings anyone (allowed_mentions none) and never posts text that looks like a secret or an IP address.
 // Claim (owner, 10 Nov 2026: "so I can talk without the bot talking over me"): the owner types .claim (or /claim, !claim) in a report thread and
-// the bot stays quiet there (no answers, no forwarding after a day) until .reclaim (or .unclaim / .release). It reacts 🤐 / 🤖 to say it heard.
+// the bot stays quiet there (no answers, no forwarding when the player goes quiet) until .reclaim (or .unclaim / .release). It reacts 🤐 / 🤖 to say it heard.
 // The owner's own messages in a thread never get a bot answer (only a player's do), claimed or not. Who may claim: OWNER_IDS + CLAIM_IDS.
 // Settings in discord/.env: BUG_HELPER=0 (off), CLAIM_IDS (more people who may .claim, besides OWNER_IDS), BUG_CHANNEL (bugs-and-issues), BUG_STAFF_CHANNEL (bot-logs),
-// BUG_MODEL (claude-opus-5-5), BUG_DAILY_CALLS (150 Claude calls a day at most), BUG_STATE (state file).
+// BUG_MODEL (claude-opus-5-5), BUG_DAILY_CALLS (150 Claude calls a day at most), BUG_IDLE_MIN (15: minutes without an answer before it forwards), BUG_STATE (state file).
 const fs = require('fs'), path = require('path');
 const { secretProblem, splitMessage } = require('./tools');
 
 const API = 'https://discord.com/api/v10';
 const POLL_MS = 20000;
 const MAX_QUESTIONS = 4; // rounds of questions before it forwards what it has
-const IDLE_MS = 24 * 3600e3; // a question unanswered this long: forward what it has
+// a question unanswered this long: forward what it has, the fixer works with that (owner, 10 Nov 2026: 15 minutes, was a day)
+const IDLE_MIN = 15;
 const KEEP_MS = 7 * 24 * 3600e3; // threads are tracked this long
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const newer = (a, b) => BigInt(a) > BigInt(b);
@@ -132,6 +133,7 @@ function reportText(t, r, link, missingAnswer) {
 function createHelper({ call, client, env = process.env, now = () => Date.now(), log = (m) => console.log('[bughelper] ' + m), state = {} }) {
   const model = env.BUG_MODEL || 'claude-opus-5-5';
   const daily = Number(env.BUG_DAILY_CALLS) || 150;
+  const idleMs = (Number(env.BUG_IDLE_MIN) || IDLE_MIN) * 60e3;
   const owners = new Set(String(env.OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean));
   const claimers = new Set([...owners, ...String(env.CLAIM_IDS || '').split(',').map((s) => s.trim()).filter(Boolean)]);
   let me, gid, bugId, staffId;
@@ -242,7 +244,7 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
       }
       if (t.claimed) continue;
       if (playerNew) await handle(t);
-      else if (t.questions && t.botAt != null && now() - t.botAt > IDLE_MS) await forward(t, true);
+      else if (t.questions && t.botAt != null && now() - t.botAt > idleMs) await forward(t, true);
     }
   }
   return { init, tick, state, handle, forward };
