@@ -67,8 +67,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    the public server is updated only after the owner's OK. The API key ends about **8 Dec 2026** (30 days); then the helper uses the checklist.
    **Claim** (owner, 10 Nov 2026): the owner types `.claim` (or `/claim`, `!claim`) in a report thread and the helper stays quiet there (no answers, no
    forwarding) until `.reclaim` (`.unclaim` / `.release`); it reacts 🤐 / 🤖. The owner's own messages never get a bot answer. Who may claim: OWNER_IDS + CLAIM_IDS (.env).
-   **`BUG-FIXER-VIEWER.exe`** (owner's Desktop, built by `tools/fixer-viewer/BUILD.bat`, C# with Windows' own csc.exe; not in git) shows the fixer's runs live from
-   their transcripts (working / idle / stuck, next run, a plain-words timeline per run, #bot-logs reports waiting / being fixed / handled, tray pop-ups). Read-only.
+   **`BUG-FIXER-VIEWER.exe`** (owner's Desktop, built by `tools/fixer-viewer/BUILD.bat`, C# with Windows' own csc.exe; not in git): since 11 Nov 2026 a board of the pipeline (Waiting for you, report cards from player post to Live, fixer status and runs, tray pop-ups); C# + embedded page in an Edge app window; read-only (bot token read from discord/.env at runtime); see tools/fixer-viewer/README.md.
    Website/wiki problems are bugs too (section 6).
 2. **Add a row** to `docs/PROGRESS.md` (⏳) under its list, and keep the Summary counts matching the rows.
 3. **Reproduce:** `node tools/dev/probe.js <endpoint> <Cmd> k=v` against a test save, or in the game on the Claude emulator
