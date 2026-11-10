@@ -807,6 +807,9 @@ for (const pick of [55, 56, 57]) {
     ck(s.level.start === 1 && s.power.length >= 1 && tr.overview(db, 79600, 1).length === 1, 'summary level / power / overview');
     admin.resetPlayer(db, 79600, 1);
     ck(rows('reset').length === 1 && rows('baseline').length === 1, 'reset dropped the tracker history or was not marked');
+    call('rl_w_reg2', { Cmd: 0, Nick: 'Tracked2', Card: 56 }); call('rl_r_mainpage', { Cmd: 1301 }); // a new character after the reset
+    const s2 = tr.summary(db, 79600, 1);
+    ck(rows('baseline').length === 2 && s2.level.start === 1 && s2.gold.start !== null && s2.gold.start < 5000 && s2.resets.length === 1 && s2.cards.length >= 1, 'day after a reset does not start from the new character: ' + JSON.stringify({ level: s2.level, gold: s2.gold.start, cards: s2.cards.length }));
     tr.setUids(db, '');
     ck(!tr.tracked(db, 79600), 'track_uids off did not stop tracking');
   }

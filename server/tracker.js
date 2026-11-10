@@ -146,8 +146,8 @@ function write(db, uid, sid, src, rows) {
   const at = now(), rq = ++reqNo;
   for (const r of rows) st.run(uid, sid, at, rq, src, r.kind, r.key == null ? null : String(r.key), r.delta ?? null, r.value ?? null, r.detail == null ? null : String(r.detail));
 }
-function lastPower(db, uid, sid) {
-  return db.prepare("SELECT value, detail FROM track_log WHERE uid=? AND sid=? AND kind IN ('power','baseline') AND value IS NOT NULL ORDER BY id DESC LIMIT 1").get(uid, sid);
+function lastPower(db, uid, sid) { // since the last reset
+  return db.prepare("SELECT value, detail FROM track_log WHERE uid=? AND sid=? AND kind IN ('power','baseline') AND value IS NOT NULL AND id > (SELECT COALESCE(MAX(id), 0) FROM track_log WHERE uid=? AND sid=? AND kind='reset') ORDER BY id DESC LIMIT 1").get(uid, sid, uid, sid);
 }
 
 // Turn raw differences into facts: gold / silver / energy, cards gained, items, levels, stages, top-ups, other changes.
@@ -278,6 +278,8 @@ function end() {
     for (const d of c.drops) extra.push({ kind: 'drop', key: d.id, detail: d.name });
     const d = diff(c.snap, after);
     if (d.length || extra.length) record(c.db, c.uid, c.sid, label(c.cgi, c.params), d, extra);
+    const key = `${c.uid}|${c.sid}`;
+    if (!(c.snap.players || new Map()).has(key) && (after.players || new Map()).has(key)) baseline(c.db, c.uid, c.sid, after); // a new character (after a reset): its starting point
   } catch (e) { if (process.env.HB_DEBUG) console.error('tracker', e); } // the tracker must never break the game
 }
 // game.battleXml: one fight in the current request
@@ -328,7 +330,9 @@ function summary(db, uid, sid, day) {
   const [a, b] = dayRange(day);
   let rows = db.prepare('SELECT * FROM track_log WHERE uid=? AND sid=? AND at>=? AND at<? ORDER BY id').all(uid, sid, a, b);
   const resets = rows.filter((r) => r.kind === 'reset');
-  const before = (kind) => db.prepare('SELECT * FROM track_log WHERE uid=? AND sid=? AND at<? AND kind=? ORDER BY id DESC LIMIT 1').get(uid, sid, a, kind);
+  const reset = resets[resets.length - 1];
+  if (reset) rows = rows.filter((r) => r.id >= reset.id); // a reset this day: the day starts again from the new character
+  const before = (kind) => reset ? null : db.prepare('SELECT * FROM track_log WHERE uid=? AND sid=? AND at<? AND kind=? ORDER BY id DESC LIMIT 1').get(uid, sid, a, kind);
   const startOf = (kind, field) => { // value at the start of the day
     const f = rows.find((r) => r.kind === kind);
     if (f) return f.value - (f.delta || 0);
@@ -355,7 +359,7 @@ function summary(db, uid, sid, day) {
   for (const r of rows) if (r.kind === 'fight') { const f = fights[r.key] = fights[r.key] || { won: 0, lost: 0 }; r.value ? f.won++ : f.lost++; }
   const reach = {};
   for (const r of rows) if (r.kind === 'reach') reach[r.key] = r.detail;
-  const minutes = db.prepare('SELECT minute, n FROM track_time WHERE uid=? AND sid=? AND minute>=? AND minute<? ORDER BY minute').all(uid, sid, Math.floor(a / 60), Math.floor(b / 60));
+  const minutes = db.prepare('SELECT minute, n FROM track_time WHERE uid=? AND sid=? AND minute>=? AND minute<? ORDER BY minute').all(uid, sid, Math.floor((reset ? reset.at : a) / 60), Math.floor(b / 60));
   // play sessions: requests with less than 5 minutes between them belong together
   const sessions = [];
   for (const m of minutes) { const s = sessions[sessions.length - 1]; if (s && m.minute - s.to <= 5) s.to = m.minute; else sessions.push({ from: m.minute, to: m.minute }); }
