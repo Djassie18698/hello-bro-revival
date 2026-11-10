@@ -46,6 +46,8 @@ $WIKI_HOST {
 	# the public game server's admin page (items for players; the control panel needs the admin password)
 	@admin path /admin /admin/
 	redir @admin http://ninjaonline.duckdns.org:18080/admin 302
+	@panel path /panel /panel/
+	redir @panel http://ninjaonline.duckdns.org:18080/manager 302
 	@download path /download /download/
 	redir @download https://github.com/Djassie18698/hello-bro-revival/releases/download/tailscale-play/HelloBro-ninjaonline.xapk 302
 	@install path /install /install/
