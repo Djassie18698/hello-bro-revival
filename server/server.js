@@ -105,7 +105,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   }
   // HB_SITE_URL (cloud, tools/vps/run.sh; owner 10 Nov 2026: "I don't like the duckdns"): a browser opening the control panel or item page straight on
   // ninjaonline.duckdns.org:18080 is sent to the website, which passes them on here over https (tools/vps/wiki-site.sh). The game never asks for these pages.
-  if (process.env.HB_SITE_URL && req.method === 'GET' && !LOCAL.has(req.socket.remoteAddress) && /^\/(panel|admin(\/playerlog)?|manager)?\/?$/.test(u.pathname)) {
+  if (process.env.HB_SITE_URL && req.method === 'GET' && !LOCAL.has(req.socket.remoteAddress) && /^\/(panel|admin(\/playerlog|\/track)?|manager)?\/?$/.test(u.pathname)) {
     resp.writeHead(302, { Location: process.env.HB_SITE_URL + (u.pathname === '/' ? '/panel' : u.pathname) + (u.search || '') });
     return resp.end();
   }
@@ -117,6 +117,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     try { return await manager(req, resp, u, db, parseBody); } catch (e) { logError('manager error', e); resp.writeHead(500); return resp.end('error'); }
   }
   if (u.pathname.startsWith('/admin')) {
+    if (req.method === 'POST') require('./tracker').panelUsed(); // changes the tracker sees next are labelled "item page / control panel"
     try { return await admin(req, resp, u, db, parseBody); } catch (e) { logError('admin error', e); resp.writeHead(500); return resp.end('error'); }
   }
   const body = req.method === 'POST' ? await parseBody(req) : '';
@@ -128,12 +129,15 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   settings.hit(params.Uid, cgi);
   let out;
   const t0 = Date.now();
+  const tracker = require('./tracker');
+  tracker.begin(db, params, cgi); // progress tracker for the accounts in track_uids (tracker.js): snapshot before, differences after
   try {
     out = h ? h({ db, params, cgi, host: req.headers.host }) : null;
   } catch (e) {
     logError('handler error', cgi, e);
     out = null;
   }
+  tracker.end();
   if (out == null) {
     console.log(`\x1b[33m[UNHANDLED] ${req.method} ${req.url} ${body}\x1b[0m`);
     out = '<root code="1"><message>not implemented</message></root>';

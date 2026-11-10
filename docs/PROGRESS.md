@@ -249,6 +249,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Seal synthesis (found while testing the tutorial): every seal showed "Claim" and was made at once, the green Synthesis button did nothing and the price showed your gold. Now like the original: Claim starts a 30-minute synthesis, Synthesis finishes it now for 30 gold, then Claim takes the seal. Seen in game |
 | ✅ | Arena list stayed empty for new players after an admin "reset a player" (a gap in the ranks). Fixed; admin reset also no longer deletes the player's login. Seen in game |
 | ✅ | Public server restarted 3 times in one night (owner, 4 Nov): a connection that was cut before it sent anything (a browser dropping a spare connection) stopped the whole server. Now ignored; reproduced and tested on the real server (tools/dev/socket-test.js) |
+| ✅ | **Progress tracker** for DEAN (10 Nov, owner: reset DEAN and play like a normal player, at most $100 of free top-ups a day, to judge if the game is fun, too fast or too slow). Control panel tab 🔎 Tracker: every day's power curve and why it changed, level, VIP, top-ups, gold and silver in and out by source, every card / item and where it came from, every fight won or lost, stages reached, time played, plus every logged line. Changes no game behaviour. Checked on a save copy and on ninjaonline |
 
 ## Still to build
 

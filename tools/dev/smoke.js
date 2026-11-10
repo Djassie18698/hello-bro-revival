@@ -771,6 +771,45 @@ for (const pick of [55, 56, 57]) {
     if (r.boss.chance !== 100 || r.boss.max < r.boss.min || r.rush > 10) { bad++; console.log('SHARDS: rates not clamped', JSON.stringify(r)); }
     sh.setRates(db, sh.DEFAULTS);
   }
+  // Progress tracker (tracker.js): only the accounts in track_uids, every change with its source, fights, power, the day summary, kept on reset
+  {
+    const tr = require('../../server/tracker'), admin = require('../../server/admin');
+    const ck = (ok, what) => { if (!ok) { bad++; console.log('TRACKER', what); } };
+    const q = { Uid: '79600', Session: 'x', ServerID: '1', GroupID: '2' };
+    handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'Tracked', Card: 55 } });
+    tr.setUids(db, '79600');
+    const call = (name, extra = {}) => { const params = { ...q, ...extra }; tr.begin(db, params, name); const out = handlers[name]({ db, params }); tr.end(); return out; };
+    const rows = (kind) => db.prepare('SELECT * FROM track_log WHERE uid=79600 AND kind=? ORDER BY id').all(kind);
+    tr.ensure(db);
+    const before77 = db.prepare('SELECT COUNT(*) n FROM track_log WHERE uid=77').get().n;
+    tr.begin(db, { ...base, Cmd: 1301 }, 'rl_r_mainpage'); handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1301 } }); tr.end();
+    ck(db.prepare('SELECT COUNT(*) n FROM track_log WHERE uid=77').get().n === before77 && before77 === 0, 'an account that is not tracked was logged');
+    call('rl_r_mainpage', { Cmd: 1301 });
+    ck(rows('baseline').length === 1, 'no baseline on the first request');
+    db.prepare('UPDATE players SET gold=gold+5000 WHERE uid=79600').run(); // e.g. Award Center mail being sent, outside a game request
+    call('rl_r_mainpage', { Cmd: 1301 });
+    ck(rows('gold').some((r) => r.delta === 5000 && /Outside/.test(r.src)), 'change between requests not logged as outside the game');
+    tr.panelUsed(); db.prepare('UPDATE players SET coin=coin+77 WHERE uid=79600').run();
+    call('rl_r_mainpage', { Cmd: 1301 });
+    ck(rows('silver').some((r) => r.delta === 77 && /Item page/.test(r.src)), 'item page change not labelled');
+    const story = call('rl_w_pve', { Cmd: 3, ChapID: 1, StageID: 1, Pos: 1 });
+    ck(/result="1"/.test(story) && rows('fight').some((r) => r.key === 'stage' && r.value === 1 && r.src === 'Campaign' && /^1-1 vs/.test(r.detail)), 'campaign fight not logged: ' + JSON.stringify(rows('fight')));
+    ck(rows('silver').some((r) => r.src === 'Campaign' && r.delta > 0) && rows('energy').some((r) => r.src === 'Campaign' && r.delta < 0), 'campaign silver / energy not logged');
+    const g0 = db.prepare('SELECT gold FROM players WHERE uid=79600').get().gold;
+    const pull = call('rl_w_recruit', { Cmd: 1900, Type: 1, Free: 0, TwoStars: 0, IsSuperAct: 0 });
+    ck(/<recruit/.test(pull) && db.prepare('SELECT gold FROM players WHERE uid=79600').get().gold < g0, 'recruit did not work while tracked: ' + pull.slice(0, 100));
+    ck(rows('card+').some((r) => r.src === 'Recruit') && rows('gold').some((r) => r.src === 'Recruit' && r.delta < 0), 'recruit card / gold not logged');
+    db.prepare('UPDATE cards SET level=30 WHERE seq=(SELECT seq FROM team WHERE uid=79600 ORDER BY slot LIMIT 1)').run();
+    call('rl_r_mainpage', { Cmd: 1301 });
+    ck(rows('power').some((r) => r.delta > 0 && /Lv 1→30/.test(r.detail)) && rows('card~').some((r) => /Lv 1→30/.test(r.detail)), 'no power line with its reason after a level-up: ' + JSON.stringify(rows('power')));
+    const s = tr.summary(db, 79600, 1);
+    ck(s.gold.totalIn >= 5000 && s.gold.out.Recruit > 0 && s.cardsBySource.Recruit >= 1 && s.fights.stage && s.fights.stage.won >= 1 && s.played.minutes >= 1 && s.played.requests >= 5, 'summary: ' + JSON.stringify({ gold: s.gold, cards: s.cardsBySource, fights: s.fights, played: s.played }));
+    ck(s.level.start === 1 && s.power.length >= 1 && tr.overview(db, 79600, 1).length === 1, 'summary level / power / overview');
+    admin.resetPlayer(db, 79600, 1);
+    ck(rows('reset').length === 1 && rows('baseline').length === 1, 'reset dropped the tracker history or was not marked');
+    tr.setUids(db, '');
+    ck(!tr.tracked(db, 79600), 'track_uids off did not stop tracking');
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);

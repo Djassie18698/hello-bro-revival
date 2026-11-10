@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Progress tracker</title>
+<style>
+:root{--bg:#0b0a14;--panel:rgba(24,22,40,.72);--line:rgba(255,255,255,.08);--text:#f3f1ff;--muted:#a39fc0;--orange:#ff8a1f;--cyan:#22d3ee;--green:#34d399;--red:#f87171;--purple:#8b5cf6;--gold:#f9d65c;--r:16px}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:var(--text);font-family:Inter,system-ui,sans-serif}
+body:not(.embed){background:var(--bg)}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:16px;min-width:0}
+h2{margin:0 0 10px;font-size:16px}
+.muted{color:var(--muted);font-size:13px}
+select,input,button{background:#1d1a30;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px;max-width:100%}
+button{cursor:pointer}button:hover{border-color:var(--orange)}
+.bar-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.card b{display:block;font-size:21px;margin-top:4px;font-variant-numeric:tabular-nums}
+.card small{display:block;color:var(--muted);margin-top:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;position:sticky;top:0;background:#171428}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{max-height:420px;overflow:auto}
+.up{color:var(--green)}.down{color:var(--red)}
+svg{width:100%;height:200px;display:block}
+.legend span{margin-right:14px}.legend i{display:inline-block;width:12px;height:3px;vertical-align:middle;margin-right:5px}
+.k-fight{color:var(--cyan)}.k-power{color:var(--orange)}.k-level,.k-vip{color:var(--gold)}.k-card\+{color:var(--green)}.k-card-{color:var(--red)}.k-reset,.k-baseline{color:var(--purple)}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h2>🔎 Progress tracker</h2>
+    <div class="muted">Everything a tracked account does, day by day: power, levels, gold and silver in and out, top-ups, every card and item
+      and where it came from, every fight. Days follow the game's own midnight (server clock <span id="tz"></span>); times below are your own clock.</div>
+    <div class="bar-row">
+      <select id="who"></select>
+      <button id="prev" title="Day before">◀</button><select id="day"></select><button id="next" title="Day after">▶</button>
+      <button id="refresh">Refresh</button>
+    </div>
+    <div class="bar-row muted">Tracked accounts (uid, more than one with commas):
+      <input id="uids" size="14" placeholder="7"><button id="saveUids">Save</button><span id="saved"></span></div>
+  </div>
+  <div id="none" class="panel empty" hidden>No tracked account has played yet. Put its uid above and Save; tracking starts with its next request in the game.</div>
+  <div id="main">
+    <div class="cards" id="cards"></div>
+    <div class="panel"><h2>Power during the day</h2><div class="legend muted"><span><i style="background:var(--orange)"></i>Team attack</span><span><i style="background:var(--cyan)"></i>Team defence</span></div>
+      <svg id="chart" viewBox="0 0 1000 200" preserveAspectRatio="none"></svg><div class="muted" id="chartNote"></div></div>
+    <div class="panel"><h2>Every day so far</h2><div class="scroll"><table id="overview"></table></div></div>
+    <div class="grid">
+      <div class="panel"><h2>Why the power changed</h2><div class="scroll"><table id="power"></table></div></div>
+      <div class="panel"><h2>Fights</h2><div class="scroll"><table id="fights"></table></div><h2 style="margin-top:14px">Reached</h2><div class="scroll"><table id="reach"></table></div></div>
+      <div class="panel"><h2>Gold</h2><div class="scroll"><table id="gold"></table></div></div>
+      <div class="panel"><h2>Silver</h2><div class="scroll"><table id="silver"></table></div></div>
+      <div class="panel"><h2>Cards gained, by source</h2><div class="scroll"><table id="bysrc"></table></div></div>
+      <div class="panel"><h2>Cards gained</h2><div class="scroll"><table id="cardlist"></table></div></div>
+      <div class="panel"><h2>Items and fragments</h2><div class="scroll"><table id="items"></table></div></div>
+      <div class="panel"><h2>Energy, levels and play time</h2><div class="scroll"><table id="misc"></table></div></div>
+    </div>
+    <div class="panel"><h2>Everything that happened</h2>
+      <div class="bar-row"><select id="kind"><option value="">All kinds</option></select><input id="q" placeholder="Search (source, card name ...)"></div>
+      <div class="scroll" style="max-height:640px;margin-top:10px"><table id="events"></table></div></div>
+  </div>
+</div>
+<script>
+if (new URLSearchParams(location.search).get('embed')) document.body.classList.add('embed');
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const fmt = (n) => (n == null ? '-' : Number(n).toLocaleString());
+const sign = (n) => (n > 0 ? '<span class="up">+' + fmt(n) + '</span>' : n < 0 ? '<span class="down">' + fmt(n) + '</span>' : '0');
+const time = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const hm = (m) => (m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min');
+const KINDS = { gold: 'Gold', silver: 'Silver', energy: 'Energy', exp: 'Exp', stamina: 'Stamina', level: 'Level', vip: 'VIP', vipexp: 'VIP exp', topup: 'Top-up', 'card+': 'Card gained', 'card-': 'Card used up', 'card~': 'Card upgraded', item: 'Item', fight: 'Fight', drop: 'Drop pack', power: 'Power', reach: 'Reached', change: 'Other change', baseline: 'Tracker start', reset: 'Reset' };
+let data = null;
+const qs = () => `uid=${encodeURIComponent($('who').value || '')}&day=${encodeURIComponent($('day').value || '')}`;
+async function load(first) {
+  const r = await fetch('/admin/api/track?overview=1&' + (first ? '' : qs()));
+  data = await r.json();
+  $('uids').value = (data.tracked || []).join(', ');
+  const s = data.summary;
+  $('none').hidden = !!s; $('main').hidden = !s;
+  if (!s) return;
+  if (first || $('who').options.length !== data.players.length) $('who').innerHTML = data.players.map((p) => `<option value="${p.uid}:${p.server_id}">${esc(p.nick)} (uid ${p.uid}, level ${p.level})</option>`).join('');
+  $('who').value = s.uid + ':' + s.sid;
+  $('day').innerHTML = s.days.slice().reverse().map((d) => `<option>${d}</option>`).join('');
+  $('day').value = s.day;
+  $('tz').textContent = s.tz;
+  draw(s);
+}
+function flowTable(f, unit) {
+  const rows = [...new Set([...Object.keys(f.in), ...Object.keys(f.out)])].map((k) => ({ k, i: f.in[k] || 0, o: f.out[k] || 0 })).sort((a, b) => (b.i + b.o) - (a.i + a.o));
+  return `<tr><th>Source</th><th class="num">In</th><th class="num">Out</th></tr>` + rows.map((r) => `<tr><td>${esc(r.k)}</td><td class="num up">${r.i ? '+' + fmt(r.i) : ''}</td><td class="num down">${r.o ? '-' + fmt(r.o) : ''}</td></tr>`).join('') +
+    `<tr><th>Total (start ${fmt(f.start)} → end ${fmt(f.end)} ${unit})</th><th class="num">+${fmt(f.totalIn)}</th><th class="num">-${fmt(f.totalOut)}</th></tr>`;
+}
+function draw(s) {
+  const p = s.power, a0 = p.length ? p[0] : null, a1 = p.length ? p[p.length - 1] : null;
+  const pct = (x, y) => (x && y != null ? ` (${y >= x ? '+' : ''}${(((y - x) / x) * 100).toFixed(1)} %)` : '');
+  const f = Object.values(s.fights), won = f.reduce((t, x) => t + x.won, 0), lost = f.reduce((t, x) => t + x.lost, 0);
+  $('cards').innerHTML = [
+    ['Level', s.level.start === s.level.end ? fmt(s.level.end) : `${fmt(s.level.start)} → ${fmt(s.level.end)}`, s.level.ups.length + ' level-ups'],
+    ['Team attack', a1 ? fmt(a1.atk) : '-', a0 ? 'from ' + fmt(a0.atk) + pct(a0.atk, a1.atk) : ''],
+    ['Team defence', a1 ? fmt(a1.def) : '-', a0 ? 'from ' + fmt(a0.def) + pct(a0.def, a1.def) : ''],
+    ['VIP', s.vip.start === s.vip.end ? fmt(s.vip.end) : `${fmt(s.vip.start)} → ${fmt(s.vip.end)}`, '+' + fmt(s.vip.expIn) + ' VIP exp'],
+    ['Top-ups', '$' + s.topup.dollars.toFixed(2), `${s.topup.count}× · ${fmt(s.topup.gold)} gold`],
+    ['Gold', `+${fmt(s.gold.totalIn)} / -${fmt(s.gold.totalOut)}`, `now ${fmt(s.gold.end)}`],
+    ['Silver', `+${fmt(s.silver.totalIn)} / -${fmt(s.silver.totalOut)}`, `now ${fmt(s.silver.end)}`],
+    ['Fights', `${won} won · ${lost} lost`, Object.entries(s.fights).map(([k, v]) => `${k} ${v.won}/${v.won + v.lost}`).join(' · ')],
+    ['Cards gained', s.cards.length, Object.keys(s.cardsBySource).length + ' sources'],
+    ['Time played', hm(s.played.minutes), `${s.played.sessions.length} sessions · ${fmt(s.played.requests)} requests`],
+  ].map(([k, v, sm]) => `<div class="card"><span class="muted">${k}</span><b>${esc(v)}</b><small>${esc(sm)}</small></div>`).join('');
+  // chart: attack and defence as step lines over the day
+  if (p.length) {
+    const t0 = p[0].at, t1 = Math.max(p[p.length - 1].at, t0 + 60), max = Math.max(...p.map((x) => Math.max(x.atk, x.def))) || 1;
+    const lo = Math.min(...p.map((x) => Math.min(x.atk, x.def))) * 0.9, span = Math.max(1, max - lo); // zoomed to the day's range
+    const X = (t) => ((t - t0) / (t1 - t0)) * 1000, Y = (v) => 190 - ((v - lo) / span) * 180;
+    const line = (k) => { let d = `M0 ${Y(p[0][k])}`; p.forEach((x, i) => { const xe = i + 1 < p.length ? X(p[i + 1].at) : 1000; d += ` L${X(x.at)} ${Y(x[k])} L${xe} ${Y(x[k])}`; }); return d; };
+    $('chart').innerHTML = `<path d="${line('def')}" fill="none" stroke="#22d3ee" stroke-width="2" vector-effect="non-scaling-stroke"/><path d="${line('atk')}" fill="none" stroke="#ff8a1f" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
+    $('chartNote').textContent = `${time(t0)} → ${time(t1)} · from ${fmt(Math.round(lo / 0.9))} to ${fmt(max)} · ${p.length} changes`;
+  } else { $('chart').innerHTML = ''; $('chartNote').textContent = 'No power change this day.'; }
+  $('overview').innerHTML = '<tr><th>Day</th><th class="num">Level</th><th class="num">VIP</th><th class="num">Attack</th><th class="num">Defence</th><th class="num">Played</th><th class="num">Top-up</th><th class="num">Gold in / out</th><th class="num">Silver in / out</th><th class="num">Cards</th><th class="num">Fights won / lost</th><th>Reached</th></tr>' +
+    (data.overview || []).slice().reverse().map((o) => `<tr><td><a href="#" data-day="${o.day}" style="color:var(--orange)">${o.day}</a></td><td class="num">${fmt(o.level)}</td><td class="num">${fmt(o.vip)}</td><td class="num">${fmt(o.atk)}</td><td class="num">${fmt(o.def)}</td><td class="num">${hm(o.minutes)}</td><td class="num">$${o.topup.toFixed(0)}</td><td class="num">+${fmt(o.goldIn)} / -${fmt(o.goldOut)}</td><td class="num">+${fmt(o.silverIn)} / -${fmt(o.silverOut)}</td><td class="num">${o.cards}</td><td class="num">${o.won} / ${o.lost}</td><td>${esc(o.reach.join(' · '))}</td></tr>`).join('');
+  $('power').innerHTML = '<tr><th>Time</th><th class="num">Attack</th><th class="num">Change</th><th class="num">Defence</th><th>Why</th></tr>' +
+    p.slice().reverse().map((x) => `<tr><td>${time(x.at)}</td><td class="num">${fmt(x.atk)}</td><td class="num">${sign(x.datk)}</td><td class="num">${fmt(x.def)}</td><td>${esc(x.src ? x.src + ': ' : '')}${esc(x.why)}</td></tr>`).join('');
+  $('fights').innerHTML = '<tr><th>Kind</th><th class="num">Won</th><th class="num">Lost</th><th class="num">Win rate</th></tr>' +
+    Object.entries(s.fights).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v.won}</td><td class="num">${v.lost}</td><td class="num">${Math.round((v.won / (v.won + v.lost)) * 100)} %</td></tr>`).join('');
+  $('reach').innerHTML = Object.values(s.reach).map((r) => `<tr><td>${esc(r)}</td></tr>`).join('') || '<tr><td class="muted">nothing new</td></tr>';
+  $('gold').innerHTML = flowTable(s.gold, 'gold');
+  $('silver').innerHTML = flowTable(s.silver, 'silver');
+  $('bysrc').innerHTML = '<tr><th>Source</th><th class="num">Cards</th></tr>' + Object.entries(s.cardsBySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<tr><td>${esc(k)}</td><td class="num">${n}</td></tr>`).join('');
+  $('cardlist').innerHTML = '<tr><th>Time</th><th>Card</th><th>From</th></tr>' + s.cards.slice().reverse().map((c) => `<tr><td>${time(c.at)}</td><td>${esc(c.what)}</td><td>${esc(c.src)}</td></tr>`).join('');
+  $('items').innerHTML = '<tr><th>Item</th><th class="num">Got</th><th class="num">Used</th><th>From</th></tr>' + Object.entries(s.items).sort((a, b) => b[1].in - a[1].in).map(([k, v]) =>
+    `<tr><td>${esc(k)}</td><td class="num up">${v.in ? '+' + fmt(v.in) : ''}</td><td class="num down">${v.out ? '-' + fmt(v.out) : ''}</td><td class="muted">${esc(Object.entries(v.by).map(([s2, n]) => `${s2} ${fmt(n)}`).join(' · '))}</td></tr>`).join('');
+  $('misc').innerHTML = `<tr><th colspan="3">Energy</th></tr>${flowTable(s.energy, 'energy').replace(/<tr><th>Source<\/th>.*?<\/tr>/, '')}` +
+    `<tr><th colspan="3">Level-ups</th></tr>` + s.level.ups.map((l) => `<tr><td>${time(l.at)}</td><td>Level ${l.level}</td><td class="muted">${esc(l.src)}</td></tr>`).join('') +
+    s.vip.ups.map((v) => `<tr><td>${time(v.at)}</td><td>VIP ${v.vip}</td><td></td></tr>`).join('') +
+    `<tr><th colspan="3">Play sessions</th></tr>` + s.played.sessions.map((x) => `<tr><td>${time(x.from)} - ${time(x.to)}</td><td>${hm(x.minutes)}</td><td></td></tr>`).join('');
+  const kinds = [...new Set(s.events.map((e) => e.kind))];
+  const keep = $('kind').value;
+  $('kind').innerHTML = '<option value="">All kinds</option>' + kinds.map((k) => `<option value="${esc(k)}">${esc(KINDS[k] || k)}</option>`).join('');
+  $('kind').value = kinds.includes(keep) ? keep : '';
+  events();
+}
+function events() {
+  const s = data && data.summary; if (!s) return;
+  const k = $('kind').value, q = $('q').value.trim().toLowerCase();
+  const list = s.events.filter((e) => (!k || e.kind === k) && (!q || `${e.src} ${e.detail} ${e.key}`.toLowerCase().includes(q))).reverse();
+  $('events').innerHTML = '<tr><th>Time</th><th>Source</th><th>What</th><th class="num">Change</th><th class="num">Now</th><th>Details</th></tr>' + list.slice(0, 1500).map((e) => {
+    let det = e.detail || '';
+    if (e.kind === 'power') { try { const d = JSON.parse(det); det = `defence ${fmt(d.def)} (${d.ddef >= 0 ? '+' : ''}${fmt(d.ddef)})${d.why ? ' · ' + d.why : ''}`; } catch {} }
+    if (e.kind === 'baseline') { try { const d = JSON.parse(det); det = `level ${d.level}, VIP ${d.vip}, gold ${fmt(d.gold)}, silver ${fmt(d.silver)}, ${d.cards} cards, defence ${fmt(d.def)}`; } catch {} }
+    if (e.kind === 'fight') det = (e.value ? 'WON ' : 'lost ') + e.key + ': ' + det;
+    if (e.kind === 'change') det = e.key + ': ' + det;
+    return `<tr><td>${time(e.at)}</td><td>${esc(e.src)}</td><td class="k-${esc(e.kind)}">${esc(KINDS[e.kind] || e.kind)}</td><td class="num">${e.delta != null ? sign(e.delta) : ''}</td><td class="num">${e.value != null && e.kind !== 'fight' ? fmt(e.value) : ''}</td><td>${esc(det)}</td></tr>`;
+  }).join('') + (list.length > 1500 ? `<tr><td colspan="6" class="muted">${list.length - 1500} older lines not shown: pick a kind or search</td></tr>` : '');
+}
+$('who').onchange = () => { $('day').value = ''; load(); };
+$('day').onchange = () => load();
+$('prev').onclick = () => { const o = $('day'); if (o.selectedIndex < o.options.length - 1) { o.selectedIndex++; load(); } };
+$('next').onclick = () => { const o = $('day'); if (o.selectedIndex > 0) { o.selectedIndex--; load(); } };
+$('refresh').onclick = () => load();
+$('kind').onchange = events; $('q').oninput = events;
+$('overview').onclick = (e) => { const d = e.target.dataset && e.target.dataset.day; if (d) { e.preventDefault(); $('day').value = d; load(); } };
+$('saveUids').onclick = async () => {
+  const r = await (await fetch('/admin/api/trackuids', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uids: $('uids').value }) })).json();
+  $('saved').textContent = r.ok ? ' saved: ' + (r.tracked.join(', ') || 'nobody') : ' not saved';
+  load();
+};
+load(true);
+setInterval(() => { if (!document.hidden && $('day').selectedIndex === 0) load(); }, 60000);
+</script>
+</body>
+</html>

@@ -468,6 +468,7 @@ function mergeChips(db, pl, pieceId) {
 function grantDrop(db, pl, dropId) {
   const r = table('dropinfo').rows.find((x) => x[0] === dropId);
   if (!r) return null;
+  require('./tracker').drop(dropId, r[2]); // progress tracker (tracker.js)
   const n = r[13] || 1;
   const cards = [], props = [];
   let coin = 0, cash = 0, soul = 0, chips = 0;
@@ -721,6 +722,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     '<skills>' + (r._skills || []).map((s) => `<skill>${el('cardid', s.cardid)}${el('chakraattack', s.chakraattack)}${el('chakra', s.chakra)}</skill>`).join('') + '</skills><defense_skills></defense_skills></round>').join('');
   const win = fight.won ? 1 : 0;
   if (opt.out) opt.out.win = fight.won;
+  require('./tracker').fight(chap, stage, opt, fight.won); // progress tracker (tracker.js): no-op unless a tracked account's request
   const nick = (opt.enemyName || 'Enemy').replace(/[<>&"]/g, '');
   return `<fight><preview type="0" result="${win}" defensenick="${nick}" defenseuid="${opt.enemyUid || 0}" defensecountry="${opt.enemyCountry || 1}" defenselevel="${opt.enemyLevel || 1}" defenseviplevel="0"/>` +
     '<guard><ninjalist>' + foes.map(ninjaXml).join('') + '</ninjalist></guard>' +

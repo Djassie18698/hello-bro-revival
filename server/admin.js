@@ -15,12 +15,13 @@ function resetPlayer(db, uid, sid = 1) {
   } catch (e) { /* backup is best effort */ }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((r) => r.name);
   for (const t of tables) {
-    if (t === 'accounts' || t === 'logins' || t === 'sqlite_sequence' || t === 'special_names') continue; // keep the login (accounts + the app's account window) and a purple name
+    if (t === 'accounts' || t === 'logins' || t === 'sqlite_sequence' || t === 'special_names' || t.startsWith('track_')) continue; // keep the login (accounts + the app's account window) and a purple name
     const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
     if (cols.includes('uid')) { if (cols.includes('server_id')) db.prepare(`DELETE FROM ${t} WHERE uid=? AND server_id=?`).run(uid, sid); else if (sid === 1) db.prepare(`DELETE FROM ${t} WHERE uid=?`).run(uid); }
   }
   if (tables.includes('mail')) db.prepare('DELETE FROM mail WHERE to_uid=?').run(uid);
   if (tables.includes('groups')) db.prepare('DELETE FROM groups WHERE leader_uid=?').run(uid);
+  require('./tracker').onReset(db, uid, sid); // progress tracker: a "reset" line, history kept
 }
 
 // Admin player key: "uid:server_id" (one login can own a character per server slot); a bare uid means server 1.
@@ -573,7 +574,7 @@ function benchmark(db, pl, targets, runs = 300) {
 
 // ADMIN_OPEN=1: players may use the item pages (/admin) without the password (owner, 3 Nov 2026: players add resources themselves on
 // the public server "for now"; later only their own account). The control panel (/, /manager) and wiping a player stay the owner's.
-const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename']);
+const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin/track', '/admin/api/track', '/admin/api/trackuids']);
 const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
 
 module.exports = async function admin(req, res, u, db, readBody) {
@@ -597,6 +598,19 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (u.pathname === '/admin/api/playerlog') {
     const pl = findPlayer(db, u.query.uid);
     return json(res, pl ? require('./playerlog').summary(db, pl.uid, pl.server_id) : { rows: [], attack: [], level: [], story: [], logins: 0 });
+  }
+  if (u.pathname === '/admin/track') { // full progress tracker of chosen accounts (tracker.js), the panel's "Tracker" tab
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(fs.readFileSync(path.join(__dirname, 'track.html'), 'utf8'));
+  }
+  if (u.pathname === '/admin/api/track') {
+    const tr = require('./tracker');
+    const list = [...tr.uids(db)].map((uid) => db.prepare('SELECT uid, server_id, nick, level FROM players WHERE uid=?').all(uid)).flat();
+    const pl = u.query.uid ? findPlayer(db, u.query.uid) : null;
+    const who = pl ? { uid: pl.uid, sid: pl.server_id } : list[0] ? { uid: list[0].uid, sid: list[0].server_id } : null;
+    const tracked = [...tr.uids(db)];
+    if (!who) return json(res, { tracked, players: list, summary: null, overview: [] });
+    return json(res, { tracked, players: list, summary: tr.summary(db, who.uid, who.sid, u.query.day || ''), overview: u.query.overview ? tr.overview(db, who.uid, who.sid) : undefined });
   }
   if (u.pathname === '/admin/api/players') {
     const rows = db.prepare(`SELECT p.uid,p.nick,p.level,p.gold,p.coin,p.energy,p.server_id,
@@ -637,6 +651,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       const r = require('./awardcenter').send(db, to, b.title, b.content, { gold: Number(b.gold) || 0, silver: Number(b.silver) || 0, renown: Number(b.renown) || 0 });
       return json(res, r.error ? { ok: false, error: r.error } : { ok: true, sent: r.sent });
     }
+    if (u.pathname === '/admin/api/trackuids') return json(res, { ok: true, tracked: require('./tracker').setUids(db, String(b.uids || '').split(/[ ,]+/)) }); // owner only
     const pl = findPlayer(db, b.uid);
     if (!pl) return json(res, { ok: false, error: 'no such player' });
     if (u.pathname === '/admin/api/give') {
