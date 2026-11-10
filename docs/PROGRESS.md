@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 11 | 2 | 0 | 1 |
+| Discord reports | 11 | 2 | 2 | 1 |
 
 ## Bug list 1
 
@@ -116,6 +116,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Reincarnation not shown in the fight Comparison list (7 Nov) | The fight data said "reincarnated 0" for every card (and for the first card in the Spar / Plunder lists). Now each card carries its real count. Seen in game: a twice-reincarnated card gets the silver reincarnation corners in Compare |
 | 🧪 | Golden Chōji (EXP card) gave far less EXP than the Level Up preview (9 Nov) | The game's card table says a Golden Chōji is Lv 25 (8125 EXP), and the game shows that, but the server stored new copies at Lv 1 and paid 75 EXP (Kaguya Lv 1 -> 2 instead of -> 18). New copies now start at Lv 25 (the small EXP card at Lv 3) and old copies in saves are raised when the server starts. Checked on a test save: Lv 1 -> 18 with one Golden Chōji |
 | ✅ | INSTALL-WITH-USB.bat could not download Android's USB tool (winget said "not found") but still said "Installed" (10 Nov) | Winget's Google package pointed at a removed version. The script now downloads the tool straight from Google (fixed by the owner). The player then got past it; their Samsung S25 Ultra is 64-bit only, so the game itself can't run there (see the next row) |
+| ⏳ | Sage Growth: "maximum" adds no extra stones and extra stones never raise the chance (shows +0%) (10 Nov, buva) | Waiting for the owner. Cause: the rate list tells the game stone_level 7/8 (the item ids) where the game expects 1 (Sage Stone I) / 2 (Sage Stone III), so the game thinks an extra stone adds 0 %. The fix also needs the extra-stone numbers, which are ours (+1/+2 % a stone, total capped at the 4-stone chance, so with 4 Sage Stone III extras add nothing). Old photos show +0.2 % a stone up to +10 %. The owner picks the numbers |
+| ⏳ | "hello" thread with no report (10 Nov, enzobfer) | Nothing described; asked the player once what went wrong |
 | 🚫 | The game does not run on 64-bit-only phones (4 Nov) | The game's engine (libgame.so) exists only as a 32-bit file and there is no source code to rebuild it; phones that dropped 32-bit apps can't run it (a player answered this on Discord) |
 
 ## Built on request (chat)
