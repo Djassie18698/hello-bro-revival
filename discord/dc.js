@@ -8,6 +8,12 @@
 //   node --env-file=.env dc.js reply <channel> <message-id> <file.md | ->   (answer one message, e.g. a bug report: what got fixed)
 //   node --env-file=.env dc.js react <channel> <message-id> [emoji]         (default ✅ = the report is handled)
 //   node --env-file=.env dc.js pin <channel> <message-id>                   (pin a message, e.g. the bot's info post)
+// The bug fixer's forum (#bug-fixer, owner 10 Nov 2026: one post per report or question, its state as a tag):
+//   node --env-file=.env dc.js forum <forum> "<title>" <file.md | -> [--ping-owner] [--tag "<tag>"]...   new post; prints its number
+//   node --env-file=.env dc.js posts <forum>                 every post: number, title, tags, who wrote last ("OWNER" = waits for the fixer)
+//   node --env-file=.env dc.js tag <post> "<tag>" ["<tag>" ...]   set a post's tags (replaces them; names as the forum has them)
+//   node --env-file=.env dc.js pinpost <post>               pin a post at the top of the forum (the fixer's "Waiting to go live" list)
+//   a post is a thread: read / post / reply / react work on its number
 // <channel> may also be a thread number (the bug report threads of bughelper.js: "Thread: .../<guild>/<thread>" in #bot-logs).
 // Same safety rules as the bot: no secrets/IP addresses, no @everyone pings (the only ping is --ping-owner: the first OWNER_IDS user), only own messages are changed.
 const fs = require('fs');
@@ -38,7 +44,7 @@ async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_ID
   const [cmd, chan, a, b] = argv;
   const me = await call('GET', '/users/@me');
   const gid = guildId || (await (async () => { const g = await call('GET', '/users/@me/guilds'); if (g.length !== 1) throw new Error('bot is in ' + g.length + ' servers; set GUILD_ID in .env'); return g[0].id; })());
-  const chans = (await call('GET', `/guilds/${gid}/channels`)).filter((c) => [0, 5].includes(c.type)); // text + announcement
+  const chans = (await call('GET', `/guilds/${gid}/channels`)).filter((c) => [0, 5, 15].includes(c.type)); // text + announcement + forum
   if (cmd === 'channels') return out(chans.map((c) => `${c.id}  #${c.name}`).join('\n'));
   if (!chan) throw new Error('missing channel');
   const r = String(chan).replace(/^<#(\d+)>$/, '$1').replace(/^#/, '').toLowerCase();
@@ -52,7 +58,7 @@ async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_ID
 
   if (cmd === 'read') {
     const msgs = (await call('GET', `/channels/${ch.id}/messages?limit=${Math.min(Number(a) || 15, 50)}`)).reverse();
-    return out(msgs.map((m) => `[${m.id}] ${m.timestamp ? m.timestamp.slice(0, 16).replace('T', ' ') + ' ' : ''}${m.author.id === me.id ? '(bot)' : m.author.username}` +
+    return out(msgs.map((m) => `[${m.id}] ${m.timestamp ? m.timestamp.slice(0, 16).replace('T', ' ') + ' ' : ''}${m.author.id === me.id ? '(bot)' : m.author.id === ownerId ? m.author.username + ' (OWNER)' : m.author.username}` +
       `${m.message_reference ? ' (reply to ' + m.message_reference.message_id + ')' : ''}: ${m.content}` +
       (m.attachments || []).map((x) => `\n  [attachment] ${x.url}`).join('') +
       ((m.reactions || []).length ? '\n  [reactions] ' + m.reactions.map((x) => x.emoji.name + x.count).join(' ') : '')).join('\n---\n'));
@@ -81,9 +87,54 @@ async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_ID
     for (const part of splitMessage(text)) { const m = await call('POST', `/channels/${ch.id}/messages`, { content: part, message_reference: { message_id: a, fail_if_not_exists: true }, allowed_mentions: { parse: [], replied_user: false } }); out(`replied in #${ch.name}: message id ${m.id}`); await sleep(600); }
     return;
   }
+  const forumTags = async (forumId, names) => {
+    const forum = await call('GET', `/channels/${forumId}`);
+    const have = forum.available_tags || [];
+    return names.map((n) => { const t = have.find((x) => x.name.toLowerCase() === String(n).toLowerCase()); if (!t) throw new Error(`no tag "${n}" (tags: ${have.map((x) => x.name).join(', ')})`); return t.id; });
+  };
+  if (cmd === 'forum') {
+    if (ch.type !== 15) throw new Error(`#${ch.name} is not a forum`);
+    const rest = argv.slice(3), file = rest.find((x, i) => !x.startsWith('--') && (i === 0 || rest[i - 1] !== '--tag'));
+    const tags = rest.map((x, i) => (rest[i - 1] === '--tag' ? x : null)).filter(Boolean), ping = rest.includes('--ping-owner');
+    const title = String(a || '').trim().slice(0, 100);
+    if (!title) throw new Error('missing title');
+    const text = readText(file); guard(text); guard(title);
+    if (ping && !/^[0-9]{5,25}$/.test(ownerId)) throw new Error('--ping-owner needs OWNER_IDS in discord/.env');
+    const parts = splitMessage(text);
+    const t = await call('POST', `/channels/${ch.id}/threads`, { name: title, applied_tags: await forumTags(ch.id, tags),
+      message: { content: (ping ? `<@${ownerId}> ` : '') + parts[0], allowed_mentions: ping ? { parse: [], users: [ownerId] } : { parse: [] } } });
+    for (const part of parts.slice(1)) { await sleep(600); await call('POST', `/channels/${t.id}/messages`, { content: part, allowed_mentions: { parse: [] } }); }
+    return out(`new post in #${ch.name}: ${t.id} "${title}"${tags.length ? ' [' + tags.join(', ') + ']' : ''}${ping ? ' (owner tagged)' : ''}`);
+  }
+  if (cmd === 'posts') {
+    if (ch.type !== 15) throw new Error(`#${ch.name} is not a forum`);
+    const names = Object.fromEntries((ch.available_tags || []).map((t) => [t.id, t.name]));
+    const active = (await call('GET', `/guilds/${gid}/threads/active`)).threads.filter((t) => t.parent_id === ch.id);
+    const old = (await call('GET', `/channels/${ch.id}/threads/archived/public?limit=50`).catch(() => ({ threads: [] }))).threads || [];
+    const all = [...active, ...old.filter((t) => !active.some((x) => x.id === t.id))].sort((x, y) => (BigInt(y.last_message_id || y.id) > BigInt(x.last_message_id || x.id) ? 1 : -1));
+    const lines = [];
+    for (const t of all) {
+      const last = (await call('GET', `/channels/${t.id}/messages?limit=1`).catch(() => []))[0];
+      const who = !last ? '?' : last.author.id === me.id ? 'bot' : last.author.id === ownerId ? 'OWNER' : last.author.username;
+      lines.push(`[${t.id}] ${t.name} · ${(t.applied_tags || []).map((x) => names[x] || x).join(', ') || 'no tag'} · last: ${who}${last ? ' ' + last.timestamp.slice(0, 16).replace('T', ' ') : ''}${t.thread_metadata && t.thread_metadata.archived ? ' · archived' : ''}`);
+    }
+    return out(lines.join(String.fromCharCode(10)) || '(no posts)');
+  }
+  if (cmd === 'pinpost') { // pin a forum post at the top of its forum (Discord allows one pinned post per forum)
+    const t = await call('GET', `/channels/${ch.id}`);
+    if (!t.parent_id) throw new Error('not a forum post');
+    await call('PATCH', `/channels/${ch.id}`, { flags: 2, ...(t.thread_metadata && t.thread_metadata.archived ? { archived: false } : {}) });
+    return out('pinned post ' + ch.id);
+  }
+  if (cmd === 'tag') {
+    const t = await call('GET', `/channels/${ch.id}`);
+    if (!t.parent_id) throw new Error('not a forum post');
+    await call('PATCH', `/channels/${ch.id}`, { applied_tags: await forumTags(t.parent_id, argv.slice(2)), ...(t.thread_metadata && t.thread_metadata.archived ? { archived: false } : {}) });
+    return out(`tags of ${ch.id}: ${argv.slice(2).join(', ') || '(none)'}`);
+  }
   if (cmd === 'react') { await call('PUT', `/channels/${ch.id}/messages/${a}/reactions/${encodeURIComponent(b || '✅')}/@me`); return out(`reacted ${b || '✅'} on ${a}`); }
   if (cmd === 'pin') { await call('PUT', `/channels/${ch.id}/pins/${a}`); return out('pinned ' + a); }
-  throw new Error('unknown command. Use: channels | read | post | edit | delete | reply | react | pin');
+  throw new Error('unknown command. Use: channels | read | post | edit | delete | reply | react | pin | forum | posts | tag | pinpost');
 }
 
 module.exports = { run, makeApi };

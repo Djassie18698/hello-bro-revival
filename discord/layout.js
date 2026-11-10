@@ -5,6 +5,7 @@
 const { makeApi } = require('./dc.js');
 const GUILD = '1565691956561060014';
 const SEND = 2048n, VIEW = 1024n; // permission bits
+const FORUM_BOT = (1n << 34n) | (1n << 35n) | (1n << 38n); // manage threads (set a post's tags), create posts, write in posts
 const STAFF_ROLE = 'Master Shinobi'; // = Administrator: only the owner's trusted admins, never a supporter tier
 // Extra roles the script keeps (created when missing, colour/permissions kept as set here), highest first, all below the bot's role.
 // Moderator (owner, 9 Nov 2026: "just a discord mod, nothing crazy"): delete messages, timeout, kick/ban, voice mute/move, nicknames, threads;
@@ -44,6 +45,10 @@ const LAYOUT = [
   ] },
   { cat: '🔧 DEV & STAFF', staff: true, channels: [
     { name: 'dev-chat', topic: 'Staff and development talk.' },
+    // the bug fixer's desk (owner, 10 Nov 2026: "a forum, a new post per thing that's needed"): one post per report or question, the state as a tag;
+    // the owner answers inside a post (or starts a post with a request) and the next fixer run acts on it (scheduled task hellobro-bug-fixer)
+    { name: 'bug-fixer', forum: true, topic: 'The bug fixer: one post per bug report or question. The tag shows where it stands. Answer inside a post, or start a new post to ask the fixer something; it reads them on every run (every 2 hours).',
+      tags: [['Question for you', '❓'], ['Working on it', '🔧'], ['Fixed, not live yet', '✅'], ['Live', '🚀'], ['Not possible', '🚫'], ['Wish', '💡'], ['Request', '📝']] },
     { name: 'patch-testing', topic: 'Test new server and game updates before they go out.', alsoRoles: ['Shinobi Elder'] }, // €5 perk: early access to test updates
     { name: 'bot-logs', topic: 'Bot logs.' },
     { name: 'Staff VC', voice: true },
@@ -104,14 +109,21 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
     for (const ch of group.channels) {
       let c = find(ch.name, 'ch');
       if (!c && ch.was && find(ch.was, 'ch')) { c = find(ch.was, 'ch'); say(`rename #${ch.was} -> #${ch.name}`); if (apply) { await call('PATCH', `/channels/${c.id}`, { name: ch.name }); c.name = ch.name; } }
-      if (!c) { say(`create ${ch.voice ? 'voice' : '#'}${ch.name}`); if (apply) { c = await call('POST', `/guilds/${GUILD}/channels`, { name: ch.name, type: ch.voice ? 2 : 0, parent_id: cat.id }); chans.push(c); } else continue; }
+      if (!c) { say(`create ${ch.voice ? 'voice' : '#'}${ch.name}`); if (apply) { c = await call('POST', `/guilds/${GUILD}/channels`, { name: ch.name, type: ch.voice ? 2 : ch.forum ? 15 : 0, parent_id: cat.id, ...(ch.forum ? { default_forum_layout: 1 } : {}) }); chans.push(c); } else continue; }
       const patch = {};
       if (cat && c.parent_id !== cat.id) { patch.parent_id = cat.id; say(`move ${ch.name} -> ${group.cat}`); }
       if (c.position !== pos) patch.position = pos;
       if (!ch.voice && (c.topic || '') !== (ch.topic || '')) { patch.topic = ch.topic || ''; say(`topic #${ch.name}`); }
+      if (ch.forum) { // forum tags (the post states): add the missing ones, keep the ids of those that exist
+        const have = c.available_tags || [];
+        if (ch.tags.some(([n]) => !have.some((t) => t.name === n))) {
+          patch.available_tags = [...have, ...ch.tags.filter(([n]) => !have.some((t) => t.name === n)).map(([name, emoji_name]) => ({ name, emoji_name, moderated: false }))];
+          say(`tags #${ch.name}`);
+        }
+      }
       // permissions: staff = hidden from everyone; read-only = nobody but staff/bots can post (reactions stay allowed)
       const ow = [];
-      if (group.staff) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(VIEW) }); if (staff) ow.push({ id: staff, type: 0, allow: String(VIEW), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(VIEW | SEND), deny: '0' });
+      if (group.staff) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(VIEW) }); if (staff) ow.push({ id: staff, type: 0, allow: String(VIEW), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(ch.forum ? VIEW | SEND | FORUM_BOT : VIEW | SEND), deny: '0' });
         for (const n of [...(group.alsoRoles || []), ...(ch.alsoRoles || [])]) if (roleId(n)) ow.push({ id: roleId(n), type: 0, allow: String(VIEW | SEND), deny: '0' }); }
       else if (group.readOnly || ch.readOnly) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(SEND) }); if (staff) ow.push({ id: staff, type: 0, allow: String(SEND), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(SEND), deny: '0' }); }
       else if (ch.name === 'bugs-and-issues') ow.push({ id: everyone, type: 0, allow: String(VIEW | SEND), deny: '0' });
