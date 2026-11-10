@@ -117,7 +117,7 @@ const LABEL = {
   rl_w_xiao_war: 'Akatsuki war', rl_w_group_admin: 'Akatsuki', rl_w_friend: 'Friends', rl_w_msg: 'Messages', rl_w_invitecode: 'Invite code',
   rl_w_dailycost: 'Daily spending gift', rl_r_dailytask: 'Daily tasks', rl_w_adventure: 'Adventure', rl_r_adventure: 'Adventure',
   rl_r_mainpage: 'Home', rl_w_login2: 'Login', rl_w_reg2: 'New character', rl_r_recruit: 'Recruit screen', rl_r_shoplist: 'Shop / backpack',
-  rl_r_savetime: 'Save time', rl_r_frontiers_war_attack: 'Border war', rl_r_frontiers_war_recv_award: 'Border war', rl_r_frontiers_war_clear: 'Border war',
+  rl_r_savetime: 'Save time', rl_r_newbie_pay: 'Newbie gift', rl_r_pay_cumula: 'Total top-up gift', rl_r_lottery: 'Lottery', rl_r_wheel: 'Lucky Wheel', rl_r_vipshop: 'VIP shop', rl_r_paypack: 'Pay pack', rl_r_monopoly_info: 'Millionaire', rl_r_sudoku: 'Ninja Treasure', rl_r_mtree: 'Money tree', rl_r_sport: 'Arena', rl_r_dup: 'Tower', rl_r_tear: 'National treasure', rl_r_boss: 'World boss', rl_r_frontiers_war_attack: 'Border war', rl_r_frontiers_war_recv_award: 'Border war', rl_r_frontiers_war_clear: 'Border war',
 };
 // endpoints that do many different things: the Cmd number is kept in the label so they can be told apart
 const BY_CMD = new Set(['rl_w_comm', 'rl_r_comm', 'rl_x_small_activity', 'rl_w_activity', 'rl_x_award_msg', 'rl_x_pet', 'rl_x_develop', 'rl_w_ninjalist', 'rl_r_shoplist']);
