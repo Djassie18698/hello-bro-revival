@@ -43,6 +43,9 @@ $WIKI_HOST {
 	redir @discord https://discord.gg/2Cbp4UDHrU 302
 	@patreon path /patreon /patreon/
 	redir @patreon https://www.patreon.com/cw/NinjaOnlineHelloBro 302
+	# the public game server's admin page (items for players; the control panel needs the admin password)
+	@admin path /admin /admin/
+	redir @admin http://ninjaonline.duckdns.org:18080/admin 302
 	@download path /download /download/
 	redir @download https://github.com/Djassie18698/hello-bro-revival/releases/download/tailscale-play/HelloBro-ninjaonline.xapk 302
 	@install path /install /install/
