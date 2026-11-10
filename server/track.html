@@ -87,7 +87,7 @@ async function load(first) {
   const s = data.summary;
   $('none').hidden = !!s; $('main').hidden = !s;
   if (!s) return;
-  if (first || $('who').options.length !== data.players.length) $('who').innerHTML = data.players.map((p) => `<option value="${p.uid}:${p.server_id}">${esc(p.nick)} (uid ${p.uid}, level ${p.level})</option>`).join('');
+  if (first || $('who').options.length !== data.players.length) $('who').innerHTML = data.players.map((p) => `<option value="${p.uid}:${p.server_id}">${esc(p.nick)} (uid ${p.uid}${p.server_id !== 1 ? ", world " + p.server_id : ""}, level ${p.level})</option>`).join('');
   $('who').value = s.uid + ':' + s.sid;
   $('day').innerHTML = s.days.slice().reverse().map((d) => `<option>${d}</option>`).join('');
   $('day').value = s.day;

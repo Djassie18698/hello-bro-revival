@@ -1,6 +1,6 @@
 // Prints a tracked account's day (server/tracker.js): power, level, top-ups, gold / silver in and out by source, cards and items gained
 // and where from, fights, stages reached, time played. For "let's look at yesterday" with the owner.
-// Usage: node tools/dev/track.js [yesterday|today|YYYY-MM-DD|all] [--db public.db] [--uid 7] [--events] [--json]
+// Usage: node tools/dev/track.js [yesterday|today|YYYY-MM-DD|all] [--db public.db] [--uid 7] [--sid 1] [--events] [--json]
 //   all       one line per day for the whole run
 //   --events  also every logged line of the day
 // The public server (DEAN, uid 7):
@@ -20,7 +20,8 @@ const tr = require('../../server/tracker');
 if (!db.prepare("SELECT 1 FROM sqlite_master WHERE name='track_log'").get()) { console.log('Nothing tracked in this save yet.'); process.exit(0); }
 if (!uid) uid = [...tr.uids(db)][0] || (db.prepare('SELECT uid FROM track_log ORDER BY id DESC LIMIT 1').get() || {}).uid;
 if (!uid) { console.log('Nothing tracked in this save yet.'); process.exit(0); }
-const sid = (db.prepare('SELECT sid FROM track_log WHERE uid=? ORDER BY id DESC LIMIT 1').get(uid) || { sid: 1 }).sid;
+// the world with the most lines (a reset also writes a line for an unused starter slot); --sid to pick another
+const sid = Number(opt('--sid')) || (db.prepare("SELECT sid, COUNT(*) n FROM track_log WHERE uid=? AND kind<>'reset' GROUP BY sid ORDER BY n DESC, sid LIMIT 1").get(uid) || { sid: 1 }).sid;
 
 const fmt = (n) => (n == null ? '-' : Number(n).toLocaleString('en-US'));
 const sgn = (n) => (n > 0 ? '+' : '') + fmt(n);
