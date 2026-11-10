@@ -63,7 +63,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    checklist when the key fails; owner posts and replies are skipped) and posts the finished report in **#bot-logs** (also after 15 minutes without an answer to a question, BUG_IDLE_MIN; "🐞 Bug report" / "💡 Wish",
    ending `report-id: <thread> · post-id: <post>`). The scheduled task **"hellobro-bug-fixer"** on the owner's PC (every 2 h while the Claude app
    is open, `~/.claude/scheduled-tasks/hellobro-bug-fixer/SKILL.md`) picks up reports whose report-id is not in DISCORD-REPORTS.md yet, fixes
-   them with this section's steps, answers in the thread (`dc.js post <thread> <file>`), reacts ✅ on the post and tells the owner in #dev-chat;
+   them with this section's steps, answers in the thread (`dc.js post <thread> <file>`), reacts ✅ on the post and tells the owner in #dev-chat (a question for the owner tags them: `dc.js post dev-chat <file> --ping-owner`);
    the public server is updated only after the owner's OK. The API key ends about **8 Dec 2026** (30 days); then the helper uses the checklist.
    **Claim** (owner, 10 Nov 2026): the owner types `.claim` (or `/claim`, `!claim`) in a report thread and the helper stays quiet there (no answers, no
    forwarding) until `.reclaim` (`.unclaim` / `.release`); it reacts 🤐 / 🤖. The owner's own messages never get a bot answer. Who may claim: OWNER_IDS + CLAIM_IDS (.env).

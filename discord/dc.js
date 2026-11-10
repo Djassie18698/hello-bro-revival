@@ -2,13 +2,14 @@
 //   node --env-file=.env dc.js channels
 //   node --env-file=.env dc.js read <channel> [count]
 //   node --env-file=.env dc.js post <channel> <file.md | ->        ("-" = read the text from stdin)
+//   node --env-file=.env dc.js post <channel> <file.md | -> --ping-owner   (tags the owner: for a question only they can answer; owner, 10 Nov 2026)
 //   node --env-file=.env dc.js edit <channel> <message-id> <file.md | ->
 //   node --env-file=.env dc.js delete <channel> <message-id>        (own messages only)
 //   node --env-file=.env dc.js reply <channel> <message-id> <file.md | ->   (answer one message, e.g. a bug report: what got fixed)
 //   node --env-file=.env dc.js react <channel> <message-id> [emoji]         (default ✅ = the report is handled)
 //   node --env-file=.env dc.js pin <channel> <message-id>                   (pin a message, e.g. the bot's info post)
 // <channel> may also be a thread number (the bug report threads of bughelper.js: "Thread: .../<guild>/<thread>" in #bot-logs).
-// Same safety rules as the bot: no secrets/IP addresses, no @everyone pings, only own messages are changed.
+// Same safety rules as the bot: no secrets/IP addresses, no @everyone pings (the only ping is --ping-owner: the first OWNER_IDS user), only own messages are changed.
 const fs = require('fs');
 const { secretProblem, splitMessage } = require('./tools');
 
@@ -33,7 +34,7 @@ function makeApi(token, fetchFn = fetch) {
   return call;
 }
 
-async function run(argv, { token, guildId, readText = (p) => (p === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(p, 'utf8')), call = makeApi(token), out = console.log } = {}) {
+async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_IDS || '').split(',')[0].trim(), readText = (p) => (p === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(p, 'utf8')), call = makeApi(token), out = console.log } = {}) {
   const [cmd, chan, a, b] = argv;
   const me = await call('GET', '/users/@me');
   const gid = guildId || (await (async () => { const g = await call('GET', '/users/@me/guilds'); if (g.length !== 1) throw new Error('bot is in ' + g.length + ' servers; set GUILD_ID in .env'); return g[0].id; })());
@@ -58,7 +59,14 @@ async function run(argv, { token, guildId, readText = (p) => (p === '-' ? fs.rea
   }
   if (cmd === 'post') {
     const text = readText(a); guard(text);
-    for (const part of splitMessage(text)) { const m = await call('POST', `/channels/${ch.id}/messages`, { content: part, allowed_mentions: { parse: [] } }); out(`posted in #${ch.name}: message id ${m.id}`); await sleep(600); }
+    const ping = b === '--ping-owner';
+    if (ping && !/^\d{5,25}$/.test(ownerId)) throw new Error('--ping-owner needs OWNER_IDS in discord/.env');
+    let first = true;
+    for (const part of splitMessage(text)) {
+      const tag = ping && first;
+      const m = await call('POST', `/channels/${ch.id}/messages`, { content: (tag ? `<@${ownerId}> ` : '') + part, allowed_mentions: tag ? { parse: [], users: [ownerId] } : { parse: [] } });
+      out(`posted in #${ch.name}: message id ${m.id}${tag ? ' (owner tagged)' : ''}`); first = false; await sleep(600);
+    }
     return;
   }
   if (cmd === 'edit') {

@@ -21,5 +21,9 @@ const { run } = require('./dc');
   await assert.rejects(() => go(['delete', 'tutorial', 'm2']), /not mine/);
   await assert.rejects(() => go(['post', 'nope', 'x'], 'a'), /no channel/);
   assert.strictEqual(sent.length, 2);
+  // --ping-owner tags only the owner, only in the first part (owner, 10 Nov 2026)
+  await run(['post', 'tutorial', 'x', '--ping-owner'], { call, out: () => {}, readText: () => 'Question?', ownerId: '123456789' });
+  assert.strictEqual(sent.at(-1)[2].content, '<@123456789> Question?'); assert.deepStrictEqual(sent.at(-1)[2].allowed_mentions, { parse: [], users: ['123456789'] });
+  await assert.rejects(() => run(['post', 'tutorial', 'x', '--ping-owner'], { call, out: () => {}, readText: () => 'Q', ownerId: '' }), /OWNER_IDS/);
   console.log('dc.js tests passed');
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });
