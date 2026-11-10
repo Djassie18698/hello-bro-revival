@@ -51,6 +51,12 @@ h1{font-family:Bangers,Impact,sans-serif;font-size:46px;letter-spacing:2px;margi
 .av{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff;flex:none}
 .pname{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pmeta{font-size:11px;color:var(--muted);margin-top:2px}
+/* glowing names (specialnames.js): the player's colour as a glow; "sparkle" = twinkling stars, like in the game and on the website */
+.gname{position:relative;display:inline-block;color:var(--gc);text-shadow:0 0 6px var(--gc),0 0 14px color-mix(in srgb,var(--gc) 55%,transparent),0 1px 1px rgba(0,0,0,.6)}
+.pname:has(.gname){overflow:visible}
+.spk{position:absolute;width:11px;height:11px;margin:-5px 0 0 -5px;pointer-events:none;opacity:0;animation:twinkle 2.2s ease-in-out infinite;border-radius:50%;filter:drop-shadow(0 0 3px var(--gc));background:no-repeat center/100% 2px linear-gradient(#fff,#fff),no-repeat center/2px 100% linear-gradient(#fff,#fff),radial-gradient(circle,#fff 0 22%,transparent 26%)}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}45%{opacity:1;transform:scale(1.1) rotate(45deg)}65%{opacity:.8;transform:scale(.8) rotate(70deg)}}
+@media (prefers-reduced-motion:reduce){.spk{display:none}}
 .vip{font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:linear-gradient(90deg,#f59e0b,#ef4444);color:#fff;margin-left:6px}
 
 /* hero */
@@ -357,11 +363,23 @@ async function loadPlayers() {
   renderPlayers(); renderHero(); renderPurple();
   if (first && $('v-team').classList.contains('on')) loadTeam();
 }
+function gname(p, text) {
+  const t = esc(text == null ? p.nick : text);
+  if (!p.purple) return t;
+  const c = /^[0-9a-f]{6}$/i.test(p.purplecolor || '') ? p.purplecolor : 'ffd21f';
+  let stars = '';
+  if (p.purplefx === 'sparkle') {
+    let h = 0; for (const ch of String(p.uid) + t) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const rnd = () => ((h = (h * 1103515245 + 12345) >>> 0) % 1000) / 1000;
+    for (let i = 0; i < 4; i++) stars += '<i class="spk" aria-hidden="true" style="left:' + (8 + rnd() * 84).toFixed(1) + '%;top:' + (10 + rnd() * 70).toFixed(1) + '%;animation-delay:' + (i * 0.55 + rnd() * 0.4).toFixed(2) + 's"></i>';
+  }
+  return '<span class="gname" style="--gc:#' + c + '">' + t + stars + '</span>';
+}
 function renderPlayers() {
   const q = $('pq').value.toLowerCase();
   const list = players.filter((p) => !q || (p.nick + ' ' + p.uid).toLowerCase().includes(q));
   $('plist').innerHTML = list.map((p) => '<div class="pcard' + (p.key === sel ? ' on' : '') + '" data-key="' + p.key + '" onclick="pick(this.dataset.key)">' + avatar(p) +
-    '<div style="min-width:0"><div class="pname">' + (p.purple ? '💜 ' : '') + esc(p.nick) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
+    '<div style="min-width:0"><div class="pname">' + gname(p) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
     '<div class="pmeta">Lv ' + p.level + ' · ' + fmt(p.gold) + ' gold · #' + p.uid + (p.server_id > 1 ? ' · starter slot ' + (p.server_id - 1) : '') + '</div></div></div>').join('') || '<div class="empty">No players yet</div>';
 }
 function pick(uid) { sel = uid; renderPlayers(); renderHero(); renderPurple(); if ($('v-inv').classList.contains('on')) loadInv(); if ($('v-team').classList.contains('on')) loadTeam(); }
@@ -370,7 +388,7 @@ function renderHero() {
   const p = current();
   if (!p) { $('hero').innerHTML = '<div class="empty">Nobody has made a character on this server yet.</div>'; return; }
   const s = (k, v) => '<div class="stat"><span>' + k + '</span><b>' + v + '</b></div>';
-  $('hero').innerHTML = '<div class="who">' + avatar(p) + '<div><h2>' + esc(p.nick) + '</h2><div class="pmeta">Player #' + p.uid + ' · ' + (p.server_id > 1 ? 'starter slot ' + (p.server_id - 1) : 'main character') + '</div></div></div>' +
+  $('hero').innerHTML = '<div class="who">' + avatar(p) + '<div><h2>' + gname(p) + '</h2><div class="pmeta">Player #' + p.uid + ' · ' + (p.server_id > 1 ? 'starter slot ' + (p.server_id - 1) : 'main character') + '</div></div></div>' +
     '<div class="stats">' + s('Level', p.level) + s('VIP', p.vip) + s('Gold', fmt(p.gold)) + s('Silver', fmt(p.coin)) + s('Energy', fmt(p.energy)) + s('Cards', fmt(p.cards)) + '</div>' +
     '<div class="note">💡 <div><b>New cards, equipment and pets only show after the game is closed completely</b> (swipe it away in the recent-apps list) and opened again. The game reads your cards only when it starts.</div></div>';
 }
@@ -599,7 +617,7 @@ function renderPurple() {
   $('pn-name').value = p.purple || p.nick;
   $('pn-color').value = '#' + (p.purplecolor || 'af46ff');
   $('pn-fx').value = p.purplefx || '';
-  $('pn-state').innerHTML = p.purple ? '💜 <b>' + esc(p.nick) + '</b> has the glowing name <b>' + esc(p.purple) + '</b>.' : esc(p.nick) + ' has no glowing name.';
+  $('pn-state').innerHTML = p.purple ? '<b>' + esc(p.nick) + '</b> has the glowing name <b>' + gname(p, p.purple) + '</b>.' : esc(p.nick) + ' has no glowing name.';
   pnPreview();
 }
 async function setPurple(on) {
