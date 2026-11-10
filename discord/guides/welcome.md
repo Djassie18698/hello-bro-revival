@@ -10,4 +10,4 @@ The 2015 Naruto card game is back, free, on our own servers.
 6. <#1565697769874919515>: every update and new feature
 7. 🌐 Our website: https://ninjaonlinereborn.com (the 📖 wiki with every card, gear and stage: https://ninjaonlinereborn.com/wiki/)
 
-**Talk and help:** <#1565697775549546526> to chat · <#1565697834571927694> for help · <#1566415215220752444> for bugs · <#1565697850376065024> for screenshots
+**Talk and help:** <#1565697775549546526> to chat · <#1565697834571927694> for help · <#1569836981016592484> for bugs · <#1565697850376065024> for screenshots

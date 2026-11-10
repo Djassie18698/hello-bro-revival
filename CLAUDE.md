@@ -354,6 +354,6 @@ Tutorial (5 Nov 2026): OFF for everyone via hot update 28.0.35 (owner: leave it 
 Left as is: 300-gold recruit gold prizes coded but OFF (CDialogShowBox show type 1 can only draw a card; see NEXT-STEPS);
 five-element panel (photo 2666) not found in any v28 layout; first boss 1-2 stays hard on purpose (owner: ~23 % for an un-upgraded starter).
 Not possible in v28 (see NEXT-STEPS 2 Nov): limited daily gift `rl_r_dailylimit` (layout lacks its nodes), card split `rl_w_split_card`
-(never opened), rebate wheel `rl_r_multiple_pay`, opening scene skip, 10-pull zoom, Chartboost ad error, 64-bit / iPhone versions. Login: gumplogin.js +
+(never opened), rebate wheel `rl_r_multiple_pay`, opening scene skip, 10-pull zoom, Chartboost ad error, 64-bit / iPhone versions (64-bit-only phones CAN play inside a VPhoneOS virtual Android 7 phone: found by player polterslave 10 Nov 2026, install-help chapter 9, faq 9, home page FAQ). Login: gumplogin.js +
 release/classes-revival.dex (see NEXT-STEPS 2 Nov). Find missing endpoints with: compare `server/reference/client-endpoints.txt` to
 `Object.keys(require('./handlers'))`.

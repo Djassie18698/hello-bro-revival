@@ -38,11 +38,17 @@ After quitting, newer Android (14 and 15) kept part of the game running, and the
 Still have the old file? Go to *Settings > Apps > Hello Bro > Force stop* and open the game again. Clearing the cache is not needed.
 
 ## 9. "This app isn't compatible" / my phone only runs 64-bit apps
-Hello Bro is a game from 2015 and its engine is a **32-bit** app. Some new phones (for example Google Pixel 7 and newer) can't run 32-bit apps at all, so the game won't install or open there. A 64-bit version can't be made: the game's source code was never released, only the finished app.
-What works: play on a PC with **BlueStacks** (steps in <#1565697833150058507>), or on another phone or tablet. Most phones and tablets still run it fine.
+Hello Bro is a game from 2015 and its engine is a **32-bit** app. Some new phones (Samsung S25 / S26 Ultra, Google Pixel 7 and newer) can't run 32-bit apps at all, so the normal install fails there. A 64-bit version can't be made: the game's source code was never released, only the finished app.
+**But you can still play on that phone**, inside a free virtual Android 7 phone (found by **polterslave**, works on the S26 Ultra):
+1. On the phone, download **`HelloBro-ninjaonline.xapk`** (the Download button on https://ninjaonlinereborn.com).
+2. Install **ZArchiver** from the Play Store (free). Open the .xapk with it and extract it. You get **`com.hello.bro.yo.apk`** and a folder **`Android/obb/com.hello.bro.yo`** (the game's data, about 110 MB).
+3. Install **VPhoneOS** from the Play Store (free) and create a virtual phone with **Android 7**. It looks complicated, but it's quick.
+4. Inside the virtual phone, import the **.apk** and install it, then import the **obb folder** so it ends up at **Android/obb/com.hello.bro.yo** there too.
+5. Open Hello Bro inside the virtual phone and tap **PLAY**. Done!
+Other ways: **BlueStacks** on a PC (steps in <#1565697833150058507>), or another phone or tablet.
 
 ## 10. Is there an iPhone / iPad version?
 No. Only the Android game survived, so on Apple devices you can't play. Use an Android phone or tablet, or **BlueStacks** on a Windows PC.
 
 ## 11. Something is broken
-Post it in <#1566415215220752444> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.
+Post it in <#1569836981016592484> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.

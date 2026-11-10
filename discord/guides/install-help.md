@@ -26,6 +26,7 @@ The surest way is **from a PC with a USB cable** (USB debugging). Phone XAPK ins
 5. It installs the game and copies its data. When it says it's done, open Hello Bro on the phone and tap **PLAY**.
 6. Google Play Protect says "unsafe app blocked"? Tap **More details > Install anyway**.
 **No cable?** On Android 11+ it also works over Wi-Fi: when the .bat finds no phone, type **W** and follow its steps (Developer options > **Wireless debugging**, phone and PC on the same Wi-Fi).
+**Phone only runs 64-bit apps** (Samsung S25/S26 Ultra, Pixel 7 and newer)? The normal install fails there: use the VPhoneOS way in chapter 9.
 **No PC?** Try an XAPK installer app (for example *XAPK Installer* or *APKPure*). If it fails or the game shows a black screen at start, use the USB way above.
 Done? You can turn USB debugging off again.
 
@@ -60,5 +61,13 @@ They can't reach your PC directly. The easy way is **Tailscale** (free): you and
 
 ## 8. Bugs and help
 • **Questions:** <#1565697834571927694>. Say: public server or your own, BlueStacks or phone, and what you see on screen.
-• **Bugs:** <#1566415215220752444>, or on GitHub: https://github.com/Djassie18698/hello-bro-revival/issues
+• **Bugs:** <#1569836981016592484>, or on GitHub: https://github.com/Djassie18698/hello-bro-revival/issues
 • **What's new:** <#1565697769874919515>
+
+## 9. Phones that only run 64-bit apps (S25 / S26 Ultra, Pixel 7+)
+The game is a 32-bit app from 2015, and some new phones can't run 32-bit apps at all ("app not compatible" or *NO_MATCHING_ABIS*). You can still play it there inside a **virtual Android 7 phone**. Found by **polterslave**, tested on a Samsung S26 Ultra: thank you!
+1. On the phone, download **`HelloBro-ninjaonline.xapk`** (the Download button on https://ninjaonlinereborn.com).
+2. Install **ZArchiver** from the Play Store (free). Open the .xapk with it and extract it. You get **`com.hello.bro.yo.apk`** and a folder **`Android/obb/com.hello.bro.yo`** (the game's data, about 110 MB).
+3. Install **VPhoneOS** from the Play Store (free) and create a virtual phone with **Android 7**. It looks complicated, but it's quick.
+4. Inside the virtual phone, import the **.apk** and install it, then import the **obb folder** so it ends up at **Android/obb/com.hello.bro.yo** there too.
+5. Open Hello Bro inside the virtual phone and tap **PLAY**. Done!
