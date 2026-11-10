@@ -60,7 +60,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    #bugs-and-issues (owner, 3 Nov 2026): see step 7. `docs/DISCORD-REPORTS.md` logs every report and its state: read it first.
    **Bug helper + fixer (8 Nov 2026, owner):** `discord/bughelper.js` (inside the cloud bot) opens a thread on every new #bugs-and-issues post,
    asks the player for the missing details with Claude (ANTHROPIC_API_KEY in the cloud `discord/.env` only; claude-opus-5-5, low effort; a fixed
-   checklist when the key fails; owner posts and replies are skipped) and posts the finished report in **#bot-logs** ("🐞 Bug report" / "💡 Wish",
+   checklist when the key fails; owner posts and replies are skipped) and posts the finished report in **#bot-logs** (also after 15 minutes without an answer to a question, BUG_IDLE_MIN; "🐞 Bug report" / "💡 Wish",
    ending `report-id: <thread> · post-id: <post>`). The scheduled task **"hellobro-bug-fixer"** on the owner's PC (every 2 h while the Claude app
    is open, `~/.claude/scheduled-tasks/hellobro-bug-fixer/SKILL.md`) picks up reports whose report-id is not in DISCORD-REPORTS.md yet, fixes
    them with this section's steps, answers in the thread (`dc.js post <thread> <file>`), reacts ✅ on the post and tells the owner in #dev-chat;
