@@ -722,7 +722,7 @@ function battleXml(db, pl, chap, stage, opt = {}) {
     '<skills>' + (r._skills || []).map((s) => `<skill>${el('cardid', s.cardid)}${el('chakraattack', s.chakraattack)}${el('chakra', s.chakra)}</skill>`).join('') + '</skills><defense_skills></defense_skills></round>').join('');
   const win = fight.won ? 1 : 0;
   if (opt.out) opt.out.win = fight.won;
-  require('./tracker').fight(chap, stage, opt, fight.won); // progress tracker (tracker.js): no-op unless a tracked account's request
+  require('./tracker').fight(chap, stage, opt, fight.won, { atk: Math.round(mine.reduce((t, m) => t + (m.low + m.high) / 2, 0)), def: Math.round(foes.reduce((t, f) => t + (f.def || 0), 0)) }); // tracker.js: fights + how close they were
   const nick = (opt.enemyName || 'Enemy').replace(/[<>&"]/g, '');
   return `<fight><preview type="0" result="${win}" defensenick="${nick}" defenseuid="${opt.enemyUid || 0}" defensecountry="${opt.enemyCountry || 1}" defenselevel="${opt.enemyLevel || 1}" defenseviplevel="0"/>` +
     '<guard><ninjalist>' + foes.map(ninjaXml).join('') + '</ninjalist></guard>' +
@@ -775,6 +775,7 @@ function sparFight(db, pl, toUid) {
 function addExp(db, pl, exp) {
   const rows = table('playerlevel').rows;
   let level = pl.level, cur = (pl.exp || 0) + exp;
+  require('./tracker').exp(exp); // tracker.js: exp gained (the save keeps only the exp inside the current level)
   for (;;) {
     const r = rows.find((x) => x[1] === level);
     if (!r || cur < r[2] || !rows.some((x) => x[1] === level + 1)) break; // the table ends at 350: no level past it
@@ -785,6 +786,7 @@ function addExp(db, pl, exp) {
   if (level > pl.level) { // a level-up fills energy and grudge to the new level's maximum (the original "LEVEL UP!" pop-up shows
     // "Energy ↑ Grudge ↑", Facebook photo 2156; owner: "leveling should refill")
     const max = (rows.find((x) => x[1] === level) || [])[4] || 0;
+    require('./tracker').energyRefill('level', max - ((db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) || {}).energy ?? max)); // tracker.js
     db.prepare('UPDATE players SET energy=MAX(energy,?), energy_t=?, sp=-1 WHERE uid=? AND server_id=?').run(max, Math.floor(Date.now() / 1000), pl.uid, pl.server_id);
   }
   return level;
@@ -1834,8 +1836,11 @@ function energyTick(db, pl) {
   let e = r.energy, t = r.energy_t || now;
   // ORIGINAL normalconfig 87: every day at 22:00 (server PC time) energy refills to the maximum
   const d22 = new Date(); d22.setHours(22, 0, 0, 0); let last22 = Math.floor(d22.getTime() / 1000); if (last22 > now) last22 -= 86400;
+  const e0 = e;
   if (e < max && t < last22) { e = max; t = now; }
+  const e1 = e;
   if (e < max) { const ticks = Math.floor((now - t) / ENERGY_EVERY); if (ticks > 0) { e = Math.min(max, e + ticks); t = e >= max ? now : t + ticks * ENERGY_EVERY; } } else t = now;
+  if (e !== e0) { const tr = require('./tracker'); tr.energyRefill('22', e1 - e0); tr.energyRefill('time', e - e1); } // tracker.js: energy that came by itself
   db.prepare('UPDATE players SET energy=?, energy_t=? WHERE uid=? AND server_id=?').run(e, t, pl.uid, pl.server_id);
   return { energy: e, max, pass: e >= max ? 0 : now - t };
 }

@@ -38,7 +38,7 @@ function open(file) {
 function indexes(db) {
   const has = (t) => !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
   const want = [['pets', 'pets_owner', 'uid, server_id'], ['mail', 'mail_to', 'to_uid'], ['war_log', 'war_log_server', 'server_id, uid'],
-    ['equipped', 'equipped_seq', 'seq'], ['team', 'team_seq', 'seq'], ['accounts', 'accounts_session', 'session']];
+    ['equipped', 'equipped_seq', 'seq'], ['cards', 'cards_owner', 'uid, server_id'], ['team', 'team_seq', 'seq'], ['accounts', 'accounts_session', 'session']];
   for (const [t, name, cols] of want) if (has(t)) db.exec(`CREATE INDEX IF NOT EXISTS ${name} ON ${t}(${cols})`);
   db.exec('PRAGMA optimize');
 }

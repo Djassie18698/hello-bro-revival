@@ -63,11 +63,20 @@ svg{width:100%;height:200px;display:block}
       <div class="panel"><h2>Cards gained</h2><div class="scroll"><table id="cardlist"></table></div></div>
       <div class="panel"><h2>Items and fragments</h2><div class="scroll"><table id="items"></table></div></div>
       <div class="panel"><h2>Energy, levels and play time</h2><div class="scroll"><table id="misc"></table></div></div>
+      <div class="panel"><h2>Other players and arena rank</h2><div class="scroll"><table id="others"></table></div></div>
     </div>
+    <div class="panel"><h2>What fights gave</h2><div class="muted">Everything the request that held the fight changed, added up per kind of fight (energy = spent).</div>
+      <div class="scroll" style="margin-top:8px"><table id="loot"></table></div></div>
+    <div class="panel"><h2>Every fight</h2><div class="scroll"><table id="fightlist"></table></div></div>
     <div class="panel"><h2>Everything that happened</h2>
       <div class="bar-row"><select id="kind"><option value="">All kinds</option></select><input id="q" placeholder="Search (source, card name ...)"></div>
       <div class="scroll" style="max-height:640px;margin-top:10px"><table id="events"></table></div></div>
   </div>
+  <div class="panel"><h2>🎁 Drops in the whole game (every player)</h2>
+    <div class="muted">What every request of every player gave or cost, added up per source for one day. "Per fight" = amount divided by the fights of that source
+      (or by its requests when it has no fights). Items, cards and drop packs list how many times they came and how many in total.</div>
+    <div class="bar-row"><select id="dday"></select><input id="dq" placeholder="Search a source or item"></div>
+    <div class="scroll" style="max-height:900px;margin-top:10px"><table id="drops"></table></div></div>
 </div>
 <script>
 if (new URLSearchParams(location.search).get('embed')) document.body.classList.add('embed');
@@ -77,7 +86,7 @@ const fmt = (n) => (n == null ? '-' : Number(n).toLocaleString());
 const sign = (n) => (n > 0 ? '<span class="up">+' + fmt(n) + '</span>' : n < 0 ? '<span class="down">' + fmt(n) + '</span>' : '0');
 const time = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const hm = (m) => (m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min');
-const KINDS = { gold: 'Gold', silver: 'Silver', energy: 'Energy', exp: 'Exp', stamina: 'Stamina', level: 'Level', vip: 'VIP', vipexp: 'VIP exp', topup: 'Top-up', 'card+': 'Card gained', 'card-': 'Card used up', 'card~': 'Card upgraded', item: 'Item', fight: 'Fight', drop: 'Drop pack', power: 'Power', reach: 'Reached', change: 'Other change', baseline: 'Tracker start', reset: 'Reset' };
+const KINDS = { rank: 'Arena rank', gold: 'Gold', silver: 'Silver', energy: 'Energy', exp: 'Exp', stamina: 'Stamina', level: 'Level', vip: 'VIP', vipexp: 'VIP exp', topup: 'Top-up', 'card+': 'Card gained', 'card-': 'Card used up', 'card~': 'Card upgraded', item: 'Item', fight: 'Fight', drop: 'Drop pack', power: 'Power', reach: 'Reached', change: 'Other change', baseline: 'Tracker start', reset: 'Reset' };
 let data = null;
 const qs = () => `uid=${encodeURIComponent($('who').value || '')}&day=${encodeURIComponent($('day').value || '')}`;
 async function load(first) {
@@ -104,7 +113,7 @@ function draw(s) {
   const pct = (x, y) => (x && y != null ? ` (${y >= x ? '+' : ''}${(((y - x) / x) * 100).toFixed(1)} %)` : '');
   const f = Object.values(s.fights), won = f.reduce((t, x) => t + x.won, 0), lost = f.reduce((t, x) => t + x.lost, 0);
   $('cards').innerHTML = [
-    ['Level', s.level.start === s.level.end ? fmt(s.level.end) : `${fmt(s.level.start)} → ${fmt(s.level.end)}`, s.level.ups.length + ' level-ups'],
+    ['Level', s.level.start === s.level.end ? fmt(s.level.end) : `${fmt(s.level.start)} → ${fmt(s.level.end)}`, `${s.level.ups.length} level-ups · exp ${fmt(s.level.exp)} / ${fmt(s.level.need)}`],
     ['Team attack', a1 ? fmt(a1.atk) : '-', a0 ? 'from ' + fmt(a0.atk) + pct(a0.atk, a1.atk) : ''],
     ['Team defence', a1 ? fmt(a1.def) : '-', a0 ? 'from ' + fmt(a0.def) + pct(a0.def, a1.def) : ''],
     ['VIP', s.vip.start === s.vip.end ? fmt(s.vip.end) : `${fmt(s.vip.start)} → ${fmt(s.vip.end)}`, '+' + fmt(s.vip.expIn) + ' VIP exp'],
@@ -138,9 +147,19 @@ function draw(s) {
   $('items').innerHTML = '<tr><th>Item</th><th class="num">Got</th><th class="num">Used</th><th>From</th></tr>' + Object.entries(s.items).sort((a, b) => b[1].in - a[1].in).map(([k, v]) =>
     `<tr><td>${esc(k)}</td><td class="num up">${v.in ? '+' + fmt(v.in) : ''}</td><td class="num down">${v.out ? '-' + fmt(v.out) : ''}</td><td class="muted">${esc(Object.entries(v.by).map(([s2, n]) => `${s2} ${fmt(n)}`).join(' · '))}</td></tr>`).join('');
   $('misc').innerHTML = `<tr><th colspan="3">Energy</th></tr>${flowTable(s.energy, 'energy').replace(/<tr><th>Source<\/th>.*?<\/tr>/, '')}` +
-    `<tr><th colspan="3">Level-ups</th></tr>` + s.level.ups.map((l) => `<tr><td>${time(l.at)}</td><td>Level ${l.level}</td><td class="muted">${esc(l.src)}</td></tr>`).join('') +
+    `<tr><th colspan="3">Exp</th></tr>${flowTable(s.exp, 'exp in the level').replace(/<tr><th>Source<\/th>.*?<\/tr>/, '')}` +
+    `<tr><th colspan="3">Level-ups (how long the level before took)</th></tr>` + s.level.ups.map((l) => `<tr><td>${time(l.at)}</td><td>Level ${l.level}${l.took != null ? ' · ' + hm(Math.round(l.took / 60)) : ''}</td><td class="muted">${esc(l.src)}</td></tr>`).join('') +
     s.vip.ups.map((v) => `<tr><td>${time(v.at)}</td><td>VIP ${v.vip}</td><td></td></tr>`).join('') +
     `<tr><th colspan="3">Play sessions</th></tr>` + s.played.sessions.map((x) => `<tr><td>${time(x.from)} - ${time(x.to)}</td><td>${hm(x.minutes)}</td><td></td></tr>`).join('');
+  $('others').innerHTML = '<tr><th>Time</th><th>Who / what</th><th class="num">Change</th><th>Details</th></tr>' +
+    [...s.ranks.map((r) => ({ at: r.at, src: r.src, delta: null, detail: r.what })), ...s.others].sort((x, y) => y.at - x.at).map((o) =>
+      `<tr><td>${time(o.at)}</td><td>${esc(o.src)}</td><td class="num">${o.delta != null ? sign(o.delta) : ''}</td><td>${esc(o.detail || o.kind || '')}</td></tr>`).join('') || '<tr><td class="muted" colspan="4">nobody else touched this account</td></tr>';
+  const per = (n, f) => (f ? (Math.abs(n / f) < 10 ? (n / f).toFixed(2) : Math.round(n / f).toLocaleString()) : "-");
+  const top = (o) => Object.entries(o).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${k} ${fmt(n)}`).join(' · ');
+  $('loot').innerHTML = '<tr><th>Fight</th><th class="num">Fights</th><th class="num">Won</th><th class="num">Silver / fight</th><th class="num">Exp / fight</th><th class="num">Gold / fight</th><th class="num">Energy / fight</th><th>Items</th><th>Cards</th><th>Drop packs</th></tr>' +
+    Object.entries(s.loot).map(([k, L]) => `<tr><td>${esc(k)}</td><td class="num">${L.fights}</td><td class="num">${L.won} (${Math.round((L.won / L.fights) * 100)} %)</td><td class="num">${per(L.silver, L.fights)}</td><td class="num">${per(L.exp, L.fights)}</td><td class="num">${per(L.gold, L.fights)}</td><td class="num">${per(L.energy, L.fights)}</td><td class="muted">${esc(top(L.items))}</td><td class="muted">${esc(top(L.cards))}</td><td class="muted">${esc(top(L.drops))}</td></tr>`).join('') || '<tr><td class="muted">no fights this day</td></tr>';
+  $('fightlist').innerHTML = '<tr><th>Time</th><th>Kind</th><th>Result</th><th>Fight</th><th>What it gave</th></tr>' + s.fightList.slice().reverse().map((x) =>
+    `<tr><td>${time(x.at)}</td><td>${esc(x.kind)}</td><td class="${x.win ? 'up' : 'down'}">${x.win ? 'won' : 'lost'}</td><td>${esc(x.what)}</td><td class="muted">${esc(x.got)}</td></tr>`).join('');
   const kinds = [...new Set(s.events.map((e) => e.kind))];
   const keep = $('kind').value;
   $('kind').innerHTML = '<option value="">All kinds</option>' + kinds.map((k) => `<option value="${esc(k)}">${esc(KINDS[k] || k)}</option>`).join('');
@@ -172,6 +191,29 @@ $('saveUids').onclick = async () => {
   $('saved').textContent = r.ok ? ' saved: ' + (r.tracked.join(', ') || 'nobody') : ' not saved';
   load();
 };
+let drops = null;
+async function loadDrops(first) {
+  drops = (await (await fetch('/admin/api/track?drops=1&day=' + encodeURIComponent(first ? '' : $('dday').value))).json()).drops;
+  $('dday').innerHTML = drops.days.slice().reverse().map((d) => `<option>${d}</option>`).join('') || `<option>${drops.day}</option>`;
+  $('dday').value = drops.day;
+  drawDrops();
+}
+function drawDrops() {
+  if (!drops) return;
+  const q = $('dq').value.trim().toLowerCase();
+  const per = (n, d) => (d ? (Math.abs(n / d) < 10 ? (n / d).toFixed(2) : Math.round(n / d).toLocaleString()) : "-");
+  const list = drops.sources.filter((S) => !q || S.src.toLowerCase().includes(q) || [...S.items, ...S.cards, ...S.drops].some((x) => x.name.toLowerCase().includes(q)));
+  $('drops').innerHTML = '<tr><th>Source</th><th class="num">Players</th><th class="num">Requests</th><th>Fights</th><th class="num">Silver</th><th class="num">Gold</th><th class="num">Exp</th><th class="num">Energy</th><th>Items, cards and drop packs (times · total · per fight)</th></tr>' + list.map((S) => {
+    const d = S.fightsTotal || S.requests;
+    const money = (i, o) => `${i ? '<span class="up">+' + fmt(i) + '</span>' : ''}${i && o ? ' / ' : ''}${o ? '<span class="down">-' + fmt(o) + '</span>' : ''}${i || o ? `<br><small class="muted">${per(i - o, d)} each</small>` : ''}`;
+    const things = [...S.items.map((x) => ['', x]), ...S.cards.map((x) => ['🃏 ', x]), ...S.drops.map((x) => ['📦 ', x])]
+      .map(([ic, x]) => `${ic}${esc(x.name)}: ${fmt(x.times)}× · ${fmt(x.amount)} · ${per(x.amount, d)}`).join('<br>');
+    return `<tr><td>${esc(S.src)}</td><td class="num">${S.players}</td><td class="num">${fmt(S.requests)}</td><td>${esc(Object.entries(S.fights).map(([k, f]) => `${k} ${f.won}/${f.won + f.lost} won`).join(' · '))}</td>` +
+      `<td class="num">${money(S.silver, S.silverOut)}</td><td class="num">${money(S.gold, S.goldOut)}</td><td class="num">${S.exp ? '+' + fmt(S.exp) + `<br><small class="muted">${per(S.exp, d)} each</small>` : ''}</td><td class="num">${money(S.energy, S.energyOut)}</td><td style="font-size:12px">${things}</td></tr>`;
+  }).join('') || '<tr><td class="muted" colspan="9">nothing logged this day yet</td></tr>';
+}
+$('dday').onchange = () => loadDrops(); $('dq').oninput = drawDrops;
+loadDrops(true);
 load(true);
 setInterval(() => { if (!document.hidden && $('day').selectedIndex === 0) load(); }, 60000);
 </script>

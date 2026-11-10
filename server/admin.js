@@ -609,6 +609,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
     const pl = u.query.uid ? findPlayer(db, u.query.uid) : null;
     const who = pl ? { uid: pl.uid, sid: pl.server_id } : list[0] ? { uid: list[0].uid, sid: list[0].server_id } : null;
     const tracked = [...tr.uids(db)];
+    if (u.query.drops) return json(res, { tracked, players: list, drops: tr.dropStats(db, u.query.day || '') }); // every player's drops (drop_stats)
     if (!who) return json(res, { tracked, players: list, summary: null, overview: [] });
     return json(res, { tracked, players: list, summary: tr.summary(db, who.uid, who.sid, u.query.day || ''), overview: u.query.overview ? tr.overview(db, who.uid, who.sid) : undefined });
   }

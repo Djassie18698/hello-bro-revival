@@ -773,7 +773,7 @@ for (const pick of [55, 56, 57]) {
   }
   // Progress tracker (tracker.js): only the accounts in track_uids, every change with its source, fights, power, the day summary, kept on reset
   {
-    const tr = require('../../server/tracker'), admin = require('../../server/admin');
+    const tr = require('../../server/tracker'), admin = require('../../server/admin'), game = require('../../server/game');
     const ck = (ok, what) => { if (!ok) { bad++; console.log('TRACKER', what); } };
     const q = { Uid: '79600', Session: 'x', ServerID: '1', GroupID: '2' };
     handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'Tracked', Card: 55 } });
@@ -805,6 +805,29 @@ for (const pick of [55, 56, 57]) {
     const s = tr.summary(db, 79600, 1);
     ck(s.gold.totalIn >= 5000 && s.gold.out.Recruit > 0 && s.cardsBySource.Recruit >= 1 && s.fights.stage && s.fights.stage.won >= 1 && s.played.minutes >= 1 && s.played.requests >= 5, 'summary: ' + JSON.stringify({ gold: s.gold, cards: s.cardsBySource, fights: s.fights, played: s.played }));
     ck(s.level.start === 1 && s.power.length >= 1 && tr.overview(db, 79600, 1).length === 1, 'summary level / power / overview');
+    // exp across a level-up (the save keeps only the exp inside the level), energy that refilled by itself, what a fight gave
+    { const pl = db.prepare('SELECT level FROM players WHERE uid=79600').get(), need = game.table('playerlevel').rows.find((r) => r[1] === pl.level)[2];
+      db.prepare('UPDATE players SET exp=?, energy=1, energy_t=? WHERE uid=79600').run(need - 1, Math.floor(Date.now() / 1000) - 600);
+      call('rl_r_mainpage', { Cmd: 1301 }); // 600 s = 3 energy points by themselves
+      ck(rows('energy').some((r) => r.src === 'Energy: refills over time' && r.delta === 3), 'energy refill over time not split out: ' + JSON.stringify(rows('energy').slice(-3)));
+      db.prepare('UPDATE players SET energy=5, energy_t=? WHERE uid=79600').run(Math.floor(Date.now() / 1000)); call('rl_r_mainpage', { Cmd: 1301 });
+      const n0 = rows('exp').length;
+      call('rl_w_pve', { Cmd: 3, ChapID: 1, StageID: 1, Pos: 1 });
+      const e = rows('exp').slice(n0);
+      ck(e.length === 1 && e[0].delta > 1 && rows('level').some((r) => r.value === pl.level + 1), 'exp across a level-up wrong: ' + JSON.stringify(e));
+      ck(rows('energy').some((r) => r.src === 'Energy: level-up refill'), 'level-up energy refill not split out');
+      const s3 = tr.summary(db, 79600, 1);
+      ck(s3.loot.stage && s3.loot.stage.silver > 0 && s3.loot.stage.fights >= 2 && /silver \+/.test(s3.fightList[s3.fightList.length - 1].got) && /my attack/.test(s3.fightList[0].what), 'fight loot: ' + JSON.stringify(s3.loot));
+      ck(s3.level.need > 0 && s3.level.ups.length >= 1 && s3.level.exp !== null, 'levelling info: ' + JSON.stringify(s3.level)); }
+    // another player's request that changes the tracked account is labelled with that player
+    { tr.begin(db, { ...base, Cmd: 1 }, 'rl_w_pvp'); db.prepare('UPDATE players SET coin=coin-11 WHERE uid=79600').run(); tr.end();
+      ck(rows('silver').some((r) => r.delta === -11 && /^Other player Smoke: Spar/.test(r.src)), 'other player change not labelled: ' + JSON.stringify(rows('silver').slice(-2))); }
+    // drop statistics for every player (also the ones not tracked)
+    { tr.begin(db, { ...base, Cmd: 3, ChapID: 1, StageID: 1, Pos: 1 }, 'rl_w_pve'); handlers.rl_w_pve({ db, params: { ...base, Cmd: 3, ChapID: 1, StageID: 1, Pos: 1 } }); tr.end();
+      const ds = tr.dropStats(db).sources.find((x) => x.src === 'Campaign');
+      ck(ds && ds.players === 2 && ds.fights.stage && ds.fights.stage.won >= 3 && ds.silver > 0 && ds.exp > 0 && ds.energyOut > 0, 'drop stats: ' + JSON.stringify(ds));
+      const rc = tr.dropStats(db).sources.find((x) => /^Recruit/.test(x.src));
+      ck(rc && rc.cards.length >= 1 && rc.goldOut > 0, 'drop stats recruit: ' + JSON.stringify(rc)); }
     admin.resetPlayer(db, 79600, 1);
     ck(rows('reset').length === 1 && rows('baseline').length === 1, 'reset dropped the tracker history or was not marked');
     call('rl_r_mainpage', { Cmd: 1301 }); // the game asks again after the reset (no character yet)
