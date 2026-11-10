@@ -245,11 +245,12 @@ function baseline(db, uid, sid, snap) {
   write(db, uid, sid, again ? 'New snapshot (server restart or reset)' : 'Tracker start', [{ kind: 'baseline', value: p.atk, detail: JSON.stringify({ def: p.def, level: pl.level, gold: pl.gold, silver: pl.coin, energy: pl.energy, vip: vipRow ? vipRow.level : 0, cards, nick: pl.nick }) }]);
 }
 
+const isNew = (a, b, uid, sid) => !(a.players || new Map()).has(`${uid}|${sid}`) && (b.players || new Map()).has(`${uid}|${sid}`);
 // server.js, around each game request
 function begin(db, params, cgi) {
   ctx = null;
   try {
-    const uid = Number(params.Uid);
+    const uid = Number(params.Uin || params.Uid); // the game sends Uin on some requests (as handlers.accountBySession reads it)
     if (!uid || !tracked(db, uid)) return;
     ensure(db);
     const sid = Number(params.ServerID || 1);
@@ -259,7 +260,10 @@ function begin(db, params, cgi) {
     if (!prev) baseline(db, uid, sid, snap);
     else {
       const d = diff(prev, snap);
-      if (d.length) record(db, uid, sid, panelAt >= (prev.at || 0) ? PANEL : OUTSIDE, d);
+      // the character is made by a request that does not carry its uid yet (rl_w_reg2): that shows here, between two requests
+      const made = isNew(prev, snap, uid, sid);
+      if (d.length) record(db, uid, sid, made ? 'New character' : panelAt >= (prev.at || 0) ? PANEL : OUTSIDE, d);
+      if (made) baseline(db, uid, sid, snap);
     }
     snap.at = Date.now();
     ctx = { db, uid, sid, cgi, params, snap, fights: [], drops: [] };
@@ -278,8 +282,7 @@ function end() {
     for (const d of c.drops) extra.push({ kind: 'drop', key: d.id, detail: d.name });
     const d = diff(c.snap, after);
     if (d.length || extra.length) record(c.db, c.uid, c.sid, label(c.cgi, c.params), d, extra);
-    const key = `${c.uid}|${c.sid}`;
-    if (!(c.snap.players || new Map()).has(key) && (after.players || new Map()).has(key)) baseline(c.db, c.uid, c.sid, after); // a new character (after a reset): its starting point
+    if (isNew(c.snap, after, c.uid, c.sid)) baseline(c.db, c.uid, c.sid, after); // a new character (after a reset): its starting point
   } catch (e) { if (process.env.HB_DEBUG) console.error('tracker', e); } // the tracker must never break the game
 }
 // game.battleXml: one fight in the current request
