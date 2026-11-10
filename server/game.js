@@ -1598,15 +1598,19 @@ function teamTotals(db, uid, sid, slots) {
 // [id, id, level now, chance with 1/2/3/4 stones, [7] m_nocutclevel = chance to keep the level on a failure, [8] m_cuttolevel = the level a
 // failure falls back to (the safe levels 0 / 3 / 6 / 9 / 12, where the keep chance is 100), [9] silver].
 // Rows 1-15 are for Sage Stone I (prop 7), rows 16-30 for Sage Stone III (prop 8). Max growth level 15.
-// Extra stones (StarStoneExtID/Num) add stone_added_percent each, up to max_percent: both numbers lived on the dead server, so
-// (ours) +1% per Sage Stone I, +2% per Sage Stone III, capped at what 4 Sage Stone III give at that level.
+// Extra stones (StarStoneExtID/Num) add stone_added_percent each, at most max_percent on top. The game (CStrengthView::onHttpRequestCompleted)
+// reads stone_level 1 = Sage Stone I, 2 = Sage Stone III (not the prop ids 7 / 8: sending those made every extra stone 0 %, Discord report 10 Nov 2026),
+// stone_added_percent as a decimal and max_percent as a whole number; "maximum" (calcNeedMaxExtraNums) picks min(max_percent, 100 - chance) / per stone.
+// ORIGINAL (photos, docs/FINDINGS-PHOTOS.md: "+10%" shown with more stones, 19 stones gave +3.8 %): +0.2 % per Sage Stone III, at most +10 %.
+// (ours) Sage Stone I adds half: +0.1 %.
 const GROW_MAX = 15;
+const GROW_EXTRA_MAX = 10;
 const growRow = (lv, stoneId) => table('ninjastrength').rows.find((r) => r[2] === lv && (stoneId === 8 ? r[0] > 15 : r[0] <= 15));
-const GROW_EXTRA = { 7: 1, 8: 2 };
-const growMaxPercent = (lv) => (growRow(lv, 8) || [])[6] || 0;
+const GROW_EXTRA = { 7: 0.1, 8: 0.2 };
+const GROW_STONE_LEVEL = { 7: 1, 8: 2 };
 function growStarList() {
   let items = '';
-  for (let i = 0; i < GROW_MAX; i++) for (const s of [7, 8]) items += `<item star_now="${i}" max_percent="${growMaxPercent(i)}" stone_level="${s}" stone_added_percent="${GROW_EXTRA[s]}"/>`;
+  for (let i = 0; i < GROW_MAX; i++) for (const s of [7, 8]) items += `<item star_now="${i}" max_percent="${GROW_EXTRA_MAX}" stone_level="${GROW_STONE_LEVEL[s]}" stone_added_percent="${GROW_EXTRA[s]}"/>`;
   return items;
 }
 function sageGrow(db, pl, seq, stoneId, stoneNum, extId = 0, extNum = 0) {
@@ -1617,7 +1621,9 @@ function sageGrow(db, pl, seq, stoneId, stoneNum, extId = 0, extNum = 0) {
   const row = growRow(lv0, stoneId);
   if (!row) return { error: 'bad stone' };
   stoneNum = Math.min(4, Math.max(1, stoneNum || 1));
-  extNum = GROW_EXTRA[extId] ? Math.max(0, extNum || 0) : 0;
+  const base = row[2 + stoneNum];
+  // extra stones beyond the +10 % (or beyond 100 %) would add nothing: only take as many as count, like the game's "maximum"
+  extNum = GROW_EXTRA[extId] ? Math.min(Math.max(0, Math.floor(extNum) || 0), Math.ceil(Math.max(0, Math.min(GROW_EXTRA_MAX, 100 - base)) / GROW_EXTRA[extId] - 1e-9)) : 0;
   const counts = propCounts(db, pl.uid, pl.server_id);
   const need = { [stoneId]: stoneNum };
   if (extNum) need[extId] = (need[extId] || 0) + extNum;
@@ -1626,8 +1632,7 @@ function sageGrow(db, pl, seq, stoneId, stoneNum, extId = 0, extNum = 0) {
   if (pl.coin < cost) return { error: 'not enough silver' };
   for (const [id, n] of Object.entries(need)) propAdd(db, pl.uid, pl.server_id, Number(id), -n);
   db.prepare('UPDATE players SET coin=coin-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id);
-  const base = row[2 + stoneNum];
-  const chance = extNum ? Math.max(base, Math.min(growMaxPercent(lv0), base + extNum * GROW_EXTRA[extId])) : base;
+  const chance = Math.min(100, base + Math.round(Math.min(GROW_EXTRA_MAX, extNum * (GROW_EXTRA[extId] || 0)) * 10) / 10);
   const win = Math.random() * 100 < chance;
   let lv = lv0, drop = 0;
   if (win) lv++;
@@ -2084,4 +2089,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

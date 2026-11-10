@@ -530,6 +530,17 @@ for (const pick of [55, 56, 57]) {
     const gr = game.sageGrow(db, me(), seq, 7, 1);
     Math.random = rnd;
     if (gr.lv !== 3) { bad++; console.log('SAGE GROWTH failure at level 5 should fall back to 3, got', JSON.stringify(gr)); }
+    // sage growth extra stones (Discord report 10 Nov 2026: "maximum" and + did nothing): the game wants stone_level 1 / 2, +0.2 % a Sage Stone III, at most +10 %
+    const sl = game.growStarList();
+    if (!/star_now="12" max_percent="10" stone_level="2" stone_added_percent="0.2"/.test(sl) || !/stone_level="1" stone_added_percent="0.1"/.test(sl) || /stone_level="[78]"/.test(sl)) { bad++; console.log('SAGE GROWTH extra-stone list:', sl.slice(0, 200)); }
+    db.prepare('UPDATE cards SET starlevel=12 WHERE seq=?').run(seq); game.propAdd(db, 77, 1, 8, 70);
+    const before8 = game.propCounts(db, 77, 1)[8] || 0;
+    Math.random = () => 0.999;
+    const gx = game.sageGrow(db, me(), seq, 8, 1, 8, 60);
+    Math.random = rnd;
+    const used8 = before8 - (game.propCounts(db, 77, 1)[8] || 0);
+    const base12 = game.table('ninjastrength').rows.find((r) => r[2] === 12 && r[0] > 15)[3];
+    if (used8 !== 51 || Math.abs(gx.chance - (base12 + 10)) > 1e-9) { bad++; console.log(`SAGE GROWTH 60 extra Sage Stone III: used ${used8} (want 1 + 50), chance ${gx.chance} (want ${base12} + 10)`); }
     // lucky wheel: 100 gold a spin, pot 1000
     const wl = handlers.rl_r_wheel({ db, params: { ...base, Cmd: 1401 } });
     const pot = Number((/<bigcash>(\d+)<\/bigcash>/.exec(wl) || [])[1]);
