@@ -184,21 +184,21 @@ function day(ms) {
   const same = (a, b) => a.toDateString() === b.toDateString();
   return (same(d, t) ? 'Today' : same(d, y) ? 'Yesterday' : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + ' ' + hm(ms);
 }
-function open(url) { if (url) fetch('/open?u=' + encodeURIComponent(url)); }
+function openUrl(url) { if (url) fetch('/open?u=' + encodeURIComponent(url)); }
 function tag(n) { const c = TAGC[n] || '#80848e'; return `<span class="tag" style="color:${c};border-color:${c}55;background:${c}1f">${esc(n)}</span>`; }
 
 function card(c) {
   const tags = [...new Set([...(c.tagsFixer || []), ...(c.tagsPlayer || [])])];
   const url = c.fixerUrl || c.playerUrl;
   const who = WHO[c.lastWho] || c.lastWho || '';
-  return `<div class="card${c.now ? ' now' : ''}" onclick="open('${esc(url)}')" title="Open in Discord">
+  return `<div class="card${c.now ? ' now' : ''}" onclick="openUrl('${esc(url)}')" title="Open in Discord">
     ${c.now ? '<div class="nowtag"><span class="spin"></span>Being fixed right now</div>' : ''}
     <div class="ttl">${esc(c.title)}</div>
     <div class="meta">${c.player ? '<span>👤 ' + esc(c.player) + '</span>' : ''}<span data-ago="${c.created}">🕒 ${ago(c.created)}</span>${c.request ? '<span>📝 your request</span>' : ''}</div>
     ${c.why ? `<div class="why">${esc(c.why)}</div>` : ''}
     ${(tags.length || c.test) ? `<div class="tags">${c.test ? '<span class="tag test">TEST</span>' : ''}${tags.map(tag).join('')}</div>` : ''}
     ${c.lastText ? `<div class="last"><b>${esc(who)}:</b> ${esc(c.lastText)}</div>` : ''}
-    <div class="links" onclick="event.stopPropagation()">${c.fixerUrl ? `<a href="#" title="The fixer's post in #bug-fixer" onclick="open('${esc(c.fixerUrl)}');return false">🔧 Fixer</a>` : ''}${c.playerUrl ? `<a href="#" title="The player's post in #bugs-and-issues" onclick="open('${esc(c.playerUrl)}');return false">👤 Player</a>` : ''}</div>
+    <div class="links" onclick="event.stopPropagation()">${c.fixerUrl ? `<a href="#" title="The fixer's post in #bug-fixer" onclick="openUrl('${esc(c.fixerUrl)}');return false">🔧 Fixer</a>` : ''}${c.playerUrl ? `<a href="#" title="The player's post in #bugs-and-issues" onclick="openUrl('${esc(c.playerUrl)}');return false">👤 Player</a>` : ''}</div>
   </div>`;
 }
 
@@ -222,13 +222,13 @@ function renderNeeds() {
   const attn = qs.length || gl.length;
   const el = $('needs'); el.className = 'panel needs' + (attn ? ' attn' : '');
   let left = `<div><h2>Waiting for you${qs.length ? `<span class="count">${qs.length}</span>` : ''}</h2>`;
-  if (qs.length) left += `<div class="qlist">${qs.map((c) => `<div class="q"><div class="t"><b>${esc(c.title)}</b><span>${esc(c.why || 'The fixer asked you something')}${c.lastText ? ' · “' + esc(c.lastText) + '”' : ''}</span></div><button class="btn orange" onclick="open('${esc(c.fixerUrl || c.playerUrl)}')">Answer in Discord</button></div>`).join('')}</div>`;
+  if (qs.length) left += `<div class="qlist">${qs.map((c) => `<div class="q"><div class="t"><b>${esc(c.title)}</b><span>${esc(c.why || 'The fixer asked you something')}${c.lastText ? ' · “' + esc(c.lastText) + '”' : ''}</span></div><button class="btn orange" onclick="openUrl('${esc(c.fixerUrl || c.playerUrl)}')">Answer in Discord</button></div>`).join('')}</div>`;
   else left += `<div class="allclear"><i>✓</i><div>No questions for you right now.<div class="hint">When the fixer needs a decision, it shows up here and your tray icon pops up.</div></div></div>`;
   left += '</div>';
   let right;
   if (!S.goliveKnown) right = `<div class="golive"><h2>Waiting to go live</h2><div class="say">The 📦 post in #bug-fixer was not found.</div></div>`;
-  else if (gl.length) right = `<div class="golive has"><h2>📦 Ready to go live: ${gl.length}</h2><ul>${gl.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul>${S.goliveBehind ? `<div class="say">${esc(S.goliveBehind)}</div>` : ''}<div class="say">To put it on the public server, say <b>"update the public server"</b> in the 📦 post.</div><div><button class="btn teal" onclick="open('${esc(S.goliveUrl)}')">Open the 📦 post</button></div></div>`;
-  else right = `<div class="golive"><h2>📦 Waiting to go live</h2><div class="say" style="font-size:15px;color:#c9f2d6">Nothing waiting: the public server has every fix.</div><div><button class="btn ghost" onclick="open('${esc(S.goliveUrl)}')">Open the 📦 post</button></div></div>`;
+  else if (gl.length) right = `<div class="golive has"><h2>📦 Ready to go live: ${gl.length}</h2><ul>${gl.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul>${S.goliveBehind ? `<div class="say">${esc(S.goliveBehind)}</div>` : ''}<div class="say">To put it on the public server, say <b>"update the public server"</b> in the 📦 post.</div><div><button class="btn teal" onclick="openUrl('${esc(S.goliveUrl)}')">Open the 📦 post</button></div></div>`;
+  else right = `<div class="golive"><h2>📦 Waiting to go live</h2><div class="say" style="font-size:15px;color:#c9f2d6">Nothing waiting: the public server has every fix.</div><div><button class="btn ghost" onclick="openUrl('${esc(S.goliveUrl)}')">Open the 📦 post</button></div></div>`;
   el.innerHTML = left + right;
 }
 
