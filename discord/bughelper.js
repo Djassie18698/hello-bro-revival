@@ -9,7 +9,10 @@
 // The owner's posts (OWNER_IDS), replies to other posts and bot posts are left alone (an owner post that starts with "test" is handled like a
 // player's, to try the bot out: its report in #bot-logs is marked TEST and has no report-id, so the fixer skips it); it only ever writes in threads it opened
 // and in #bot-logs, never pings anyone (allowed_mentions none) and never posts text that looks like a secret or an IP address.
-// Settings in discord/.env: BUG_HELPER=0 (off), BUG_CHANNEL (bugs-and-issues), BUG_STAFF_CHANNEL (bot-logs),
+// Claim (owner, 10 Nov 2026: "so I can talk without the bot talking over me"): the owner types .claim (or /claim, !claim) in a report thread and
+// the bot stays quiet there (no answers, no forwarding after a day) until .reclaim (or .unclaim / .release). It reacts 🤐 / 🤖 to say it heard.
+// The owner's own messages in a thread never get a bot answer (only a player's do), claimed or not. Who may claim: OWNER_IDS + CLAIM_IDS.
+// Settings in discord/.env: BUG_HELPER=0 (off), CLAIM_IDS (more people who may .claim, besides OWNER_IDS), BUG_CHANNEL (bugs-and-issues), BUG_STAFF_CHANNEL (bot-logs),
 // BUG_MODEL (claude-opus-5-5), BUG_DAILY_CALLS (150 Claude calls a day at most), BUG_STATE (state file).
 const fs = require('fs'), path = require('path');
 const { secretProblem, splitMessage } = require('./tools');
@@ -80,17 +83,19 @@ const CHECKLIST = `Thanks for the report! To help the developer find it, could y
 
 const isImage = (a) => /^image\//.test(a.content_type || '') || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.url || '');
 const who = (m) => (m.author && (m.author.global_name || m.author.username)) || 'player';
+const CLAIM = /^\s*[./!]claim\b/i, RECLAIM = /^\s*[./!](reclaim|unclaim|release)\b/i;
 const shots = (msgs) => msgs.flatMap((m) => (m.attachments || []).filter(isImage).map((a) => a.url));
 
 // The thread as a Claude conversation: the post and every player message as "user", the bot's own messages as "assistant".
-function buildMessages(starter, history, botId, withImages = true) {
+function buildMessages(starter, history, botId, withImages = true, staff = new Set()) {
   const all = [starter, ...history];
   const imgs = withImages ? new Set(shots(all).slice(-3)) : new Set();
   return all.map((m) => {
     const mine = m.author && m.author.id === botId;
     if (mine) return { role: 'assistant', content: m.content || '...' };
     const files = (m.attachments || []).map((a) => `[attachment: ${a.filename || 'file'} ${a.url}]`).join(' ');
-    const content = [{ type: 'text', text: `${who(m)}: ${m.content || ''}${files ? '\n' + files : ''}` }];
+    const name = who(m) + (m.author && staff.has(m.author.id) && m.author.id !== (starter.author || {}).id ? ' (server owner)' : '');
+    const content = [{ type: 'text', text: `${name}: ${m.content || ''}${files ? '\n' + files : ''}` }];
     for (const a of m.attachments || []) if (imgs.has(a.url)) content.push({ type: 'image', source: { type: 'url', url: a.url } });
     return { role: 'user', content };
   });
@@ -128,7 +133,16 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   const model = env.BUG_MODEL || 'claude-opus-5-5';
   const daily = Number(env.BUG_DAILY_CALLS) || 150;
   const owners = new Set(String(env.OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean));
+  const claimers = new Set([...owners, ...String(env.CLAIM_IDS || '').split(',').map((s) => s.trim()).filter(Boolean)]);
   let me, gid, bugId, staffId;
+  // .claim / .reclaim from the owner, else null
+  const command = (m) => {
+    if (!m || !m.author || !claimers.has(m.author.id)) return null;
+    const c = m.content || '';
+    return RECLAIM.test(c) ? 'reclaim' : CLAIM.test(c) ? 'claim' : null;
+  };
+  // a message the bot should answer: a player's (the owner counts as the player only in his own test thread), not a command
+  const fromPlayer = (t, m) => !!(m && m.author && m.author.id !== me.id && !command(m) && (!claimers.has(m.author.id) || m.author.id === t.author));
   state.threads = state.threads || {};
 
   async function init() {
@@ -164,9 +178,9 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     if (state.day !== day) { state.day = day; state.calls = 0; }
     if (state.calls >= daily) { log('daily Claude limit reached, using the checklist'); return null; }
     state.calls++;
-    try { return await decide(client, model, buildMessages(starter, history, me.id, true)); } catch (e) {
+    try { return await decide(client, model, buildMessages(starter, history, me.id, true, claimers)); } catch (e) {
       if (e && e.status === 400) { // a picture the API could not fetch: try once more without pictures
-        try { state.calls++; return await decide(client, model, buildMessages(starter, history, me.id, false)); } catch (e2) { log('Claude: ' + (e2.message || e2)); return null; }
+        try { state.calls++; return await decide(client, model, buildMessages(starter, history, me.id, false, claimers)); } catch (e2) { log('Claude: ' + (e2.message || e2)); return null; }
       }
       log('Claude: ' + (e.message || e)); return null;
     }
@@ -175,10 +189,10 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   // Answer the newest player message in thread t (or the post itself when the thread is new).
   async function handle(t) {
     const starter = await call('GET', `/channels/${bugId}/messages/${t.post}`);
-    const history = (await call('GET', `/channels/${t.id}/messages?limit=50`)).filter((m) => m.type === 0 || m.type === 19).sort(byId);
+    const history = (await call('GET', `/channels/${t.id}/messages?limit=50`)).filter((m) => (m.type === 0 || m.type === 19) && !command(m)).sort(byId);
     const lastMsg = history.length ? history[history.length - 1] : starter;
-    t.seen = lastMsg.id;
-    if (lastMsg.author && lastMsg.author.id === me.id) return; // nothing new from the player
+    if (!t.seen || newer(lastMsg.id, t.seen)) t.seen = lastMsg.id;
+    if (t.claimed || !fromPlayer(t, lastMsg)) return; // nothing new from the player, or the owner has the thread
     const players = [starter, ...history].filter((m) => m.author && m.author.id !== me.id);
     t.shots = shots(players).slice(-6);
     t.playerText = players.map((m) => `${who(m)}: ${m.content || ''}`).join('\n').slice(0, 1500);
@@ -213,8 +227,21 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     for (const t of Object.values(state.threads)) {
       if (now() - t.started > KEEP_MS) { delete state.threads[t.id]; continue; }
       if (t.done) continue;
-      const top = await call('GET', `/channels/${t.id}/messages?limit=1`).catch(() => []);
-      if (top.length && top[0].author && top[0].author.id !== me.id && (!t.seen || newer(top[0].id, t.seen))) await handle(t);
+      const fresh = (await call('GET', `/channels/${t.id}/messages?after=${t.seen || t.post}&limit=50`).catch(() => [])).sort(byId);
+      let playerNew = false;
+      for (const m of fresh) {
+        const c = command(m);
+        if (c) {
+          if (c === 'claim' && !t.claimed) log(`${who(m)} claimed ${t.id}: quiet until .reclaim`);
+          if (c === 'reclaim' && t.claimed) { log(`${who(m)} gave ${t.id} back`); t.botAt = now(); }
+          t.claimed = c === 'claim';
+          playerNew = false; // what came before the command is the owner's to answer
+          await call('PUT', `/channels/${t.id}/messages/${m.id}/reactions/${encodeURIComponent(c === 'claim' ? '🤐' : '🤖')}/@me`).catch(() => {});
+        } else if (fromPlayer(t, m)) playerNew = true;
+        if (!t.seen || newer(m.id, t.seen)) t.seen = m.id;
+      }
+      if (t.claimed) continue;
+      if (playerNew) await handle(t);
       else if (t.questions && t.botAt != null && now() - t.botAt > IDLE_MS) await forward(t, true);
     }
   }

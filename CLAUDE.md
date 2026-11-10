@@ -65,6 +65,8 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    is open, `~/.claude/scheduled-tasks/hellobro-bug-fixer/SKILL.md`) picks up reports whose report-id is not in DISCORD-REPORTS.md yet, fixes
    them with this section's steps, answers in the thread (`dc.js post <thread> <file>`), reacts ✅ on the post and tells the owner in #dev-chat;
    the public server is updated only after the owner's OK. The API key ends about **8 Dec 2026** (30 days); then the helper uses the checklist.
+   **Claim** (owner, 10 Nov 2026): the owner types `.claim` (or `/claim`, `!claim`) in a report thread and the helper stays quiet there (no answers, no
+   forwarding after a day) until `.reclaim` (`.unclaim` / `.release`); it reacts 🤐 / 🤖. The owner's own messages never get a bot answer. Who may claim: OWNER_IDS + CLAIM_IDS (.env).
    **`BUG-FIXER-VIEWER.exe`** (owner's Desktop, built by `tools/fixer-viewer/BUILD.bat`, C# with Windows' own csc.exe; not in git) shows the fixer's runs live from
    their transcripts (working / idle / stuck, next run, a plain-words timeline per run, #bot-logs reports waiting / being fixed / handled, tray pop-ups). Read-only.
    Website/wiki problems are bugs too (section 6).

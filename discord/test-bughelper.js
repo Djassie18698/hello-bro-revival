@@ -161,6 +161,40 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
     ok(Object.keys(d.threads).length === 1 && log && /TEST/.test(log.content) && !/report-id/.test(log.content), 'owner test post: thread + TEST report without report-id');
   }
 
-  console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety)');
+  // 6. claim: the owner types .claim (or /claim) in a thread and the bot stays quiet there until .reclaim; owner messages never get an answer
+  {
+    const d = fakeDiscord();
+    let t = 0;
+    const claude = fakeClaude([{ action: 'ask', reply: 'Which screen?', report: rep() }, { action: 'ask', reply: 'And your character?', report: rep() }]);
+    const h = createHelper({ call: d.call, client: claude, env: { OWNER_IDS: 'own' }, now: () => t, log: () => {} });
+    await h.init();
+    d.ch.bugs.push(d.msg(P1, 'my pet does not attack'));
+    await h.tick();
+    const tid = Object.keys(d.threads)[0], th = d.threads[tid];
+    ok(claude.seen.length === 1, 'claim: first question asked');
+    th.push(d.msg(OWNER, 'Hey, I am the dev, which pet is it?')); // the owner talks without claiming: no bot answer
+    await h.tick();
+    ok(claude.seen.length === 1 && th[th.length - 1].author.id === 'own', 'owner message gets no bot answer');
+    const cl = d.msg(OWNER, '/claim'); th.push(cl);
+    th.push(d.msg(P1, 'the fox one'));
+    await h.tick();
+    ok(claude.seen.length === 1 && th[th.length - 1].author.id === 'p1', 'claimed: the bot stays quiet when the player answers');
+    ok(d.reactions.some(([m, e]) => m === cl.id && e === '🤐'), 'claim gets a 🤐 reaction');
+    t += 25 * 3600e3; await h.tick();
+    ok(d.ch.logs.length === 0, 'claimed: not forwarded after a day');
+    const rc = d.msg(OWNER, '.reclaim'); th.push(rc);
+    await h.tick();
+    ok(claude.seen.length === 1 && d.reactions.some(([m, e]) => m === rc.id && e === '🤖'), 'reclaim: 🤖, no answer to old messages');
+    th.push(d.msg(P1, 'still broken'));
+    await h.tick();
+    ok(claude.seen.length === 2 && /character/.test(th[th.length - 1].content), 'after reclaim the bot answers the player again');
+    const sent = claude.seen[1].messages;
+    ok(!sent.some((m) => JSON.stringify(m.content).includes('/claim')) && sent.some((m) => JSON.stringify(m.content).includes('(server owner)')), 'commands left out, owner labelled for Claude');
+    th.push(d.msg(P1, '.claim')); // a player cannot claim
+    await h.tick();
+    ok(!h.state.threads[tid].claimed, 'a player cannot claim');
+  }
+
+  console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety, claim)');
   process.exit(bad ? 1 : 0);
 })().catch((e) => { console.log('CRASH', e.stack); process.exit(1); });
