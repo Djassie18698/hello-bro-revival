@@ -103,6 +103,12 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     resp.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store' });
     return resp.end(require('fs').readFileSync(require('path').join(__dirname, '..', 'docs', 'PROGRESS.md'), 'utf8'));
   }
+  // HB_SITE_URL (cloud, tools/vps/run.sh; owner 10 Nov 2026: "I don't like the duckdns"): a browser opening the control panel or item page straight on
+  // ninjaonline.duckdns.org:18080 is sent to the website, which passes them on here over https (tools/vps/wiki-site.sh). The game never asks for these pages.
+  if (process.env.HB_SITE_URL && req.method === 'GET' && !LOCAL.has(req.socket.remoteAddress) && /^\/(panel|admin(\/playerlog)?|manager)?\/?$/.test(u.pathname)) {
+    resp.writeHead(302, { Location: process.env.HB_SITE_URL + (u.pathname === '/' ? '/panel' : u.pathname) + (u.search || '') });
+    return resp.end();
+  }
   if (u.pathname === '/' || u.pathname === '/panel') { // the control panel
     if (!admin.authorized(req)) { resp.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro"' }); return resp.end('password required'); }
     return admin.panel(resp, 'server');

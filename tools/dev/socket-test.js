@@ -12,7 +12,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hb-sock-'));
 const PORT = 18000 + Math.floor(Math.random() * 900);
 const srv = spawn(process.execPath, [path.join(__dirname, '..', '..', 'server', 'server.js')], {
   cwd: dir, stdio: ['ignore', 'pipe', 'pipe'],
-  env: { ...process.env, PORT: String(PORT), DB: path.join(dir, 'test.db'), HB_BACKUPS: path.join(dir, 'backups'), HB_WATCHDOG: '', HB_MANAGED: '', RATE_LIMIT: '40' },
+  env: { ...process.env, PORT: String(PORT), DB: path.join(dir, 'test.db'), HB_BACKUPS: path.join(dir, 'backups'), HB_WATCHDOG: '', HB_MANAGED: '', RATE_LIMIT: '40', HB_SITE_URL: 'https://site.test' },
 });
 let log = '';
 srv.stdout.on('data', (d) => { log += d; });
@@ -57,5 +57,20 @@ function end(msg, code) {
   for (let i = 0; i < 45; i++) codes.push((await get({ 'X-Forwarded-For': '203.0.113.7' })).code);
   const other = await get({ 'X-Forwarded-For': '203.0.113.8' });
   if (!codes.includes(429) || other.code !== 200) return end(`SOCKET test: the flood guard should count visitors behind Caddy one by one (one visitor: ${codes.includes(429) ? 'limited' : 'never limited'}, another: ${other.code})`, 1);
-  end('socket test: server survived 10 cut connections; /status counts players; flood guard counts visitors behind Caddy one by one', 0);
+  // HB_SITE_URL (cloud): the control panel / item page opened straight on :18080 go to the website; through Caddy (this machine) they are served
+  const page = (host, p, headers = {}) => new Promise((ok) => {
+    const q = http.get({ host, port: PORT, path: p, headers, timeout: 3000 }, (r) => { r.resume(); ok({ code: r.statusCode, loc: r.headers.location || '' }); });
+    q.on('error', () => ok({ code: 0, loc: '' }));
+  });
+  const viaCaddy = await page('127.0.0.1', '/manager', { 'X-Forwarded-For': '203.0.113.9' });
+  if (viaCaddy.code === 302) return end('SOCKET test: /manager through the website (from this machine) must not be sent away again: ' + viaCaddy.loc, 1);
+  const lan = Object.values(os.networkInterfaces()).flat().find((n) => n && n.family === 'IPv4' && !n.internal);
+  let lanNote = 'no network address to test the redirect from';
+  if (lan) {
+    const r1 = await page(lan.address, '/admin?x=1'), r2 = await page(lan.address, '/'), r3 = await page(lan.address, '/status');
+    if (r1.loc !== 'https://site.test/admin?x=1' || r2.loc !== 'https://site.test/panel' || r3.code !== 200)
+      return end(`SOCKET test: HB_SITE_URL redirect wrong: /admin -> ${r1.code} ${r1.loc}, / -> ${r2.code} ${r2.loc}, /status -> ${r3.code}`, 1);
+    lanNote = 'control panel on :18080 goes to the website';
+  }
+  end('socket test: server survived 10 cut connections; /status counts players; flood guard counts visitors behind Caddy one by one; ' + lanNote, 0);
 })();
