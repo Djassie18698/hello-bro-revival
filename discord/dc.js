@@ -114,7 +114,8 @@ async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_ID
     const all = [...active, ...old.filter((t) => !active.some((x) => x.id === t.id))].sort((x, y) => (BigInt(y.last_message_id || y.id) > BigInt(x.last_message_id || x.id) ? 1 : -1));
     const lines = [];
     for (const t of all) {
-      const last = (await call('GET', `/channels/${t.id}/messages?limit=1`).catch(() => []))[0];
+      // the bug helper's quick "👀 Got it" after an owner message doesn't count: the owner's message still waits for the fixer
+      const last = (await call('GET', `/channels/${t.id}/messages?limit=10`).catch(() => [])).find((m) => !(m.author.id === me.id && /^👀 Got it/.test(m.content || '')));
       const who = !last ? '?' : last.author.id === me.id ? 'bot' : last.author.id === ownerId ? 'OWNER' : last.author.username;
       lines.push(`[${t.id}] ${t.name} · ${(t.applied_tags || []).map((x) => names[x] || x).join(', ') || 'no tag'} · last: ${who}${last ? ' ' + last.timestamp.slice(0, 16).replace('T', ' ') : ''}${t.thread_metadata && t.thread_metadata.archived ? ' · archived' : ''}`);
     }

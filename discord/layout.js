@@ -52,7 +52,7 @@ const LAYOUT = [
     // the bug fixer's desk (owner, 10 Nov 2026: "a forum, a new post per thing that's needed"): one post per report or question, the state as a tag;
     // the owner answers inside a post (or starts a post with a request) and the next fixer run acts on it (scheduled task hellobro-bug-fixer)
     { name: 'bug-fixer', forum: true, topic: 'The bug fixer: one post per bug report or question. The tag shows where it stands. Answer inside a post, or start a new post to ask the fixer something; it reads them on every run (every 2 hours).',
-      tags: [['Question for you', '❓'], ['Working on it', '🔧'], ['Fixed, not live yet', '✅'], ['Live', '🚀'], ['Not possible', '🚫'], ['Wish', '💡'], ['Request', '📝']] },
+      tags: [['New report', '🆕'], ['Question for you', '❓'], ['Working on it', '🔧'], ['Fixed, not live yet', '✅'], ['Live', '🚀'], ['Not possible', '🚫'], ['Wish', '💡'], ['Request', '📝']] },
     { name: 'patch-testing', topic: 'Test new server and game updates before they go out.', alsoRoles: ['Shinobi Elder'] }, // €5 perk: early access to test updates
     { name: 'bot-logs', topic: 'Bot logs.' },
     { name: 'Staff VC', voice: true },

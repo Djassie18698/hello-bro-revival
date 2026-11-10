@@ -210,8 +210,9 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
       let m;
       if (p === '/users/@me') return BOT;
       if (p === '/users/@me/guilds') return [{ id: 'g' }];
-      if (p === '/guilds/g/channels') return [{ id: 'bugs', name: 'bugs-and-issues', type: 15, available_tags: [{ id: 'tn', name: 'Needs info' }, { id: 'tw', name: 'With the developer' }] }, { id: 'logs', name: 'bot-logs', type: 0 }];
+      if (p === '/guilds/g/channels') return [{ id: 'bugs', name: 'bugs-and-issues', type: 15, available_tags: [{ id: 'tn', name: 'Needs info' }, { id: 'tw', name: 'With the developer' }] }, { id: 'logs', name: 'bot-logs', type: 0 }, { id: 'fix', name: 'bug-fixer', type: 15, available_tags: [{ id: 'tnew', name: 'New report' }] }];
       if (p === '/guilds/g/threads/active') return { threads: list };
+      if (p === '/channels/fix/threads' && method === 'POST') { const tid = String(BigInt(snow(t)) + BigInt(++n)); const x = msg(BOT, body.message.content, t); x.id = tid; posts[tid] = [x]; list.push({ id: tid, parent_id: 'fix', name: body.name, applied_tags: body.applied_tags, last_message_id: tid }); return { id: tid, last_message_id: tid }; }
       if ((m = /^\/channels\/(\d+)$/.exec(p)) && method === 'PATCH') { patches.push([m[1], body.applied_tags]); return {}; }
       if ((m = /^\/channels\/(\w+)\/messages\/(\w+)\/reactions\/([^/]+)\/@me$/.exec(p))) { reactions.push([m[1], m[2], decodeURIComponent(m[3])]); return null; }
       if ((m = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(p)) && method === 'GET') return (posts[m[1]] || []).find((x) => x.id === m[2]);
@@ -242,6 +243,19 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
     ok(logs.length === 1 && new RegExp('report-id: ' + pid + ' · post-id: ' + pid).test(logs[0].content), 'forum: complete report in #bot-logs with the post number');
     ok(patches.some(([id, tg]) => id === pid && tg[0] === 'tw'), 'forum: the post gets the tag With the developer');
     ok(reactions.some(([c, m, e]) => c === pid && m === pid && e === '📝'), 'forum: 📝 on the post itself');
+    // the report's post in #bug-fixer, opened by the bot at once
+    const fp = list.find((x) => x.parent_id === 'fix');
+    ok(fp && fp.name === 'Arena button does nothing' && fp.applied_tags[0] === 'tnew' && new RegExp('report-id: ' + pid).test(posts[fp.id][0].content), '#bug-fixer: a post per finished report, tag New report');
+    // the owner answers in it -> 👀 and a short "seen" right away; the bot's own messages are not answered
+    const before = posts[fp.id].length;
+    t += 1000; await h.tick();
+    ok(posts[fp.id].length === before, '#bug-fixer: nothing to answer while nobody wrote');
+    const om = msg(OWNER, 'keep it original', t + 10); om.id = snow(t + 10); posts[fp.id].push(om); fp.last_message_id = om.id;
+    t += 1000; await h.tick();
+    ok(reactions.some(([c, m, e]) => c === fp.id && m === om.id && e === '👀') && /Got it/.test(posts[fp.id].at(-1).content), '#bug-fixer: owner message seen right away');
+    const n1 = posts[fp.id].length; fp.last_message_id = posts[fp.id].at(-1).id;
+    t += 1000; await h.tick();
+    ok(posts[fp.id].length === n1, '#bug-fixer: "seen" only once per owner message');
   }
 
   console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety, claim, forum)');

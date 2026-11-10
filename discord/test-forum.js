@@ -15,7 +15,7 @@ const { run } = require('./dc');
     if (path === '/guilds/g/threads/active') return { threads: [threads['111111111111111111']] };
     if (path.startsWith('/channels/f1/threads/archived/public')) return { threads: [threads['222222222222222222']] };
     let m;
-    if ((m = path.match(/^\/channels\/(\d{18})\/messages\?limit=1$/))) return [last[m[1]]];
+    if ((m = path.match(/^\/channels\/(\d{18})\/messages\?limit=10$/))) return m[1] === '111111111111111111' ? [{ id: '21', author: { id: 'bot' }, content: '👀 Got it. The bug fixer picks this up', timestamp: '2026-11-10T22:01:00Z' }, last[m[1]]] : [last[m[1]]];
     if ((m = path.match(/^\/channels\/(\d{18})$/))) { if (method === 'PATCH') { sent.push([method, path, body]); return {}; } return threads[m[1]]; }
     if ((m = path.match(/^\/channels\/(\d{18})\/messages$/)) && method === 'POST') { sent.push([method, path, body]); return { id: 'm' }; }
     throw new Error('unexpected ' + method + ' ' + path);

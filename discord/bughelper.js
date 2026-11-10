@@ -136,7 +136,7 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   const idleMs = (Number(env.BUG_IDLE_MIN) || IDLE_MIN) * 60e3;
   const owners = new Set(String(env.OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean));
   const claimers = new Set([...owners, ...String(env.CLAIM_IDS || '').split(',').map((s) => s.trim()).filter(Boolean)]);
-  let me, gid, bugId, staffId, forum = false, tagIds = {};
+  let me, gid, bugId, staffId, forum = false, tagIds = {}, fixerId = null, fixerTags = {};
   const home = (t) => (forum ? t.id : bugId); // where a report's first message lives: the forum post itself, or the channel
   // .claim / .reclaim from the owner, else null
   const command = (m) => {
@@ -159,6 +159,10 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     const bc = chans.find((c) => c.id === bugId);
     forum = !!(bc && bc.type === 15);
     if (forum) tagIds = Object.fromEntries((bc.available_tags || []).map((x) => [x.name, x.id]));
+    // the bug fixer's staff forum #bug-fixer (owner, 10 Nov 2026: "a full pipeline"): a finished report gets its post there at once (tag New report),
+    // and when the owner writes in a post the bot answers right away that it was seen (the fixer on the PC acts on it at its next run)
+    const fx = chans.find((c) => c.name === (env.BUG_FIXER_FORUM || 'bug-fixer') && c.type === 15);
+    if (fx) { fixerId = fx.id; fixerTags = Object.fromEntries((fx.available_tags || []).map((x) => [x.name, x.id])); }
     if (!bugId || !staffId) throw new Error('channel #' + (bugId ? env.BUG_STAFF_CHANNEL || 'bot-logs' : env.BUG_CHANNEL || 'bugs-and-issues') + ' not found');
     if (forum && state.mode !== 'forum') { state.mode = 'forum'; for (const t of Object.values(state.threads)) t.done = true; /* threads of the old text channel: left as they are */ state.last = String((BigInt(now()) - 1420070400000n) << 22n); } // a forum: posts from now on
     if (!state.last) { const top = await call('GET', `/channels/${bugId}/messages?limit=1`); state.last = top.length ? top[0].id : '0'; } // start from now, not the history
@@ -179,7 +183,20 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   }
 
   async function forward(t, missingAnswer = false) {
-    await post(staffId, reportText(t, t.report || { kind: 'bug', title: t.title, notes: t.playerText || '' }, link(t.id), missingAnswer));
+    const text = reportText(t, t.report || { kind: 'bug', title: t.title, notes: t.playerText || '' }, link(t.id), missingAnswer);
+    await post(staffId, text);
+    if (fixerId && !t.fixerPost) { // its post in #bug-fixer: the fixer works in it, the owner follows it there
+      const r = t.report || {};
+      const title = ((t.test ? '🧪 TEST: ' : r.kind === 'wish' ? '💡 ' : '') + (r.title || t.title || 'Bug report')).replace(/\s+/g, ' ').slice(0, 100);
+      const parts = splitMessage(secretProblem(text) ? '(report text left out: it contained something that looks private; see #bot-logs)' : text);
+      const tag = fixerTags[t.test ? 'Request' : r.kind === 'wish' ? 'Wish' : 'New report'];
+      try {
+        const th = await call('POST', `/channels/${fixerId}/threads`, { name: title, applied_tags: tag ? [tag] : [], message: { content: parts[0], allowed_mentions: { parse: [] } } });
+        for (const p of parts.slice(1)) await call('POST', `/channels/${th.id}/messages`, { content: p, allowed_mentions: { parse: [] } });
+        t.fixerPost = th.id;
+        state.fixerSeen = state.fixerSeen || {}; state.fixerSeen[th.id] = th.last_message_id || th.id;
+      } catch (e) { log(`could not open its #bug-fixer post: ${e.message}`); }
+    }
     t.done = true;
     await call('PUT', `/channels/${home(t)}/messages/${t.post}/reactions/${encodeURIComponent('📝')}/@me`).catch(() => {});
     await setTag(t, t.report && t.report.kind === 'wish' ? 'Wish' : 'With the developer');
@@ -228,6 +245,31 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   async function tick() {
     if (forum) await newPosts(); else await newMessages();
     await followUp();
+    if (fixerId) await watchFixer();
+  }
+
+  // #bug-fixer: the owner wrote in a post (an answer, an instruction, a new request) -> 👀 and a short "seen" right away,
+  // so they know it arrived; the fixer on the PC (scheduled task, every BUG_FIXER_EVERY minutes) acts on it at its next run
+  async function watchFixer() {
+    const active = ((await call('GET', `/guilds/${gid}/threads/active`)) || {}).threads || [];
+    state.fixerSeen = state.fixerSeen || {};
+    const first = !state.fixerInit;
+    for (const th of active.filter((x) => x.parent_id === fixerId)) {
+      const lastId = th.last_message_id || th.id, seen = state.fixerSeen[th.id];
+      if (first) { state.fixerSeen[th.id] = lastId; continue; } // what was there before the bot started: not news
+      if (seen && !newer(lastId, seen)) continue;
+      const msgs = (await call('GET', `/channels/${th.id}/messages?${seen ? 'after=' + seen + '&' : ''}limit=20`).catch(() => [])).sort(byId);
+      state.fixerSeen[th.id] = msgs.length ? msgs[msgs.length - 1].id : lastId;
+      const mine = msgs.filter((m) => m.author && owners.has(m.author.id));
+      if (!mine.length) continue;
+      await call('PUT', `/channels/${th.id}/messages/${mine[mine.length - 1].id}/reactions/${encodeURIComponent('👀')}/@me`).catch(() => {});
+      if (msgs[msgs.length - 1].author.id === me.id) continue; // already answered
+      const every = Number(env.BUG_FIXER_EVERY) || 30;
+      const sent = await post(th.id, `👀 Got it. The bug fixer picks this up at its next run (it checks every ${every} minutes while the PC is on).`);
+      if (sent) state.fixerSeen[th.id] = sent.id;
+      log(`owner wrote in #bug-fixer post ${th.id}: seen`);
+    }
+    state.fixerInit = true;
   }
 
   // forum: every new post (a thread in the forum) is a report
