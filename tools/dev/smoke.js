@@ -123,6 +123,15 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     }
     delete process.env.HB_SKILLS;
     ck(both === 0, `the pet clawed in ${both} rounds that also fired a ninjutsu (the client then drops the cut-in)`);
+    // ORIGINAL "+N" box (Advance photos "+0 -> +650"): rank and training stars are flat bonuses, stats themselves unchanged; team bonus adds them
+    {
+      const id = db.prepare('SELECT id FROM pets WHERE uid=77 ORDER BY id DESC').get().id;
+      const statsOf = () => { const x = pet.listXml(db, pl77); const g = (t) => Number((new RegExp(`<${t}>(\\d+)</${t}>`).exec(x) || [])[1]); return { a: g('attack'), b: g('attack_buff') }; };
+      const s0 = statsOf();
+      db.prepare('UPDATE pets SET rank=1, star=2 WHERE id=?').run(id);
+      const s1 = statsOf(), tb = pet.teamBonus(db, 77, 1);
+      ck(s0.b === 0 && s1.a === s0.a && s1.b === 650 + 200 && tb.attack >= s1.a + s1.b, `pet +N box: ${JSON.stringify([s0, s1, tb])}, want stats unchanged and +850 (rank 1 650 + star 2 200)`);
+    }
     db.prepare('DELETE FROM pets WHERE uid=77').run();
     // elements (CRoundTeamFightView::initLimitData): CauseLimit 1 = the attacker's element beats the defender's (their defence -LimitVal),
     // -1 = the defender's beats the attacker's (my attack -LimitVal). Water(1) > Fire(2) > Wind(3) > Thunder(5) > Earth(4) > Water.
@@ -486,6 +495,16 @@ for (const pick of [55, 56, 57]) {
         && (kind !== 'chest' || /<card>|<prop>/.test(x));
       if (!ok) { bad++; console.log(`STORY WHEEL ${kind}: type ${type} (want ${want}), gold +${af.gold - b4.gold}, silver +${af.coin - b4.coin}, energy ${af.energy - b4.energy}`, x.slice(-400)); }
     }
+    // Double Exp Pill (Discord report, buva, 10 Nov 2026): the client credits the stage's own exp plus the award's <exp>, so the pill's
+    // extra copy must be in <exp> (else the screen shows no change while the save got x2)
+    process.env.HB_WHEEL = 'none';
+    db.prepare('DELETE FROM stage_clears WHERE uid=77 AND chap=1').run();
+    game.setStage(db, 77, 1, 1, 3); db.prepare('UPDATE players SET energy=200, level=40 WHERE uid=77').run();
+    db.exec('CREATE TABLE IF NOT EXISTS buffs (uid INTEGER, server_id INTEGER, kind INTEGER, until INTEGER, PRIMARY KEY(uid, server_id, kind))');
+    db.prepare('INSERT OR REPLACE INTO buffs VALUES(77, 1, ?, ?)').run(game.BUFF_EXP, Math.floor(Date.now() / 1000) + 300);
+    const px = pve({ ChapID: 1, StageID: 2, Pos: 1 }), pexp = Number((/<award[^>]*>[\s\S]*?<exp>(\d+)<\/exp>/.exec(px) || [])[1]);
+    if (pexp !== (row[23] || 6)) { bad++; console.log(`DOUBLE EXP PILL: award <exp> ${pexp}, want the stage's exp ${row[23]} so the client shows x2`); }
+    db.prepare('DELETE FROM buffs WHERE uid=77').run();
     delete process.env.HB_WHEEL;
   }
   // 7 Nov 2026 audit of the game's own tables (docs/TABLE-COLUMNS.md): original values that replaced our guesses

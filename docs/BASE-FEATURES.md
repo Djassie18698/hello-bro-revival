@@ -55,7 +55,7 @@ expensive with each use and resets at midnight.
 | Level up | grain (item 36): 20 to 70 per level (`petupgrade` table), max level 50 |
 | Rank up | nostrum (item 37): 50 to 240 per rank, success 100% down to 10% (`petupgradeequ`), max rank 10 |
 | Stars (training) | normal: 30 gold, +30 per use up to 150, 100 points; special: 100 gold, 150 points (`petinfo`); points per star from `petupgradestar`, max 10 stars |
-| Stats | base + per-level growth from `petinfo`, rank bonus from `petupgradeequ`, star % from `petupgradestar` |
+| Stats | base + per-level growth from `petinfo`; the "+N" box = rank bonus from `petupgradeequ` + star bonus from `petupgradestar` (both flat, like the original Advance photos 3483, 4124, 4249; 10 Nov 2026) |
 
 Grain and nostrum are sold in the mystery shop (5 or 10 at a time).
 

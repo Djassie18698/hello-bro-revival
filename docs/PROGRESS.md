@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 12 | 3 | 2 | 1 |
+| Discord reports | 12 | 5 | 1 | 1 |
 
 ## Bug list 1
 
@@ -118,7 +118,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | INSTALL-WITH-USB.bat could not download Android's USB tool (winget said "not found") but still said "Installed" (10 Nov) | Winget's Google package pointed at a removed version. The script now downloads the tool straight from Google (fixed by the owner). The player then got past it; their Samsung S25 Ultra is 64-bit only, so the game itself can't run there (see the next row) |
 | ✅ | Sage Growth: "maximum" adds no extra stones and extra stones never raise the chance (shows +0%) (10 Nov, buva) | Fixed 10 Nov (checked in the game): the rate list told the game stone_level 7/8 (the item ids) where it wants 1 (Sage Stone I) / 2 (Sage Stone III). Extra stones now use the ORIGINAL photo numbers (owner's choice): +0.2 % a Sage Stone III, at most +10 % on top; Sage Stone I +0.1 % (ours). "maximum" picks 50 Sage Stone III (2% +10% at Sage 12); the server only takes the stones that count |
 | 🧪 | Secret Shop: "grain x10" cost 4000 Ninja Souls (10 Nov, buva) | The game's own shop table has a typo (4000; grain x5 is 200, nostrum x10 is 400) and the original's photos show grain x10 at 400 souls. Now it shows and charges 400. Checked on a test save; live after the next public update |
-| ⏳ | Pets: training "attribute enhance" only +1 / +4 (10 Nov, buva) | Level-up (+150/+100/+80 for Gamakichi) and Advance (+650) follow the game's tables and match the original photos. The training star bonus is a number we chose (the table says 50, 200 ... 1400 per star, we show it as +1 %, +4 % ... +28 %); waiting for the owner's decision on the original value |
+| 🧪 | Pets: training "attribute enhance" only +1 / +4 (10 Nov, buva) | Level-up and Advance already matched the original. The training star bonus was our guess (+1 % ... +28 %). The original photos of the Advance screen show that "+" box as a flat number (+650, +1450, +2600) next to unchanged stats, so (owner's OK, 10 Nov) the stars now add the game table's own flat numbers: +50, +200, +350 ... +1400 per stat, and the rank bonus shows in the "+" box like the original. Checked on a test save; live after the next public update |
+| 🧪 | Double EXP Pill did nothing (10 Nov, buva) | The server did give double training EXP, but the game counts the EXP itself from the stage table and only adds what the reward says, so the screen showed normal EXP (and the bar jumped only at the next login). The extra EXP now goes in the reward, so the game shows x2 right away. As the pill says, it is for training only. Checked on a test save; live after the next public update |
 | ⏳ | "hello" thread with no report (10 Nov, enzobfer) | Nothing described; asked the player once what went wrong |
 | 🚫 | The game does not run on 64-bit-only phones (4 Nov) | The game's engine (libgame.so) exists only as a 32-bit file and there is no source code to rebuild it; phones that dropped 32-bit apps can't run it (a player answered this on Discord) |
 

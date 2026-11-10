@@ -38,15 +38,17 @@ function all(db, pl) {
   return db.prepare('SELECT * FROM pets WHERE uid=? AND server_id=? ORDER BY id').all(pl.uid, pl.server_id);
 }
 const info = (petId) => game.table('petinfo').rows.find((r) => r[0] === petId);
-// petinfo [9..11] = base attack/defense/chakra, [13..15] = added per level; petupgradeequ [5..7] = flat bonus at a rank;
-// petupgradestar [3] / 50 = % buff at a star.
+// petinfo [9..11] = base attack/defense/chakra, [13..15] = added per level. The "+N" next to each stat (attack_buff ...) is a FLAT bonus:
+// ORIGINAL photos of the Advance screen show it as "+0 -> +650", "+1450 -> +2600" (= petupgradeequ [5..7]) with the stats themselves
+// unchanged (photos 3483, 4124, 4249; Pakkun "team bonus +650 each", 0059). Training stars fill the same box, so petupgradestar [3]
+// (50, 200, 350 ... 1400) is added the same way (owner, 10 Nov 2026: "what do the pictures say? give it to the fixer"; was our +1 % ... +28 %).
 function stats(p) {
   const r = info(p.pet_id) || [];
   const eq = game.table('petupgradeequ').rows.find((x) => x[0] === p.rank);
   const st = game.table('petupgradestar').rows.find((x) => x[0] === p.star);
-  const base = (i) => (r[i] || 0) + (r[i + 4] || 0) * (p.level - 1) + (eq ? eq[5 + i - 9] : 0);
-  const buff = st ? Math.round(st[3] / 50) : 0;
-  return { attack: base(9), defense: base(10), chakala: base(11), attack_buff: buff, defense_buff: buff, chakala_buff: buff };
+  const base = (i) => (r[i] || 0) + (r[i + 4] || 0) * (p.level - 1);
+  const buff = (i) => (eq ? eq[5 + i - 9] || 0 : 0) + (st ? st[3] || 0 : 0);
+  return { attack: base(9), defense: base(10), chakala: base(11), attack_buff: buff(9), defense_buff: buff(10), chakala_buff: buff(11) };
 }
 const statXml = (s) => Object.entries(s).map(([k, v]) => el(k, v)).join('');
 const petXml = (p) => '<pet>' + el('id', p.id) + el('pet_id', p.pet_id) + el('level', p.level) + el('rank', p.rank) + el('star', p.star) +
@@ -62,9 +64,9 @@ function teamBonus(db, uid, sid) {
   const t = { attack: 0, defense: 0, chakala: 0 };
   for (const p of db.prepare('SELECT * FROM pets WHERE uid=? AND server_id=? AND slot>=0').all(uid, sid)) {
     const s = stats(p), f = 1;
-    t.attack += Math.round(s.attack * (1 + s.attack_buff / 100) * f);
-    t.defense += Math.round(s.defense * (1 + s.defense_buff / 100) * f);
-    t.chakala += Math.round(s.chakala * (1 + s.chakala_buff / 100) * f);
+    t.attack += Math.round((s.attack + s.attack_buff) * f);
+    t.defense += Math.round((s.defense + s.defense_buff) * f);
+    t.chakala += Math.round((s.chakala + s.chakala_buff) * f);
   }
   return t;
 }

@@ -153,7 +153,10 @@ function trainingFight(db, pl, chap, part, pos, buy) {
     if (pl.gold < game.BOSS_COST) return '<root code="5"><message>not enough gold</message></root>';
     db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(game.BOSS_COST, pl.uid, pl.server_id);
   }
-  const cost = row[22] || 3, exp = (row[23] || 6) * (game.buffOn(db, pl, game.BUFF_EXP) ? 2 : 1), coin = row[24] || 15; // Double Exp Pill running: x2
+  // Double Exp Pill running: x2. The client credits only the stage's own exp (roundinfo [23], CSectionCellView member) plus the award's
+  // <exp> (CPlayerDataMgr::AddDataFromReward, on both the boss and the wheel path), so the pill's extra copy goes in the award's <exp>.
+  const pill = game.buffOn(db, pl, game.BUFF_EXP), cost = row[22] || 3, exp = (row[23] || 6) * (pill ? 2 : 1), coin = row[24] || 15;
+  const pillExtra = pill ? exp / 2 : 0;
   // Not enough energy: code 40004 makes the client open its ramen window (CSectionCellView::onHttpRequestCompleted) so the player can refill.
   if (pl.energy < cost) return '<root code="40004"><message>not enough energy</message></root>';
   // Real enemies for this stage and a real result: my team's power against theirs, with some luck (ours: 0.85-1.15). A lost fight costs the
@@ -183,7 +186,8 @@ function trainingFight(db, pl, chap, part, pos, buy) {
   game.bumpTask(db, pl.uid, pl.server_id, 1); game.bumpTask(db, pl.uid, pl.server_id, 2);
   festival.dropOnWin(db, pl, 'training'); // Christmas Caps while a festival runs
   // god card fragments of one of the player's own god cards (shards.js, chances in the Server Manager)
-  const award = require('./shards').addToAward(stageAward(db, pl, row, coin, exp), require('./shards').drop(db, pl, row[38] ? 'boss' : 'stage')); // before reading the energy: the wheel's energy prize shows at once
+  const award = require('./shards').addToAward(stageAward(db, pl, row, coin, exp), require('./shards').drop(db, pl, row[38] ? 'boss' : 'stage'))
+    .replace(/<exp>(\d+)<\/exp>/,(m, n) => `<exp>${Number(n) + pillExtra}</exp>`); // before reading the energy: the wheel's energy prize shows at once
   const energy = db.prepare('SELECT energy FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).energy;
   const curPart = game.stagePart(chap, game.getStage(db, pl.uid, pl.server_id, chap)).part; // next part opens when the boss falls
   const e = game.partEntry(db, pl, chap, part); // the client writes these into the part that was just fought
