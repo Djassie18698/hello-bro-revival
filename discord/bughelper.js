@@ -170,6 +170,7 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   }
 
   async function post(channel, text) {
+    text = String(text).replace(/^\s*\u{1F4F1}/u, '- \u{1F4F1}'); // never look like a message from the owner's Bug fixer app (dc.js APP_OWNER)
     const bad = secretProblem(text);
     if (bad) { log(`not posting a message that contains ${bad}`); text = bad.startsWith('an IP') ? text.replace(/\b\d{1,3}(\.\d{1,3}){3}\b/g, '<server-address>') : '(message removed: it contained ' + bad + ')'; }
     let last;

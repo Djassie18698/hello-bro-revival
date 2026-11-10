@@ -20,6 +20,9 @@ const fs = require('fs');
 const { secretProblem, splitMessage } = require('./tools');
 
 const API = 'https://discord.com/api/v10';
+// The owner's Bug fixer app (tools/fixer-viewer) writes in #bug-fixer posts with the bot's account; these messages start with APP_OWNER
+// and count as the owner's (owner, 11 Nov 2026). Only the app writes them: bughelper.js never starts a message with it.
+const APP_OWNER = /^\u{1F4F1} \*\*Owner\*\* \(Bug fixer app\):/u;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function makeApi(token, fetchFn = fetch) {
@@ -58,7 +61,7 @@ async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_ID
 
   if (cmd === 'read') {
     const msgs = (await call('GET', `/channels/${ch.id}/messages?limit=${Math.min(Number(a) || 15, 50)}`)).reverse();
-    return out(msgs.map((m) => `[${m.id}] ${m.timestamp ? m.timestamp.slice(0, 16).replace('T', ' ') + ' ' : ''}${m.author.id === me.id ? '(bot)' : m.author.id === ownerId ? m.author.username + ' (OWNER)' : m.author.username}` +
+    return out(msgs.map((m) => `[${m.id}] ${m.timestamp ? m.timestamp.slice(0, 16).replace('T', ' ') + ' ' : ''}${m.author.id === me.id ? (APP_OWNER.test(m.content || '') ? 'owner via the Bug fixer app (OWNER)' : '(bot)') : m.author.id === ownerId ? m.author.username + ' (OWNER)' : m.author.username}` +
       `${m.message_reference ? ' (reply to ' + m.message_reference.message_id + ')' : ''}: ${m.content}` +
       (m.attachments || []).map((x) => `\n  [attachment] ${x.url}`).join('') +
       ((m.reactions || []).length ? '\n  [reactions] ' + m.reactions.map((x) => x.emoji.name + x.count).join(' ') : '')).join('\n---\n'));
@@ -116,7 +119,7 @@ async function run(argv, { token, guildId, ownerId = String(process.env.OWNER_ID
     for (const t of all) {
       // the bug helper's quick "👀 Got it" after an owner message doesn't count: the owner's message still waits for the fixer
       const last = (await call('GET', `/channels/${t.id}/messages?limit=10`).catch(() => [])).find((m) => !(m.author.id === me.id && /^👀 Got it/.test(m.content || '')));
-      const who = !last ? '?' : last.author.id === me.id ? 'bot' : last.author.id === ownerId ? 'OWNER' : last.author.username;
+      const who = !last ? '?' : last.author.id === me.id ? (APP_OWNER.test(last.content || '') ? 'OWNER' : 'bot') : last.author.id === ownerId ? 'OWNER' : last.author.username;
       lines.push(`[${t.id}] ${t.name} · ${(t.applied_tags || []).map((x) => names[x] || x).join(', ') || 'no tag'} · last: ${who}${last ? ' ' + last.timestamp.slice(0, 16).replace('T', ' ') : ''}${t.thread_metadata && t.thread_metadata.archived ? ' · archived' : ''}`);
     }
     return out(lines.join(String.fromCharCode(10)) || '(no posts)');

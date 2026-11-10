@@ -1,16 +1,20 @@
 @echo off
-rem Builds BUG-FIXER-VIEWER.exe on your Desktop (no install needed: uses the C# compiler that comes with Windows).
-rem The page (app.html) and the icon are put inside the exe. Close the running Bug fixer first (tray icon > Quit).
+rem Builds the Bug Fixer app into the folder "Bug Fixer" on your Desktop, with a shortcut next to it.
+rem No install needed: it uses the C# compiler and WPF that come with Windows. Close the running Bug Fixer first (tray icon > Quit).
 setlocal
 set HERE=%~dp0
-set CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
-if not exist "%CSC%" set CSC=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe
+set FW=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319
+if not exist "%FW%\csc.exe" set FW=%WINDIR%\Microsoft.NET\Framework\v4.0.30319
 if not exist "%HERE%app.ico" powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%make_icon.ps1"
-set OUT=%~1
-if "%OUT%"=="" set OUT=%USERPROFILE%\Desktop\BUG-FIXER-VIEWER.exe
-"%CSC%" /nologo /target:winexe /optimize+ /codepage:65001 /out:"%OUT%" /win32icon:"%HERE%app.ico" ^
-  /resource:"%HERE%app.html",app.html /resource:"%HERE%app.png",app.png /resource:"%HERE%app.ico",app.ico ^
+set DIR=%~1
+if "%DIR%"=="" set DIR=%USERPROFILE%\Desktop\Bug Fixer
+if not exist "%DIR%" mkdir "%DIR%"
+"%FW%\csc.exe" /nologo /target:winexe /optimize+ /codepage:65001 /out:"%DIR%\Bug Fixer.exe" /win32icon:"%HERE%app.ico" ^
+  /resource:"%HERE%app.png",app.png /resource:"%HERE%app.ico",app.ico ^
+  /r:"%FW%\WPF\PresentationFramework.dll" /r:"%FW%\WPF\PresentationCore.dll" /r:"%FW%\WPF\WindowsBase.dll" /r:System.Xaml.dll ^
   /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /r:System.Core.dll ^
-  "%HERE%FixerViewer.cs"
+  "%HERE%Program.cs" "%HERE%Ui.cs" "%HERE%Store.cs" "%HERE%Discord.cs" "%HERE%Parser.cs"
 if errorlevel 1 (echo BUILD FAILED & exit /b 1)
-echo Built: %OUT%
+copy /y "%HERE%app.ico" "%DIR%\Bug Fixer.ico" >nul
+if "%~1"=="" if not exist "%USERPROFILE%\Desktop\Bug Fixer.lnk" powershell -NoProfile -Command "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\Bug Fixer.lnk'); $s.TargetPath='%DIR%\Bug Fixer.exe'; $s.WorkingDirectory='%DIR%'; $s.IconLocation='%DIR%\Bug Fixer.exe,0'; $s.Description='Bug Fixer: the Hello Bro bug pipeline'; $s.Save()"
+echo Built: %DIR%\Bug Fixer.exe

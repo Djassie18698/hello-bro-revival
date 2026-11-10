@@ -1,26 +1,30 @@
-# Bug fixer (BUG-FIXER-VIEWER.exe)
+# Bug Fixer (the owner's app for the bug pipeline)
 
-The owner's window on the bug pipeline. Double-click `BUG-FIXER-VIEWER.exe` on the Desktop: a window opens with
+A real Windows 11 app (WPF, dark Mica glass, own title bar). It lives in the folder **Desktop\Bug Fixer** (`Bug Fixer.exe`),
+with a shortcut **Bug Fixer** on the Desktop. Closing the window keeps it in the tray (pop-ups); right-click the tray icon > Quit.
 
-- **Waiting for you**: posts in #bug-fixer where the fixer asked you something (tag "Question for you", or a wish it asks about),
-  and the fixes waiting to go live (read from the pinned "📦 Waiting to go live" post), each with a button that opens the Discord post.
-- **The board**: every report as a card, moving from *Asking player* → *With the fixer* → *Your answer* → *Not live yet* → *Live*
-  (wishes / not possible / not a bug below). A card joins the player's #bugs-and-issues post and its #bug-fixer post (the
-  "report-id" line). It shows the player, the age, the tags and who wrote last; click it to open Discord. A card the fixer works
-  on right now has an orange frame.
-- **The fixer**: working / resting / stuck / off (the Claude app is closed), the current step in plain words, the next check
-  (every 30 minutes), and the recent runs (quiet checks are grouped). Click a run to see everything it did.
-- **Tray icon** (stays when the window is closed): pop-ups for a question for you, a fix ready to go live, a new report and a
-  stuck fixer. Double-click the icon to open the window again; right-click > Quit to stop it.
+- **For you**: the questions the fixer asked you (Open shows the post in the app), the fixes waiting to go live (from the pinned
+  📦 post) with a **Put it live** button, and what the fixer is doing right now.
+- **Board**: every report as a card, moving from *Asking player* → *With the fixer* → *Your answer* → *Not live yet* → *Live*
+  (stopped / wishes / not possible below). A card joins the player's #bugs-and-issues post and its #bug-fixer post (the report-id line).
+- **Click a card**: the report opens in the app with both posts' messages (pictures too) and the actions:
+  **Open in Discord**, **Stop** / **Resume** (tag "Stopped": the fixer leaves it alone), **Delete** (the fixer's post, optionally the
+  player's post, and its #bot-logs line, so the fixer never picks it up again; asks first), and a box to **write to the fixer**.
+- **New request** (top left): opens a post in #bug-fixer with the tag Request.
+- **Pause the fixer** (bottom left): makes the file `%LOCALAPPDATA%\HelloBroBugFixerViewer\PAUSED`; the fixer's STEP 0 stops when it exists.
+- **Fixer runs**: every run of the last three days with its plain-words timeline (quiet checks grouped).
 
-Only reads: Discord through the bot token in `discord/.env` (read at runtime, never shown or stored, only sent to discord.com),
-the fixer's run transcripts in `%USERPROFILE%\.claude\projects\C--Users-dj199-Desktop-HelloBroServer`. It never posts or changes anything.
+What the app writes in Discord (only when you press a button) starts with `📱 **Owner** (Bug fixer app):` and is posted with the bot's
+account: `discord/dc.js` shows these as OWNER, and the fixer's prompt (scheduled task hellobro-bug-fixer, SKILL.md) treats them as
+yours, but only inside #bug-fixer. `bughelper.js` never starts a message with 📱. The bot token is read from `discord/.env` while
+the app runs (never shown, stored or put in the exe).
 
-How it works: one C# program (`FixerViewer.cs`) with a tiny web server on 127.0.0.1 (port 47816, or the last one used) that
-serves `app.html` (built into the exe) and `/api/state`; the window is Microsoft Edge in app mode (no address bar,
-own profile in `%LOCALAPPDATA%\HelloBroBugFixerViewer`). Starting the exe again just opens the window again.
+Files: `Program.cs` (start, one copy, tray), `Ui.cs` (window, pages, report panel, dialogs), `Store.cs` (background collector,
+cards and stages), `Discord.cs` (REST: read + the actions), `Parser.cs` (run transcripts → plain words), `app.ico` / `app.png`
+(made by `make_icon.ps1`).
 
-**Build:** close the running one (tray icon > Quit), then double-click `BUILD.bat` (Windows' own C# compiler, nothing to install).
-The exe lands on the Desktop (not in git). `make_icon.ps1` draws `app.ico` / `app.png` when they are missing.
-Working on the page: set `BFV_DEV=1` before starting the exe and it serves `app.html` from this folder; `#demo` /
-`#demo-working` after the address fill every column with sample cards.
+**Build:** quit the running Bug Fixer (tray > Quit), then double-click `BUILD.bat` (Windows' own C# compiler and WPF, nothing to
+install). It builds `Desktop\Bug Fixer\Bug Fixer.exe` and makes the Desktop shortcut once.
+Checks without touching the screen: `"Bug Fixer.exe" --snapshot out.png --page you|board|runs [--detail --stage fixer] [--demo]`
+draws the window into a picture; `--selftest` makes a "🧪 TEST" post in #bug-fixer, uses every write action on it and deletes it
+(result in `%LOCALAPPDATA%\HelloBroBugFixerViewer\selftest.log`).
