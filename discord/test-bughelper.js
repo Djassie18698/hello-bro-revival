@@ -197,6 +197,53 @@ const rep = (o = {}) => ({ kind: 'bug', title: 'Arena button does nothing', wher
     ok(!h.state.threads[tid].claimed, 'a player cannot claim');
   }
 
-  console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety, claim)');
+  // 6. #bugs-and-issues as a forum (owner, 10 Nov 2026): every post is a report, the bot answers inside it and sets its tag
+  {
+    let t = Date.UTC(2026, 10, 10, 22);
+    const snow = (ms) => String((BigInt(ms) - 1420070400000n) << 22n);
+    const posts = {}, list = [], logs = [], patches = [], reactions = [];
+    const BOT = { id: 'bot', username: 'HelloBro', bot: true };
+    let n = 0;
+    const msg = (author, content, at) => ({ id: snow(at) + String(++n).padStart(0, ''), type: 0, author, content, attachments: [] });
+    const newPost = (author, title, content, at) => { const m = { ...msg(author, content, at) }; m.id = snow(at); posts[m.id] = [m]; list.push({ id: m.id, parent_id: 'bugs', name: title }); return m.id; };
+    const call = async (method, p, body) => {
+      let m;
+      if (p === '/users/@me') return BOT;
+      if (p === '/users/@me/guilds') return [{ id: 'g' }];
+      if (p === '/guilds/g/channels') return [{ id: 'bugs', name: 'bugs-and-issues', type: 15, available_tags: [{ id: 'tn', name: 'Needs info' }, { id: 'tw', name: 'With the developer' }] }, { id: 'logs', name: 'bot-logs', type: 0 }];
+      if (p === '/guilds/g/threads/active') return { threads: list };
+      if ((m = /^\/channels\/(\d+)$/.exec(p)) && method === 'PATCH') { patches.push([m[1], body.applied_tags]); return {}; }
+      if ((m = /^\/channels\/(\w+)\/messages\/(\w+)\/reactions\/([^/]+)\/@me$/.exec(p))) { reactions.push([m[1], m[2], decodeURIComponent(m[3])]); return null; }
+      if ((m = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(p)) && method === 'GET') return (posts[m[1]] || []).find((x) => x.id === m[2]);
+      if ((m = /^\/channels\/(\w+)\/messages\?(.*)$/.exec(p)) && method === 'GET') {
+        const q = new URLSearchParams(m[2]); const all = (posts[m[1]] || []).slice();
+        const after = q.get('after');
+        return (after ? all.filter((x) => BigInt(x.id) > BigInt(after)) : all).reverse().slice(0, Number(q.get('limit') || 50));
+      }
+      if ((m = /^\/channels\/(\w+)\/messages$/.exec(p)) && method === 'POST') { const x = msg(BOT, body.content, t); x.id = String(BigInt(snow(t)) + BigInt(++n)); (m[1] === 'logs' ? logs : posts[m[1]]).push(x); return x; }
+      throw new Error('unexpected call ' + method + ' ' + p);
+    };
+    const claude = fakeClaude([{ action: 'ask', reply: 'Which screen?', report: rep({ where: '' }) }, { action: 'complete', reply: 'Thanks!', report: rep() }]);
+    const h = createHelper({ call, client: claude, env: { OWNER_IDS: 'own' }, now: () => t, log: () => {} });
+    const old = newPost(P1, 'Old post', 'from before the bot', t - 60000);
+    await h.init();
+    await h.tick();
+    ok(!h.state.threads[old], 'forum: posts from before the bot started are left alone');
+    t += 60000;
+    newPost(OWNER, 'Owner post', 'looking into the arena', t); // the owner's own post: left alone
+    const pid = newPost(P1, 'Arena button does nothing', 'I tap it and nothing happens', t + 1);
+    t += 1000; await h.tick();
+    ok(Object.keys(h.state.threads).length === 1 && h.state.threads[pid], 'forum: a player post is a report, the owner post is not');
+    ok(posts[pid].length === 2 && posts[pid][1].content === 'Which screen?', 'forum: the bot asks inside the post');
+    ok(JSON.stringify(claude.seen[0].messages).includes('Arena button does nothing'), "forum: the post's title goes to Claude");
+    ok(patches.some(([id, tg]) => id === pid && tg[0] === 'tn'), 'forum: the post gets the tag Needs info');
+    posts[pid].push(msg(P1, 'the arena screen, Ninja1, ninjaonline', t + 2000)); posts[pid].at(-1).id = snow(t + 2000);
+    t += 3000; await h.tick();
+    ok(logs.length === 1 && new RegExp('report-id: ' + pid + ' · post-id: ' + pid).test(logs[0].content), 'forum: complete report in #bot-logs with the post number');
+    ok(patches.some(([id, tg]) => id === pid && tg[0] === 'tw'), 'forum: the post gets the tag With the developer');
+    ok(reactions.some(([c, m, e]) => c === pid && m === pid && e === '📝'), 'forum: 📝 on the post itself');
+  }
+
+  console.log(bad ? bad + ' problem(s) in the bug helper' : 'bug helper OK (threads, questions, reports, fallback, limits, safety, claim, forum)');
   process.exit(bad ? 1 : 0);
 })().catch((e) => { console.log('CRASH', e.stack); process.exit(1); });

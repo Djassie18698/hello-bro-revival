@@ -136,7 +136,8 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
   const idleMs = (Number(env.BUG_IDLE_MIN) || IDLE_MIN) * 60e3;
   const owners = new Set(String(env.OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean));
   const claimers = new Set([...owners, ...String(env.CLAIM_IDS || '').split(',').map((s) => s.trim()).filter(Boolean)]);
-  let me, gid, bugId, staffId;
+  let me, gid, bugId, staffId, forum = false, tagIds = {};
+  const home = (t) => (forum ? t.id : bugId); // where a report's first message lives: the forum post itself, or the channel
   // .claim / .reclaim from the owner, else null
   const command = (m) => {
     if (!m || !m.author || !claimers.has(m.author.id)) return null;
@@ -153,7 +154,13 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     const chans = await call('GET', `/guilds/${gid}/channels`);
     const find = (n) => (chans.find((c) => c.name === n) || {}).id;
     bugId = find(env.BUG_CHANNEL || 'bugs-and-issues'); staffId = find(env.BUG_STAFF_CHANNEL || 'bot-logs');
+    // #bugs-and-issues as a forum (owner, 10 Nov 2026: "easier to track than posts that become threads"): every post is a report, the bot answers
+    // inside it and sets its tag (Needs info / With the developer); a plain text channel still works the old way (a thread on every post)
+    const bc = chans.find((c) => c.id === bugId);
+    forum = !!(bc && bc.type === 15);
+    if (forum) tagIds = Object.fromEntries((bc.available_tags || []).map((x) => [x.name, x.id]));
     if (!bugId || !staffId) throw new Error('channel #' + (bugId ? env.BUG_STAFF_CHANNEL || 'bot-logs' : env.BUG_CHANNEL || 'bugs-and-issues') + ' not found');
+    if (forum && state.mode !== 'forum') { state.mode = 'forum'; for (const t of Object.values(state.threads)) t.done = true; /* threads of the old text channel: left as they are */ state.last = String((BigInt(now()) - 1420070400000n) << 22n); } // a forum: posts from now on
     if (!state.last) { const top = await call('GET', `/channels/${bugId}/messages?limit=1`); state.last = top.length ? top[0].id : '0'; } // start from now, not the history
     log(`watching #${env.BUG_CHANNEL || 'bugs-and-issues'} as ${me.username}; reports go to #${env.BUG_STAFF_CHANNEL || 'bot-logs'}; Claude ${client ? 'on (' + model + ')' : 'off (no key): checklist only'}`);
   }
@@ -166,11 +173,16 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     return last;
   }
   const link = (tid) => `https://discord.com/channels/${gid}/${tid}`;
+  async function setTag(t, name) { // a forum post's state tag (best effort: the forum may not have that tag)
+    if (!forum || !tagIds[name]) return;
+    await call('PATCH', `/channels/${t.id}`, { applied_tags: [tagIds[name]] }).catch((e) => log(`tag ${name} on ${t.id}: ${e.message}`));
+  }
 
   async function forward(t, missingAnswer = false) {
     await post(staffId, reportText(t, t.report || { kind: 'bug', title: t.title, notes: t.playerText || '' }, link(t.id), missingAnswer));
     t.done = true;
-    await call('PUT', `/channels/${bugId}/messages/${t.post}/reactions/${encodeURIComponent('📝')}/@me`).catch(() => {});
+    await call('PUT', `/channels/${home(t)}/messages/${t.post}/reactions/${encodeURIComponent('📝')}/@me`).catch(() => {});
+    await setTag(t, t.report && t.report.kind === 'wish' ? 'Wish' : 'With the developer');
     log(`forwarded ${t.id} (${t.title})`);
   }
 
@@ -190,8 +202,9 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
 
   // Answer the newest player message in thread t (or the post itself when the thread is new).
   async function handle(t) {
-    const starter = await call('GET', `/channels/${bugId}/messages/${t.post}`);
-    const history = (await call('GET', `/channels/${t.id}/messages?limit=50`)).filter((m) => (m.type === 0 || m.type === 19) && !command(m)).sort(byId);
+    const starter = await call('GET', `/channels/${home(t)}/messages/${t.post}`);
+    if (forum && t.title && !String(starter.content || '').toLowerCase().includes(t.title.toLowerCase())) starter.content = t.title + '\n' + (starter.content || ''); // the post's title is part of the report
+    const history = (await call('GET', `/channels/${t.id}/messages?limit=50`)).filter((m) => m.id !== t.post && (m.type === 0 || m.type === 19) && !command(m)).sort(byId);
     const lastMsg = history.length ? history[history.length - 1] : starter;
     if (!t.seen || newer(lastMsg.id, t.seen)) t.seen = lastMsg.id;
     if (t.claimed || !fromPlayer(t, lastMsg)) return; // nothing new from the player, or the owner has the thread
@@ -207,12 +220,34 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
     const sent = await post(t.id, d.reply);
     if (sent) t.seen = sent.id;
     t.botAt = now();
-    if (d.action === 'ask') t.questions++;
+    if (d.action === 'ask') { t.questions++; await setTag(t, 'Needs info'); }
     else if (d.action === 'complete' || (d.action === 'not_a_bug' && t.report && t.report.kind === 'wish')) await forward(t);
-    else t.done = true; // a question or chat: pointed to #support / #general
+    else { t.done = true; await setTag(t, 'Not a bug'); } // a question or chat: pointed to #support / #general
   }
 
   async function tick() {
+    if (forum) await newPosts(); else await newMessages();
+    await followUp();
+  }
+
+  // forum: every new post (a thread in the forum) is a report
+  async function newPosts() {
+    const active = (await call('GET', `/guilds/${gid}/threads/active`)).threads || [];
+    const posts = active.filter((th) => th.parent_id === bugId && newer(th.id, state.last) && !state.threads[th.id]).sort(byId);
+    for (const th of posts) {
+      if (newer(th.id, state.last)) state.last = th.id;
+      const p = await call('GET', `/channels/${th.id}/messages/${th.id}`).catch(() => null); // the post's first message has the post's id
+      if (!p || !p.author) continue;
+      const test = !!(owners.has(p.author.id) && /^\s*test\b/i.test(th.name + ' ' + (p.content || '')));
+      if (p.author.bot || (owners.has(p.author.id) && !test)) continue;
+      const t = state.threads[th.id] = { id: th.id, post: th.id, author: p.author.id, name: who(p), title: String(th.name || '').slice(0, 90), started: now(), questions: 0, done: false, test };
+      log(`new report ${th.id} by ${t.name}: forum post "${t.title}"`);
+      await handle(t);
+    }
+  }
+
+  // text channel: a thread on every new post
+  async function newMessages() {
     const posts = (await call('GET', `/channels/${bugId}/messages?after=${state.last}&limit=50`)).sort(byId);
     for (const p of posts) {
       if (newer(p.id, state.last)) state.last = p.id;
@@ -226,6 +261,10 @@ function createHelper({ call, client, env = process.env, now = () => Date.now(),
       log(`new report ${p.id} by ${t.name}: thread ${th.id}`);
       await handle(t);
     }
+  }
+
+  // every open report: new answers, .claim, forwarding after the player went quiet
+  async function followUp() {
     for (const t of Object.values(state.threads)) {
       if (now() - t.started > KEEP_MS) { delete state.threads[t.id]; continue; }
       if (t.done) continue;

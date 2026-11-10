@@ -33,7 +33,11 @@ const LAYOUT = [
     { name: 'install-help', readOnly: true, topic: 'How to install and update Hello Bro (public server, phone, your own server). Questions go in #support.' },
     { name: 'how-to-play', readOnly: true, topic: 'Game guide: training, team, recruit, spar, arena, base buildings, events, cross-server battle.' },
     { name: 'support', topic: 'Ask for help here. Say: public server or your own, BlueStacks or phone, and what you see on screen.' },
-    { name: 'bugs-and-issues', topic: 'Found a bug? Post what you did, what happened and a screenshot. Also on GitHub: github.com/Djassie18698/hello-bro-revival/issues' },
+    // a forum since 10 Nov 2026 (owner: "easier to track than posts that become threads"): one post per report; the bug helper (bughelper.js)
+    // answers inside it and sets the tags (moderated: players can't set them), the bug fixer sets Fixed / Live / Not possible
+    { name: 'bugs-and-issues', forum: true, open: true, topic: 'Found a bug? Make a New Post: a short title, then what you did, what happened, and a screenshot. The bot asks for anything missing; the tag shows where your report stands. Also on GitHub: github.com/Djassie18698/hello-bro-revival/issues',
+      tags: [['Needs info', '❔'], ['With the developer', '🔧'], ['Fixed', '✅'], ['Live', '🚀'], ['Not possible', '🚫'], ['Wish', '💡'], ['Not a bug', '💬']].map(([n, e]) => [n, e, true]) },
+    { name: 'bugs-and-issues-old', was: 'bugs-and-issues', readOnly: true, topic: 'The bug reports from before 10 Nov 2026 (read-only). New reports: #bugs-and-issues.' },
   ] },
   { cat: '💬 COMMUNITY', channels: [
     { name: 'general', topic: 'Chat about Hello Bro / Ninja Online. Help questions go in #support, bugs in #bugs-and-issues.' },
@@ -107,7 +111,8 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
     catPos++;
     let pos = 0;
     for (const ch of group.channels) {
-      let c = find(ch.name, 'ch');
+      let c = ch.forum ? chans.find((x) => x.name.toLowerCase() === ch.name.toLowerCase() && x.type === 15) : find(ch.name, 'ch');
+      if (!c && ch.forum && find(ch.name, 'ch')) { say(`#${ch.name} is a text channel: rename it first (it can't become a forum)`); continue; }
       if (!c && ch.was && find(ch.was, 'ch')) { c = find(ch.was, 'ch'); say(`rename #${ch.was} -> #${ch.name}`); if (apply) { await call('PATCH', `/channels/${c.id}`, { name: ch.name }); c.name = ch.name; } }
       if (!c) { say(`create ${ch.voice ? 'voice' : '#'}${ch.name}`); if (apply) { c = await call('POST', `/guilds/${GUILD}/channels`, { name: ch.name, type: ch.voice ? 2 : ch.forum ? 15 : 0, parent_id: cat.id, ...(ch.forum ? { default_forum_layout: 1 } : {}) }); chans.push(c); } else continue; }
       const patch = {};
@@ -117,7 +122,7 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
       if (ch.forum) { // forum tags (the post states): add the missing ones, keep the ids of those that exist
         const have = c.available_tags || [];
         if (ch.tags.some(([n]) => !have.some((t) => t.name === n))) {
-          patch.available_tags = [...have, ...ch.tags.filter(([n]) => !have.some((t) => t.name === n)).map(([name, emoji_name]) => ({ name, emoji_name, moderated: false }))];
+          patch.available_tags = [...have, ...ch.tags.filter(([n]) => !have.some((t) => t.name === n)).map(([name, emoji_name, moderated]) => ({ name, emoji_name, moderated: !!moderated }))];
           say(`tags #${ch.name}`);
         }
       }
@@ -126,7 +131,7 @@ const REMOVE_CATS = ['🎨 MEDIA & ARCHIVES', '❗BUG REPORTS HERE!!!❗', '🤖
       if (group.staff) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(VIEW) }); if (staff) ow.push({ id: staff, type: 0, allow: String(VIEW), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(ch.forum ? VIEW | SEND | FORUM_BOT : VIEW | SEND), deny: '0' });
         for (const n of [...(group.alsoRoles || []), ...(ch.alsoRoles || [])]) if (roleId(n)) ow.push({ id: roleId(n), type: 0, allow: String(VIEW | SEND), deny: '0' }); }
       else if (group.readOnly || ch.readOnly) { ow.push({ id: everyone, type: 0, allow: '0', deny: String(SEND) }); if (staff) ow.push({ id: staff, type: 0, allow: String(SEND), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(SEND), deny: '0' }); }
-      else if (ch.name === 'bugs-and-issues') ow.push({ id: everyone, type: 0, allow: String(VIEW | SEND), deny: '0' });
+      else if (ch.open) { ow.push({ id: everyone, type: 0, allow: String(VIEW | SEND | (1n << 38n)), deny: '0' }); ow.push({ id: botRole, type: 0, allow: String(VIEW | SEND | FORUM_BOT), deny: '0' }); } // a forum anyone can post in
       const keep = (c.permission_overwrites || []).filter((o) => ![everyone, staff, botRole, ...extraIds].includes(o.id)); // other roles (Carl-bot's reaction role etc.) stay
       const want = [...keep, ...ow];
       const norm = (l) => JSON.stringify(l.map((o) => [o.id, String(o.allow), String(o.deny)]).sort());

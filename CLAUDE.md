@@ -58,7 +58,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    Bug report template (`gh issue list`); Discord #bugs-and-issues and #support
    (`cd discord && node --env-file=.env dc.js read bugs-and-issues`). Never reply in Discord chat channels, EXCEPT on bug reports in
    #bugs-and-issues (owner, 3 Nov 2026): see step 7. `docs/DISCORD-REPORTS.md` logs every report and its state: read it first.
-   **Bug helper + fixer (8 Nov 2026, owner):** `discord/bughelper.js` (inside the cloud bot) opens a thread on every new #bugs-and-issues post,
+   **Bug helper + fixer (8 Nov 2026, owner):** `discord/bughelper.js` (inside the cloud bot) answers inside every new #bugs-and-issues post (a **forum** since 10 Nov 2026: one post per report, tags Needs info / With the developer / Fixed / Live / Not possible / Wish / Not a bug; the old text channel is #bugs-and-issues-old, read-only),
    asks the player for the missing details with Claude (ANTHROPIC_API_KEY in the cloud `discord/.env` only; claude-opus-5-5, low effort; a fixed
    checklist when the key fails; owner posts and replies are skipped) and posts the finished report in **#bot-logs** (also after 15 minutes without an answer to a question, BUG_IDLE_MIN; "🐞 Bug report" / "💡 Wish",
    ending `report-id: <thread> · post-id: <post>`). The scheduled task **"hellobro-bug-fixer"** on the owner's PC (every 2 h while the Claude app
@@ -82,7 +82,7 @@ Read this file fully, then the bottom of `docs/NEXT-STEPS.md` (newest findings).
    (write the text to a file in the scratchpad, `gh issue comment N --body-file <file>`; `/tmp` paths failed once).
    If players will notice it, also update `discord/guides/how-to-play.md` or `faq.md` and apply it (section 10), then `node tools/build_wiki.js`
    (the wiki shows the guides).
-   A Discord report: react ✅ on it (`dc.js react bugs-and-issues <id>`), reply to it with what is fixed and what not
+   A Discord report: react ✅ on it (forum post: `dc.js react <post> <post>` + `dc.js tag <post> "Fixed"`; an old one: `dc.js react bugs-and-issues-old <id>`), reply to it with what is fixed and what not
    (`dc.js reply bugs-and-issues <id> <file>`), add a row to `docs/DISCORD-REPORTS.md` and to PROGRESS "Discord reports".
 
 ## 3. First-time setup in a new session (5 minutes)
