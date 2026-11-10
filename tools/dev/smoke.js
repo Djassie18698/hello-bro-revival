@@ -541,6 +541,10 @@ for (const pick of [55, 56, 57]) {
     const used8 = before8 - (game.propCounts(db, 77, 1)[8] || 0);
     const base12 = game.table('ninjastrength').rows.find((r) => r[2] === 12 && r[0] > 15)[3];
     if (used8 !== 51 || Math.abs(gx.chance - (base12 + 10)) > 1e-9) { bad++; console.log(`SAGE GROWTH 60 extra Sage Stone III: used ${used8} (want 1 + 50), chance ${gx.chance} (want ${base12} + 10)`); }
+    // secret shop grain x10 (Discord report 10 Nov 2026): the client table says 4000 souls, the original sold it for 400 (photos)
+    const ss = game.table('secret_shop').rows;
+    const gx10 = ss.find((r) => r[0] === 206), gx5 = ss.find((r) => r[0] === 200), nx10 = ss.find((r) => r[0] === 207);
+    if (game.secretCost(gx10) !== 400 || game.secretCost(gx5) !== 200 || game.secretCost(nx10) !== 400) { bad++; console.log('SECRET SHOP grain/nostrum prices:', game.secretCost(gx10), game.secretCost(gx5), game.secretCost(nx10)); }
     // lucky wheel: 100 gold a spin, pot 1000
     const wl = handlers.rl_r_wheel({ db, params: { ...base, Cmd: 1401 } });
     const pot = Number((/<bigcash>(\d+)<\/bigcash>/.exec(wl) || [])[1]);

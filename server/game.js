@@ -1302,6 +1302,10 @@ function soulOf(db, pl) {
 // costs a Refresh Order (prop 31) or 20 gold; refreshes a day = 75 + 5 x VIP ("Number of refresh today 61/95, VIP4 +5"). Each row can
 // be bought once per board.
 const SECRET_EVERY = 2 * 3600, SECRET_GOLD = 20, REFRESH_ORDER = 31;
+// The client's secret_shop table prices "grain x10" (row 206) at 4000 souls, a typo: grain x5 is 200 and nostrum x10 is 400, and the
+// original's photos show grain x10 at 400 souls (FINDINGS-PHOTOS.md, Secret shop prices). Discord report 1569809097627271301.
+const SECRET_COST_FIX = { 206: 400 };
+const secretCost = (r) => SECRET_COST_FIX[r[0]] || r[8];
 const secretSlot = () => Math.floor(Date.now() / 1000 / SECRET_EVERY);
 function secretState(db, pl) {
   db.exec('CREATE TABLE IF NOT EXISTS secret_state (uid INTEGER, server_id INTEGER, day TEXT, used INTEGER, seed INTEGER, PRIMARY KEY(uid, server_id))');
@@ -1333,7 +1337,7 @@ function secretXml(db, pl) {
   const soul = soulOf(db, pl), bought = secretBought(db, pl), st = secretState(db, pl);
   const total = vipRow(db, pl)[22] || 80; // shown refreshes a day, same as secretRefresh
   const esc = (t) => String(t).replace(/[<>&]/g, '');
-  const cards = secretPicks(db, pl).map((r) => `<item><card>${el('id', r[0])}${el('type', r[3])}${el('subtype', r[4])}${el('name', esc(r[2]))}${el('icon', r[5])}${el('num', r[6])}${el('cost', r[8])}${el('costtype', r[7])}${el('status', bought.has(r[0]) ? 1 : 0)}${el('itemid', r[5])}${el('attacktype', 0)}</card></item>`).join('');
+  const cards = secretPicks(db, pl).map((r) => `<item><card>${el('id', r[0])}${el('type', r[3])}${el('subtype', r[4])}${el('name', esc(r[2]))}${el('icon', r[5])}${el('num', r[6])}${el('cost', secretCost(r))}${el('costtype', r[7])}${el('status', bought.has(r[0]) ? 1 : 0)}${el('itemid', r[5])}${el('attacktype', 0)}</card></item>`).join('');
   const left = SECRET_EVERY - (Math.floor(Date.now() / 1000) % SECRET_EVERY);
   return `<user>${el('cursoul', soul)}${el('updatenum', propCounts(db, pl.uid, pl.server_id)[REFRESH_ORDER] || 0)}${el('gold', pl.gold)}${el('refreshcost', SECRET_GOLD)}${el('totalrefresh', total)}${el('dayrefreshleft', Math.max(0, total - st.used))}${el('lefttime', left)}</user><cardlist>${cards}</cardlist>`;
 }
@@ -1352,8 +1356,9 @@ function secretBuy(db, pl, rowId) {
   const r = secretPicks(db, pl).find((x) => x[0] === rowId);
   if (!r) return { error: 'not in shop' };
   if (secretBought(db, pl).has(r[0])) return { error: 'already bought' };
-  if (r[7] === 1) { if (soulOf(db, pl) < r[8]) return { error: 'not enough souls' }; propAdd(db, pl.uid, pl.server_id, SOUL, -r[8]); }
-  else { if (pl.gold < r[8]) return { error: 'not enough gold' }; db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(r[8], pl.uid, pl.server_id); }
+  const cost = secretCost(r);
+  if (r[7] === 1) { if (soulOf(db, pl) < cost) return { error: 'not enough souls' }; propAdd(db, pl.uid, pl.server_id, SOUL, -cost); }
+  else { if (pl.gold < cost) return { error: 'not enough gold' }; db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id); }
   db.prepare('INSERT INTO secret_bought VALUES(?,?,?,?)').run(pl.uid, pl.server_id, secretBoard(db, pl), r[0]);
   return { xml: grantDrop(db, pl, r[10]) };
 }
@@ -2089,4 +2094,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
