@@ -347,6 +347,7 @@ new god card every hour; Shard Rush days 4 and 7; Server Manager panel "Weekly r
 **Waiting for the owner's decision:** (3) Oracle Pay As You Go with a budget alert (steps on request). (4) Item page per player: "not now". (5) Fan-project footer notice: "not now".
 The wiki lists 9 five-star cards with no known source (ATK/DEF variants of Teenager Naruto, Susa Itachi / Kakashi / Shisui, Goddess Sakura ATK).
 Arena ladder rank rewards (ladderconfig/ladderdesc) built 2 Nov on top of the daily silver (owner); Eight Gates 5000 starter souls kept (owner).
+**Super Ninja 24/7 (owner, 11 Nov 2026, "for now"):** on ninjaonline it is taken OUT of the weekly rotation and switched on (settings in public.db only, no code; the god card follows the clock hour); undo = Server Manager > Weekly rotation > put it back in, and change how-to-play.md chapter 9 back.
 Limited Super Ninja (limitsuper.js) built 2 Nov with our numbers; hourly god card (ROTATE_HOURS); since 9 Nov only in the rotation's windows
 (11:00-15:00 and 18:00-22:00 server time = UTC on the cloud), its god cards stepping one per window hour (rotation.superNinjaHour).
 Tutorial (5 Nov 2026): OFF for everyone via hot update 28.0.35 (owner: leave it off). The app starts its guide by itself (first_login only shows an ad), so it can only be on/off for all players through server/cdn/src/home/userguideConfig.xml; the Server Manager switch is gone (handlers.js TUTORIAL = false keeps the server helpers off). See NEXT-STEPS 5 Nov.
