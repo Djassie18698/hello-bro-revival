@@ -89,9 +89,10 @@ const time = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: '2-digit',
 const hm = (m) => (m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min');
 const KINDS = { team: 'Team / gear', rank: 'Arena rank', gold: 'Gold', silver: 'Silver', energy: 'Energy', exp: 'Exp', stamina: 'Stamina', level: 'Level', vip: 'VIP', vipexp: 'VIP exp', topup: 'Top-up', 'card+': 'Card gained', 'card-': 'Card used up', 'card~': 'Card upgraded', item: 'Item', fight: 'Fight', drop: 'Drop pack', power: 'Power', reach: 'Reached', change: 'Other change', baseline: 'Tracker start', reset: 'Reset' };
 let data = null;
-const qs = () => `uid=${encodeURIComponent($('who').value || '')}&day=${encodeURIComponent($('day').value || '')}`;
-async function load(first) {
-  const r = await fetch('/admin/api/track?overview=1&' + (first ? '' : qs()));
+const qs = (day) => `uid=${encodeURIComponent($('who').value || '')}&day=${encodeURIComponent(day === undefined ? $('day').value || '' : day)}`;
+// follow: on the newest day, a refresh moves on to the next day when one starts (the page stays open for hours in the control panel)
+async function load(first, follow) {
+  const r = await fetch('/admin/api/track?overview=1&' + (first ? '' : follow ? qs('') : qs()));
   data = await r.json();
   $('uids').value = (data.tracked || []).join(', ');
   const s = data.summary;
@@ -99,7 +100,7 @@ async function load(first) {
   if (!s) return;
   if (first || $('who').options.length !== data.players.length) $('who').innerHTML = data.players.map((p) => `<option value="${p.uid}:${p.server_id}">${esc(p.nick)} (uid ${p.uid}${p.server_id !== 1 ? ", world " + p.server_id : ""}, level ${p.level})</option>`).join('');
   $('who').value = s.uid + ':' + s.sid;
-  $('day').innerHTML = s.days.slice().reverse().map((d) => `<option>${d}</option>`).join('');
+  $('day').innerHTML = s.days.slice().reverse().map((d, i) => `<option value="${d}">${d}${i === 0 ? ' (newest)' : ''}</option>`).join('');
   $('day').value = s.day;
   $('tz').textContent = s.tz;
   draw(s);
@@ -136,9 +137,9 @@ function draw(s) {
   } else { $('chart').innerHTML = ''; $('chartNote').textContent = 'No power change this day.'; }
   $('overview').innerHTML = '<tr><th>Day</th><th class="num">Level</th><th class="num">VIP</th><th class="num">Attack</th><th class="num">Defence</th><th class="num">Played</th><th class="num">Top-up</th><th class="num">Gold in / out</th><th class="num">Silver in / out</th><th class="num">Cards</th><th class="num">Fights won / lost</th><th>Reached</th></tr>' +
     (data.overview || []).slice().reverse().map((o) => `<tr><td><a href="#" data-day="${o.day}" style="color:var(--orange)">${o.day}</a></td><td class="num">${fmt(o.level)}</td><td class="num">${fmt(o.vip)}</td><td class="num">${fmt(o.atk)}</td><td class="num">${fmt(o.def)}</td><td class="num">${hm(o.minutes)}</td><td class="num">$${o.topup.toFixed(0)}</td><td class="num">+${fmt(o.goldIn)} / -${fmt(o.goldOut)}</td><td class="num">+${fmt(o.silverIn)} / -${fmt(o.silverOut)}</td><td class="num">${o.cards}</td><td class="num">${o.won} / ${o.lost}</td><td>${esc(o.reach.join(' · '))}</td></tr>`).join('');
-  const partsText = (l) => l.map((q) => `${q.part} ${q.atk >= 0 ? '+' : ''}${fmt(q.atk)} / ${q.def >= 0 ? '+' : ''}${fmt(q.def)}`).join(' · ');
+  const partsText = (l = []) => l.map((q) => `${q.part} ${q.atk >= 0 ? '+' : ''}${fmt(q.atk)} / ${q.def >= 0 ? '+' : ''}${fmt(q.def)}`).join(' · ');
   $('power').innerHTML = '<tr><th>Time</th><th class="num">Attack</th><th class="num">Change</th><th class="num">Defence</th><th>Why</th></tr>' +
-    p.slice().reverse().map((x) => `<tr><td>${time(x.at)}</td><td class="num">${fmt(x.atk)}</td><td class="num">${sign(x.datk)}</td><td class="num">${fmt(x.def)}<br><small>${x.ddef ? sign(x.ddef) : ''}</small></td><td>${esc(x.src ? x.src + ': ' : '')}${esc(x.why)}${x.parts.length ? `<br><small class="muted">${esc(partsText(x.parts))}</small>` : ''}</td></tr>`).join('');
+    p.slice().reverse().map((x) => `<tr><td>${time(x.at)}</td><td class="num">${fmt(x.atk)}</td><td class="num">${sign(x.datk)}</td><td class="num">${fmt(x.def)}<br><small>${x.ddef ? sign(x.ddef) : ''}</small></td><td>${esc(x.src ? x.src + ': ' : '')}${esc(x.why)}${(x.parts || []).length ? `<br><small class="muted">${esc(partsText(x.parts))}</small>` : ''}</td></tr>`).join('');
   $('pparts').innerHTML = '<tr><th>Part</th><th class="num">Attack</th><th class="num">Defence</th></tr>' + Object.entries(s.powerParts || {}).sort((x, y) => Math.abs(y[1].atk) - Math.abs(x[1].atk)).map(([k, v]) =>
     `<tr><td>${esc(k)}</td><td class="num">${sign(v.atk)}</td><td class="num">${sign(v.def)}</td></tr>`).join('') || '<tr><td class="muted" colspan="3">no power change split into parts yet</td></tr>';
   $('fights').innerHTML = '<tr><th>Kind</th><th class="num">Won</th><th class="num">Lost</th><th class="num">Win rate</th></tr>' +
@@ -219,7 +220,9 @@ function drawDrops() {
 $('dday').onchange = () => loadDrops(); $('dq').oninput = drawDrops;
 loadDrops(true);
 load(true);
-setInterval(() => { if (!document.hidden && $('day').selectedIndex === 0) load(); }, 60000);
+const onNewest = () => $('day').selectedIndex <= 0;
+setInterval(() => { if (document.hidden) return; if (onNewest()) load(false, true); if ($('dday').selectedIndex <= 0) loadDrops(true); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && onNewest()) load(false, true); }); // back on the tab: fresh numbers at once
 </script>
 </body>
 </html>

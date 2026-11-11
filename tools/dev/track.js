@@ -121,7 +121,7 @@ if (big.length) {
   P('Biggest power changes');
   for (const x of big) {
     P(`             ${time(x.at)} ${sgn(x.datk).padStart(10)} attack -> ${fmt(x.atk)}, defence ${sgn(x.ddef)} -> ${fmt(x.def)}  ${x.src}: ${x.why}`);
-    if (x.parts.length) P('                   parts: ' + x.parts.map((q) => `${q.part} ${sgn(q.atk)}/${sgn(q.def)}`).join(', '));
+    if ((x.parts || []).length) P('                   parts: ' + x.parts.map((q) => `${q.part} ${sgn(q.atk)}/${sgn(q.def)}`).join(', '));
   }
 }
 if (showFights) {

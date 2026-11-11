@@ -866,6 +866,11 @@ for (const pick of [55, 56, 57]) {
       ck(ds && ds.players === 2 && ds.fights.stage && ds.fights.stage.won >= 3 && ds.silver > 0 && ds.exp > 0 && ds.energyOut > 0, 'drop stats: ' + JSON.stringify(ds));
       const rc = tr.dropStats(db).sources.find((x) => /^Recruit/.test(x.src));
       ck(rc && rc.cards.length >= 1 && rc.goldOut > 0, 'drop stats recruit: ' + JSON.stringify(rc)); }
+    // a second day starts from the last power of the day before ("start of the day"): every power line must carry its parts (the page broke on it, 11 Nov)
+    { const yday = Math.floor(Date.now() / 1000) - 86400;
+      db.prepare("UPDATE track_log SET at=? WHERE uid=79600 AND id=(SELECT MIN(id) FROM track_log WHERE uid=79600 AND kind='power')").run(yday);
+      const s4 = tr.summary(db, 79600, 1, tr.dayKey(Math.floor(Date.now() / 1000)));
+      ck(s4.power[0].why === 'start of the day' && s4.power.every((x) => Array.isArray(x.parts) && typeof x.ddef === 'number'), 'power lines without parts: ' + JSON.stringify(s4.power.slice(0, 2))); }
     admin.resetPlayer(db, 79600, 1);
     ck(rows('reset').length === 1 && rows('baseline').length === 1, 'reset dropped the tracker history or was not marked');
     call('rl_r_mainpage', { Cmd: 1301 }); // the game asks again after the reset (no character yet)

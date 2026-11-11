@@ -492,9 +492,9 @@ function summary(db, uid, sid, day) {
   const pw = rows.filter((r) => r.kind === 'power' || r.kind === 'baseline').map((r) => { const d = JSON.parse(r.detail || '{}'); return { at: r.at, atk: r.value, def: d.def || 0, datk: r.delta || 0, ddef: d.ddef || 0, why: d.why || (r.kind === 'baseline' ? 'tracker start' : '') + '', parts: d.parts || [], src: r.src }; });
   // which parts of the power grew over the day (sum of every change's parts)
   const partsDay = {};
-  for (const x of pw) for (const q of x.parts) { const o = partsDay[q.part] = partsDay[q.part] || { atk: 0, def: 0 }; o.atk += q.atk; o.def += q.def; }
+  for (const x of pw) for (const q of x.parts || []) { const o = partsDay[q.part] = partsDay[q.part] || { atk: 0, def: 0 }; o.atk += q.atk; o.def += q.def; }
   const p0 = before('power') || before('baseline');
-  if (p0 && !resets.length) pw.unshift({ at: a, atk: p0.value, def: JSON.parse(p0.detail || '{}').def || 0, datk: 0, why: 'start of the day', src: '' });
+  if (p0 && !resets.length) pw.unshift({ at: a, atk: p0.value, def: JSON.parse(p0.detail || '{}').def || 0, datk: 0, ddef: 0, why: 'start of the day', parts: [], src: '' });
   // cards gained by source
   const gained = {}, gainedList = [];
   for (const r of rows) if (r.kind === 'card+') { add(gained, r.src, 1); gainedList.push({ at: r.at, src: r.src, what: r.detail, stars: r.value }); }
