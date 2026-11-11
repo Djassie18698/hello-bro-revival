@@ -4,7 +4,8 @@ const CREATE_COST = 789; // matches the "Fund" the create dialog shows
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY AUTOINCREMENT, server_id INTEGER, name TEXT, desc TEXT, leader_uid INTEGER, level INTEGER DEFAULT 1, score INTEGER DEFAULT 0);
-    CREATE TABLE IF NOT EXISTS group_members (uid INTEGER, server_id INTEGER, group_id INTEGER, pos INTEGER DEFAULT 0, score INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id))`);
+    CREATE TABLE IF NOT EXISTS group_members (uid INTEGER, server_id INTEGER, group_id INTEGER, pos INTEGER DEFAULT 0, score INTEGER DEFAULT 0, PRIMARY KEY(uid, server_id));
+    CREATE TABLE IF NOT EXISTS group_quit (uid INTEGER, server_id INTEGER, at INTEGER, PRIMARY KEY(uid, server_id))`);
   for (const c of ['minlevel INTEGER DEFAULT 1', 'minfight INTEGER DEFAULT 0']) { try { db.exec(`ALTER TABLE groups ADD COLUMN ${c}`); } catch (e) { /* already there */ } }
 }
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -39,9 +40,20 @@ function detailXml(db, pl, gid) {
     el('minfightscore', g.minfight || 0) + el('join_status', js) + '</group_info>';
 }
 
+// ORIGINAL (normalconfig 302 "组织退出再进的间隔倒计时", owner chose the original 11 Nov 2026): after leaving an Akatsuki you wait 7200 s (2 hours)
+// before joining or founding one again. (ours): only leaving yourself counts, not being expelled or the group being disbanded.
+const REJOIN_WAIT = 7200;
+function rejoinWait(db, pl) { // seconds still to wait, 0 = free to join
+  ensure(db);
+  const r = db.prepare('SELECT at FROM group_quit WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
+  return r ? Math.max(0, r.at + REJOIN_WAIT - Math.floor(Date.now() / 1000)) : 0;
+}
+// errcodes.js turns "cooling down" into 180001 "In cd time"
+const waitError = (w) => ({ error: `cooling down: you left an Akatsuki less than 2 hours ago, you can join again in ${Math.ceil(w / 60)} min` });
 function create(db, pl, name, desc) {
   ensure(db);
   if (myGroup(db, pl.uid, pl.server_id)) return { error: 'already in a group' };
+  { const w = rejoinWait(db, pl); if (w) return waitError(w); }
   name = String(name || '').trim().slice(0, 20);
   if (!name) return { error: 'name needed' };
   if (db.prepare('SELECT 1 FROM groups WHERE server_id=? AND name=?').get(pl.server_id, name)) return { error: 'name taken' };
@@ -55,6 +67,7 @@ function create(db, pl, name, desc) {
 function join(db, pl, gid) {
   ensure(db);
   if (myGroup(db, pl.uid, pl.server_id)) return { error: 'already in a group' };
+  { const w = rejoinWait(db, pl); if (w) return waitError(w); }
   const g = db.prepare('SELECT * FROM groups WHERE id=?').get(gid);
   if (!g) return { error: 'no such group' };
   if (count(db, gid) >= maxMembers(g)) return { error: 'this Akatsuki is full' };
@@ -123,6 +136,7 @@ function quit(db, pl) {
   const g = myGroup(db, pl.uid, pl.server_id);
   if (!g) return;
   db.prepare('DELETE FROM group_members WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
+  db.prepare('INSERT OR REPLACE INTO group_quit VALUES(?,?,?)').run(pl.uid, pl.server_id, Math.floor(Date.now() / 1000));
   const next = db.prepare('SELECT uid FROM group_members WHERE group_id=? ORDER BY pos DESC, rowid LIMIT 1').get(g.id);
   if (!next) db.prepare('DELETE FROM groups WHERE id=?').run(g.id);
   else if (g.leader_uid === pl.uid) {
@@ -360,4 +374,4 @@ function donateCards(db, pl, kind, bagJson) {
   db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(fund, g.id);
   return {};
 }
-module.exports = { expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };
+module.exports = { rejoinWait, REJOIN_WAIT, expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };

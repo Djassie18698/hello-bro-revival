@@ -408,6 +408,16 @@ function rollPack(r) {
     const n = Number((o.match(/(\d+)/) || [0, 0])[1]);
     return /gold/i.test(o) ? { cash: n } : { coin: n };
   }
+  // Prize card texts (lottery normalconfig 216-218, border defence ranking 146; 11 Nov 2026). Before, these fell to the last line and gave
+  // mostly 3-star cards. "Five-Star Purple Card" / "Four-Star Blue Card" / "Three-Star Green Card" = exactly that star (classic recruit cards);
+  // "1 in 10,000" and "Higher chance to gain Five-Star ..., with minimum of Four-Star" = the 1-in-10 000 (300-gold) recruit, "Possibility of
+  // Five-Star ..., minimum of Three-Star" = the 150-gold recruit (same RATES as recruiting); "Ultimate Shinobi Card" = a 5-star shinobi (ours:
+  // the drop's example card, col 3, is the 5-star Third Raikage).
+  const colour = /^(?:No\.\d Reward: )?(Five|Four|Three)-Star (?:Purple|Blue|Green) Card/.exec(t);
+  if (colour) { const p = recruitPools()[STAR_WORD[colour[1]]]; if (p && p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
+  if (/^1 in 10,000|^Higher chance to gain Five-Star Purple Card, with minimum of Four-Star/.test(t)) return { ninja: rollOne(1) };
+  if (/^Possibility of Five-Star Card, higher chance of Four-Star Blue Card, with a minimum of Three-Star/.test(t)) return { ninja: rollOne(2) };
+  if (/^Ultimate Shinobi Card$/.test(t)) { const p = recruitPools()[5]; if (p && p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
   // "Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card, 100 Gold" (official Elder pack 220): 20 / 40 / 40 % (ours)
   const all3 = /Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card/.test(t), x3 = Math.random();
   const star = all3 ? (x3 < 0.2 ? 5 : x3 < 0.6 ? 4 : 3) : /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
@@ -475,7 +485,7 @@ function grantDrop(db, pl, dropId) {
   const sealFrags = [];
   // drop type 1 = random pack. "X-Star ... Card" packs carry one example card in col 3/4; roll a random card of that kind instead
   // of always giving the example (Aburame Torune every time, GitHub #4).
-  const pack = r[12] === 1 && !(r[7] > 0) && (!(r[3] > 0) || /Star/.test(String(r[2]))) ? rollPack(r) : null;
+  const pack = r[12] === 1 && !(r[7] > 0) && (!(r[3] > 0) || /Star|^Ultimate Shinobi Card$/.test(String(r[2]))) ? rollPack(r) : null;
   const ninja = pack ? pack.ninja : r[3], equip = pack ? pack.equip : (r[3] > 0 ? 0 : r[4]);
   if (ninja > 0) for (let i = 0; i < n; i++) cards.push({ type: 1, id: ninja, seq: giveCard(db, pl.uid, pl.server_id, ninja) });
   else if (equip > 0) for (let i = 0; i < n; i++) { const seq = giveEquip(db, pl.uid, pl.server_id, equip); if (seq) cards.push({ type: db.prepare('SELECT type FROM cards WHERE seq=?').get(seq).type, id: equip, seq }); }

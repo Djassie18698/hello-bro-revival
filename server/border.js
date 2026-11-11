@@ -7,13 +7,18 @@ const game = require('./game');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const now = () => Math.floor(Date.now() / 1000);
-const day = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const day = (back = 0) => new Date(Date.now() - back * 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // ORIGINAL (Facebook photos 0540, 0666): monument HP 300; per day 2 taunt rewards, 2 wander rewards, 4 taunt-clear and 4 wander-clear
 // rewards; "At Thunder wandered 2 time(s), reward received: EXP 6600, merit 1572" = 3300 + 786 a wander; breaking a country's border
 // = special award Gold*50 + Super Ninja Pill + Reincarnation Pill. (ours): taunts pay like wanders, a clear pays half,
 // and that only the player who breaks the monument gets the special award.
 // ORIGINAL (normalconfig 136-141, 7 Nov 2026): taunt 20 gold, wander 2500 silver, a taunt or wander succeeds after 300 s (photos show
 // stations counting down "2min", "8s"), damage 10 / 5 of the 300 HP. Until 7 Nov: wander 20 000 silver and 30-minute stations (ours).
+// ORIGINAL (normalconfig 148 / 149 and the game's help text ui_border_tips8 "every day from 08:00 to 24:00, it can be attacked"; owner chose
+// the original 11 Nov 2026): taunting, wandering and clearing only 08:00-24:00 server time; before 08:00 the game's own tip 329005 "War at
+// border doesn't start". A station started before midnight still runs its 5 minutes. (Until 11 Nov: open all day.)
+const OPEN_HOUR = 8, CLOSE_HOUR = 24;
+const borderOpen = (d = new Date()) => d.getHours() >= OPEN_HOUR && d.getHours() < CLOSE_HOUR;
 const STAY = 300, TOTAL_HP = 300, PROVOKE_GOLD = 20, WANDER_SILVER = 2500, PROVOKE_HP = 10, WANDER_HP = 5;
 const REWARD = { 1: { exp: 3300, merit: 786 }, 2: { exp: 3300, merit: 786 } };
 const CLEAR_REWARD = { exp: 1650, merit: 393 };
@@ -115,6 +120,7 @@ function userXml(db, pl) {
 function attack(db, pl, type, to, sw) {
   ensure(db);
   if (!Number.isInteger(to) || to === myCountry(pl) || to < 0 || to > 4 || (type !== 1 && type !== 2)) return { code: 5, msg: 'pick an enemy country' };
+  if (!borderOpen()) return { code: 329005 };
   const st = myStation(db, pl);
   if (st && st.to_country === to) return { code: 329012 };
   if (st && !sw) {
@@ -132,7 +138,7 @@ function attack(db, pl, type, to, sw) {
   db.prepare('INSERT INTO border_station(server_id,uid,country,to_country,type,start) VALUES(?,?,?,?,?,?)').run(pl.server_id, pl.uid, myCountry(pl), to, type, now());
   db.prepare('INSERT INTO border_log(server_id,country,enemy_country,nick,type,ts,hurt) VALUES(?,?,?,?,?,?,?)').run(pl.server_id, to, myCountry(pl), pl.nick, type, now(), dmg);
   score(db, pl);
-  db.prepare('UPDATE border_score SET att=att+? WHERE server_id=? AND day=? AND uid=?').run(Math.round(dmg / 1000), pl.server_id, day(), pl.uid);
+  db.prepare('UPDATE border_score SET att=att+? WHERE server_id=? AND day=? AND uid=?').run(dmg, pl.server_id, day(), pl.uid); // the damage done (was dmg / 1000 rounded = 0, so the attack ranking stayed empty until 11 Nov 2026)
   return { code: 0, xml: '' };
 }
 // Enemies stationed in country C (Cmd 1 of rl_r_frontiers_war_enemy_info).
@@ -142,6 +148,7 @@ function enemyXml(db, pl, c) {
 }
 // Defender fights a stationed enemy. Win = the enemy is sent home and the defender scores.
 function clear(db, pl, toUid) {
+  if (!borderOpen()) return { code: 329005 };
   const sc = score(db, pl);
   if (sc.clears >= clearsPerDay(db, pl)) return { code: 5, msg: 'no clears left today' };
   const st = myStation(db, { server_id: pl.server_id, uid: toUid });
@@ -181,22 +188,42 @@ function recv(db, pl, cmd) {
     game.propAdd(db, pl.uid, pl.server_id, 9994, r.merit);
     return { code: 0, xml: `<award>${el('exp', r.exp)}${el('merit', r.merit)}</award>` };
   }
-  // 3 = defence rank award, 4 = attack rank award: once per day for anyone in the top 10
-  const ok = db.prepare('CREATE TABLE IF NOT EXISTS rank_claims (uid INTEGER, server_id INTEGER, board TEXT, key TEXT, PRIMARY KEY(uid,server_id,board,key))').run() &&
-    db.prepare('INSERT OR IGNORE INTO rank_claims VALUES(?,?,?,?)').run(pl.uid, pl.server_id, 'border' + cmd, day()).changes;
-  if (!ok) return { code: 329009 };
-  return { code: 0, xml: game.grantDrop(db, pl, 371) };
+  // 3 = defence rank award, 4 = attack rank award: yesterday's ranking, once each
+  return rankClaim(db, pl, cmd === 3 ? 'def' : 'att');
 }
-function rankXml(db, pl, type) {
+// Ranking rewards (rl_r_frontiers_war_recv_award Cmd 3 = defence "护国", 4 = attack "破国") for YESTERDAY's ranking: the screen's tabs are
+// "Yesterday" and "History", and the monument closes at 24:00, so yesterday's list is final. ORIGINAL (normalconfig 146, owner chose it
+// 11 Nov 2026): the defence ranking's top 3 get drop 943 "1 in 10,000+10 Super Ninja Pills" = a card like the 1-in-10 000 recruit (game.rollPack
+// reads the text) + 10 Super Ninja Pills (prop 28). (ours): the attack ranking's prize is not in the game data: its top 10 get 500 gold (drop 371).
+// Until 11 Nov 2026 both tabs showed today and anyone could claim 500 gold a day from each.
+const SUPER_NINJA_PILL = 28;
+const RANK_PRIZE = {
+  def: { top: 3, desc: 'Top 3: a 1-in-10,000 shinobi card|+ 10 Super Ninja Pills', done: 329010 },
+  att: { top: 10, desc: 'Top 10: 500 gold', done: 329008 },
+};
+function rankRows(db, sid, col, d) {
   ensure(db);
-  const col = type === 1 || type === 2 ? 'def' : 'att';
-  const when = type === 2 || type === 4 ? '' : ' AND s.day=?';
-  const args = [pl.server_id].concat(when ? [day()] : []);
-  const rows = db.prepare(`SELECT s.uid, SUM(s.${col}) score, p.nick, p.level, p.country FROM border_score s JOIN players p ON p.uid=s.uid AND p.server_id=s.server_id
-    WHERE s.server_id=?${when} GROUP BY s.uid HAVING score>0 ORDER BY score DESC LIMIT 50`).all(...args);
-  const mine = rows.find((r) => r.uid === pl.uid);
-  return el('score', mine ? mine.score : 0) + el('rank_award_desc', 'Top 10 get 500 gold') + el('min_award_score', 1) +
-    '<rank_list>' + rows.map((r, i) => `<item rank="${i + 1}" nick="${esc(r.nick)}" country="${r.country}" level="${r.level}" score="${r.score}" award="371"/>`).join('') + '</rank_list>';
+  return db.prepare(`SELECT s.uid, SUM(s.${col}) score, p.nick, p.level, p.country FROM border_score s JOIN players p ON p.uid=s.uid AND p.server_id=s.server_id
+    WHERE s.server_id=?${d ? ' AND s.day=?' : ''} GROUP BY s.uid HAVING score>0 ORDER BY score DESC, s.uid LIMIT 50`).all(...[sid].concat(d ? [d] : []));
+}
+function rankClaim(db, pl, col) {
+  const prize = RANK_PRIZE[col], d = day(1);
+  const rank = rankRows(db, pl.server_id, col, d).findIndex((r) => r.uid === pl.uid) + 1;
+  if (!rank || rank > prize.top) return { code: 329011 }; // "Your ranking has no reward"
+  db.exec('CREATE TABLE IF NOT EXISTS rank_claims (uid INTEGER, server_id INTEGER, board TEXT, key TEXT, PRIMARY KEY(uid,server_id,board,key))');
+  if (!db.prepare('INSERT OR IGNORE INTO rank_claims VALUES(?,?,?,?)').run(pl.uid, pl.server_id, 'border' + (col === 'def' ? 3 : 4), d).changes) return { code: prize.done };
+  if (col === 'att') return { code: 0, xml: game.grantDrop(db, pl, 371) };
+  game.propAdd(db, pl.uid, pl.server_id, SUPER_NINJA_PILL, 10);
+  const pills = `<award dropid="1327" coin="0"><cardlist></cardlist><proplist><prop><id>${SUPER_NINJA_PILL}</id><num>10</num></prop></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><soul>0</soul></award>`;
+  return { code: 0, xml: game.mergeAwards([game.grantDrop(db, pl, 943), pills]) };
 }
 
-module.exports = { ensure, infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml };
+function rankXml(db, pl, type) { // 1 defence yesterday, 2 defence history, 3 attack yesterday, 4 attack history
+  const col = type === 1 || type === 2 ? 'def' : 'att', yest = type === 1 || type === 3, prize = RANK_PRIZE[col];
+  const rows = rankRows(db, pl.server_id, col, yest ? day(1) : null);
+  const mine = rows.find((r) => r.uid === pl.uid);
+  return el('score', mine ? mine.score : 0) + el('rank_award_desc', esc(prize.desc)) + el('min_award_score', 1) +
+    '<rank_list>' + rows.map((r, i) => `<item rank="${i + 1}" nick="${esc(r.nick)}" country="${r.country}" level="${r.level}" score="${r.score}" award="${yest && i < prize.top ? esc(prize.desc) : ''}"/>`).join('') + '</rank_list>';
+}
+
+module.exports = { ensure, infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml, rankClaim, borderOpen, RANK_PRIZE };

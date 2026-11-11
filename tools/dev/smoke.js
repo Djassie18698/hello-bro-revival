@@ -873,6 +873,58 @@ for (const pick of [55, 56, 57]) {
     tr.setUids(db, '');
     ck(!tr.tracked(db, 79600), 'track_uids off did not stop tracking');
   }
+  // Original numbers switched on 11 Nov 2026 (owner: "all four"): lottery prizes, border war defence prize + hours, Akatsuki rejoin wait.
+  {
+    const ck = (ok, what) => { if (!ok) { bad++; console.log('ORIGINAL 11 NOV:', what); } };
+    const game = require('../../server/game'), border = require('../../server/border'), guild = require('../../server/guild'), errcodes = require('../../server/errcodes');
+    ck(/prizes: \[494, 1499, 307\]/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'limited.js'), 'utf8')), 'lottery prizes are not the original drops 494 / 1499 / 307');
+    // prize card texts give exactly the stars they name ("Five-Star Purple Card" gave 3-star cards before)
+    const star = (id) => (game.table('ninjainfo').rows.find((r) => r[0] === id) || [])[11];
+    const me = () => db.prepare('SELECT * FROM players WHERE uid=77 AND server_id=1').get();
+    for (const [drop, want] of [[494, [5]], [1499, [5]], [307, [4]], [943, [4, 5]], [1, [4, 5]], [2, [3, 4, 5]]]) {
+      for (let i = 0; i < 6; i++) {
+        const id = Number((/<card><id>(\d+)<\/id><type>1</.exec(game.grantDrop(db, me(), drop) || '') || [])[1]);
+        if (!want.includes(star(id))) { ck(false, `drop ${drop} gave card ${id} with ${star(id)} stars, want ${want}`); break; }
+      }
+    }
+    // border war: open 08:00-24:00 only (normalconfig 148 / 149)
+    ck(!border.borderOpen(new Date(2026, 10, 11, 7, 59)) && border.borderOpen(new Date(2026, 10, 11, 8, 0)) && border.borderOpen(new Date(2026, 10, 11, 23, 59)), 'border war hours are not 08:00-24:00');
+    // border defence ranking: yesterday's top 3 get a 1-in-10 000 card + 10 Super Ninja Pills, once; 4th place gets nothing
+    border.ensure(db);
+    const yest = new Date(Date.now() - 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    let others = db.prepare('SELECT uid FROM players WHERE server_id=1 AND uid!=77 LIMIT 3').all().map((r) => r.uid);
+    for (let i = others.length; i < 3; i++) { db.prepare("INSERT INTO players(uid, server_id, nick, level, country) VALUES(?, 1, 'Rank" + i + "', 10, 1)").run(9100 + i); others.push(9100 + i); }
+    db.prepare('DELETE FROM border_score WHERE day=?').run(yest);
+    others.forEach((u, i) => db.prepare('INSERT INTO border_score(server_id, day, uid, def, att) VALUES(1, ?, ?, ?, 0)').run(yest, u, 100 - i * 10));
+    db.prepare('INSERT INTO border_score(server_id, day, uid, def, att) VALUES(1, ?, 77, 50, 0)').run(yest);
+    ck(border.rankClaim(db, me(), 'def').code === 329011, 'border defence: 4th place could claim');
+    ck(border.rankClaim(db, me(), 'att').code === 329011, 'border attack: a player with no attack score could claim');
+    db.prepare('UPDATE border_score SET def=500 WHERE day=? AND uid=77').run(yest);
+    const pills0 = game.propCounts(db, 77, 1)[28] || 0;
+    const r1 = border.rankClaim(db, me(), 'def');
+    ck(r1.code === 0 && /<card><id>\d+<\/id><type>1</.test(r1.xml) && /<prop><id>28<\/id><num>10<\/num><\/prop>/.test(r1.xml) && (game.propCounts(db, 77, 1)[28] || 0) === pills0 + 10, 'border defence top 3 prize wrong: ' + JSON.stringify(r1).slice(0, 200));
+    ck(border.rankClaim(db, me(), 'def').code === 329010, 'border defence prize could be claimed twice');
+    const rx = border.rankXml(db, me(), 1);
+    ck(/<score>500<\/score>/.test(rx) && /rank="1" nick="[^"]*" country="\d+" level="\d+" score="500" award="Top 3/.test(rx) && /rank="4"[^>]*award=""/.test(rx), 'border yesterday ranking / prize text wrong: ' + rx.slice(0, 300));
+    // the attack score counts the damage done (was dmg / 1000 rounded = 0)
+    ck(/run\(dmg, pl\.server_id, day\(\), pl\.uid\)/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'border.js'), 'utf8')), 'border attack score does not count the damage');
+    // Akatsuki: 2 hours after leaving before joining again (normalconfig 302)
+    guild.ensure(db);
+    const p2 = db.prepare('SELECT * FROM players WHERE uid=? AND server_id=1').get(others[0]);
+    db.prepare('DELETE FROM group_members WHERE uid=?').run(p2.uid); db.prepare('DELETE FROM group_quit WHERE uid=?').run(p2.uid);
+    db.prepare('UPDATE players SET gold=gold+1000, level=MAX(level, 30) WHERE uid=77').run();
+    let gid = (db.prepare('SELECT group_id FROM group_members WHERE uid=77 AND server_id=1').get() || {}).group_id;
+    if (!gid) gid = guild.create(db, me(), 'SmokeRejoin', '').id;
+    db.prepare('UPDATE groups SET minlevel=1, minfight=0 WHERE id=?').run(gid);
+    const j1 = guild.join(db, p2, gid);
+    guild.quit(db, p2);
+    const j2 = guild.join(db, p2, gid), c2 = guild.create(db, p2, 'SmokeRejoin2', '');
+    db.prepare('UPDATE group_quit SET at=at-7201 WHERE uid=?').run(p2.uid);
+    const j3 = guild.join(db, p2, gid);
+    ck(!j1.error && /cooling down/.test(j2.error || '') && /cooling down/.test(c2.error || '') && !j3.error, `Akatsuki rejoin wait wrong: ${JSON.stringify([j1, j2, c2, j3])}`);
+    ck(/code="180001"/.test(errcodes.fix(`<root code="5"><message>${j2.error}</message></root>`)), 'rejoin wait does not show "In cd time"');
+    guild.quit(db, p2); db.prepare('DELETE FROM group_quit WHERE uid=?').run(p2.uid);
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);

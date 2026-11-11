@@ -95,7 +95,9 @@ function discountClaim(db, pl) {
 }
 
 // ---- Lottery -------------------------------------------------------------------------------------------------------
-const LOTTO = { cost: 50, prizes: [1791, 1673, 239] }; // 1st 300 Reincarnation Pills, 2nd 200 Development Dan, 3rd 20 Sage Stone III
+// ORIGINAL (normalconfig 216-219, owner chose the original 11 Nov 2026): 50 gold a ticket; 1st prize drop 494 Ultimate Shinobi Card,
+// 2nd 1499 Five-Star Purple Card, 3rd 307 Four-Star Blue Card. (Until 11 Nov (ours): 300 Reincarnation Pills / 200 Development Dan / 20 Sage Stone III.)
+const LOTTO = { cost: 50, prizes: [494, 1499, 307] };
 // Phase n is drawn at 20:30 (server time) of day n; tickets for it are sold from 20:30 the day before until 20:00 on day n.
 const DRAW_MIN = 20 * 60 + 30, BET_END_MIN = 20 * 60;
 // phase = local day number of the draw day

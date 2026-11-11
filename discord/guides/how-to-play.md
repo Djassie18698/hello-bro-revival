@@ -31,6 +31,8 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Battles** (Home): 25 chapters of 7 rounds, the 7th is the chapter boss. **Ranking > Achievement** pays a reward every 7 floors.
 • **News**: the Battle tab shows who sparred or plundered you (press **Revenge** to fight back), the Friend tab shows messages from friends.
 • **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight. After every 3 attacks you wait 10 minutes (or pay 30 gold). **Autoplay** (50 gold) attacks for you for the rest of the day, even when you are offline. National treasure: 1 hour between raids (15 gold skips it).
+• **Border war** (Boundary Monument): taunt (20 gold) or wander (2500 silver) at another nation's monument, or clear enemies from yours, **every day from 08:00 to 24:00 server time**. The **Yesterday** ranking pays out the next day: the top 3 defenders get a 1-in-10,000 shinobi card + 10 Super Ninja Pills, the top 10 attackers 500 gold.
+• **Akatsuki**: after you leave one, you wait **2 hours** before you can join or found another.
 • Real players fight with their **whole team**. Bots bring about as many cards as you do, and every enemy card's stats vary a little each fight. Watching a fight or pressing **Skip** always gives the same result.
 
 ## 6. Cross-server battle
@@ -50,7 +52,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Events rotate every week**, so you see all of them in 7 days: days 1-2 God of Wealth, Gold spending rewards and the Time-limited GiftPack; days 3-4 Flower Worship, God Recruit and Group purchase; days 5-7 Hot Treasure, a festival and (days 5-6) the Total-recharge gift; day 7 God Recruit again. **Shard Rush** (double God card fragments from fights) on days 4 and 7. Diligence, Daily spending, Lottery, Recharge streak and the Month card run all week. Each event shows its own countdown.
 • **Festivals** (one each week, in the rotation): win fights for festival items (Christmas Caps and Trees, or Fireworks and Balloons for the Anniversary) and trade them in the Event menu for rare cards.
 • **Sign-in** (Event menu): log in on days in a row for ramen, Hyourou-gan and silver; from day 7 also 20 gold a day. Missing a day starts again at day 1.
-• **Lottery** and **Wheel of Fortune** open at level 10.
+• **Lottery** and **Wheel of Fortune** open at level 10. Lottery: 50 gold a ticket, drawn every day at 20:30. Prizes: 1st an Ultimate Shinobi Card (5 stars), 2nd a Five-Star card, 3rd a Four-Star card.
 • In the rotation: **God of Wealth** (invest gold in 8 steps, always get a bit more back), **Flower Worship** (every dollar topped up gives a rose; give a goddess her roses for a rare card), **Month card** (a 4.99 or 9.99 top-up gives 60 or 120 gold a day for 30 days).
 
 ## 9. Super Ninja, bosses and VIP
