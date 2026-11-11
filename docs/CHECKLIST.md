@@ -42,6 +42,7 @@ From here on it's mostly new bug reports. This list says who does what. Tick a b
 ### Ready to do when you say so
 - [ ] Fix every new bug from issue #6, Discord or chat (test it, push, sync, post in #updates).
 - [ ] Super Ninja: switch it from the hourly god to the original 3-day event.
+- [ ] Read Discord **#old-screenshots** now and then (made 11 Nov 2026): pictures of the original game can replace our guessed numbers; tell you what each one proves before changing anything.
 - [ ] Fragments for the 65 god cards that can't get any in the game now (for example in the Ninja Test shop): you haven't decided yet.
 - [ ] Website: anything you want changed on ninjaonlinereborn.com (the website session handles it).
 - [ ] Lock the item page so each player only sees their own account (you said: not now, let people have fun).

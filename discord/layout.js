@@ -42,6 +42,8 @@ const LAYOUT = [
   { cat: '💬 COMMUNITY', channels: [
     { name: 'general', topic: 'Chat about Hello Bro / Ninja Online. Help questions go in #support, bugs in #bugs-and-issues.' },
     { name: 'screenshots', topic: 'Your teams, pulls, clips, fan art and memes.' },
+    // owner, 11 Nov 2026: players post old pictures of the original game so the numbers lost with the dead server can come back
+    { name: 'old-screenshots', topic: 'Old screenshots or videos of the ORIGINAL Hello Bro / Ninja Online (before 2026)? Post them here: they help bring back the original numbers. See the pinned list of what we look for.' },
     { name: 'General • Voice', voice: true },
   ] },
   { cat: '💎 SUPPORTERS', staff: true, alsoRoles: SUPPORTERS, channels: [

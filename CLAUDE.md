@@ -328,7 +328,7 @@ Current: **28.0.48** (glowing names in the colour and effect picked in the contr
   "Shinobi Elder" €5 (also sees #patch-testing) · "Training Shinobi" = member role (Carl-bot), kept below them so their colours show.
   💎 SUPPORTERS: #supporters (supporter roles + staff only; pinned-style welcome post by the bot). Supporter perks are never in-game things.
   GUIDES & HELP: #install-help + #how-to-play (read-only guides: EDIT the bot posts when the game changes) · #support (players ask) ·
-  #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
+  #bugs-and-issues (players report). COMMUNITY: #general, #screenshots, #old-screenshots (11 Nov 2026, owner: players post pictures of the ORIGINAL game; pinned @everyone list of the lost numbers we look for = the "(ours)" values in docs/BASE-FEATURES.md; read it now and then, put what a picture proves in docs/FINDINGS-PHOTOS.md and ask the owner before changing a number), voice. DEV & STAFF (Master Shinobi only): #dev-chat, #patch-testing, #bot-logs.
   Guides (#welcome, #install-help, #how-to-play, #faq) are built from `discord/guides/<channel>.md` ("## " = one chapter, contents with jump links on top):
   edit the file, then `node --env-file=.env guides.js <channel>` (dry run) and `... <channel> apply` (replaces only the bot's own posts there),
   then `node tools/build_wiki.js` (the wiki shows how-to-play, install-help and faq).
