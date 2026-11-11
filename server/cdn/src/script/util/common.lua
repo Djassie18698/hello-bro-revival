@@ -767,16 +767,31 @@ end
 -- account has a glowing name and its colour, so a change in the control panel shows the next time Home opens (a new name needs
 -- a restart: the game reads the name at login). PURPLE_ME[uid] = {colour, effect} or false (no), used until the answer comes.
 PURPLE_ME = PURPLE_ME or {}
+-- Every screen with the top bar (Home, Team, Backpack, Training, Spar, Shop ...) builds it in C++ ISubMenu::InitNormalHeader with the
+-- same "label_name" node, so this finds the name on whichever screen is open (28.0.48; before only on Home).
 function PurpleTopBarLabel()
 	local mm = GetMainMenu()
-	if mm == nil or mm:GetCurrentSubMenuType() ~= E_DEFAULTMENU then return nil end
+	if mm == nil then return nil end
 	local sub = mm:GetCurrentSubMenu()
 	if sub == nil then return nil end
 	local node = sub:getNode("label_name")
 	if node == nil then return nil end
 	return tolua.cast(node, "CCLabelTTF")
 end
+-- Other screens get a new top bar when they open: a timer (twice a second, started once) puts the glow on the name shown now.
+-- PurpleGlow returns at once when that label already glows, so it costs next to nothing.
+local function purpleWatchTick()
+	local uid = tostring(CPlayerDataMgr:instance():GetPlayerInfoData().m_uid)
+	if not PURPLE_ME[uid] then return end
+	local label = PurpleTopBarLabel()
+	if label ~= nil then PurpleGlow(label, PURPLE_ME[uid][1], PURPLE_ME[uid][2]) end
+end
+function PurpleTopBarWatch()
+	if PURPLE_WATCH ~= nil then return end
+	PURPLE_WATCH = CCDirector:sharedDirector():getScheduler():scheduleScriptFunc(function() pcall(purpleWatchTick) end, 0.5, false)
+end
 function PurpleTopBar()
+	pcall(PurpleTopBarWatch)
 	local label = PurpleTopBarLabel()
 	if label == nil then return end
 	local uid = tostring(CPlayerDataMgr:instance():GetPlayerInfoData().m_uid)

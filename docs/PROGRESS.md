@@ -128,6 +128,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | | What |
 |---|---|
 | ✅ | Website project (8 Nov, owner: "make it a full project"): short links /download /install /discord /play, top 10 players with glowing names, player pages with "where the power comes from" (adds up exactly), Today in the game, players-online graph, team calculator in the wiki, robots.txt + sitemap. Live on ninjaonlinereborn.com, checked from outside. contact@ninjaonlinereborn.com forwards to the owner's Gmail; Google Search Console verified |
+| ✅ | Glowing name on every screen (11 Nov, owner: "my name is not gold here", the Team screen): it glowed only on Home; now the top bar of Team, Backpack, Training, Spar, Shop and the rest glows too in the picked colour and effect (hot update 28.0.48). Seen in game |
 | ✅ | Control panel: Server, Players & items, Team builder in one site |
 | ✅ | Server Manager: who's online, events on/off, top banner, announcement, backups, restart |
 | ✅ | Admin: give anything, edit levels / rebirth / growth / item amounts, Unlock everything, reset |
