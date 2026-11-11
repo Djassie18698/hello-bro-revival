@@ -156,6 +156,34 @@ for (const r of T('roundinfo')) {
     for (const id of [th.a, th.b]) if (byItem.get(id)) byItem.get(id).get.push({ how: 'Festival', where: `${th.name}: drops from fights while the event runs, also in the Shop then` });
   }
 }
+// A reward written as { drop } (a dropinfo row) or { prop, n } (n of an item), as the event modules list them
+function give(rw, how, where) {
+  if (rw.drop) return source(rw.drop, how, where);
+  const i = rw.prop && byItem.get(rw.prop);
+  const line = i && { how: rw.n > 1 ? `${how} (x${rw.n})` : how, where };
+  if (line && !i.get.some((x) => x.how === line.how && x.where === line.where)) i.get.push(line);
+}
+// Arena reputation shop (exchange_award: [3] amount, [4] times ever, [5] times a day, [6] reputation, [7] dropinfo id)
+for (const r of T('exchange_award')) {
+  const limit = r[5] > 0 ? `${r[5]} a day` : r[4] > 0 ? `${r[4]} in total` : '';
+  source(r[7], 'Arena shop', `Base > Arena > Exchange, ${r[6].toLocaleString('en-US')} reputation${limit ? ' (' + limit + ')' : ''}`);
+}
+// Monthly sign-in (signin.js DAYS: [kind, amount or dropinfo id, shown drop, icon, need_vip]; days 17-28 repeat days 5-16)
+require('../server/signin').DAYS.forEach((d, i) => {
+  if (d[0] === 'drop') source(d[1], 'Monthly sign-in', `Home > Sign-in, day ${i + 1}${d[4] ? ` (double from VIP ${d[4]})` : ''}`);
+});
+// Akatsuki mall (guild.js MALL: [dropinfo id, icon, contribution, gold]; 9 of these at a time, new ones every 30 minutes)
+for (const m of require('../server/guild').MALL) {
+  source(m[0], 'Akatsuki mall', `Akatsuki > Mall, ${m[2]} contribution${m[3] ? ' + ' + m[3] + ' gold' : ''} (when it is among the goods, new ones every 30 minutes)`);
+}
+// Gold spending gifts (consumption.js TIERS: [id, gold spent, [rewards]]) and total top-up gifts (totalgift.js GIFTS: [id, dollars, [[.., shown drop, .., [paid drops]]]])
+for (const t of require('../server/consumption').TIERS) for (const rw of t[2]) give(rw, 'Gold spending gift', `Event "gold spending gifts": spend ${t[1].toLocaleString('en-US')} gold while it runs (pick one reward)`);
+for (const g of require('../server/totalgift').GIFTS) for (const it of g[2]) source(it[2], 'Top-up gift', `Event "total top-up": top up $${g[1]} in total while it runs (free here)`);
+// Hot Treasure (hottreasure.js: MAIN heat prize, SEMI semi-heat prizes, REST the rest of the pool)
+{
+  const ht = require('../server/hottreasure');
+  for (const [d] of [ht.MAIN, ...ht.SEMI, ...ht.REST]) source(d, 'Hot Treasure', 'Event "Hot Treasure": a prize of its hunts (one free hunt a day)');
+}
 // Limited Super Ninja: 1st place of each hour wins that hour's god card (limitsuper.js)
 for (const g of require('../server/limitsuper').godList()) {
   const c = cardFor(g.id);

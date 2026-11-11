@@ -61,4 +61,4 @@ function claim(db, pl, id) {
   return { xml: game.mergeAwards(awards) };
 }
 
-module.exports = { listXml, claim, ensure };
+module.exports = { listXml, claim, ensure, GIFTS };

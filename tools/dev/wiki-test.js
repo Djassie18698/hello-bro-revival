@@ -121,6 +121,11 @@ for (const c of D.chapters) for (const p of c.parts) for (const r of p.rounds) {
   for (const f of r.foes) ck(iconOk(f.icon), `stage ${r.name} enemy ${f.name} has a bad icon`);
 }
 ck(D.shinobi.find((c) => c.id === 2106 && (c.get || []).some((w) => w.how === 'Fragments')), 'Kyuubi Naruto (God) should list Fragments as a way to get it');
+// Development Dan (owner, 11 Nov 2026: the wiki only listed the Shop): the arena shop, sign-in, Akatsuki mall and event gifts too
+{
+  const dd = D.items.find((i) => i.id === 34), hows = new Set(((dd && dd.get) || []).map((w) => w.how.replace(/ \(x\d+\)$/, '')));
+  for (const h of ['Shop', 'Arena shop', 'Monthly sign-in', 'Akatsuki mall', 'Gold spending gift', 'Top-up gift', 'Hot Treasure']) ck(hows.has(h), `Development Dan should list "${h}" as a way to get it`);
+}
 
 // ---- the home page ------------------------------------------------------------------------------------------------------------
 {

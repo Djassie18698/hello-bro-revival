@@ -72,4 +72,4 @@ function sign(db, pl, signId) {
   return { xml: pay(db, pl, r, want) };
 }
 
-module.exports = { listXml, sign };
+module.exports = { listXml, sign, DAYS };

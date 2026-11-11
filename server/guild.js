@@ -374,4 +374,4 @@ function donateCards(db, pl, kind, bagJson) {
   db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(fund, g.id);
   return {};
 }
-module.exports = { rejoinWait, REJOIN_WAIT, expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };
+module.exports = { MALL, rejoinWait, REJOIN_WAIT, expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };

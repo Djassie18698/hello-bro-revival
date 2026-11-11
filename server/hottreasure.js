@@ -64,4 +64,4 @@ function huntTen(db, pl) {
   return { xml: `<cash>${gold(db, pl)}</cash><award_list>${awards}</award_list>` };
 }
 
-module.exports = { infoXml, huntOne, huntTen };
+module.exports = { infoXml, huntOne, huntTen, MAIN, SEMI, REST };
