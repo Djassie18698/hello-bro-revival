@@ -119,6 +119,8 @@ const LABEL = {
   rl_r_mainpage: 'Home', rl_w_login2: 'Login', rl_w_reg2: 'New character', rl_r_recruit: 'Recruit screen', rl_r_shoplist: 'Shop / backpack',
   rl_r_savetime: 'Save time', rl_r_newbie_pay: 'Newbie gift', rl_r_pay_cumula: 'Total top-up gift', rl_r_lottery: 'Lottery', rl_r_wheel: 'Lucky Wheel', rl_r_vipshop: 'VIP shop', rl_r_paypack: 'Pay pack', rl_r_monopoly_info: 'Millionaire', rl_r_sudoku: 'Ninja Treasure', rl_r_mtree: 'Money tree', rl_r_sport: 'Arena', rl_r_dup: 'Tower', rl_r_tear: 'National treasure', rl_r_boss: 'World boss', rl_r_frontiers_war_attack: 'Border war', rl_r_frontiers_war_recv_award: 'Border war', rl_r_frontiers_war_clear: 'Border war',
 };
+const NINJALIST = { 2300: 'Team change', 2301: 'Weapon change', 2302: 'Armor change', 2303: 'Trinket change', 2304: 'Seal change',
+  2305: 'Ninjutsu change', 2306: 'Ninjutsu change', 2307: 'Ninjutsu change', 2308: 'Ninjutsu change', 2310: 'Team 1 / Team 2 switch' };
 // endpoints that do many different things: the Cmd number is kept in the label so they can be told apart
 const BY_CMD = new Set(['rl_w_comm', 'rl_r_comm', 'rl_x_small_activity', 'rl_w_activity', 'rl_x_award_msg', 'rl_x_pet', 'rl_x_develop', 'rl_w_ninjalist', 'rl_r_shoplist']);
 function label(cgi, p = {}) {
@@ -126,6 +128,7 @@ function label(cgi, p = {}) {
   if (cgi === 'rl_w_recruit') return Number(cmd) === 1902 || (Number(p.Type) === 1 && Number(p.Free) !== 1 && Number(p.IsSuperAct) === 1) ? 'Recruit: Super Ninja'
     : Number(p.Free) === 1 ? 'Recruit: free' : Number(cmd) === 1901 ? 'Recruit: 10 pulls' : 'Recruit';
   if (cgi === 'rl_w_pve' && Number(cmd) === 3) return 'Campaign';
+  if (cgi === 'rl_w_ninjalist') return NINJALIST[Number(cmd)] || `Team / gear change #${cmd}`; // handlers.js: Cmd - 2300 = the slot kind changed
   return (LABEL[cgi] || cgi) + (!LABEL[cgi] || BY_CMD.has(cgi) ? (cmd !== undefined && cmd !== '' ? ` #${cmd}` : '') : '');
 }
 const fightKind = (cgi, chap, stage) => {
@@ -489,7 +492,7 @@ function summary(db, uid, sid, day) {
     return { in: inc, out, totalIn: Object.values(inc).reduce((t, x) => t + x, 0), totalOut: Object.values(out).reduce((t, x) => t + x, 0), start: startOf(kind, kind === 'silver' ? 'silver' : kind), end: endOf(kind, kind === 'silver' ? 'silver' : kind) };
   };
   // power curve: baseline + every change, starting from yesterday's last value
-  const pw = rows.filter((r) => r.kind === 'power' || r.kind === 'baseline').map((r) => { const d = JSON.parse(r.detail || '{}'); return { at: r.at, atk: r.value, def: d.def || 0, datk: r.delta || 0, ddef: d.ddef || 0, why: d.why || (r.kind === 'baseline' ? 'tracker start' : '') + '', parts: d.parts || [], src: r.src }; });
+  const pw = rows.filter((r) => r.kind === 'power' || r.kind === 'baseline').map((r) => { const d = JSON.parse(r.detail || '{}'); return { at: r.at, atk: r.value, def: d.def || 0, datk: r.delta || 0, ddef: d.ddef || 0, why: d.why || (r.kind === 'baseline' ? 'tracker start' : '') + '', parts: d.parts || [], old: !!d.old, src: r.src }; });
   // which parts of the power grew over the day (sum of every change's parts)
   const partsDay = {};
   for (const x of pw) for (const q of x.parts || []) { const o = partsDay[q.part] = partsDay[q.part] || { atk: 0, def: 0 }; o.atk += q.atk; o.def += q.def; }

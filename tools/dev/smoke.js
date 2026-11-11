@@ -881,6 +881,7 @@ for (const pick of [55, 56, 57]) {
     ck(rows('baseline').length === 2 && s2.level.start === 1 && s2.gold.start !== null && s2.gold.start < 5000 && s2.resets.length === 1 && s2.cards.length >= 1, 'day after a reset does not start from the new character: ' + JSON.stringify({ level: s2.level, gold: s2.gold.start, cards: s2.cards.length }));
     tr.setUids(db, '');
     ck(!tr.tracked(db, 79600), 'track_uids off did not stop tracking');
+    ck(tr.label('rl_w_ninjalist', { Cmd: 2300 }) === 'Team change' && tr.label('rl_w_ninjalist', { Cmd: 2301 }) === 'Weapon change' && tr.label('rl_w_ninjalist', { Cmd: 2310 }) === 'Team 1 / Team 2 switch', 'team screen labels');
   }
   // Original numbers switched on 11 Nov 2026 (owner: "all four"): lottery prizes, border war defence prize + hours, Akatsuki rejoin wait.
   {
