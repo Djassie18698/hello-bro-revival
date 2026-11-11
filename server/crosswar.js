@@ -6,8 +6,9 @@
 //   arena top 20 enter for free, others buy a 500-gold ticket; the list is made Friday 8 pm, the battle is Saturday 8-9 pm;
 //   holding a ladder position earns points every second (positions 44-45 +5, 46-49 +3, no position +0); morale boost 200 gold = +10 %
 //   attack and defence for 300 s; exchange prices 24 000 / 100 000 / 300 000 / 600 000 / 850 000 points (points add up across weeks).
-// (ours): 50 positions (the photos show 49 and a 0 = "no position"), the points of positions 1-43, bots holding the ladder at the start,
-//   their strength, the swap rule, 5 boosts per battle, the exchange items and the top-10 rewards.
+//   50 positions and at most 5 boosts a battle: the game's normalconfig 158 / 163 (the photos show 49 and a 0 = "no position").
+// (ours): the points of positions 1-43, bots holding the ladder at the start, their strength, the swap rule, the exchange items and the
+//   top-10 rewards.
 const game = require('./game');
 const el = (n, v) => `<${n}>${String(v).replace(/[<>&"]/g, '')}</${n}>`;
 
