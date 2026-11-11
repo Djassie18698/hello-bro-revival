@@ -114,10 +114,15 @@ if (s.ranks.length || s.others.length) {
   P('Others     ' + s.ranks.map((r) => `${time(r.at)} ${r.what} (${r.src})`).join(' | '));
   for (const o of s.others.slice(-15)) P(`             ${time(o.at)} ${o.src}: ${o.kind} ${o.delta != null ? sgn(o.delta) : ''} ${(o.detail || '').slice(0, 80)}`);
 }
-const big = p.filter((x) => x.datk).sort((a, b) => Math.abs(b.datk) - Math.abs(a.datk)).slice(0, 10);
+const pp = Object.entries(s.powerParts || {}).sort((a, b) => Math.abs(b[1].atk) - Math.abs(a[1].atk));
+if (pp.length) P('Power from  ' + pp.map(([k, v]) => `${k} ${sgn(v.atk)} / ${sgn(v.def)}`).join(' | ') + '   (attack / defence, added up over the day)');
+const big = p.filter((x) => x.datk || x.ddef).sort((a, b) => Math.abs(b.datk) - Math.abs(a.datk)).slice(0, 12);
 if (big.length) {
   P('Biggest power changes');
-  for (const x of big) P(`             ${time(x.at)} ${sgn(x.datk).padStart(10)} attack -> ${fmt(x.atk)}  ${x.src}: ${x.why}`);
+  for (const x of big) {
+    P(`             ${time(x.at)} ${sgn(x.datk).padStart(10)} attack -> ${fmt(x.atk)}, defence ${sgn(x.ddef)} -> ${fmt(x.def)}  ${x.src}: ${x.why}`);
+    if (x.parts.length) P('                   parts: ' + x.parts.map((q) => `${q.part} ${sgn(q.atk)}/${sgn(q.def)}`).join(', '));
+  }
 }
 if (showFights) {
   P('Every fight');

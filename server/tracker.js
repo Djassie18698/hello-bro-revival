@@ -167,7 +167,7 @@ function splitEnergy(rows, c) {
 }
 
 // Turn raw differences into facts: gold / silver / energy, cards gained, items, levels, stages, top-ups, other changes.
-function facts(d, sid, c) {
+function facts(d, sid, c, snaps) {
   const out = [];
   const why = [];
   const arena = { from: null, to: null };
@@ -217,7 +217,7 @@ function facts(d, sid, c) {
     }
     if (ch.table === 'props') {
       const r = b || a, n0 = a ? a.count : 0, n1 = b ? b.count : 0;
-      if (n0 !== n1) { out.push({ kind: 'item', key: r.prop_id, delta: n1 - n0, value: n1, detail: propName(r.prop_id) }); if (r.prop_id === 9997) why.push('Eight Gates'); }
+      if (n0 !== n1) { out.push({ kind: 'item', key: r.prop_id, delta: n1 - n0, value: n1, detail: propName(r.prop_id) }); if (r.prop_id === 9997) why.push(`Eight Gates level ${n0}→${n1}`); if (r.prop_id === 9994) why.push('war merit (title)'); }
       continue;
     }
     if (ch.table === 'pets') {
@@ -236,7 +236,12 @@ function facts(d, sid, c) {
       continue;
     }
     if (['team', 'team_alt', 'equipped', 'equipped_alt'].includes(ch.table)) {
-      if (!why.includes(ch.table.startsWith('team') ? 'team change' : 'gear change')) why.push(ch.table.startsWith('team') ? 'team change' : 'gear change');
+      // what went where: "Team slot 2: Sakura Haruno 4★ Lv 5 → Itachi 6★ Lv 1", "Slot 1 weapon: - → Kusanagi 5★ Lv 3"
+      const r = b || a, t2 = ch.table.endsWith('_alt') ? 'Team 2 ' : '';
+      const was = cardText(snaps && snaps.a, a && a.seq), now = cardText(snaps && snaps.b, b && b.seq);
+      const where = ch.table.startsWith('team') ? `${t2}team slot ${r.slot + 1}` : `${t2}slot ${r.slot} ${SLOT_KIND[r.kind] || 'kind ' + r.kind}`;
+      if (was !== now) { const t = `${where}: ${was} → ${now}`; out.push({ kind: 'team', key: ch.table, detail: t }); why.push(t); }
+      continue;
     }
     // anything else: one compact line per changed row
     const cols = a && b ? Object.keys(b).filter((k) => a[k] !== b[k]).map((k) => `${k} ${a[k]}→${b[k]}`).join(', ') : '';
@@ -246,18 +251,50 @@ function facts(d, sid, c) {
   return { out, why };
 }
 
-function record(db, uid, sid, src, d, extra = [], c = null) {
-  const { out, why } = facts(d, sid, c);
+function record(db, uid, sid, src, d, extra = [], c = null, snaps = null) {
+  const { out, why } = facts(d, sid, c, snaps);
   const rows = splitEnergy([...extra, ...out], c);
-  // power after anything that could move it
+  // power after anything that could move it, with the parts of it that moved (the website's "where the power comes from": card level,
+  // rebirth, breakthrough, growth, training, gear, seals, ninjutsu, sets, chains, card sets, Eight Gates, title, pets)
   if (out.length) {
     const p = power(db, uid, sid), was = lastPower(db, uid, sid);
     if (p) {
       const wasDef = was ? (JSON.parse(was.detail || '{}').def || 0) : 0;
-      if (!was || p.atk !== was.value || p.def !== wasDef) rows.push({ kind: 'power', delta: was ? p.atk - was.value : 0, value: p.atk, detail: JSON.stringify({ def: p.def, ddef: p.def - wasDef, why: why.slice(0, 6).join('; ') }) });
+      if (!was || p.atk !== was.value || p.def !== wasDef) {
+        const now = parts(db, uid, sid), before = lastParts.get(uid);
+        lastParts.set(uid, now);
+        const moved = before && now ? partDiff(before, now) : [];
+        rows.push({ kind: 'power', delta: was ? p.atk - was.value : 0, value: p.atk, detail: JSON.stringify({ def: p.def, ddef: p.def - wasDef, why: why.slice(0, 12).join('; '), parts: moved }) });
+      }
     }
   }
   write(db, uid, sid, src, rows);
+}
+// the power split into its parts (webapi.breakdown, the same maths as the team screen): { key: { label, atk, def } } with the middle of each range
+const lastParts = new Map();
+function parts(db, uid, sid) {
+  try {
+    const bd = require('./webapi').breakdown(db, uid, sid), out = {};
+    for (const [side, list] of [['atk', bd.atk], ['def', bd.def]]) for (const x of list) { out[x.key] = out[x.key] || { label: x.label, atk: 0, def: 0 }; out[x.key][side] = Math.round((x.v[0] + x.v[1]) / 2); }
+    return out;
+  } catch { return null; }
+}
+function partDiff(a, b) {
+  const out = [];
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const x = a[k] || { atk: 0, def: 0 }, y = b[k] || { atk: 0, def: 0 };
+    const da = y.atk - x.atk, dd = y.def - x.def;
+    if (da || dd) out.push({ part: (y.label || x.label), atk: da, def: dd });
+  }
+  return out.sort((p, q) => Math.abs(q.atk) + Math.abs(q.def) - Math.abs(p.atk) - Math.abs(p.def));
+}
+const SLOT_KIND = { 1: 'weapon', 2: 'armor', 3: 'trinket', 4: 'seal', 5: 'ninjutsu 1', 6: 'ninjutsu 2', 7: 'ninjutsu 3', 8: 'ninjutsu 4' };
+function cardText(snap, seq) {
+  if (!seq) return '-';
+  const c = snap && snap.cards && snap.cards.get(String(seq));
+  if (!c) return 'card #' + seq;
+  const info = cardInfo(c.type, c.ninja_id);
+  return `${info.name}${info.stars ? ' ' + info.stars + '★' : ''} Lv ${c.level}${c.breaklvl ? ' +' + c.breaklvl : ''}`;
 }
 
 function baseline(db, uid, sid, snap) {
@@ -267,6 +304,7 @@ function baseline(db, uid, sid, snap) {
   const cards = [...(snap.cards || new Map()).values()].filter((c) => c.server_id === sid).length;
   const vipRow = (snap.vipstate || new Map()).get(`${uid}|${sid}`);
   const again = db.prepare("SELECT 1 FROM track_log WHERE uid=? AND sid=? AND kind<>'reset' LIMIT 1").get(uid, sid); // seen before: the server restarted (or the character was reset)
+  lastParts.set(uid, parts(db, uid, sid));
   write(db, uid, sid, again ? 'New snapshot (server restart or reset)' : 'Tracker start', [{ kind: 'baseline', value: p.atk, detail: JSON.stringify({ def: p.def, level: pl.level, exp: pl.exp, gold: pl.gold, silver: pl.coin, energy: pl.energy, vip: vipRow ? vipRow.level : 0, cards, nick: pl.nick }) }]);
 }
 
@@ -342,7 +380,7 @@ function begin(db, params, cgi) {
         const d = diff(prev, snap);
         // the character is made by a request that does not carry its uid yet (rl_w_reg2): that shows here, between two requests
         const made = isNew(prev, snap, uid, sid);
-        if (d.length) record(db, uid, sid, betweenLabel(d, made, prev), d);
+        if (d.length) record(db, uid, sid, betweenLabel(d, made, prev), d, [], null, { a: prev, b: snap });
         if (made) baseline(db, uid, sid, snap);
       }
       snap.at = Date.now();
@@ -365,7 +403,7 @@ function end() {
       for (const f of c.fights) extra.push({ kind: 'fight', key: f.kind, value: f.win ? 1 : 0, detail: f.text });
       for (const d of c.drops) extra.push({ kind: 'drop', key: d.id, detail: d.name });
       const d = diff(c.snap, after);
-      if (d.length || extra.length) record(c.db, c.uid, c.sid, label(c.cgi, c.params), d, extra, c);
+      if (d.length || extra.length) record(c.db, c.uid, c.sid, label(c.cgi, c.params), d, extra, c, { a: c.snap, b: after });
       if (isNew(c.snap, after, c.uid, c.sid)) baseline(c.db, c.uid, c.sid, after); // a new character (after a reset): its starting point
     } else if (c.changes !== undefined && changes(c.db) !== c.changes) {
       // someone else's request wrote something: did it touch a tracked account?
@@ -378,7 +416,7 @@ function end() {
         if (!d.length) continue;
         snap.at = prev.at;
         last.set(uid, snap);
-        record(c.db, uid, sid, `Other player ${who ? who.nick : 'uid ' + c.uid}: ${label(c.cgi, c.params)}`, d);
+        record(c.db, uid, sid, `Other player ${who ? who.nick : 'uid ' + c.uid}: ${label(c.cgi, c.params)}`, d, [], null, { a: prev, b: snap });
       }
     }
   } catch (e) { if (process.env.HB_DEBUG) console.error('tracker', e); } // the tracker must never break the game
@@ -451,7 +489,10 @@ function summary(db, uid, sid, day) {
     return { in: inc, out, totalIn: Object.values(inc).reduce((t, x) => t + x, 0), totalOut: Object.values(out).reduce((t, x) => t + x, 0), start: startOf(kind, kind === 'silver' ? 'silver' : kind), end: endOf(kind, kind === 'silver' ? 'silver' : kind) };
   };
   // power curve: baseline + every change, starting from yesterday's last value
-  const pw = rows.filter((r) => r.kind === 'power' || r.kind === 'baseline').map((r) => { const d = JSON.parse(r.detail || '{}'); return { at: r.at, atk: r.value, def: d.def || 0, datk: r.delta || 0, why: d.why || (r.kind === 'baseline' ? 'tracker start' : '') + '', src: r.src }; });
+  const pw = rows.filter((r) => r.kind === 'power' || r.kind === 'baseline').map((r) => { const d = JSON.parse(r.detail || '{}'); return { at: r.at, atk: r.value, def: d.def || 0, datk: r.delta || 0, ddef: d.ddef || 0, why: d.why || (r.kind === 'baseline' ? 'tracker start' : '') + '', parts: d.parts || [], src: r.src }; });
+  // which parts of the power grew over the day (sum of every change's parts)
+  const partsDay = {};
+  for (const x of pw) for (const q of x.parts) { const o = partsDay[q.part] = partsDay[q.part] || { atk: 0, def: 0 }; o.atk += q.atk; o.def += q.def; }
   const p0 = before('power') || before('baseline');
   if (p0 && !resets.length) pw.unshift({ at: a, atk: p0.value, def: JSON.parse(p0.detail || '{}').def || 0, datk: 0, why: 'start of the day', src: '' });
   // cards gained by source
@@ -506,7 +547,7 @@ function summary(db, uid, sid, day) {
     vip: { start: startOf('vip', 'vip'), end: endOf('vip', 'vip'), ups: vipUps, expIn: rows.filter((r) => r.kind === 'vipexp' && r.delta > 0).reduce((t, r) => t + r.delta, 0) },
     topup: { count: topups.length, dollars: topups.reduce((t, r) => t + (r.delta || 0), 0) / 100, gold: topups.reduce((t, r) => t + (r.value || 0), 0) },
     gold: flow('gold'), silver: flow('silver'), energy: flow('energy'), exp: flow('exp'),
-    power: pw, cardsBySource: gained, cards: gainedList, items, fights, reach, loot, fightList: fightList.slice(-500), ranks, others: others.slice(-300),
+    power: pw, powerParts: partsDay, cardsBySource: gained, cards: gainedList, items, fights, reach, loot, fightList: fightList.slice(-500), ranks, others: others.slice(-300),
     played: { minutes: minutes.length, requests: minutes.reduce((t, m) => t + m.n, 0), sessions: sessions.map((s) => ({ from: s.from * 60, to: s.to * 60 + 59, minutes: s.to - s.from + 1 })) },
     events: rows.slice(-3000).map((r) => ({ at: r.at, req: r.req, src: r.src, kind: r.kind, key: r.key, delta: r.delta, value: r.value, detail: r.detail })),
   };

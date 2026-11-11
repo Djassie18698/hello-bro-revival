@@ -836,6 +836,10 @@ for (const pick of [55, 56, 57]) {
     db.prepare('UPDATE cards SET level=30 WHERE seq=(SELECT seq FROM team WHERE uid=79600 ORDER BY slot LIMIT 1)').run();
     call('rl_r_mainpage', { Cmd: 1301 });
     ck(rows('power').some((r) => r.delta > 0 && /Lv 1→30/.test(r.detail)) && rows('card~').some((r) => /Lv 1→30/.test(r.detail)), 'no power line with its reason after a level-up: ' + JSON.stringify(rows('power')));
+    { const pw = rows('power').filter((r) => /Lv 1→30/.test(r.detail)).pop(), d = JSON.parse(pw.detail);
+      ck(d.parts.some((q) => q.part === 'Card level and stars' && q.atk > 0), 'power line does not split into parts: ' + pw.detail); }
+    { const spare = game.giveCard(db, 79600, 1, 57); db.prepare('UPDATE team SET seq=? WHERE uid=79600 AND slot=0').run(spare); call('rl_r_mainpage', { Cmd: 1301 });
+      ck(rows('team').some((r) => /^team slot 1: .+ Lv 30 → .+ Lv 1$/.test(r.detail)), 'team swap not described: ' + JSON.stringify(rows('team'))); }
     const s = tr.summary(db, 79600, 1);
     ck(s.gold.totalIn >= 5000 && s.gold.out.Recruit > 0 && s.cardsBySource.Recruit >= 1 && s.fights.stage && s.fights.stage.won >= 1 && s.played.minutes >= 1 && s.played.requests >= 5, 'summary: ' + JSON.stringify({ gold: s.gold, cards: s.cardsBySource, fights: s.fights, played: s.played }));
     ck(s.level.start === 1 && s.power.length >= 1 && tr.overview(db, 79600, 1).length === 1, 'summary level / power / overview');
