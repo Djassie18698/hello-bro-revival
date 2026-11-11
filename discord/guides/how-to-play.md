@@ -61,3 +61,9 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Ninja Treasure** (chest on Home, left side): Explore for gold to win the 9 prizes on the board (35, 70, 300 ... gold, rising). Every board hides one big card from **Top Rewards**; a new board comes every 2 hours, or press Refresh (100 gold).
 • **Awards** chest (Home, right side): gifts the server owner sends you and event prizes (Super Ninja). Press **Claim**; they stay 7 days.
 • Free top-ups (one a day) raise your VIP, up to **VIP 23**. Badges stop at VIP18, but your real level counts.
+
+## 10. God cards: evolve and fragments
+• **Evolve** (Home, bottom row, **evolve**): put in the **attack card** and the **defense card** of the same five-star ninja (both out of your team), pay **100 Development Dan**, and you get that ninja's **God card**. Rebirth and Sage Growth carry over (the higher of the two), and the Super Ninja Pills you used on the two cards come back. The wiki shows on every God card whether it can be evolved.
+• Not enough Development Dan? Pressing **Evolute** says "Insufficient evolution pills". Tapping the purple pill in the middle only shows what the pill is for.
+• **Development Dan** comes from the Shop, the Arena exchange (15 000 reputation, 2 a day), the monthly sign-in, the Akatsuki mall, the gold spending and top-up gifts and Hot Treasure (the wiki's Development Dan page lists them all).
+• **God card fragments** drop from won fights (more on Shard Rush days). They are used for **Breakthrough**, and 50 of them make a new copy of that God card (Backpack > Fragments).

@@ -184,6 +184,19 @@ for (const g of require('../server/totalgift').GIFTS) for (const it of g[2]) sou
   const ht = require('../server/hottreasure');
   for (const [d] of [ht.MAIN, ...ht.SEMI, ...ht.REST]) source(d, 'Hot Treasure', 'Event "Hot Treasure": a prize of its hunts (one free hunt a day)');
 }
+// God evolve (game.godSynth, Home > evolve): the attack and the defense card of the same five-star ninja + game.GOD_COST Development Dan
+{
+  const fam = new Map();
+  for (const r of T('ninjainfo')) if (r[11] === 5 && byCard.has(r[0])) { const f = fam.get(r[3]) || fam.set(r[3], { atk: [], def: [] }).get(r[3]); (r[20] >= r[22] ? f.atk : f.def).push(r[0]); }
+  for (const { atk, def } of fam.values()) for (const d of def) {
+    const god = byCard.get(game.godOf(d));
+    if (!atk.length || !god || god.stars < 6) continue;
+    const line = { how: 'God evolve', where: `Home > evolve: the attack card and the defense card of ${byCard.get(d).name} (five-star, not in your team) + ${game.GOD_COST} Development Dan; Super Ninja Pills used on them come back` };
+    if (!god.get.some((x) => x.how === line.how && x.where === line.where)) god.get.push(line);
+  }
+  const dan = byItem.get(34);
+  if (dan && !dan.get.some((x) => x.how === 'Used for')) dan.get.push({ how: 'Used for', where: `God evolve (Home > evolve): ${game.GOD_COST} of them + the attack and defense card of the same five-star ninja = its God card` });
+}
 // Limited Super Ninja: 1st place of each hour wins that hour's god card (limitsuper.js)
 for (const g of require('../server/limitsuper').godList()) {
   const c = cardFor(g.id);

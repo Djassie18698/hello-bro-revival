@@ -152,6 +152,11 @@ ck(D.shinobi.find((c) => c.id === 2106 && (c.get || []).some((w) => w.how === 'F
 {
   const dd = D.items.find((i) => i.id === 34), hows = new Set(((dd && dd.get) || []).map((w) => w.how.replace(/ \(x\d+\)$/, '')));
   for (const h of ['Shop', 'Arena shop', 'Monthly sign-in', 'Akatsuki mall', 'Gold spending gift', 'Top-up gift', 'Hot Treasure']) ck(hows.has(h), `Development Dan should list "${h}" as a way to get it`);
+  // God evolve (owner, 11 Nov 2026: "cant find anything about evolve on the wiki"): its use on the pill, the way on the god cards, a guide chapter
+  ck(hows.has('Used for'), 'Development Dan should say it is used for God evolve');
+  const evo = D.shinobi.filter((c) => (c.get || []).some((w) => w.how === 'God evolve'));
+  ck(evo.length >= 60 && evo.every((c) => c.stars >= 6), `God evolve should be listed on the god cards (${evo.length})`);
+  ck(D.guides.some((g) => /evolve/i.test(g.title)), 'a guide chapter about evolve should exist (the wiki search finds guide titles)');
 }
 
 // ---- the home page ------------------------------------------------------------------------------------------------------------
