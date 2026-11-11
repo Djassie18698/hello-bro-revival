@@ -379,6 +379,21 @@ section { position: relative; }
 .qa p { margin: 0 4px 18px; color: #d5e1fb; max-width: 66ch; }
 .qa a { color: var(--moon); font-weight: 800; }
 
+/* ---- search pages (tools/site_pages.js: /hello-bro-apk/, /hello-bro-private-server/, /ninja-online-game/) ---- */
+.read { max-width: 720px; color: #dbe6fb; font-size: 17px; }
+.read h1 { font-size: clamp(34px, 5.4vw, 52px); color: #fff; margin: 0 0 14px; }
+.read h2 { font-size: 28px; color: #fff; margin: 38px 0 10px; }
+.read h3 { font-size: 20px; color: var(--gold); margin: 22px 0 4px; }
+.read p, .read li { max-width: 66ch; }
+.read .lede { font-size: 19px; color: #eaf2ff; }
+.read b { color: #fff; }
+.read a:not(.btn) { color: var(--moon); font-weight: 800; text-underline-offset: 3px; }
+.read ol, .read ul { padding-left: 22px; }
+.read li { margin: 8px 0; }
+.read code { font: 700 15px/1 ui-monospace, Consolas, monospace; color: #ffd9a8; background: rgba(255, 255, 255, .08); padding: 2px 6px; border-radius: 6px; }
+.read .cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 24px 0 8px; }
+.read .cta small { color: var(--mute); font-weight: 700; }
+
 /* ---- smaller screens ---- */
 @media (max-width: 1020px) {
   .feat-wrap { grid-template-columns: 1fr; }

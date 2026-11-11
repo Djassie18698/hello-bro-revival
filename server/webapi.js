@@ -6,6 +6,7 @@
 //   /api/today            Limited Super Ninja god card of the hour, free ramen and energy times, events running now
 //   /api/online?days=1|7  players online, logged every 5 minutes (also by statuswatch's /status), for the graph
 //   /api/calc?s=...       team calculator (wiki): the game's own team maths (game.teamSlots) for cards, gear, seals and ninjutsu you pick
+//   /api/hit?p=&r=        one page view for the website visitor counter (sitestats.js; no cookies, no stored addresses)
 const game = require('./game');
 const settings = require('./settings');
 const vip = require('./vip');
@@ -272,6 +273,7 @@ function handle(req, resp, u, db) {
       case '/api/today': return send(resp, 200, today(db));
       case '/api/online': return send(resp, 200, online(db, Number(q.days) || 1));
       case '/api/calc': return send(resp, 200, calc(q.s));
+      case '/api/hit': { require('./sitestats').record(db, req, q); resp.writeHead(204, { 'Cache-Control': 'no-store' }); return resp.end(); } // a page view (sitestats.js)
       default: return send(resp, 404, { error: 'unknown' });
     }
   } catch (e) {
@@ -280,4 +282,4 @@ function handle(req, resp, u, db) {
   }
 }
 
-module.exports = { handle, record, top, player, today, online, calc };
+module.exports = { handle, record, top, player, today, online, calc, breakdown }; // breakdown: also the progress tracker's power parts (tracker.js)

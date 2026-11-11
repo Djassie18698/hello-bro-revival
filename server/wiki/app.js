@@ -539,6 +539,7 @@
   }
 
   // ---- router -------------------------------------------------------------------------------------------------------------------
+  let firstHit = true;
   function route() {
     // an entry's own page (/wiki/shinobi/2106.html, tools/wiki_pages.js) opens that entry; #/ addresses work everywhere as before
     const own = /\/wiki\/(shinobi|gear|ninjutsu|seals|pets|items|training|guide)\/([^/]+)\.html$/.exec(location.pathname);
@@ -567,6 +568,9 @@
     document.title = document.title.replace(/konohagakure/gi, 'Leaf Village').replace(/[^\s,.:;()]*(naruto|konoha)[^\s,.:;()]*/gi, '').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
       .replace(/\(\s*\)/g, '').replace(/\s{2,}/g, ' ').replace(/^[\s,.:;·-]+/, '').trim() || 'Ninja Online Wiki';
     $('#main').innerHTML = html;
+    // one page view for the website's visitor counter (server/sitestats.js; no cookies): the first one says where the visitor came from
+    try { fetch('/api/hit?p=' + encodeURIComponent(location.pathname + (location.hash && p ? '#/' + p : '')) + '&r=' + encodeURIComponent(firstHit ? document.referrer || '' : location.origin), { keepalive: true, cache: 'no-store' }).catch(() => {}); } catch (e) { /* optional */ }
+    firstHit = false;
     sideMenu(p);
     tabs(p);
     document.body.classList.remove('nav-open');

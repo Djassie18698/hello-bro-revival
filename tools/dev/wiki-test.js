@@ -93,6 +93,33 @@ const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
   ck(fs.readFileSync(path.join(W, 'app.js'), 'utf8').includes("(own ? `${own[1]}/${own[2]}` : '')"), 'app.js no longer opens an entry from its own page address');
   ck(fs.existsSync(path.join(__dirname, '..', '..', 'server', 'site', 'img', 'og.jpg')) && site('index.html').includes('og:image" content="https://ninjaonlinereborn.com/img/og.jpg"'), 'share picture og.jpg missing');
   ck(site('index.html').includes('"@type":"FAQPage"') && site('index.html').includes('id="faq"'), 'home page questions part missing');
+  // search pages (tools/site_pages.js): there, own title + canonical, no Naruto/Konoha, in the sitemap, linked from the footer
+  for (const d of require('../site_pages').PAGES) {
+    const h = site(d + '/index.html');
+    const title = (h.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
+    ck(title && !/naruto|konoha/i.test(title) && h.includes('<link rel="canonical" href="https://ninjaonlinereborn.com/' + d + '/">'), d + ': title or canonical wrong');
+    ck(sm.includes('<loc>https://ninjaonlinereborn.com/' + d + '/</loc>') && site('index.html').includes('href="/' + d + '/"'), d + ' is not in the sitemap or the footer');
+    ck(!/<use href="\/#/.test(h) && h.includes('src="/site.js"'), d + ': broken icon or script address');
+  }
+  ck(!/<use href="\/#/.test(site('p.html')) && site('p.html').includes('src="/live.js"') && site('p.html').includes('noindex'), 'p.html: broken icons, script or robots tag');
+  // website visitor counter (server/sitestats.js): robots skipped, reloads not counted twice, no address stored
+  {
+    const { DatabaseSync } = require('node:sqlite');
+    const db2 = new DatabaseSync(':memory:');
+    const st = require('../../server/sitestats');
+    const req = (ua, ip = '203.0.113.9') => ({ headers: { 'user-agent': ua }, socket: { remoteAddress: ip } });
+    ck(st.record(db2, req('Mozilla/5.0 (Linux; Android 14) Mobile'), { p: '/hello-bro-apk/', r: 'https://www.google.com/search?q=x' }) === true, 'sitestats: a real visit was not counted');
+    ck(st.record(db2, req('Mozilla/5.0 (Linux; Android 14) Mobile'), { p: '/hello-bro-apk/', r: '' }) === false, 'sitestats: a reload counted twice');
+    ck(st.record(db2, req('Mozilla/5.0 (compatible; Googlebot/2.1)'), { p: '/' }) === false && st.record(db2, req(''), { p: '/' }) === false, 'sitestats: robots are counted');
+    st.record(db2, req('Mozilla/5.0 (Windows NT 10.0)', '198.51.100.7'), { p: '/wiki/#/shinobi/5', r: 'https://ninjaonlinereborn.com/' });
+    const sum = st.summary(db2, 30);
+    ck(sum.today.v === 2 && sum.today.n === 2 && sum.sources.some((x) => x.k === 'google.com') && !sum.sources.some((x) => x.k === 'own'), 'sitestats summary: ' + JSON.stringify(sum.today) + ' ' + JSON.stringify(sum.sources));
+    const rows = JSON.stringify(db2.prepare('SELECT * FROM web_hits').all());
+    ck(!/203\.0\.113|198\.51\.100|Mozilla/.test(rows), 'sitestats stores an address or browser name: ' + rows);
+    let out = ''; st.page({}, { writeHead() {}, end(b) { out = b; } }, { query: {} }, db2);
+    ck(/Website visitors/.test(out) && /google\.com/.test(out), 'sitestats page does not render');
+    db2.close();
+  }
 }
 
 // ---- the data ----------------------------------------------------------------------------------------------------------------

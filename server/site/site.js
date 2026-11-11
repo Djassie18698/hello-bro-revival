@@ -6,6 +6,8 @@
   const num = (n) => Number(n).toLocaleString('en-US').replace(/,/g, ' ');
   const wiki = (id) => `/wiki/#/shinobi/${id}`;
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // one page view for our own visitor counter (server/sitestats.js): no cookies, nothing about you is kept
+  try { fetch('/api/hit?p=' + encodeURIComponent(location.pathname) + '&r=' + encodeURIComponent(document.referrer || ''), { keepalive: true, cache: 'no-store' }).catch(() => {}); } catch (e) { /* counting is optional */ }
 
   // header gets a background once the page scrolls; the menu button opens the links on small screens
   const top = $('#top');

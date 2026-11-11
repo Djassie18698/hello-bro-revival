@@ -116,6 +116,10 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   if (u.pathname === '/manager' || u.pathname.startsWith('/manager/')) {
     try { return await manager(req, resp, u, db, parseBody); } catch (e) { logError('manager error', e); resp.writeHead(500); return resp.end('error'); }
   }
+  if (u.pathname === '/admin/sitestats') { // website visitors (sitestats.js): the owner only, like the control panel
+    if (!admin.authorized(req)) { resp.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro"' }); return resp.end('password required'); }
+    try { return require('./sitestats').page(req, resp, u, db); } catch (e) { logError('sitestats error', e); resp.writeHead(500); return resp.end('error'); }
+  }
   if (u.pathname.startsWith('/admin')) {
     if (req.method === 'POST') require('./tracker').panelUsed(); // changes the tracker sees next are labelled "item page / control panel"
     try { return await admin(req, resp, u, db, parseBody); } catch (e) { logError('admin error', e); resp.writeHead(500); return resp.end('error'); }

@@ -64,6 +64,7 @@ iframe.on{display:block}
     <a data-t="team">🛡️ Team builder</a>
     <a data-t="log">📈 Player log</a>
     <a data-t="track">🔎 Tracker</a>
+    <a data-t="site">🌐 Website</a>
     <a data-t="progress">📋 Progress</a>
   </nav>
   <div class="right">
@@ -76,16 +77,17 @@ iframe.on{display:block}
   <iframe id="f-admin" title="Players and items" allowtransparency="true"></iframe>
   <iframe id="f-log" title="Player log" allowtransparency="true"></iframe>
   <iframe id="f-track" title="Progress tracker" allowtransparency="true"></iframe>
+  <iframe id="f-site" title="Website visitors" allowtransparency="true"></iframe>
   <div id="progress"><div class="prog" id="prog">Loading…</div></div>
 </main>
 <script>
 // One site, three tabs. The Server Manager and the admin page load once (embedded, without their own headers) and stay loaded,
 // so switching tabs keeps your place. "Team builder" is the admin page's Team editor tab.
-const frames = { server: document.getElementById('f-server'), admin: document.getElementById('f-admin'), log: document.getElementById('f-log'), track: document.getElementById('f-track') };
+const frames = { server: document.getElementById('f-server'), admin: document.getElementById('f-admin'), log: document.getElementById('f-log'), track: document.getElementById('f-track'), site: document.getElementById('f-site') };
 const v = Date.now(); // never reuse an old cached copy after an update
-const src = { server: '/manager?embed=1&v=' + v, admin: '/admin?embed=1&v=' + v, log: '/admin/playerlog?embed=1&v=' + v, track: '/admin/track?embed=1&v=' + v };
+const src = { server: '/manager?embed=1&v=' + v, admin: '/admin?embed=1&v=' + v, log: '/admin/playerlog?embed=1&v=' + v, track: '/admin/track?embed=1&v=' + v, site: '/admin/sitestats?embed=1&v=' + v };
 function show(t) {
-  if (!['server', 'admin', 'team', 'log', 'track', 'progress'].includes(t)) t = 'server';
+  if (!['server', 'admin', 'team', 'log', 'track', 'site', 'progress'].includes(t)) t = 'server';
   document.getElementById('progress').classList.toggle('on', t === 'progress');
   if (t === 'progress') {
     for (const k in frames) frames[k].classList.remove('on');
@@ -94,7 +96,7 @@ function show(t) {
     if (location.hash !== '#progress') history.replaceState(null, '', '#progress');
     return;
   }
-  const f = t === 'server' ? 'server' : t === 'log' ? 'log' : t === 'track' ? 'track' : 'admin';
+  const f = t === 'server' ? 'server' : t === 'log' ? 'log' : t === 'track' ? 'track' : t === 'site' ? 'site' : 'admin';
   if (!frames[f].src) frames[f].src = src[f];
   for (const k in frames) frames[k].classList.toggle('on', k === f);
   document.querySelectorAll('nav a').forEach((a) => a.classList.toggle('on', a.dataset.t === t));
