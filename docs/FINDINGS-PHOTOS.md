@@ -30,6 +30,12 @@ from the game at all; those are skipped. Most screenshots are from the English H
 - Stage rewards and energy match the game's own `roundinfo` exactly: 1-1 "Book of Seal" energy 3, EXP 6, silver 15,
   needs 2 clears (`batch-01/0004`); "Madara's Jeer" energy 23, EXP 598, silver 713, 4 clears and "Enjoy Battle"
   energy 24, EXP 624, silver 744 (`batch-01/0084`). So the data tables are the real ones.
+- Player EXP per level (checked 11 Nov 2026 against every photo): the top bar shows "EXP now / EXP needed", and 24 readings equal
+  the game's own `playerlevel` table to the digit, from level 15 to 329: Lv15 0/72 with energy 50/52 (`batch-01/0003`), Lv181 6857/28052
+  (`3036`), Lv238 10404/257455 (`3339`), Lv248 550/377296 (`2089`), Lv251 65917/436344 (`1914`), Lv253 48132/448765 (`1660`),
+  Lv258 524284 (`0823`, last digit misread), Lv260 582441 (`2922`, last digit lost), Lv266 674963 (`0517`), Lv282 106852/992209 with
+  "282" shown (`0393`), Lv292 581488/1221221 (`0455`), Lv320 934783/2052493 with "320" shown (`3550`), Lv329 67955/2361649 (`0563`).
+  No top-bar reading disagrees (the other "x/y" numbers are card EXP bars on card and team screens). So the level curve is the original.
 - Sage growth silver cost: Sage 12 uses 650, Sage 13 uses 700 silver per try (`0026`, `0076`, `0200`-`0203`) = server's
   50 x (level + 1). Help text: "More purple sage stones, higher success rate. Never regresses when level reaches 3, 6, 9."
 - 10-pull recruit costs **2800 gold**, single recruit had "Free recruitment this time" (`0003`).
