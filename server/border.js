@@ -14,11 +14,16 @@ const day = (back = 0) => new Date(Date.now() - back * 86400000 - new Date().get
 // and that only the player who breaks the monument gets the special award.
 // ORIGINAL (normalconfig 136-141, 7 Nov 2026): taunt 20 gold, wander 2500 silver, a taunt or wander succeeds after 300 s (photos show
 // stations counting down "2min", "8s"), damage 10 / 5 of the 300 HP. Until 7 Nov: wander 20 000 silver and 30-minute stations (ours).
-// ORIGINAL (normalconfig 148 / 149 and the game's help text ui_border_tips8 "every day from 08:00 to 24:00, it can be attacked"; owner chose
-// the original 11 Nov 2026): taunting, wandering and clearing only 08:00-24:00 server time; before 08:00 the game's own tip 329005 "War at
-// border doesn't start". A station started before midnight still runs its 5 minutes. (Until 11 Nov: open all day.)
-const OPEN_HOUR = 8, CLOSE_HOUR = 24;
-const borderOpen = (d = new Date()) => d.getHours() >= OPEN_HOUR && d.getHours() < CLOSE_HOUR;
+// ORIGINAL (the English game's own border screen, activity/BorderWarView.ccbi, shows a fixed label "EST 12:00-15:00", also on photo 0540;
+// owner chose it 11 Nov 2026 over the Chinese table's 08:00-24:00, normalconfig 148 / 149 and help text ui_border_tips8): taunting, wandering
+// and clearing only 12:00-15:00 New York time (17:00-20:00 UTC in winter, 16:00-19:00 in summer). Before it the game's own tip 329005 "War at
+// border doesn't start", after it 329006 "War at border has ended". A station started just before 15:00 still runs its 5 minutes.
+// (Until 11 Nov: open all day; for a few hours on 11 Nov: 08:00-24:00 server time.)
+const OPEN_HOUR = 12, CLOSE_HOUR = 15, BORDER_TZ = 'America/New_York';
+const tzHour = new Intl.DateTimeFormat('en-US', { timeZone: BORDER_TZ, hour: 'numeric', hourCycle: 'h23' });
+const borderHour = (d = new Date()) => Number(tzHour.format(d));
+const borderOpen = (d = new Date()) => borderHour(d) >= OPEN_HOUR && borderHour(d) < CLOSE_HOUR;
+const closedCode = (d = new Date()) => (borderHour(d) < OPEN_HOUR ? 329005 : 329006);
 const STAY = 300, TOTAL_HP = 300, PROVOKE_GOLD = 20, WANDER_SILVER = 2500, PROVOKE_HP = 10, WANDER_HP = 5;
 const REWARD = { 1: { exp: 3300, merit: 786 }, 2: { exp: 3300, merit: 786 } };
 const CLEAR_REWARD = { exp: 1650, merit: 393 };
@@ -120,7 +125,7 @@ function userXml(db, pl) {
 function attack(db, pl, type, to, sw) {
   ensure(db);
   if (!Number.isInteger(to) || to === myCountry(pl) || to < 0 || to > 4 || (type !== 1 && type !== 2)) return { code: 5, msg: 'pick an enemy country' };
-  if (!borderOpen()) return { code: 329005 };
+  if (!borderOpen()) return { code: closedCode() };
   const st = myStation(db, pl);
   if (st && st.to_country === to) return { code: 329012 };
   if (st && !sw) {
@@ -148,7 +153,7 @@ function enemyXml(db, pl, c) {
 }
 // Defender fights a stationed enemy. Win = the enemy is sent home and the defender scores.
 function clear(db, pl, toUid) {
-  if (!borderOpen()) return { code: 329005 };
+  if (!borderOpen()) return { code: closedCode() };
   const sc = score(db, pl);
   if (sc.clears >= clearsPerDay(db, pl)) return { code: 5, msg: 'no clears left today' };
   const st = myStation(db, { server_id: pl.server_id, uid: toUid });
@@ -226,4 +231,4 @@ function rankXml(db, pl, type) { // 1 defence yesterday, 2 defence history, 3 at
     '<rank_list>' + rows.map((r, i) => `<item rank="${i + 1}" nick="${esc(r.nick)}" country="${r.country}" level="${r.level}" score="${r.score}" award="${yest && i < prize.top ? esc(prize.desc) : ''}"/>`).join('') + '</rank_list>';
 }
 
-module.exports = { ensure, infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml, rankClaim, borderOpen, RANK_PRIZE };
+module.exports = { ensure, infoXml, userXml, attack, enemyXml, clear, awardInfoXml, dailyXml, recv, rankXml, rankClaim, borderOpen, borderHour, RANK_PRIZE };

@@ -31,7 +31,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Battles** (Home): 25 chapters of 7 rounds, the 7th is the chapter boss. **Ranking > Achievement** pays a reward every 7 floors.
 • **News**: the Battle tab shows who sparred or plundered you (press **Revenge** to fight back), the Friend tab shows messages from friends.
 • **War** and **Border war**: fight for your nation. War is open all day; the clock shows the time until midnight. After every 3 attacks you wait 10 minutes (or pay 30 gold). **Autoplay** (50 gold) attacks for you for the rest of the day, even when you are offline. National treasure: 1 hour between raids (15 gold skips it).
-• **Border war** (Boundary Monument): taunt (20 gold) or wander (2500 silver) at another nation's monument, or clear enemies from yours, **every day from 08:00 to 24:00 server time**. The **Yesterday** ranking pays out the next day: the top 3 defenders get a 1-in-10,000 shinobi card + 10 Super Ninja Pills, the top 10 attackers 500 gold.
+• **Border war** (Boundary Monument): taunt (20 gold) or wander (2500 silver) at another nation's monument, or clear enemies from yours, **every day from 12:00 to 15:00 EST** (New York time: 18:00-21:00 in the Netherlands in winter). The **Yesterday** ranking pays out the next day: the top 3 defenders get a 1-in-10,000 shinobi card + 10 Super Ninja Pills, the top 10 attackers 500 gold.
 • **Akatsuki**: after you leave one, you wait **2 hours** before you can join or found another.
 • Real players fight with their **whole team**. Bots bring about as many cards as you do, and every enemy card's stats vary a little each fight. Watching a fight or pressing **Skip** always gives the same result.
 

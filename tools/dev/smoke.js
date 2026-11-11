@@ -887,8 +887,8 @@ for (const pick of [55, 56, 57]) {
         if (!want.includes(star(id))) { ck(false, `drop ${drop} gave card ${id} with ${star(id)} stars, want ${want}`); break; }
       }
     }
-    // border war: open 08:00-24:00 only (normalconfig 148 / 149)
-    ck(!border.borderOpen(new Date(2026, 10, 11, 7, 59)) && border.borderOpen(new Date(2026, 10, 11, 8, 0)) && border.borderOpen(new Date(2026, 10, 11, 23, 59)), 'border war hours are not 08:00-24:00');
+    // border war: open 12:00-15:00 New York time only (the English border screen's own label, owner 11 Nov 2026), winter and summer
+    ck(!border.borderOpen(new Date('2026-11-11T16:59:00Z')) && border.borderOpen(new Date('2026-11-11T17:00:00Z')) && border.borderOpen(new Date('2026-11-11T19:59:00Z')) && !border.borderOpen(new Date('2026-11-11T20:00:00Z')) && border.borderOpen(new Date('2026-07-11T16:30:00Z')), 'border war hours are not 12:00-15:00 EST');
     // border defence ranking: yesterday's top 3 get a 1-in-10 000 card + 10 Super Ninja Pills, once; 4th place gets nothing
     border.ensure(db);
     const yest = new Date(Date.now() - 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
