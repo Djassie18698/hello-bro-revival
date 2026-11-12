@@ -15,11 +15,11 @@
   // The game lays its full-screen layouts out for a 768-wide screen and centres them on the 686-wide phone
   // (seen on the phone: the home screen's middle at 383 of 768 lands in the middle of 686).
   const FRAME = 768;
-  function screen(file, owner) {
-    const root = HB.build(file, owner, [FRAME, H()]);
+  function screen(file, owner, frame = FRAME) { // frame: 768 for the menus, the real width (W()) for the fight view
+    const root = HB.build(file, owner, [frame, H()]);
     // the C++ puts a layout's root so that it covers the screen, whatever its anchor point
     const ign = root.ignoreAnchor;
-    root.x = (ign ? 0 : root.ax * root.w) + (W() - FRAME) / 2;
+    root.x = (ign ? 0 : root.ax * root.w) + (W() - frame) / 2;
     root.y = ign ? 0 : root.ay * root.h;
     return root;
   }
@@ -66,6 +66,7 @@
   // ---------------------------------------------------------------- account (the APK's account window, gumplogin.js)
   const S = HB.session;
   function deviceId() {
+    if (q.get('device')) return 'web-test-' + q.get('device'); // test switch: the same test guest every run instead of a new one
     let d = HB.store.get('device');
     if (!d) { d = 'web-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join(''); HB.store.set('device', d); }
     return d;
@@ -218,8 +219,11 @@
     const village = 'sub_ui/' + countryName(country) + 'CountryDefaultMenu';
     await HB.loadCCB(village);
     HB.scene.removeAll();
-    const o = { onButton: (sel) => homeButton(sel) };
+    HB.scene.children.slice().forEach((c) => HB.luaLeave && HB.luaLeave(c));
+    const o = { onButton: (sel, btn) => homeButton(sel, btn) };
     const root = screen('MainMenu', o);
+    HB.game.menu = o; HB.game.root = root; HB.game.main = main;
+    selectBar('btn_mainpage');
     // the home part goes into node_content, laid out in the same 768-wide frame as MainMenu (CMainMenu::ChangeToSubView)
     const content = o.n.node_content;
     content.removeAll();
@@ -250,6 +254,8 @@
     }
     for (const k of ['sprite_activity_frame', 'label_activity_news', 'sprite_msg_frame', 'label_msg_news']) if (n[k]) n[k].visible = false; // counts come later
     HB.home = { o, main };
+    HB.game.subOwner = o;
+    { const ci = x.first(main, 'chapinfo'); HB.game.chap = { cur: Number(x.a(ci, 'currentchap', 1)), stage: Number(x.a(ci, 'currentstage', 1)) }; }
     // the player's numbers for the scripts (CPlayerDataMgr), from <user>
     HB.game.user = Object.fromEntries([...u.children].map((c) => [c.nodeName, c.textContent]));
     HB.game.subContent = content;
@@ -295,11 +301,52 @@
     const fv = HB.frame('com_res/Resident_2.plist', VIP_FRAMES[vip]);
     if (n.sprite_vipinfo && fv) n.sprite_vipinfo.setFrame(fv);
   }
-  function homeButton(sel) {
+  function homeButton(sel, btn) {
     // buttons whose screens are the game's own Lua (CDefaultMainMenu::onBtnActivity ...)
     if (sel === 'BtnActivity' && HB.L) { if (HB.luaRun('business_proxy/activityPopup_business.lua')) HB.luaGlobal('initactivityPopupLayer'); return; }
+    // the bottom bar (CMainMenu::onBtnDefault / onBtnMyTeam / onBtnBackpack / the Training, Spar and Shop buttons)
+    if (sel === 'BtnMainMenu') return homeScreen();
+    if (sel === 'BtnRound') return HB.screens.training();
     tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
   }
+  // the bottom bar's marker sits behind the chosen button
+  function selectBar(name) {
+    const m = HB.game.menu && HB.game.menu.n;
+    if (m && m.sprite_clickbk && m[name]) m.sprite_clickbk.x = m[name].x;
+  }
+  // put another screen into MainMenu's content area (CMainMenu::ChangeToSubView): a layout in the 768-wide frame
+  HB.game.showSub = (file, owner, barButton) => {
+    const content = HB.game.subContent;
+    const old = content.children.slice(); content.removeAll(); old.forEach((c) => HB.luaLeave && HB.luaLeave(c));
+    owner.onButton = owner.onButton || ((sel) => tip('Coming soon: ' + sel, 1.2));
+    const sub = HB.build(file, owner, [FRAME, content.h]);
+    sub.x = -content.x + content.ax * content.w + (sub.ignoreAnchor ? 0 : sub.ax * sub.w); sub.y = sub.ignoreAnchor ? 0 : sub.ay * sub.h;
+    content.add(sub);
+    HB.game.currentSubType = 0;
+    if (barButton) selectBar(barButton);
+    fillTopBar(owner, HB.game.main);
+    const n = owner.n, u = x.first(HB.game.main, 'user');
+    n.label_maxattack && n.label_maxattack.setText(`${x.n(u, 'attactlow')}-${x.n(u, 'attacthigh')}`);
+    n.label_maxdefense && n.label_maxdefense.setText(`${x.n(u, 'defenselow')}-${x.n(u, 'defensehigh')}`);
+    n.label_maxhonor && n.label_maxhonor.setText(String(x.n(u, 'meritscore')));
+    HB.game.subOwner = owner;
+    return sub;
+  };
+  // after something changed the player's numbers (a fight, a purchase): ask the server again and fill the top bar on screen
+  HB.game.refresh = async () => {
+    try {
+      const main = await HB.api('rl_r_mainpage', { Cmd: 1301, HornFlag: 1 });
+      if (main.code) return;
+      HB.game.main = main;
+      const u = x.first(main, 'user');
+      HB.game.user = Object.fromEntries([...u.children].map((c) => [c.nodeName, c.textContent]));
+      const ci = x.first(main, 'chapinfo');
+      if (ci) HB.game.chap = { cur: Number(x.a(ci, 'currentchap', 1)), stage: Number(x.a(ci, 'currentstage', 1)) };
+      if (HB.game.subOwner) fillTopBar(HB.game.subOwner, main);
+    } catch (e) { /* keeps the old numbers */ }
+  };
+  HB.screens = HB.screens || {};
+  HB.ui = { screen, modal, tip, loading, errorText: (r) => errorText(r), W, H, FRAME, table, tables, fillTopBar: (o, m) => fillTopBar(o, m), VIP_FRAMES: () => VIP_FRAMES, x, msg };
 
   msg('');
   await loginScreen();

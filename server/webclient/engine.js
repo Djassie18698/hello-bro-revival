@@ -45,6 +45,8 @@ HB.frame = (plist, name, quiet) => {
   const s = HB.sheets[plist], f = s && s.frames[name];
   if (!f || !s.img) {
     for (const o of Object.values(HB.sheets)) { const g = o.frames[name]; if (g && o.img) return { img: o.img, x: g[0], y: g[1], w: g[2], h: g[3], rot: g[4], ox: g[5], oy: g[6], sw: g[7], sh: g[8] }; }
+    // the layout names a sheet that does not exist (experience.plist): the frame's real sheet from the index
+    if (!quiet && HB.frameIndex !== undefined && HB.frameByName) { if (!HB.frameIndex) HB.frameIndex = HB.jsonNow('frames.json') || {}; const sh = HB.frameIndex[name]; if (sh && sh !== plist) { HB.loadSheetNow(sh); return HB.frame(sh, name, true); } }
     return null;
   }
   const rot = f[4] && !(s.img.naturalWidth === f[2] && s.img.naturalHeight === f[3]) ? 1 : 0; // "rotated" on a picture that is upright (background_02)
@@ -190,11 +192,12 @@ HB.menu = (id) => HB.strings.menu[id] ?? '';
 
 // ---------------------------------------------------------------- tinting (cocos multiplies a sprite's colour into its picture)
 const tintCache = new Map();
+let canvasIds = 0; // a canvas has no address: its own number keeps two of them apart in the cache
 const ready = (img) => img && (img.complete === undefined || (img.complete && img.naturalWidth > 0)); // an Image still loading draws next frame
 HB.ready = ready;
 function tinted(img, sx, sy, sw, sh, rot, col) {
   if (!ready(img)) return null;
-  const key = img.src + '|' + sx + ',' + sy + ',' + sw + ',' + sh + ',' + rot + '|' + col.join(',');
+  const key = (img.src || (img._id = img._id || 'c' + ++canvasIds)) + '|' + sx + ',' + sy + ',' + sw + ',' + sh + ',' + rot + '|' + col.join(',');
   let c = tintCache.get(key);
   if (c) return c;
   const W = rot ? sh : sw, H = rot ? sw : sh;
@@ -312,15 +315,17 @@ class Scale9 extends Node {
 HB.Scale9 = Scale9;
 
 // TTF label (CCLabelTTF): the system font, wrapped inside `dims` when it has a width
-const FONT = { 'Arial-BoldMT': 'bold 1px Arial, Helvetica, sans-serif', ArialMT: '1px Arial, Helvetica, sans-serif', Helvetica: '1px Helvetica, Arial, sans-serif',
-  'Helvetica-Bold': 'bold 1px Helvetica, Arial, sans-serif', 'Arial-BoldItalicMT': 'italic bold 1px Arial, sans-serif' };
+// The layouts name iPhone fonts (Arial-BoldMT, Helvetica). The Android game has none of them and draws every label in the phone's own
+// font, regular weight (seen on the phone: the chapter names are not bold). Same here: one regular sans-serif for all of them.
+const SANS = '1px Roboto, "Helvetica Neue", "Segoe UI", Arial, sans-serif';
+const FONT = { 'Arial-BoldMT': SANS, ArialMT: SANS, Helvetica: SANS, 'Helvetica-Bold': SANS, 'Arial-BoldItalicMT': SANS };
 const measure = document.createElement('canvas').getContext('2d');
 class Label extends Node {
   constructor(text = '', font = 'Helvetica', size = 20, dims = [0, 0], ha = 0, va = 0) {
     super(); this.ax = this.ay = 0.5;
     Object.assign(this, { font, size, dims, ha, va, stroke: null, shadow: null }); this.setText(text);
   }
-  css() { return (FONT[this.font] || '1px ' + this.font + ', Arial, sans-serif').replace('1px', this.size + 'px'); }
+  css() { return (FONT[this.font] || SANS).replace('1px', this.size + 'px'); }
   setText(t) {
     this.text = String(t ?? '');
     measure.font = this.css();

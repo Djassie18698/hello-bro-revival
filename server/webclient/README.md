@@ -28,6 +28,8 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 | `engine.js` | a small cocos2d-x 2 look-alike on a 2D canvas: nodes (y up, anchor points), sprites, 9-slice sprites, TTF and bitmap labels, buttons, colour layers, scroll views, CCB timelines, tweens, taps; builds a layout from its JSON (`HB.loadCCB` + `HB.build`) |
 | `net.js` | `HB.api(endpoint, params)` = the phone's POST + XML reply; `HB.account(path, form)` = the account window (`gumplogin.js`) |
 | `game.js` | the screens (what the C++ classes did): login (CLoginScene), account window, character creation, home (CMainMenu + CDefaultMainMenu + the country's village) |
+| `train.js` | Training: the chapter pictures (6 a page), one chapter's stage tabs and parts (Finish / GO), `rl_w_pve` Cmd 2 and 3 |
+| `fight.js` | the fight playback (two rows of cards, the one in front in the middle, Skip) and the Victory / Defeat screens with the three prize cards (RS_WinAnim) |
 | `assets/` | made by `tools/build_webclient.js`, not in git |
 
 ## Rules found so far (from the phone and `re/all.txt`)
@@ -42,6 +44,17 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 - Sheets: an encrypted `x.pvr.ccz` becomes `x.pvr.png`; a plain `x.png` next to it stays (the login moon is the plain one).
 - Village: `CProfileData::firefly_GetCountryLayoutName`: country 0 Wind, 1 Mine (thunder), 2 Water, 3 Fire, 4 Earth, else Fire.
 - Locked home buildings: functionconfig 1 / 5 / 2 / 22 with menu text 272 "Unlock at Lv.%d" (`CDefaultMainMenu::InitUI`).
+
+## Screens inside the main menu (12 Nov 2026 night)
+
+`HB.game.showSub(layout, owner, barButton)` puts a screen into MainMenu's `node_content` (768-wide frame) and fills its top bar;
+`HB.game.refresh()` asks `rl_r_mainpage` again after a fight. The bottom bar: Home and Training work, the rest says "Coming soon".
+More rules found:
+- Fonts: the layouts name iPhone fonts (Arial-BoldMT, Helvetica); Android has none of them and draws every label in its own regular font. Same here.
+- The fight view and the result views are 768-wide layouts too. Fight card pictures: `npc/<picture>_combat.plist`, listed as "rotated" but really an upright slice of the big picture.
+- The win view shows its resting layout (face between the panels), not its `showwinanim` timeline; the prize cards are `core_combat/RS_WinAnim.ccbi` in `layer_round_selectanim` (`normalshow` pulses, `animshow<k>` turns card k first).
+- Every training step is a fight the server already decided; exp and silver shown are the roundinfo row's.
+- Test switches: `&chapter=1&go=1&pick=2&close=1` (open a chapter, play the GO part, draw card 2, close), `&fightwait=20` holds the fight's first picture.
 
 ## The Lua side (12 Nov 2026)
 
@@ -58,5 +71,5 @@ To list the C++ names all scripts use: parse every script with `Lua.parse` and c
 
 - More of the C++ helpers the scripts call (`CGameObjElement` card icons and frames, `CTradeMgr`, item lists ...), so the Lua
   screens behind the event buttons open; Lua screens draw, but most of their buttons lead to C++ screens not rebuilt yet.
-- Team cards on the home screen, every screen behind the bottom bar (Team, Backpack, Training, Spar, Shop), fights, sounds.
+- Team cards on the home screen; Team, Backpack, Spar and Shop; in fights: ninjutsu cut-ins, element and pet effects, the level-up window, the Defeat screen's buttons; sounds.
 - The website route (`https://ninjaonlinereborn.com/play/` through Caddy) and the game files on the cloud machine.
