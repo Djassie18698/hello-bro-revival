@@ -8,9 +8,9 @@ Nothing was built for this report. It only looks at what exists and what each ro
 
 - iPhones **cannot run the Android game file**. There is no way around that on a normal iPhone (see route E).
 - The original game **did come out on iPhone** in 2014-2015, in China and Thailand. Two original Chinese
-  iPhone files (IPA) are still saved on the Wayback Machine. Nobody has checked yet if they still run on a
-  modern iPhone. **That check is cheap (1-2 days) and should come first.**
-- If those old files don't work, the only real way is to **rebuild the part of the game that lives in C++**.
+  iPhone files (IPA) are still saved on the Wayback Machine. **Checked on 12 Nov 2026 (section 1b): both are
+  32-bit only, so they can't run on any iPhone made to run iOS 11 or newer (2017 on).** That door is closed.
+- So the only real way is to **rebuild the part of the game that lives in C++**.
   About a third of the game (the core screens and the fights) is C++. That is months of work, not weeks.
 - The server never has to change much: every route talks to the same server the Android app uses.
 
@@ -44,7 +44,7 @@ Nothing was built for this report. It only looks at what exists and what each ro
   Change it, then re-sign the file the same way the owner already installs Ninja Panel (Sideloadly or Signulous).
 - Old apps (made before iOS 9) may talk plain `http://` to our server without extra settings.
 
-**Will it run on today's iPhones?** Unknown until someone looks inside:
+**Will it run on today's iPhones?** What was known before looking inside (the answer is in section 1b: no):
 - iPhones stopped running **32-bit** apps in iOS 11 (2017). Apple demanded 64-bit for App Store updates
   from June 2015, so the **2016** file has a fair chance of being 64-bit. The 2015 file probably is not.
 - The game draws with OpenGL ES. Apple called OpenGL ES "old" in 2018 but it still works in iOS 26.
@@ -54,7 +54,35 @@ Nothing was built for this report. It only looks at what exists and what each ro
 **What you would get even if it works:** the **Chinese** game, an older version than our English v28,
 with Chinese text and its own tables. The server might need small changes for its replies.
 English could perhaps be pushed in with our hot update (section 8 of CLAUDE.md), if the file formats match.
-That is the second thing to check.
+
+## 1b. The two original iPhone files, checked (12 Nov 2026)
+
+The owner said yes, so both files were downloaded from the Wayback Machine into `re/ipa-wayback/`
+(`re/` is never committed) and looked at.
+
+| | 2015 file (`renlong_zqg.ipa`) | 2016 file (`renlong_zqb_.ipa`) |
+|---|---|---|
+| Name on the phone | 火影大人 (com.xckoo.renlong.zqg) | 火影大人 (com.xckoo.renlong.zqg) |
+| Version | 5.0 | 11.0 (our English Android game is v28) |
+| Made with | Xcode 5.1, iOS 7.1 | Xcode 7.0.1, iOS 9.0 |
+| Runs on iOS from | 5.0 | 5.0 |
+| **64-bit?** | **No: 32-bit ARM (armv7) only** | **No: 32-bit ARM (armv7) only** |
+| Locked (App Store encryption)? | No (cryptid 0) | No (cryptid 0) |
+| Server address | `baseconfig.json`, `http://203.195.181.135:8080` (same file and same fields as our Android `assets/baseconfig.json`) | same, a list with "release server" first |
+| Same game as ours? | 624 of our C++ classes are in it; 55 of its 63 server endpoints are the same as in our C++; all 153 of its Lua files have the same names as ours | 638 of our C++ classes; 56 of 64 endpoints the same; 324 of its 339 Lua files have the same names as ours |
+| Function names kept? | Yes (242 088 symbols) | Yes (257 163 symbols) |
+
+**What this means:**
+- The files are **not locked**, and the server address is easy to change. That part was as hoped.
+- But **neither has a 64-bit part.** iOS 11 (2017) and newer refuse 32-bit apps. Every iPhone sold since
+  the iPhone 8 / X (2017) started on iOS 11 or newer and can't go back. So **no modern iPhone can run them**.
+- Only an old iPhone that was **never updated past iOS 10** (iPhone 4s, 5, 5c, or a 5s / 6 / 6s / SE / 7
+  left on iOS 10) could run them, after changing the address and re-signing. Hardly anyone still has one,
+  and it would be the older Chinese game.
+- Changing the 32-bit machine code into 64-bit machine code automatically is a research problem, not something
+  to try for a hobby project.
+- **Useful for later:** these are the same game in a second machine language, with the function names kept.
+  If a rebuild ever starts (route B or C), they help to double-check what the Android C++ does.
 
 ## 2. How much of the game would have to be rebuilt?
 
@@ -85,11 +113,10 @@ app expects, because the server answers all of them today.
 ## 3. The ways to do it
 
 ### Route A: wake up the original Chinese iPhone file
-1. Download the two IPAs from the Wayback Machine (needs the owner's OK: 75 + 80 MB).
-2. Look inside: 64-bit or not, locked or not, which version, where the server address is.
-3. If good: change the address to `ninjaonline.duckdns.org:18080`, sideload it on the owner's iPhone, fix
-   the server replies it trips on.
-4. Then try English: compare its Lua, layouts and tables with our v28 and push ours through the hot update.
+**Checked and closed (section 1b):** both files are 32-bit only. They would only run on an old iPhone left on
+iOS 10 or older. The plan was: change the address in `baseconfig.json` to `ninjaonline.duckdns.org:18080`,
+re-sign, sideload, then push English through the hot update. The first two steps would work; the phone
+refuses the app.
 
 ### Route B: rebuild the app for iPhone with cocos2d-x
 Rewrite the 233 C++ classes in new C++ on cocos2d-x (the same engine family), keep all Lua, layouts,
@@ -122,11 +149,15 @@ allowed PC emulator, UTM SE, runs without it and is very slow even for old Windo
 running a game it would be unusable. Apple also gives no app access to the iPhone's virtual-machine support.
 Jailbreak tricks exist but are not something to ask players to do.
 
+(The other way round, an "iPhone emulator" on a PC like BlueStacks for Android, doesn't exist either. Apple's
+iPhone Simulator runs only on a Mac and only runs apps built for it. A Mac with an M1 chip or newer can run real
+64-bit iPhone apps, with PlayCover. Programs that call themselves an iOS emulator for Windows are fakes.)
+
 ## 4. The routes side by side
 
 | | A: original iPhone file | B: rebuild (cocos2d-x) | C: web version | D: streamed Android | E: emulator on iPhone |
 |---|---|---|---|---|---|
-| **Will it work?** | Unknown, 1-2 days to find out. A fair chance for the 2016 file | Yes, with enough work | Yes, with enough work | Probably (needs a test) | No |
+| **Will it work?** | **No** on any modern iPhone: both files are 32-bit (checked 12 Nov 2026). Only on an old iPhone left on iOS 10 | Yes, with enough work | Yes, with enough work | Probably (needs a test) | No |
 | **Same as the Android game?** | Same game, but Chinese and older; English maybe later | Close copy; small differences will show up and need fixing over time | Close copy; same as B | **Exactly the same** (it is the real app) | - |
 | **Claude's work** | 1-2 days to check; then 1-3 weeks to make it play well | About 3-6 months | About 4-7 months | 1-2 weeks | - |
 | **Owner's work** | OK the download; test on own iPhone | Lots of testing on iPhone; decisions on small differences | Lots of testing in Safari | Create the Oracle Ampere machine (click-by-click steps) | - |
@@ -147,11 +178,11 @@ Jailbreak tricks exist but are not something to ask players to do.
 
 ## 5. Recommendation
 
-1. **First, route A's check (1-2 days, free).** With the owner's OK, download the two Chinese IPAs from the
-   Wayback Machine and look inside. If the 2016 file is 64-bit and not locked, point it at our server and try it
-   on the owner's iPhone. This is the only cheap way to get the real game on an iPhone.
+1. **Route A is done and closed.** The two original Chinese iPhone files were checked on 12 Nov 2026: both
+   are 32-bit only, so no modern iPhone can run them. There is no cheap shortcut.
 2. **If a few iPhone friends need to play soon:** try route D (a streamed Android) on a free Oracle Ampere
-   machine. Test first that the 32-bit game runs there.
+   machine. Test first that the 32-bit game runs there. It is the only way to the *exact* game on an iPhone
+   without months of work.
 3. **Only if many players ask for iPhone:** a rebuild. If it comes to that, pick **one C++ rebuild on a modern
    cocos2d-x / axmol** (route B) that builds iPhone, 64-bit Android and a web version from the same code. Plan
    for months. Don't start without the owner deciding it is worth that.
