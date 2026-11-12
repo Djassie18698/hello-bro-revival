@@ -11,12 +11,14 @@ const settings = require('./settings');
 
 const ROSE = 9992, DAYS = 7;
 // [index on screen, id, name (animation nvshenxianhua_<name>), picture, roses a gift, reward drops]
+// Row order = the reward list (ui_nvshenDescLayer title_color_config: Hinata, Konan, Mei, Sakura, Tsunade): it names the itemlist rows in that
+// order, so Tsunade listed before Sakura swapped their names (Discord, lephuc 12 Nov 2026). The index still picks the picture.
 const GIRLS = [ // index = the picture the layout starts with (sprite_avtor_N shows nvshen_meinvN), so the middle one (3) is Mei, as on photo 1240
   [1, 1, 'chutian', 'nvshen_meinv1', 24, [366, 562, 256]],       // Hinata
   [2, 2, 'xiaonan', 'nvshen_meinv2', 95, [980, 563, 380]],       // Konan
   [3, 3, 'zhaomeiming', 'nvshen_meinv3', 40, [941, 564, 239]],   // Mei Terumi
-  [4, 4, 'gangshou', 'nvshen_meinv4', 95, [279, 566, 113]],      // Tsunade
   [5, 5, 'chunyeying', 'nvshen_meinv5', 95, [565, 109, 942]],    // Sakura Haruno
+  [4, 4, 'gangshou', 'nvshen_meinv4', 95, [279, 566, 113]],      // Tsunade
 ];
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -33,7 +35,7 @@ function onTopup(db, pl, cents) {
 function awardItem(dropId) {
   const r = game.table('dropinfo').rows.find((x) => x[0] === dropId) || [];
   let folder = 'props', name = 'props_033', des = String(r[13] || 1), color = 4;
-  if (r[3] > 0) { const n = game.ninjas().get(r[3]) || []; folder = 'npc'; name = n[3]; des = String(n[2] || '').trim(); color = (n[11] || 4) >= 5 ? 4 : 3; }
+  if (r[3] > 0) { const n = game.ninjas().get(r[3]) || []; folder = 'icon'; name = 'icon_' + n[3]; /* small card icon (icon/icon_npcX_Y); 'npc' is the 394 px art that covered the list (lephuc, 12 Nov) */ des = String(n[2] || '').trim(); color = (n[11] || 4) >= 5 ? 4 : 3; }
   else if (r[7] > 0) { const c = game.table('consumeinfo').rows.find((x) => x[1] === r[7]) || []; name = c[3] || name; }
   return `<item dropid="${dropId}" folder="${folder}" name="${esc(name)}" num="${r[13] || 1}" des="${esc(des)}" color="${color}" newlife="0"/>`;
 }

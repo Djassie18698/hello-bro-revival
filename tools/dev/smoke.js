@@ -358,6 +358,17 @@ for (const pick of [55, 56, 57]) {
     if (keep === undefined) delete process.env.ADMIN_OPEN; else process.env.ADMIN_OPEN = keep;
     if (keepPw === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = keepPw;
   }
+  // Flower Worship "Detailed Information" (ui_nvshenDescItem.lua loads <folder>/<name>.plist into a small reward box): a card must be its small
+  // icon (icon/icon_npcX_Y), never the big npc/ art, which covered the whole list (Discord #general, lephuc, 12 Nov 2026)
+  {
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const x = require('../../server/flower').infoXml(db, pl);
+    const cards = [...x.matchAll(/<item dropid="\d+" folder="([^"]*)" name="([^"]*)"/g)].filter((m) => m[1] !== 'props');
+    if (!cards.length || cards.some((m) => m[1] !== 'icon' || !/^icon_npc\d+_\d+$/.test(m[2]))) { bad++; console.log('FLOWER: reward cards must use the small icon: ' + cards.map((m) => m[1] + '/' + m[2]).join(', ')); }
+    // the list names its rows in a fixed order (ui_nvshenDescLayer title_color_config): Tsunade's row must carry her Third Raikage
+    const order = [...x.matchAll(/<ninja_name>([^<]+)</g)].map((m) => m[1]).join(',');
+    if (order !== 'chutian,xiaonan,zhaomeiming,chunyeying,gangshou' || !/<ninja_name>gangshou<\/ninja_name>[\s\S]*?des="Third Raikage"/.test(x)) { bad++; console.log('FLOWER: reward rows in the wrong order for their names: ' + order); }
+  }
   // Cards stop at level 50 (the upgrade tables' row count, client IUpgradeable::firefly_GetMaxLevel): the old 99 cap let a weapon reach 51,
   // and reincarnation only lists cards at exactly the top level ("No Lv.50 cards"). Also a card already above it is put back on start.
   {

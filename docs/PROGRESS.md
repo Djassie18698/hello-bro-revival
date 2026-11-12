@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 12 | 5 | 1 | 1 |
+| Discord reports | 13 | 5 | 1 | 1 |
 
 ## Bug list 1
 
@@ -122,6 +122,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Double EXP Pill did nothing (10 Nov, buva) | The server did give double training EXP, but the game counts the EXP itself from the stage table and only adds what the reward says, so the screen showed normal EXP (and the bar jumped only at the next login). The extra EXP now goes in the reward, so the game shows x2 right away. As the pill says, it is for training only. Checked on a test save; live after the next public update |
 | ⏳ | "hello" thread with no report (10 Nov, enzobfer) | Nothing described; asked the player once what went wrong |
 | 🚫 | The game does not run on 64-bit-only phones (4 Nov) | The game's engine (libgame.so) exists only as a 32-bit file and there is no source code to rebuild it; phones that dropped 32-bit apps can't run it (a player answered this on Discord) |
+| ✅ | Flower Worship "Detailed Information": the goddess card was a huge picture over the list (lephuc, #general, 12 Nov) | the reply sent the big card art (npc/) instead of the small icon (icon/icon_npc...); also Tsunade's and Sakura's rows had swapped names (the list names rows in a fixed order). Both fixed, seen in game |
 
 ## Built on request (chat)
 
