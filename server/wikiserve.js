@@ -6,7 +6,7 @@ const fs = require('fs'), path = require('path'), zlib = require('zlib');
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.fnt': 'text/plain; charset=utf-8',
-  '.lua': 'text/plain; charset=utf-8', '.xml': 'text/xml; charset=utf-8', '.bin': 'application/octet-stream', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
+  '.lua': 'text/plain; charset=utf-8', '.xml': 'text/xml; charset=utf-8', '.bin': 'application/octet-stream', '.dat': 'application/x-game-data', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
 const TEXT = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt', '.fnt', '.lua', '.xml']);
 const gz = new Map(); // file -> { tag, body }
 

@@ -348,6 +348,19 @@ function frameIndex() {
   return Object.keys(idx).length;
 }
 
+// --emu: the three files the emulator route needs (server/webclient/emu runs the original app's own code): the app's code
+// (re/libgame.so), an apk (its assets: baseconfig.json, the logo) and the data file (.obb, taken out of the .xapk on the Desktop)
+function emuFiles() {
+  const dst = path.join(OUT, 'emu');
+  fs.mkdirSync(dst, { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 're', 'libgame.so'), path.join(dst, 'libgame.dat'));
+  const apk = path.join(ROOT, 'release', 'HelloBro-for-127.0.0.1-18081.apk');
+  if (fs.existsSync(apk)) fs.copyFileSync(apk, path.join(dst, 'game-apk.dat')); else console.log('  no ' + apk);
+  const obb = path.join(ROOT, 're', 'emu', 'main.28.com.hello.bro.yo.obb');
+  if (fs.existsSync(obb)) fs.copyFileSync(obb, path.join(dst, 'main-obb.dat')); else console.log('  no ' + obb + ' (unpack it from the .xapk: Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb)');
+  console.log('emulator files copied to server/webclient/assets/emu');
+}
+if (require.main === module && process.argv.includes('--emu')) { emuFiles(); process.exit(0); }
 if (require.main === module) {
   if (!fs.existsSync(SRC)) { console.error('re/obb is missing: run  python -I tools/setup_re.py  first'); process.exit(1); }
   const t0 = Date.now();
