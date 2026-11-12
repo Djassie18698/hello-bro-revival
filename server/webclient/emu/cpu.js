@@ -64,7 +64,7 @@
             const lr = r[14]; this.T = lr & 1; r[15] = lr & ~1; continue;
           }
           const idx = (pc - TRAP_BASE) >>> 2;
-          if (idx === 0) { if (this.depth === depth) return; throw new EmuError('return at the wrong depth'); }
+          if (idx === 0) { if (this.depth === depth) return 'done'; throw new EmuError('return at the wrong depth'); }
           const fn = this.traps[idx];
           if (!fn) throw new EmuError('bad trap ' + idx);
           const lr = r[14];
@@ -72,6 +72,7 @@
           if (this.unwound) { this.unwound = false; continue; } // longjmp / thread switch changed pc itself
           if (res !== undefined) { if (typeof res === 'bigint') { r[0] = Number(BigInt.asIntN(32, res)); r[1] = Number(BigInt.asIntN(32, res >> 32n)); } else r[0] = res; }
           this.T = lr & 1; r[15] = lr & ~1;
+          if (this.yielding) { if (this.depth === depth && this.thread) { this.yielding = false; return 'yield'; } this.yielding = false; }
           continue;
         }
         if (this.hooks.size) { const h = this.hooks.get(pc | this.T); if (h) { const lr = r[14]; h(this); this.T = lr & 1; r[15] = lr & ~1; continue; } }
@@ -80,6 +81,26 @@
       }
     }
 
+    // ---- other threads of the app, run in turns: a thread runs until it waits (pthread_cond_wait, usleep) or ends
+    // th = { regs: Int32Array(16), flags: [N, Z, C, V, T], done }
+    newThread(fn, arg, stackTop) {
+      const regs = new Int32Array(16);
+      regs[0] = arg; regs[13] = stackTop & ~7; regs[14] = TRAP_BASE | 0; regs[15] = fn & ~1;
+      return { regs, flags: [0, 0, 0, 0, fn & 1], done: false };
+    }
+    runThread(th) {
+      if (th.done || this.thread) return;
+      const r = this.r, saveR = r.slice(), saveF = [this.N, this.Z, this.C, this.V, this.T];
+      r.set(th.regs); [this.N, this.Z, this.C, this.V, this.T] = th.flags;
+      this.thread = th; this.depth = (this.depth | 0) + 1; this.yielding = false;
+      let how;
+      try { how = this.run(this.depth); } finally {
+        th.regs.set(r); th.flags = [this.N, this.Z, this.C, this.V, this.T];
+        this.thread = null; this.depth--;
+        r.set(saveR); [this.N, this.Z, this.C, this.V, this.T] = saveF;
+      }
+      if (how === 'done') th.done = true;
+    }
     cond(c) {
       switch (c) {
         case 0: return this.Z; case 1: return !this.Z; case 2: return this.C; case 3: return !this.C;

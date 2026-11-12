@@ -234,7 +234,7 @@
         const s = cpu.cstr(f).replace(/%(.)/g, (all, k) => ({ Y: String(g(20) + 1900), y: p2(g(20) % 100), m: p2(g(16) + 1), d: p2(g(12)), H: p2(g(8)), M: p2(g(4)), S: p2(g(0)), A: DAYS[g(24)], a: DAYS[g(24)].slice(0, 3), B: MON[g(16)], b: MON[g(16)].slice(0, 3), w: String(g(24)), '%': '%' })[k] ?? all);
         return putStr(dst, s, max) < max ? Cpu.enc.encode(s).length : 0;
       },
-      usleep: () => 0, alarm: () => 0,
+      usleep: () => { cpu.yielding = true; return 0; }, alarm: () => 0, // in a thread: let the others run
       // ---- math (doubles travel in two registers, floats in one: soft-float calling convention)
       sin: D1(Math.sin), cos: D1(Math.cos), tan: D1(Math.tan), asin: D1(Math.asin), acos: D1(Math.acos), atan: D1(Math.atan), sinh: D1(Math.sinh), cosh: D1(Math.cosh), tanh: D1(Math.tanh),
       exp: D1(Math.exp), log: D1(Math.log), log10: D1(Math.log10), sqrt: D1(Math.sqrt), ceil: D1(Math.ceil), floor: D1(Math.floor),
@@ -267,7 +267,7 @@
       pthread_key_delete: () => 0,
       pthread_getspecific: (c, k) => tls[k] | 0, pthread_setspecific: (c, k, v) => { tls[k] = v; return 0; },
       pthread_once: (c, once, fn) => { if (!cpu.r32(once)) { cpu.w32(once, 1); cpu.call(fn, []); } return 0; },
-      pthread_create: (c, tidp, attr, fn, a) => { const id = sys.threads.length + 1; sys.threads.push({ id, fn, arg: a, done: false }); cpu.w32(tidp, id); if (opts.onThread) opts.onThread(sys.threads[id - 1]); return 0; },
+      pthread_create: (c, tidp, attr, fn, a) => { const stack = malloc(256 << 10); const th = cpu.newThread(fn, a, stack + (256 << 10) - 16); th.id = sys.threads.length + 1; sys.threads.push(th); cpu.w32(tidp, th.id); return 0; },
       pthread_detach: () => 0, pthread_join: () => 0,
       // ---- setjmp / longjmp: registers r4-r11, sp, lr go into the jmp_buf
       setjmp: (c, buf) => { for (let i = 0; i < 8; i++) cpu.w32(buf + i * 4, r[4 + i]); cpu.w32(buf + 32, r[13]); cpu.w32(buf + 36, r[14]); cpu.w32(buf + 40, cpu.depth | 0); return 0; },
@@ -316,8 +316,10 @@
       getaddrinfo: () => -2, freeaddrinfo: () => {}, gethostbyname: () => 0, gethostname: (c, buf, n) => { putStr(buf, 'web', n); return 0; }, getservbyname: () => 0, inet_pton: () => 0, inet_ntop: () => 0,
       getpwuid: () => 0, getopt: () => -1, fork: () => -1, execl: () => -1, waitpid: () => -1, dup2: () => -1,
       regcomp: () => 1, regexec: () => 1, regfree: () => {},
-      pthread_exit: () => { throw new EmuError('pthread_exit on the main thread'); },
-      pthread_cond_wait: () => { throw new EmuError('pthread_cond_wait: the app waits for another thread (threads are not written yet)'); },
+      pthread_exit: () => { if (!cpu.thread) throw new EmuError('pthread_exit on the main thread'); cpu.thread.done = true; cpu.yielding = true; },
+      // waiting = "let the others run, then look again" (a wake-up without a signal is allowed, the app's loops check again);
+      // on the main thread: run the other threads once, then go on
+      pthread_cond_wait: () => { if (cpu.thread) cpu.yielding = true; else sys.runThreads(); return 0; },
     });
     function scan(s, f, a) {
       let si = 0, n = 0;
@@ -376,6 +378,7 @@
     }
     const tls = [0];
     sys.threads = [];
+    sys.runThreads = () => { for (const th of sys.threads) if (!th.done) cpu.runThread(th); };
     sys.exidx = [0, 0];
     const tmBuf = calloc(1, 48);
     function tmOut(t, out, utc) {

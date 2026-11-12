@@ -53,8 +53,8 @@
     def('NewByteArray', (c, e, n) => ref(new Uint8Array(n)));
     def('GetByteArrayElements', (c, e, a, isCopy) => { const b = get(a), p = sys.malloc(b.length || 1); cpu.u8.set(b, p); if (isCopy) cpu.u8[isCopy] = 1; return p; });
     def('ReleaseByteArrayElements', (c, e, a, p) => { sys.free(p); });
-    def('GetByteArrayRegion', (c, e, a, start, len, dst) => { cpu.u8.set(get(a).subarray(start, start + len), dst); });
-    def('SetByteArrayRegion', (c, e, a, start, len, src) => { get(a).set(cpu.u8.subarray(src, src + len), start); });
+    def('GetByteArrayRegion', (c, e, a, start, len) => { cpu.u8.set(get(a).subarray(start, start + len), sys.arg(4)); }); // the 5th argument is on the stack
+    def('SetByteArrayRegion', (c, e, a, start, len) => { const src = sys.arg(4); get(a).set(cpu.u8.subarray(src, src + len), start); });
     // the JavaVM: GetEnv and AttachCurrentThread hand out the one JNIEnv
     const vmTable = sys.malloc(8 * 4);
     for (let i = 0; i < 8; i++) cpu.w32(vmTable + i * 4, cpu.trap(() => 0, 'JavaVM#' + i));

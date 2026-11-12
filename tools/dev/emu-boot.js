@@ -4,7 +4,9 @@
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const E = path.join(ROOT, 'server', 'webclient', 'emu');
-const Cpu = require(path.join(E, 'cpu.js')), loadElf = require(path.join(E, 'elf.js')), makeSys = require(path.join(E, 'sys.js')), makeJni = require(path.join(E, 'jni.js'));
+const Cpu = require(path.join(E, 'cpu.js')), loadElf = require(path.join(E, 'elf.js')), makeSys = require(path.join(E, 'sys.js')), makeJni = require(path.join(E, 'jni.js')), hookCurl = require(path.join(E, 'net.js'));
+const { spawnSync } = require('child_process');
+const SERVER = process.env.HB_SERVER || 'http://127.0.0.1:18081';
 const verbose = process.argv.includes('-v');
 const frames = Number(process.argv.find((a) => /^\d+$/.test(a)) || 3);
 
@@ -48,6 +50,19 @@ const t0 = Date.now();
 const lib = loadElf(cpu, new Uint8Array(fs.readFileSync(path.join(ROOT, 're', 'libgame.so'))), BASE, sys.resolve);
 sys.exidx = lib.exidx;
 cpu.r[13] = MEM - 0x1000;
+cpu.tls = sys.calloc(1, 64);
+// the app's requests go to the dev server with curl (in the browser: a synchronous request to the page's own server)
+const requests = [];
+hookCurl(cpu, sys, lib, (q) => {
+  const u = new URL(q.url), target = SERVER + u.pathname + u.search;
+  const args = ['-s', '-m', '20', '-w', '\n%{http_code}', '-X', q.method, target];
+  if (q.body) args.push('--data-binary', '@-', '-H', 'Content-Type: application/x-www-form-urlencoded');
+  const r = spawnSync('curl', args, { input: q.body ? Buffer.from(q.body) : undefined, maxBuffer: 256 << 20 });
+  if (r.status !== 0) { requests.push(q.method + ' ' + u.pathname + ' -> failed'); return null; }
+  const i = r.stdout.lastIndexOf(10), status = Number(r.stdout.subarray(i + 1).toString()) || 0, body = new Uint8Array(r.stdout.subarray(0, i));
+  requests.push(q.method + ' ' + u.pathname + (q.body ? ' [' + Buffer.from(q.body).toString().slice(0, 60) + ']' : '') + ' -> ' + status + ', ' + body.length + ' bytes');
+  return { status, body };
+}, log);
 console.log(`loaded: image ${(lib.end - BASE) >> 10} KB, ${lib.init.length} start-up functions, ${sys.missing.size} of the imports not written yet`);
 
 const java = {
@@ -82,5 +97,6 @@ step('JNI_OnLoad', () => cpu.call(sym('JNI_OnLoad'), [jni.vm, 0]));
 step('nativeSetApkPath', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)]));
 step('nativeSetObbPath', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetObbPath'), [jni.env, 0, jni.ref(OBB)]));
 step('nativeInit 720x1280 (the app starts)', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, 720, 1280]));
-for (let i = 0; i < frames; i++) step('frame ' + (i + 1), () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender'), [jni.env, 0]));
+step(frames + ' frames (with the other threads)', () => { for (let i = 0; i < frames; i++) { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender'), [jni.env, 0]); sys.runThreads(); } });
+console.log('requests: ' + (requests.join(' | ') || 'none'));
 summary();

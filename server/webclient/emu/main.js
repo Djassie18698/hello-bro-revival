@@ -45,6 +45,21 @@
   cpu.r[13] = MEM - 0x1000;
   cpu.tls = sys.calloc(1, 64);
   const sym = (n) => lib.sym(n);
+  // the app's requests: sent to this page's own server, whatever address the app was built for (waits for the answer, like the app's own network thread did)
+  const requests = (window.emuRequests = []);
+  window.EmuHookCurl(cpu, sys, lib, (rq) => {
+    const u = new URL(rq.url);
+    const x = new XMLHttpRequest();
+    x.open(rq.method, u.pathname + u.search, false);
+    x.overrideMimeType('text/plain; charset=x-user-defined'); // the bytes as they are
+    if (rq.body) x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    x.send(rq.body || null);
+    const t = x.responseText, body = new Uint8Array(t.length);
+    for (let i = 0; i < t.length; i++) body[i] = t.charCodeAt(i) & 255;
+    requests.push(rq.method + ' ' + u.pathname + ' -> ' + x.status + ', ' + body.length + ' bytes');
+    if (q.get('log')) console.log('[request] ' + requests[requests.length - 1]);
+    return { status: x.status, body };
+  }, log);
 
   // ---------------------------------------------------------------- the Java side
   const prefs = (k) => 'emu.pref.' + k;
@@ -122,7 +137,7 @@
   let dead = false, frames = 0;
   const frame = () => {
     if (dead) return;
-    try { cpu.call(render, [jni.env, 0]); frames++; } catch (e) { dead = true; status('The game stopped: ' + e.message); console.error(e); return; }
+    try { cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; } catch (e) { dead = true; status('The game stopped: ' + e.message); console.error(e); return; }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -130,6 +145,10 @@
   // touches: Cocos2dxRenderer.nativeTouchesBegin(id, x, y) / nativeTouchesEnd / nativeTouchesMove(int[] ids, float[] xs, float[] ys)
   const pos = (e) => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * canvas.width, (e.clientY - r.top) / r.height * canvas.height]; };
   const touch = (name, e) => { if (dead) return; const [x, y] = pos(e); try { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + name), [jni.env, 0, 0, sys.retF(x), sys.retF(y)]); } catch (err) { console.error(err); } };
+  // test switch: &taps=0.5,0.86@12;0.5,0.6@20 = tap at that part of the screen (x,y from 0 to 1) so many seconds after the start
+  const tapAt = (fx, fy) => { for (const n of ['nativeTouchesBegin', 'nativeTouchesEnd']) cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + n), [jni.env, 0, 0, sys.retF(fx * canvas.width), sys.retF(fy * canvas.height)]); };
+  for (const t of (q.get('taps') || '').split(';').filter(Boolean)) { const [xy, at] = t.split('@'), [fx, fy] = xy.split(',').map(Number); setTimeout(() => { try { tapAt(fx, fy); } catch (e) { console.error(e); } }, Number(at) * 1000); }
+  window.emu.tap = tapAt;
   canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); touch('nativeTouchesBegin', e); });
   canvas.addEventListener('pointerup', (e) => touch('nativeTouchesEnd', e));
 })();
