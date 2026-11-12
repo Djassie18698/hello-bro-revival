@@ -358,6 +358,8 @@ function emuFiles() {
   if (fs.existsSync(apk)) fs.copyFileSync(apk, path.join(dst, 'game-apk.dat')); else console.log('  no ' + apk);
   const obb = path.join(ROOT, 're', 'emu', 'main.28.com.hello.bro.yo.obb');
   if (fs.existsSync(obb)) fs.copyFileSync(obb, path.join(dst, 'main-obb.dat')); else console.log('  no ' + obb + ' (unpack it from the .xapk: Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb)');
+  fs.mkdirSync(path.join(dst, 'cdn'), { recursive: true });
+  for (const f of fs.readdirSync(path.join(ROOT, 'server', 'cdn'))) if (f.endsWith('.zip')) fs.copyFileSync(path.join(ROOT, 'server', 'cdn', f), path.join(dst, 'cdn', f.replace(/.zip$/, '.dat'))); // the hot update
   console.log('emulator files copied to server/webclient/assets/emu');
 }
 if (require.main === module && process.argv.includes('--emu')) { emuFiles(); process.exit(0); }

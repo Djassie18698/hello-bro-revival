@@ -50,7 +50,10 @@
   window.EmuHookCurl(cpu, sys, lib, (rq) => {
     const u = new URL(rq.url);
     const x = new XMLHttpRequest();
-    x.open(rq.method, u.pathname + u.search, false);
+    // the hot-update zips also sit next to the other emulator files as .dat (tools/build_webclient.js --emu): some browsers
+    // hand a script an empty answer for a .zip address (seen in headless Chrome: status 204)
+    const cdn = rq.method === 'GET' && u.pathname.startsWith('/cdn/') && u.pathname.endsWith('.zip');
+    x.open(rq.method, cdn ? '../assets/emu/cdn/' + u.pathname.slice(5, -4) + '.dat' : u.pathname + u.search, false);
     x.overrideMimeType('text/plain; charset=x-user-defined'); // the bytes as they are
     if (rq.body) x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     x.send(rq.body || null);
@@ -64,7 +67,26 @@
   // ---------------------------------------------------------------- the Java side
   const prefs = (k) => 'emu.pref.' + k;
   const textCanvas = document.createElement('canvas'), tctx = textCanvas.getContext('2d', { willReadFrequently: true });
+  // the account window (the Gumptech SDK's Java code on the phone): the same accounts on our server (server/gumplogin.js)
+  const later = []; // things to do at the start of the next frame (never from inside a call of the app)
+  const account = { uid: '', session: '', nick: '' };
+  const form = (path, data) => { const x = new XMLHttpRequest(); x.open('POST', path, false); x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); x.send(new URLSearchParams({ appId: 10015, ...data }).toString()); try { return JSON.parse(x.responseText); } catch { return null; } };
+  const deviceId = () => { if (q.get('device')) return 'web-test-' + q.get('device'); let d = store.get('hb.device'); if (!d) { d = 'web-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join(''); store.set('hb.device', d); } return d; };
+  const guestLogin = () => {
+    const dev = deviceId(), pw = store.get('hb.guestpw');
+    let r = pw ? form('/quick/login.do', { deviceId: dev, passwd: pw }) : null;
+    if (!r || r.code !== 100000) { r = form('/quick/reg.do', { deviceId: dev, appkey: '' }); if (r && r.passwd) store.set('hb.guestpw', r.passwd); }
+    if (r && r.code === 100000) { account.uid = String(r.userId); account.session = r.sessionKey; account.nick = r.nick || ''; return true; }
+    return false;
+  };
   const java = {
+    'com/xckoo/renlong/sdk/SDKHelper.isLogined': () => !!account.session,
+    'com/xckoo/renlong/sdk/SDKHelper.userId': () => account.uid,
+    'com/xckoo/renlong/sdk/SDKHelper.session': () => account.session,
+    'com/xckoo/renlong/sdk/SDKHelper.nickName': () => account.nick,
+    'org/cocos2dx/lib/Cocos2dxHelper.playBackgroundMusic': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.playEffect': () => 0, 'org/cocos2dx/lib/Cocos2dxHelper.stopBackgroundMusic': () => {},
+    'com/xckoo/renlong/FileHelper.deleteFolder': () => true,
+    'com/xckoo/renlong/sdk/SDKHelper.login': () => { const ok = guestLogin(); later.push(() => cpu.call(sym('Java_com_xckoo_renlong_sdk_SDKCallbacks_' + (ok ? 'didLogined' : 'loginCancel')), [jni.env, 0])); },
     'org/cocos2dx/lib/Cocos2dxHelper.getCocos2dxPackageName': () => 'com.hello.bro.yo',
     'org/cocos2dx/lib/Cocos2dxHelper.getCurrentLanguage': () => 'en',
     'org/cocos2dx/lib/Cocos2dxHelper.getDeviceModel': () => 'Web',
@@ -137,7 +159,7 @@
   let dead = false, frames = 0;
   const frame = () => {
     if (dead) return;
-    try { cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; } catch (e) { dead = true; status('The game stopped: ' + e.message); console.error(e); return; }
+    try { while (later.length) later.shift()(); cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; } catch (e) { dead = true; status('The game stopped: ' + e.message); console.error(e); return; }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
