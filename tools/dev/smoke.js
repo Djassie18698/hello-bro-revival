@@ -327,6 +327,32 @@ for (const pick of [55, 56, 57]) {
     if (st !== 200 || page.includes('f-server') || !page.includes('<body class="player">')) { bad++; console.log('ADMIN_OPEN page:', st, page.slice(0, 80)); }
     for (const [k, v] of [['ADMIN_PASSWORD', keep.pw], ['ADMIN_OPEN', keep.open]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
   }
+  // Password page (owner, 12 Nov 2026: the panel on the iPhone home screen stayed white: a home-screen app cannot show the Basic auth pop-up)
+  {
+    const admin = require('../../server/admin'), manager = require('../../server/manager'), url = require('url');
+    const keep = process.env.ADMIN_PASSWORD; process.env.ADMIN_PASSWORD = 'smoke-secret';
+    const call = async (fn, method, p, headers, body) => {
+      const out = { status: 0, h: {}, body: '' };
+      const res = { writeHead(s, h) { out.status = s; out.h = h || {}; }, end(s) { out.body = String(s || ''); }, setHeader() {} };
+      const req = { method, url: p, headers, socket: { remoteAddress: '10.8.8.8' } };
+      await (fn === 'login' ? admin.login(req, res, async () => body) : fn(req, res, url.parse(p, true), db, async () => body || '')).catch((e) => { out.body = 'ERR ' + e.message; });
+      return out;
+    };
+    const html = { accept: 'text/html,application/xhtml+xml' };
+    const form = await call(manager, 'GET', '/manager?embed=1', html);
+    const api = await call(manager, 'GET', '/manager/api/status', {});
+    const wrong = await call('login', 'POST', '/admin/login', {}, 'pw=nope&next=%2Fpanel');
+    const right = await call('login', 'POST', '/admin/login', {}, 'pw=smoke-secret&next=%2F%2Fevil.example');
+    const cookie = String(right.h['Set-Cookie'] || '').split(';')[0];
+    const back = await call(manager, 'GET', '/manager/api/status', { cookie: 'x=1; ' + cookie });
+    process.env.ADMIN_PASSWORD = 'new-secret';
+    const old = await call(manager, 'GET', '/manager/api/status', { cookie });
+    if (keep === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = keep;
+    const ok = form.status === 401 && form.body.includes('action="/admin/login"') && !form.h['WWW-Authenticate'] && api.status === 401 && !api.body.includes('<form')
+      && wrong.status === 401 && right.status === 303 && right.h.Location === '/panel' && /^hb_admin=[a-f0-9]{64}$/.test(cookie) && /HttpOnly/.test(right.h['Set-Cookie'])
+      && back.status === 200 && old.status === 401;
+    if (!ok) { bad++; console.log('PASSWORD PAGE:', JSON.stringify({ form: form.status, api: api.status, wrong: wrong.status, right: right.status, loc: right.h.Location, cookie, back: back.status, old: old.status })); }
+  }
   // Item page (owner, 12 Nov 2026, for a player): Golden Chōji (EXP material, Lv 25) can be given, and today's ramen / Hyourou-gan uses reset
   {
     const admin = require('../../server/admin'), game = require('../../server/game'), url = require('url');

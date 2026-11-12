@@ -50,10 +50,7 @@ function status(db, port) {
 
 let pageCache = null;
 module.exports = async function manager(req, res, u, db, readBody) {
-  if (!authorized(req)) {
-    res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro manager"' });
-    return res.end('password required');
-  }
+  if (!authorized(req)) return require('./admin').deny(req, res);
   const port = req.socket.localPort;
   if ((u.pathname === '/manager' || u.pathname === '/manager/') && !u.query.embed) return require('./admin').panel(res, 'server');
   if (u.pathname === '/manager' || u.pathname === '/manager/') {

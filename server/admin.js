@@ -35,10 +35,60 @@ const json = (res, o) => { res.writeHead(200, { 'Content-Type': 'application/jso
 function authorized(req) {
   const pw = process.env.ADMIN_PASSWORD;
   if (!pw) return true;
+  const c = /(?:^|;\s*)hb_admin=([a-f0-9]{64})/.exec(req.headers.cookie || '');
+  if (c && safeEq(c[1], loginToken(pw))) return true;
   const m = /^Basic (.+)$/.exec(req.headers.authorization || '');
   if (!m) return false;
   const given = Buffer.from(m[1], 'base64').toString('utf8').split(':').slice(1).join(':');
   return given === pw;
+}
+
+// ---- Password page (owner, 12 Nov 2026: the panel added to the iPhone home screen stayed white) ------------------------------
+// A home-screen app on iPhone cannot show the browser's own password pop-up (Basic auth), so a page that needs the password shows a small
+// form instead; the right password sets the cookie hb_admin (a hash of the password: a new password logs everybody out), kept a year.
+// Basic auth still works (tools, old bookmarks).
+const crypto = require('crypto');
+const loginToken = (pw) => crypto.createHash('sha256').update('hb-admin-login|' + pw).digest('hex');
+const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const visitor = (req) => String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress;
+const fails = new Map(); // visitor -> times of wrong passwords: 10 wrong in 10 minutes = wait
+const safeNext = (n) => (/^\/(?!\/)[\w\-./?=&%#]*$/.test(n || '') ? n : '/panel');
+const escA = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function loginHtml(next, msg) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hello Bro Control Panel</title><link rel="manifest" href="/admin/app.webmanifest"><link rel="apple-touch-icon" href="/admin/app-icon.png">
+<link rel="icon" type="image/png" href="/admin/app-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HB Panel"><meta name="theme-color" content="#0b0a14">
+<style>*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0b0a14;color:#f3f1ff;font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:360px;margin:0 auto;padding:max(64px,env(safe-area-inset-top)) 20px 40px;display:flex;flex-direction:column;gap:16px}
+img{width:84px;height:84px;border-radius:20px;align-self:center}h1{margin:0;text-align:center;font-size:24px}p{margin:0;color:#c9c5e0;text-align:center;font-size:15px}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid #3a3658;background:#17152a;color:#fff;font-size:17px}
+input:focus{outline:2px solid #ff8a1f;outline-offset:1px}button{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:#ff8a1f;color:#1a0f02;font-weight:800;font-size:17px}
+.err{color:#ff8b9b}</style></head><body><main><img src="/admin/app-icon.png" alt=""><h1>Hello Bro Control Panel</h1>
+<p>${msg ? '<span class="err">' + escA(msg) + '</span>' : 'Type the admin password. This phone or computer remembers it.'}</p>
+<form method="post" action="/admin/login"><input type="hidden" name="next" value="${escA(safeNext(next))}">
+<input type="password" name="pw" autocomplete="current-password" placeholder="Admin password" aria-label="Admin password" required autofocus>
+<button>Open the panel</button></form></main></body></html>`;
+}
+// a page or an API call that needs the password: the form for a page opened in the browser, a plain 401 for everything else
+function deny(req, res) {
+  const page = req.method === 'GET' && /text\/html/.test(req.headers.accept || '');
+  res.writeHead(401, { 'Content-Type': page ? 'text/html; charset=utf-8' : 'text/plain', 'Cache-Control': 'no-store' });
+  return res.end(page ? loginHtml(req.url) : 'password required');
+}
+async function login(req, res, readBody) {
+  const pw = process.env.ADMIN_PASSWORD;
+  const page = (code, next, msg) => { res.writeHead(code, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(loginHtml(next, msg)); };
+  if (req.method !== 'POST') return page(200, new URL(req.url, 'http://x').searchParams.get('next'), '');
+  const f = new URLSearchParams(await readBody(req)), next = safeNext(f.get('next'));
+  const who = visitor(req), now = Date.now(), list = (fails.get(who) || []).filter((t) => now - t < 600000);
+  if (list.length >= 10) return page(429, next, 'Too many wrong passwords. Wait 10 minutes and try again.');
+  if (!pw || !safeEq(loginToken(f.get('pw') || ''), loginToken(pw))) { list.push(now); fails.set(who, list); return page(401, next, 'Wrong password, try again.'); }
+  fails.delete(who);
+  const https = req.headers['x-forwarded-proto'] === 'https' || !!process.env.HB_SITE_URL;
+  res.writeHead(303, { Location: next, 'Cache-Control': 'no-store',
+    'Set-Cookie': `hb_admin=${loginToken(pw)}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${https ? '; Secure' : ''}` });
+  return res.end();
 }
 
 // ---- Catalog: everything that can be given, in one list (category, id, name, stars) ----------------------------------
@@ -582,10 +632,7 @@ const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin
 const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
 
 module.exports = async function admin(req, res, u, db, readBody) {
-  if (!authorized(req) && !openToPlayers(u)) {
-    res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro admin"' });
-    return res.end('password required');
-  }
+  if (!authorized(req) && !openToPlayers(u)) return deny(req, res);
   const owner = authorized(req);
   // players (ADMIN_OPEN) get the item page alone: the control panel around it polls /manager, which would ask them for the password
   if ((u.pathname === '/admin' || u.pathname === '/admin/') && !u.query.embed && owner) return panel(res, 'admin');
@@ -738,6 +785,8 @@ module.exports = async function admin(req, res, u, db, readBody) {
 };
 
 module.exports.authorized = authorized;
+module.exports.deny = deny; // the password page (server.js, manager.js)
+module.exports.login = login;
 module.exports.resetPlayer = resetPlayer; // for tools/dev/smoke.js
 module.exports.panel = panel;
 module.exports.bestTeam = bestTeam; // for tools/dev and smoke
