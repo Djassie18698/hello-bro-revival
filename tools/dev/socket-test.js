@@ -67,9 +67,12 @@ function end(msg, code) {
   // the control panel's home-screen app (Add to Home Screen): icon + manifest without a password, under /admin/ so Caddy passes them on
   const icon = await page('127.0.0.1', '/admin/app-icon.png', { 'X-Forwarded-For': '203.0.113.10' }), man = await page('127.0.0.1', '/admin/app.webmanifest', { 'X-Forwarded-For': '203.0.113.10' });
   if (icon.code !== 200 || man.code !== 200) return end(`SOCKET test: home-screen app files missing: icon ${icon.code}, manifest ${man.code}`, 1);
-  // iPhone: the pages inside the panel scroll in their own body (Safari on iPhone cannot scroll an iframe that grew to its page's height)
-  if (!/IOS_SCROLL = 'html\{height:100%;overflow:hidden\}body\{height:100%[^']*overflow-y:auto/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'panel.html'), 'utf8')))
-    return end('SOCKET test: panel.html lost the iPhone scroll fix (IOS_SCROLL)', 1);
+  // phone / iPad: no frames (Safari on iPhone cannot scroll them), every tab is its own page with the tabs on top (server/appnav.js)
+  const nav = await page('127.0.0.1', '/admin/appnav.js', { 'X-Forwarded-For': '203.0.113.10' });
+  const S = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'server', f), 'utf8');
+  const noNav = ['manager.html', 'admin.html', 'playerlog.html', 'track.html', 'sitestats.js'].filter((f) => !S(f).includes('<script src="/admin/appnav.js"></script>'));
+  if (nav.code !== 200 || noNav.length || !/const APP = matchMedia/.test(S('panel.html')))
+    return end(`SOCKET test: the phone panel (appnav.js) is broken: script ${nav.code}, pages without it: ${noNav.join(', ') || 'none'}`, 1);
   const lan = Object.values(os.networkInterfaces()).flat().find((n) => n && n.family === 'IPv4' && !n.internal);
   let lanNote = 'no network address to test the redirect from';
   if (lan) {

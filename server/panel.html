@@ -37,7 +37,7 @@ nav a.on{color:#1a0f02;background:linear-gradient(135deg,var(--orange2),var(--or
 .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);animation:pulse 2s infinite}
 .dot.off{background:var(--red);box-shadow:0 0 12px var(--red)}
 @keyframes pulse{50%{opacity:.35}}
-main{position:absolute;top:83px;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+main{position:absolute;top:83px;left:0;right:0;bottom:0}
 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;display:none}
 iframe.on{display:block}
 #progress{position:absolute;inset:0;overflow:auto;display:none;padding:24px 20px 60px}
@@ -109,6 +109,7 @@ const v = Date.now(); // never reuse an old cached copy after an update
 const src = { server: '/manager?embed=1&v=' + v, admin: '/admin?embed=1&v=' + v, log: '/admin/playerlog?embed=1&v=' + v, track: '/admin/track?embed=1&v=' + v, site: '/admin/sitestats?embed=1&v=' + v };
 function show(t) {
   if (!['server', 'admin', 'team', 'log', 'track', 'site', 'progress'].includes(t)) t = 'server';
+  if (typeof APP !== 'undefined' && APP && APP_URL[t]) { location.href = APP_URL[t]; return; }
   document.getElementById('progress').classList.toggle('on', t === 'progress');
   if (t === 'progress') {
     for (const k in frames) frames[k].classList.remove('on');
@@ -165,12 +166,10 @@ async function loadProgress() {
     document.getElementById('prog').innerHTML = html.replace(/<h2>Summary<\/h2><table[\s\S]*?<\/table>/, '<h2>Summary</h2>' + bars(t)); // the bars replace the summary table
   } catch { document.getElementById('prog').textContent = 'Could not load the progress page.'; }
 }
-// iPhone (owner, 12 Nov 2026: the home-screen app could not scroll down): Safari on iPhone makes an iframe as tall as its page and then
-// cannot scroll it inside the panel. Each page's body becomes the part that scrolls, so the page is never taller than its frame.
-const IOS_SCROLL = 'html{height:100%;overflow:hidden}body{height:100%;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}';
-for (const k in frames) frames[k].addEventListener('load', () => {
-  try { const d = frames[k].contentDocument, st = d.createElement('style'); st.textContent = IOS_SCROLL; d.head.appendChild(st); } catch (e) {}
-});
+// Phone or iPad (owner, 12 Nov 2026: in the iPhone home-screen app the framed pages could not scroll): no frames there, every tab is its
+// own page with the tabs on top (appnav.js); only Progress stays on this page.
+const APP = matchMedia('(max-width:800px)').matches || (navigator.maxTouchPoints > 1 && /iPhone|iPad|Macintosh/.test(navigator.userAgent));
+const APP_URL = { server: '/manager?embed=1&app=1', admin: '/admin?embed=1&app=1', team: '/admin?embed=1&app=1&tab=team', log: '/admin/playerlog?embed=1&app=1', track: '/admin/track?embed=1&app=1', site: '/admin/sitestats?embed=1&app=1' };
 document.querySelector('nav').onclick = (e) => { const a = e.target.closest('a'); if (a) { show(a.dataset.t); a.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } };
 // the pages start right under the top bar, however tall it is (phones, a narrow window)
 const fit = () => { document.querySelector('main').style.top = document.getElementById('top').offsetHeight + 'px'; };

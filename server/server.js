@@ -120,6 +120,10 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     return resp.end(JSON.stringify({ name: 'Hello Bro Control Panel', short_name: 'HB Panel', start_url: '/panel', scope: '/', display: 'standalone',
       background_color: '#0b0a14', theme_color: '#0b0a14', icons: [{ src: '/admin/app-icon.png', sizes: '512x512', type: 'image/png', purpose: 'any' }] }));
   }
+  if (u.pathname === '/admin/appnav.js') { // the panel's tabs on a phone (appnav.js): no password, the pages themselves ask for it
+    resp.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
+    return resp.end(require('fs').readFileSync(require('path').join(__dirname, 'appnav.js')));
+  }
   if (u.pathname === '/admin/login') return admin.login(req, resp, parseBody); // the password page (admin.js): sets the login cookie
   if (u.pathname === '/' || u.pathname === '/panel') { // the control panel
     if (!admin.authorized(req)) return admin.deny(req, resp);

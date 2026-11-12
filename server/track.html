@@ -224,5 +224,6 @@ const onNewest = () => $('day').selectedIndex <= 0;
 setInterval(() => { if (document.hidden) return; if (onNewest()) load(false, true); if ($('dday').selectedIndex <= 0) loadDrops(true); }, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && onNewest()) load(false, true); }); // back on the tab: fresh numbers at once
 </script>
+<script src="/admin/appnav.js"></script>
 </body>
 </html>

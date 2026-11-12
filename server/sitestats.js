@@ -94,7 +94,7 @@ table{border-collapse:collapse;width:100%;max-width:620px}td{padding:6px 8px;bor
 <h2>Visitors per day (last 30 days)</h2><svg viewBox="0 0 614 160" role="img" aria-label="Visitors per day">${bars}</svg>
 <div class="grid"><div><h2>Most visited pages <small class="m">(visitors · views)</small></h2>${list(s.pages, (k) => esc(pageName(k)))}</div>
 <div><h2>Where they came from</h2>${list(s.sources)}<h2>Phone or computer</h2>${list(s.devices)}</div></div>
-<p class="m" style="margin-top:24px">Searches on Google: Google Search Console → Prestaties (Performance) shows which search words found the site.</p></body></html>`;
+<p class="m" style="margin-top:24px">Searches on Google: Google Search Console → Prestaties (Performance) shows which search words found the site.</p><script src="/admin/appnav.js"></script></body></html>`;
   resp.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   resp.end(html);
 }
