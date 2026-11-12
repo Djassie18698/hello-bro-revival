@@ -306,8 +306,18 @@ function buildStrings() {
   return Object.keys(byName).length;
 }
 // the game tables the server also uses (server/data, already public in the repo): names, pictures, levels ...
+// plus assets/columns.json = each table's C++ field names (docs/TABLE-COLUMNS.md, from Struct_<Table>::InitMemberNames), for the
+// scripts' DataMgr.GetDataByID("Struct_Ninjainfo", id).m_name
 function copyTables() {
   let n = 0;
+  const cols = {};
+  let cur = null;
+  for (const line of fs.readFileSync(path.join(ROOT, 'docs', 'TABLE-COLUMNS.md'), 'utf8').split(/\r?\n/)) {
+    let m;
+    if ((m = /^## (\S+)/.exec(line))) cur = cols[m[1]] = [];
+    else if (cur && (m = /^\| (\d+) \| (m_\w+) \|/.exec(line))) cur[Number(m[1])] = m[2];
+  }
+  write(path.join(OUT, 'columns.json'), JSON.stringify(cols));
   for (const f of fs.readdirSync(path.join(ROOT, 'server', 'data'))) {
     if (!f.endsWith('.json') || /^Struct_String_/.test(f)) continue;
     write(path.join(OUT, 'data', f), fs.readFileSync(path.join(ROOT, 'server', 'data', f))); n++;
@@ -315,12 +325,35 @@ function copyTables() {
   return n;
 }
 
+// the Lua scripts in one file (assets/lua.json: path -> source as bytes, laid over like the rest), and every sprite frame's sheet
+// (assets/frames.json: frame name -> .plist), so a script can name a frame whose sheet is not loaded yet
+function bundleLua() {
+  const out = {};
+  const walkLua = (d, base) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const f = path.join(d, e.name); if (e.isDirectory()) walkLua(f, base); else if (f.endsWith('.lua')) out[path.relative(base, f).split(path.sep).join('/')] = fs.readFileSync(f).toString('latin1'); } };
+  walkLua(path.join(SRC, 'script'), SRC);
+  if (fs.existsSync(path.join(HOT, 'script'))) walkLua(path.join(HOT, 'script'), HOT);
+  write(path.join(OUT, 'lua.json'), JSON.stringify(out));
+  return Object.keys(out).length;
+}
+function frameIndex() {
+  const idx = {};
+  const walkJ = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const f = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== 'data') walkJ(f); } else if (f.endsWith('.json')) {
+    let j; try { j = JSON.parse(fs.readFileSync(f, 'utf8')); } catch { continue; }
+    if (!j || !j.frames || j.tex === undefined) continue;
+    const plist = path.relative(OUT, f).split(path.sep).join('/').replace(/\.json$/, '.plist');
+    for (const k of Object.keys(j.frames)) if (!(k in idx)) idx[k] = plist;
+  } } };
+  walkJ(OUT);
+  write(path.join(OUT, 'frames.json'), JSON.stringify(idx));
+  return Object.keys(idx).length;
+}
+
 if (require.main === module) {
   if (!fs.existsSync(SRC)) { console.error('re/obb is missing: run  python -I tools/setup_re.py  first'); process.exit(1); }
   const t0 = Date.now();
   walk(SRC);
   if (fs.existsSync(HOT)) walk(HOT, HOT);
-  console.log(`texts: ${buildStrings()} layout labels and buttons; tables: ${copyTables()}`);
+  console.log(`texts: ${buildStrings()} layout labels and buttons; tables: ${copyTables()}; Lua scripts: ${bundleLua()}; sprite frames: ${frameIndex()}`);
   console.log(`web client files in server/webclient/assets: ${stats.png} sprite sheets, ${stats.plist} frame lists, ${stats.ccbi} layouts, ` +
     `${stats.copy} copied, ${stats.skip} unchanged, ${stats.fail.length} failed (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   for (const f of stats.fail.slice(0, 30)) console.log('  FAILED ' + f);

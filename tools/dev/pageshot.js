@@ -6,6 +6,7 @@
 //   e.g. node tools/dev/pageshot.js http://127.0.0.1:18090/ re/home.png 390 844 0 0     (phone size, top of the page)
 const { spawn } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
+// HB_LOGS=1 also prints the page's console messages; HB_WAIT=<ms> waits longer before taking the picture (default 3500).
 // HB_UA=<browser name> pretends to be another browser (the iPhone app: HB_UA=NinjaPanelApp)
 const [url, out, W = '1440', Hh = '900', full = '1', still = '1'] = process.argv.slice(2);
 if (!url || !out) { console.log('usage: node tools/dev/pageshot.js <url> <out.png> [width] [height] [full=1] [still=1]'); process.exit(1); }
@@ -27,6 +28,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
     if (m.method === 'Runtime.exceptionThrown') logs.push('PAGE ERROR ' + JSON.stringify(m.params.exceptionDetails).slice(0, 300));
+    if (process.env.HB_LOGS && m.method === 'Runtime.consoleAPICalled' && m.params.type !== 'error') logs.push(m.params.type.toUpperCase() + ' ' + m.params.args.map((x) => x.value ?? x.description).join(' ').slice(0, 300));
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') logs.push('CONSOLE ERROR ' + JSON.stringify(m.params.args).slice(0, 300));
   });
   const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -36,7 +38,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await send('Emulation.setEmulatedMedia', { features: still === '1' ? [{ name: 'prefers-reduced-motion', value: 'reduce' }] : [] });
   await send('Page.enable'); await send('Runtime.enable');
   await send('Page.navigate', { url });
-  await wait(3500);
+  await wait(Number(process.env.HB_WAIT) || 3500); // HB_WAIT=<ms>: wait longer before the picture (the web client's Lua start)
   let clip;
   if (full === '1') {
     for (let y = 0; y < 20000; y += 600) { await send('Runtime.evaluate', { expression: `scrollTo(0, ${y})` }); await wait(120); }

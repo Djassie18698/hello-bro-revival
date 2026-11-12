@@ -38,8 +38,15 @@
     HB.tween(bg, {}, sec, () => { bg.removeSelf(); l.removeSelf(); });
   }
   HB.tip = tip;
+  // what the game's C++ kept about the player and the screens, for the Lua scripts (gamebind.js)
+  HB.game = {
+    user: null,
+    changeToSub: (type) => { const name = Object.keys(HB.game.E || {}).find((k) => HB.game.E[k] === type) || type; tip('Coming soon: ' + String(name).replace(/^E_/, '').toLowerCase(), 1.2); },
+    changeToActivity: (name) => tip('Coming soon: ' + name, 1.2),
+  };
   const errorText = (root) => x.t(root, 'message') || HB.menu(root.code) || 'Error ' + root.code;
   let busy = null;
+  HB.loading = (on) => loading(on);
   function loading(on) {
     if (on && !busy) { busy = modal(60); busy.z = 800; HB.scene.add(busy); }
     if (!on && busy) { busy.removeSelf(); busy = null; }
@@ -218,6 +225,8 @@
     content.removeAll();
     const sub = HB.build('sub_ui/DefaultMainMenu', o, [FRAME, content.h]);
     sub.x = -content.x + content.ax * content.w + (sub.ignoreAnchor ? 0 : sub.ax * sub.w); sub.y = sub.ignoreAnchor ? 0 : sub.ay * sub.h;
+    sub.h = H(); // CCLayer::init makes a layer as tall as the screen; the scripts place the event buttons from that height (mainActivity.lua: height - 550)
+    sub.tag = 1001; // the home part as the scripts find it (GetSubContentNode():getChildByTag(1001))
     content.add(sub);
     // the village behind it (CDefaultSLGMenu::init: sub_ui/<country>CountryDefaultMenu.ccbi into node_slgcontent)
     const slg = o.n.node_slgcontent;
@@ -241,6 +250,24 @@
     }
     for (const k of ['sprite_activity_frame', 'label_activity_news', 'sprite_msg_frame', 'label_msg_news']) if (n[k]) n[k].visible = false; // counts come later
     HB.home = { o, main };
+    // the player's numbers for the scripts (CPlayerDataMgr), from <user>
+    HB.game.user = Object.fromEntries([...u.children].map((c) => [c.nodeName, c.textContent]));
+    HB.game.subContent = content;
+    HB.game.refreshTopBar = () => { const uu = x.first(main, 'user'); for (const [k, v] of Object.entries(HB.game.user)) { const e = x.first(uu, k); if (e) e.textContent = v; } fillTopBar(o, main); };
+    await luaHome(o);
+  }
+  // the home screen's Lua parts (what CDefaultMainMenu::InitUI asks the Lua engine for): the game's mainActivity.lua first,
+  // then the row of small buttons (script/MenuBtnsView.lua InitMenuBtnsView)
+  async function luaHome(o) {
+    try {
+      HB.game.currentSubType = 1; // E_DEFAULTMENU (gamebind.js numbers)
+      if (!HB.L) { await HB.startLua({ openGame: HB.openGame }); HB.luaRun('mainActivity.lua'); await HB.luaSettle(); }
+      const menu = new HB.CCBProxy(); menu.owner = o; // CDefaultMainMenu as the scripts see it: getNode(name) = the layout's named nodes
+      if (HB.luaRun('MenuBtnsView.lua')) HB.luaGlobal('InitMenuBtnsView', menu);
+      HB.luaGlobal('initMainMenuActivityBtn'); // CDefaultMainMenu::onEnterTransitionDidFinish: the event buttons on the left
+      // test switch: &tap=<button name>[,<button name>...] presses home buttons one after another (screenshots)
+      if (q.get('tap')) for (const nm of q.get('tap').split(',')) { await HB.wait(1.5); const b = o.n[nm] || (HB.find && HB.find(nm)); if (b) HB.tapNode(b); else console.warn('no button ' + nm); }
+    } catch (e) { HB.luaError(e); }
   }
   // CProfileData::firefly_GetCountryLayoutName: 0 Wind, 1 Mine (thunder), 2 Water, 3 Fire, 4 Earth, anything else Fire
   // VIP badge per VIP level (the game's own list, e.g. CommonBuyItemDialog.lua m_vipframes)
@@ -251,6 +278,7 @@
     const level = x.n(u, 'level');
     const row = (tables.playerlevel ? tables.playerlevel.rows : []).find((r) => r[1] === level) || [];
     const need = row[2] || 0, maxEnergy = row[4] || x.n(u, 'curaction'); // playerlevel: [2] exp needed, [4] energy (m_own_strengval)
+    HB.game.needExp = need; HB.game.maxEnergy = maxEnergy;
     const set = (k, v) => n[k] && n[k].setText(String(v));
     set('label_name', x.t(u, 'nick'));
     set('label_level', level);
@@ -268,6 +296,8 @@
     if (n.sprite_vipinfo && fv) n.sprite_vipinfo.setFrame(fv);
   }
   function homeButton(sel) {
+    // buttons whose screens are the game's own Lua (CDefaultMainMenu::onBtnActivity ...)
+    if (sel === 'BtnActivity' && HB.L) { if (HB.luaRun('business_proxy/activityPopup_business.lua')) HB.luaGlobal('initactivityPopupLayer'); return; }
     tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
   }
 

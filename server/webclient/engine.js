@@ -35,9 +35,11 @@ HB.loadSheet = (plist) => once('s:' + plist, async () => {
   return (HB.sheets[plist] = { img, frames: j.frames });
 });
 // a sprite frame: { img, x, y, w, h, rot, ox, oy, sw, sh } (x,y,w,h in the picture; sw,sh = untrimmed size; ox,oy = offset, y up)
-HB.frame = (plist, name) => {
+HB.frame = (plist, name, quiet) => {
+  if (plist === undefined && quiet) { for (const o of Object.values(HB.sheets)) { const g = o.frames[name]; if (g && o.img) return { img: o.img, x: g[0], y: g[1], w: g[2], h: g[3], rot: g[4], ox: g[5], oy: g[6], sw: g[7], sh: g[8] }; } return null; }
   if (!plist) { // a plain picture file instead of a sheet
     const img = HB.images[norm(name)];
+    if (img && !(img.naturalWidth > 0)) return HB.frameOfImage(name); // still loading: its size follows when it arrives
     return img ? { img, x: 0, y: 0, w: img.width, h: img.height, rot: 0, ox: 0, oy: 0, sw: img.width, sh: img.height } : null;
   }
   const s = HB.sheets[plist], f = s && s.frames[name];
@@ -45,12 +47,27 @@ HB.frame = (plist, name) => {
     for (const o of Object.values(HB.sheets)) { const g = o.frames[name]; if (g && o.img) return { img: o.img, x: g[0], y: g[1], w: g[2], h: g[3], rot: g[4], ox: g[5], oy: g[6], sw: g[7], sh: g[8] }; }
     return null;
   }
-  const rot = f[4] && !(s.img.width === f[2] && s.img.height === f[3]) ? 1 : 0; // "rotated" on a picture that is upright (background_02)
+  const rot = f[4] && !(s.img.naturalWidth === f[2] && s.img.naturalHeight === f[3]) ? 1 : 0; // "rotated" on a picture that is upright (background_02)
   return { img: s.img, x: f[0], y: f[1], w: f[2], h: f[3], rot, ox: f[5], oy: f[6], sw: f[7], sh: f[8] };
 };
 HB.images = {};
 HB.loadImage = async (p) => (HB.images[norm(p)] = await HB.image(p));
 HB.fonts = {};
+function parseFnt(txt, p, loadPage) {
+  const f = { chars: {}, kern: {}, line: 20, base: 16, pages: [] };
+  const dir = norm(p).includes('/') ? norm(p).replace(/\/[^/]*$/, '/') : '';
+  const kv = (l) => Object.fromEntries([...l.matchAll(/(\w+)=("[^"]*"|\S+)/g)].map((m) => [m[1], m[2].replace(/"/g, '')]));
+  const pages = [];
+  for (const l of txt.split(/\r?\n/)) {
+    const k = kv(l);
+    if (l.startsWith('common')) { f.line = +k.lineHeight; f.base = +k.base; }
+    else if (l.startsWith('page')) pages[+k.id] = dir + k.file;
+    else if (l.startsWith('char ')) f.chars[+k.id] = { x: +k.x, y: +k.y, w: +k.width, h: +k.height, xo: +k.xoffset, yo: +k.yoffset, adv: +k.xadvance, page: +k.page || 0 };
+    else if (l.startsWith('kerning ')) f.kern[k.first + ',' + k.second] = +k.amount;
+  }
+  f.pages = pages.map((pg) => loadPage(pg));
+  return f;
+}
 HB.loadFnt = (p) => once('f:' + p, async () => {
   const txt = await fetch(HB.ASSETS + norm(p)).then((r) => (r.ok ? r.text() : '')).catch(() => '');
   const f = { chars: {}, kern: {}, line: 20, base: 16, pages: [] };
@@ -90,6 +107,79 @@ HB.loadCCB = (file) => once('c:' + file, async () => {
   return (HB.docs[name] = doc);
 });
 HB.docs = {};
+// loading right away (the Lua scripts expect a layout the moment they ask for it): JSON by a synchronous request, pictures start
+// loading and are drawn once they arrive
+const jsonNow = (p) => {
+  const key = 'J:' + p;
+  if (cache.has(key)) return cache.get(key);
+  let v = null;
+  try { const x = new XMLHttpRequest(); x.open('GET', HB.ASSETS + norm(p), false); x.send(); if (x.status === 200) v = JSON.parse(x.responseText); } catch (e) { v = null; }
+  cache.set(key, v);
+  return v;
+};
+HB.jsonNow = jsonNow;
+const imageNow = (p) => {
+  const key = 'N:' + p;
+  if (cache.has(key)) return cache.get(key);
+  const img = new Image();
+  img.onerror = () => console.warn('missing picture', p);
+  img.src = HB.ASSETS + norm(p).replace(/\.pvr\.ccz$/i, '.pvr.png').replace(/\.pvr$/i, '.pvr.png');
+  cache.set(key, img);
+  return img;
+};
+HB.imageNow = imageNow;
+HB.frameIndex = null; // frame name -> its sheet (assets/frames.json, tools/build_webclient.js)
+HB.loadSheetNow = (plist) => {
+  if (HB.sheets[plist]) return HB.sheets[plist];
+  const j = jsonNow(norm(plist).replace(/\.plist$/i, '.json'));
+  if (!j) return (HB.sheets[plist] = { img: null, frames: {} });
+  const dir = norm(plist).includes('/') ? norm(plist).replace(/\/[^/]*$/, '/') : '';
+  return (HB.sheets[plist] = { img: imageNow(dir + j.tex), frames: j.frames });
+};
+// a frame by its name only (CCSpriteFrameCache::spriteFrameByName): from a loaded sheet, else its sheet is loaded now
+HB.frameByName = (name) => {
+  name = norm(name);
+  const f = HB.frame(undefined, name, true);
+  if (f) return f;
+  if (!HB.frameIndex) HB.frameIndex = jsonNow('frames.json') || {};
+  const sheet = HB.frameIndex[name];
+  if (sheet) { HB.loadSheetNow(sheet); return HB.frame(sheet, name); }
+  if (/\.(png|jpg|pvr\.ccz)$/i.test(name)) { HB.images[name] = HB.images[name] || imageNow(name); return HB.frameOfImage(name); }
+  return null;
+};
+// a whole picture as a frame (its size is known once it has loaded)
+HB.frameOfImage = (name) => {
+  const img = HB.images[norm(name)] || (HB.images[norm(name)] = imageNow(name));
+  const f = { img, x: 0, y: 0, rot: 0, ox: 0, oy: 0 };
+  Object.defineProperties(f, { w: { get: () => img.naturalWidth || 0 }, h: { get: () => img.naturalHeight || 0 }, sw: { get: () => img.naturalWidth || 0 }, sh: { get: () => img.naturalHeight || 0 } });
+  return f;
+};
+HB.loadFntNow = (p) => {
+  if (HB.fonts[p]) return HB.fonts[p];
+  let txt = '';
+  try { const x = new XMLHttpRequest(); x.open('GET', HB.ASSETS + norm(p), false); x.send(); if (x.status === 200) txt = x.responseText; } catch (e) { /* none */ }
+  return (HB.fonts[p] = parseFnt(txt, p, imageNow));
+};
+HB.loadCCBNow = (file) => {
+  const name = norm(file).replace(/\.ccbi?$/i, '');
+  if (HB.docs[name]) return HB.docs[name];
+  const doc = jsonNow(name + '.json');
+  if (!doc) { console.warn('missing layout', file); return null; }
+  const pic = (f) => { HB.images[norm(f)] = HB.images[norm(f)] || imageNow(f); };
+  const walk = (n) => {
+    for (const [k, v] of Object.entries(n.p)) {
+      if (Array.isArray(v) && typeof v[0] === 'string' && typeof v[1] === 'string' && /Frame|displayFrame/i.test(k)) { if (v[0]) HB.loadSheetNow(v[0]); else pic(v[1]); }
+      else if (k === 'fntFile' && v) HB.loadFntNow(v);
+      else if ((k === 'ccbFile' || k === 'container') && v) HB.loadCCBNow(v);
+      else if (k === 'texture' && v) pic(v);
+    }
+    for (const a of Object.values(n.a || {})) for (const pr of Object.values(a)) for (const key of pr.k) if (pr.t === 10) { if (key[1][0]) HB.loadSheetNow(key[1][0]); else pic(key[1][1]); }
+    for (const c of n.k || []) walk(c);
+  };
+  walk(doc.root);
+  doc.file = name.split('/').pop().toUpperCase();
+  return (HB.docs[name] = doc);
+};
 
 // texts: HB.text('TEXT_LABEL_LOGINVIEW1_LOGINVIEW') (a layout label's English text), HB.ui(25) / HB.menu(5) (the game's string tables)
 HB.strings = { ui: {}, menu: {}, uiById: {} };
@@ -100,7 +190,10 @@ HB.menu = (id) => HB.strings.menu[id] ?? '';
 
 // ---------------------------------------------------------------- tinting (cocos multiplies a sprite's colour into its picture)
 const tintCache = new Map();
+const ready = (img) => img && (img.complete === undefined || (img.complete && img.naturalWidth > 0)); // an Image still loading draws next frame
+HB.ready = ready;
 function tinted(img, sx, sy, sw, sh, rot, col) {
+  if (!ready(img)) return null;
   const key = img.src + '|' + sx + ',' + sy + ',' + sw + ',' + sh + ',' + rot + '|' + col.join(',');
   let c = tintCache.get(key);
   if (c) return c;
@@ -148,7 +241,7 @@ class Node {
     const ka = this.cascade ? a : alpha;
     let i = 0;
     for (; i < kids.length && kids[i].z < 0; i++) kids[i].visit(ctx, m, ka);
-    if (this.draw && a > 0) { ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.globalAlpha = a; if (this.blend) ctx.globalCompositeOperation = this.blend; this.draw(ctx); if (this.blend) ctx.globalCompositeOperation = 'source-over'; }
+    if (this.draw && a > 0) { ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.globalAlpha = a; if (this.blend) ctx.globalCompositeOperation = this.blend; if (this.grey) ctx.filter = 'grayscale(1)'; this.draw(ctx); if (this.grey) ctx.filter = 'none'; if (this.blend) ctx.globalCompositeOperation = 'source-over'; }
     if (this.clip) {
       ctx.save(); ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.beginPath(); ctx.rect(0, 0, this.w, this.h); ctx.clip();
       for (; i < kids.length; i++) kids[i].visit(ctx, m, ka);
@@ -175,7 +268,9 @@ class Sprite extends Node {
   draw(ctx) {
     const f = this.frame;
     if (!f || !f.img) return;
+    if (!this.w && !this.h && f.sw) { this.w = f.sw; this.h = f.sh; }
     const src = tinted(f.img, f.x, f.y, f.w, f.h, f.rot, this.color);
+    if (!src) return;
     const dx = (f.sw - f.w) / 2 + f.ox, dy = (f.sh - f.h) / 2 + f.oy;
     ctx.save();
     if (this.flipX || this.flipY) { ctx.translate(this.flipX ? this.w : 0, this.flipY ? this.h : 0); ctx.scale(this.flipX ? -1 : 1, this.flipY ? -1 : 1); }
@@ -194,6 +289,7 @@ class Scale9 extends Node {
     const f = this.frame;
     if (!f || !f.img) return;
     const src = tinted(f.img, f.x, f.y, f.w, f.h, f.rot, this.color);
+    if (!src) return;
     let fw = f.w, fh = f.h, [L, T, R, B] = this.insets;
     let cw = fw - L - R, ch = fh - T - B; // capInsets centre
     if (L === 0 && T === 0 && R === 0 && B === 0) { L = R = fw / 3; T = B = fh / 3; cw = fw / 3; ch = fh / 3; }
@@ -292,7 +388,7 @@ class BMLabel extends Node {
       const g = f.chars[c]; if (!g) continue;
       x += f.kern[prev + ',' + c] || 0; prev = c;
       const page = f.pages[g.page];
-      if (page && g.w > 0) ctx.drawImage(white(this.color) ? page : tinted(page, g.x, g.y, g.w, g.h, 0, this.color), white(this.color) ? g.x : 0, white(this.color) ? g.y : 0, g.w, g.h, x + g.xo, y + g.yo, g.w, g.h);
+      if (page && g.w > 0 && ready(page)) ctx.drawImage(white(this.color) ? page : tinted(page, g.x, g.y, g.w, g.h, 0, this.color), white(this.color) ? g.x : 0, white(this.color) ? g.y : 0, g.w, g.h, x + g.xo, y + g.yo, g.w, g.h);
       x += g.adv;
     }
     ctx.restore();
@@ -380,7 +476,9 @@ function makeNode(j, ps, owner, doc) {
   let n;
   switch (j.c) {
     case 'CCSprite': n = new Sprite(frameOf(p.displayFrame)); break;
-    case 'CCScale9Sprite': n = new Scale9(frameOf(p.spriteFrame)); n.insets = [p.insetLeft || 0, p.insetTop || 0, p.insetRight || 0, p.insetBottom || 0]; break;
+    case 'CCScale9Sprite': n = new Scale9(frameOf(p.spriteFrame)); n.insets = [p.insetLeft || 0, p.insetTop || 0, p.insetRight || 0, p.insetBottom || 0];
+      if (!p.anchorPoint) n.ax = n.ay = 0; // CCB leaves it out for these: CCNode's (0,0) (the Event window's frame, Home's side bars)
+      break;
     case 'CCLabelTTF': n = new Label('', p.fontName || 'Helvetica', p.fontSize ? p.fontSize[0] : 20, p.dimensions ? size(p.dimensions, ps) : [0, 0], p.horizontalAlignment || 0, p.verticalAlignment || 0); break;
     case 'CCLabelBMFont': n = new BMLabel(p.fntFile); break;
     case 'CCLayerColor': n = new LayerColor(); break;
@@ -500,6 +598,8 @@ HB.tick = (dt) => {
     }
   }
   for (const tw of [...tweens]) tw.step(dt);
+  if (HB.actionTick) HB.actionTick(dt); // Lua actions (luabind.js)
+  if (HB.luaTick) HB.luaTick(dt); // Lua update functions and timers
 };
 
 // small tweens for code-made movement: HB.tween(node, { x, y, sx, sy, opacity, rot }, seconds, then)
@@ -548,16 +648,18 @@ HB.start = (canvas) => {
   let down = null;
   canvas.addEventListener('pointerdown', (e) => {
     const [x, y] = point(e);
+    if (HB.luaTouchLayers && HB.luaTouchLayers.size && HB.luaTouchBegan && HB.luaTouchBegan(x, y, e)) { down = { lua: true, x, y }; canvas.setPointerCapture(e.pointerId); return; }
     const target = pick(HB.scene, x, y);
     const scroll = scrollAt(HB.scene, x, y);
     down = { x, y, sx: x, sy: y, target, scroll, moved: false };
-    if (target instanceof Button) target.press(true);
+    if (target instanceof Button) { target.press(true); if (target.luaHandlers && HB.buttonEvent) HB.buttonEvent(target, 1); } // CCControlEventTouchDown
     if (target && target.onTouch) target.onTouch('down', x, y);
     canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', (e) => {
     if (!down) return;
     const [x, y] = point(e);
+    if (down.lua) { HB.luaTouchMoved && HB.luaTouchMoved(x, y); return; }
     if (Math.hypot(x - down.sx, y - down.sy) > 12) {
       if (!down.moved && down.target instanceof Button && down.scroll) down.target.press(false);
       down.moved = true;
@@ -570,6 +672,7 @@ HB.start = (canvas) => {
     if (!down) return;
     const d = down; down = null;
     const [x, y] = point(e);
+    if (d.lua) { HB.luaTouchEnded && HB.luaTouchEnded(x, y, cancel); return; }
     if (d.target instanceof Button) {
       const was = d.target.pressed;
       d.target.press(false);
@@ -583,6 +686,7 @@ HB.start = (canvas) => {
 function tap(b) {
   HB.sound && HB.sound('click');
   if (b.onTap) return b.onTap(b);
+  if (b.luaHandlers && HB.lua && HB.lua.buttonTap(b)) return; // a button made or bound by a Lua script
   if (b.owner && b.owner.onButton) return b.owner.onButton(b.selector, b);
   console.log('button without action', b.selector, b.name);
 }
