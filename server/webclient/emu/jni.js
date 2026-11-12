@@ -55,6 +55,11 @@
     def('ReleaseByteArrayElements', (c, e, a, p) => { sys.free(p); });
     def('GetByteArrayRegion', (c, e, a, start, len) => { cpu.u8.set(get(a).subarray(start, start + len), sys.arg(4)); }); // the 5th argument is on the stack
     def('SetByteArrayRegion', (c, e, a, start, len) => { const src = sys.arg(4); get(a).set(cpu.u8.subarray(src, src + len), start); });
+    // int[] and float[] (touch moves pass ids, xs and ys as arrays)
+    const elems = (i) => cpu.w32(table + i * 4, cpu.trap((c, e, a, isCopy) => { const t = get(a), p = sys.malloc(t.byteLength || 4); cpu.u8.set(new Uint8Array(t.buffer, t.byteOffset, t.byteLength), p); if (isCopy) cpu.u8[isCopy] = 1; return p; }, 'JNI.GetArrayElements'));
+    elems(187); elems(189);
+    for (const i of [195, 197]) cpu.w32(table + i * 4, cpu.trap((c, e, a, p) => { sys.free(p); }, 'JNI.ReleaseArrayElements'));
+    for (const i of [203, 205]) cpu.w32(table + i * 4, cpu.trap((c, e, a, start, len) => { const t = get(a); cpu.u8.set(new Uint8Array(t.buffer, t.byteOffset + start * 4, len * 4), sys.arg(4)); }, 'JNI.GetArrayRegion'));
     // the JavaVM: GetEnv and AttachCurrentThread hand out the one JNIEnv
     const vmTable = sys.malloc(8 * 4);
     for (let i = 0; i < 8; i++) cpu.w32(vmTable + i * 4, cpu.trap(() => 0, 'JavaVM#' + i));

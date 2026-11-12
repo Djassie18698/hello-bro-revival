@@ -80,6 +80,11 @@
     return false;
   };
   const java = {
+    'org/cocos2dx/lib/Cocos2dxBitmap.getFontSizeAccordingHeight': (j, [h]) => Math.max(1, Math.round(h / 1.17)),
+    // the opening video after creating a character: skipped, the app is told it has finished
+    'com/xckoo/renlong/CustomDialog.playGameStartVideo': () => { later.push(() => cpu.call(sym('Java_com_xckoo_renlong_RLVideoActivity_playRLVideoComplete'), [jni.env, 0])); },
+    'org/cocos2dx/lib/Cocos2dxHelper.stopAllEffects': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.pauseBackgroundMusic': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.resumeBackgroundMusic': () => {},
+    'com/xckoo/renlong/sdk/SDKHelper.setRoleInfo': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.isBackgroundMusicPlaying': () => false,
     'com/xckoo/renlong/sdk/SDKHelper.isLogined': () => !!account.session,
     'com/xckoo/renlong/sdk/SDKHelper.userId': () => account.uid,
     'com/xckoo/renlong/sdk/SDKHelper.session': () => account.session,
@@ -173,4 +178,6 @@
   window.emu.tap = tapAt;
   canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); touch('nativeTouchesBegin', e); });
   canvas.addEventListener('pointerup', (e) => touch('nativeTouchesEnd', e));
+  canvas.addEventListener('pointercancel', (e) => touch('nativeTouchesEnd', e));
+  canvas.addEventListener('pointermove', (e) => { if (dead || !(e.buttons & 1) && e.pointerType === 'mouse') return; const [x, y] = pos(e); try { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeTouchesMove'), [jni.env, 0, jni.ref(new Int32Array([0])), jni.ref(new Float32Array([x])), jni.ref(new Float32Array([y]))]); } catch (err) { console.error(err); } });
 })();
