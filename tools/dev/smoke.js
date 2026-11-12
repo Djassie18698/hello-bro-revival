@@ -330,7 +330,8 @@ for (const pick of [55, 56, 57]) {
   // Item page (owner, 12 Nov 2026, for a player): Golden Chōji (EXP material, Lv 25) can be given, and today's ramen / Hyourou-gan uses reset
   {
     const admin = require('../../server/admin'), game = require('../../server/game'), url = require('url');
-    const keep = process.env.ADMIN_OPEN; process.env.ADMIN_OPEN = '1';
+    // as a PLAYER (public server: password set, ADMIN_OPEN=1, owner 12 Nov 2026: "make them able to do it themselves")
+    const keep = process.env.ADMIN_OPEN, keepPw = process.env.ADMIN_PASSWORD; process.env.ADMIN_OPEN = '1'; process.env.ADMIN_PASSWORD = 'smoke-secret';
     const post = async (p, body) => {
       let out = '';
       await admin({ method: 'POST', headers: {} }, { writeHead() {}, end(x) { out = String(x || ''); }, setHeader() {} }, url.parse(p, true), db, async () => JSON.stringify(body)).catch((e) => { out = String(e); });
@@ -355,6 +356,7 @@ for (const pick of [55, 56, 57]) {
     if (!/^<root code="130003" message="[^"]+">/.test(refused)) { bad++; console.log('RAMEN refusal without a message attribute (crashes the game):', refused); }
     if (before !== 0 || !r.ok || r.ramen !== max || game.useLimit(db, pl, 1).rest !== max || max < 1) { bad++; console.log('RESET ramen uses:', JSON.stringify({ r, max, before })); }
     if (keep === undefined) delete process.env.ADMIN_OPEN; else process.env.ADMIN_OPEN = keep;
+    if (keepPw === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = keepPw;
   }
   // Cards stop at level 50 (the upgrade tables' row count, client IUpgradeable::firefly_GetMaxLevel): the old 99 cap let a weapon reach 51,
   // and reincarnation only lists cards at exactly the top level ("No Lv.50 cards"). Also a card already above it is put back on start.
