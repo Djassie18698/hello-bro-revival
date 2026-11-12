@@ -34,3 +34,4 @@ tools/ios-panel/NinjaPanel.xcodeproj/
 tools/ios-panel/build/
 tools/ios-panel/Payload/
 tools/ios-panel/*.ipa
+server/webclient/assets/

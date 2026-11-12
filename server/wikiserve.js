@@ -1,22 +1,23 @@
 // The wiki (server/wiki: index.html + app.js + style.css + data.json + img/), served at /wiki/ by the game server (server.js), so the
 // public server shows it at http://<address>:18080/wiki/ with no extra port. Static files only: GET/HEAD, nothing outside server/wiki,
 // gzip for text (kept in memory per file version), ETag so browsers only fetch a file again after a change.
+// serve.dir(folder, prefix) makes the same kind of file server for another folder (the web client at /play/, server/webclient).
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 
-const ROOT = path.join(__dirname, 'wiki');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
-  '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
-const TEXT = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt']);
+  '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.fnt': 'text/plain; charset=utf-8',
+  '.lua': 'text/plain; charset=utf-8', '.xml': 'text/xml; charset=utf-8', '.bin': 'application/octet-stream', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
+const TEXT = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt', '.fnt', '.lua', '.xml']);
 const gz = new Map(); // file -> { tag, body }
 
-function serve(req, resp, pathname) {
+const dir = (ROOT, prefix, hidden = new Set()) => function serve(req, resp, pathname) {
   if (req.method !== 'GET' && req.method !== 'HEAD') { resp.writeHead(405, { Allow: 'GET, HEAD' }); return resp.end(); }
   let rel;
-  try { rel = decodeURIComponent(pathname.slice('/wiki/'.length)); } catch { resp.writeHead(400); return resp.end(); }
+  try { rel = decodeURIComponent(pathname.slice(prefix.length)); } catch { resp.writeHead(400); return resp.end(); }
   if (!rel || rel.endsWith('/')) rel += 'index.html';
   const file = path.resolve(ROOT, rel);
   const ext = path.extname(file).toLowerCase();
-  if (!file.startsWith(ROOT + path.sep) || rel.includes('\0') || !TYPES[ext] || path.basename(file) === 'icons.json') { resp.writeHead(404); return resp.end(); }
+  if (!file.startsWith(ROOT + path.sep) || rel.includes('\0') || !TYPES[ext] || hidden.has(path.basename(file))) { resp.writeHead(404); return resp.end(); }
   let st;
   try { st = fs.statSync(file); } catch { st = null; }
   if (!st || !st.isFile()) { resp.writeHead(404, { 'Content-Type': 'text/plain' }); return resp.end('not found'); }
@@ -32,6 +33,7 @@ function serve(req, resp, pathname) {
   resp.writeHead(200, { ...head, 'Content-Length': st.size });
   if (req.method === 'HEAD') return resp.end();
   return fs.createReadStream(file).pipe(resp);
-}
+};
 
-module.exports = serve;
+module.exports = dir(path.join(__dirname, 'wiki'), '/wiki/', new Set(['icons.json']));
+module.exports.dir = dir;

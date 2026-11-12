@@ -176,6 +176,14 @@ iPhone Simulator runs only on a Mac and only runs apps built for it. A Mac with 
   (Android + iPhone) for routes A and B. Routes C and D don't have that problem (C is updated with the website,
   D *is* the Android app).
 
+## 4b. Started: the web client (12 Nov 2026)
+
+The owner said: "try the rebuild". It started as **route C, a web version**, because it can be built and tested on this PC in a
+browser (no Mac needed), works on every iPhone without sideloading, and the same page could later go inside an iPhone app the
+way Ninja Panel does. Where it stands is in `server/webclient/README.md`. After the first evening: the login screen, accounts,
+character creation and the home screen draw from the game's own files and talk to our server. The big parts left are the Lua
+screens, the team / backpack / training / shop screens, and fights.
+
 ## 5. Recommendation
 
 1. **Route A is done and closed.** The two original Chinese iPhone files were checked on 12 Nov 2026: both

@@ -6,6 +6,8 @@ const net = require('net');
 const url = require('url');
 const handlers = require('./handlers');
 const admin = require('./admin');
+let playFiles = null; // the web client's file server (/play/), made on first use
+const playServe = () => (playFiles = playFiles || require('./wikiserve').dir(require('path').join(__dirname, 'webclient'), '/play/'));
 const settings = require('./settings');
 const manager = require('./manager');
 
@@ -93,6 +95,9 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   // The wiki (server/wiki, built by tools/build_wiki.js): static pages for everyone, no password
   if (u.pathname === '/wiki') { resp.writeHead(301, { Location: '/wiki/' }); return resp.end(); }
   if (u.pathname.startsWith('/wiki/')) return require('./wikiserve')(req, resp, u.pathname);
+  // The web client (server/webclient, the game in a browser for iPhones; game files from tools/build_webclient.js): static files, no password
+  if (u.pathname === '/play') { resp.writeHead(301, { Location: '/play/' }); return resp.end(); }
+  if (u.pathname.startsWith('/play/')) return playServe()(req, resp, u.pathname);
   if (u.pathname.endsWith('.do')) return require('./gumplogin').handle(req, resp, parseBody, db); // the APK's account window (gumplogin.js)
   if (u.pathname === '/status') { // version + start time, for the Discord #server-status watcher (discord/statuswatch.js)
     resp.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });

@@ -3,6 +3,7 @@
 // Also the home page (server/site, https://ninjaonlinereborn.com): home.json matches the wiki data, every picture it uses exists. Run by check.sh.
 const http = require('http'), fs = require('fs'), path = require('path');
 const serve = require('../../server/wikiserve');
+const playServe = serve.dir(path.join(__dirname, '..', '..', 'server', 'webclient'), '/play/'); // the web client (server.js /play/)
 const W = path.join(__dirname, '..', '..', 'server', 'wiki');
 let bad = 0;
 const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
@@ -182,6 +183,7 @@ ck(D.shinobi.find((c) => c.id === 2106 && (c.get || []).some((w) => w.how === 'F
 const srv = http.createServer((req, resp) => {
   const p = req.url.split('?')[0];
   if (p.startsWith('/wiki/')) return serve(req, resp, p);
+  if (p.startsWith('/play/')) return playServe(req, resp, p);
   resp.writeHead(404); resp.end();
 }).listen(0, '127.0.0.1', async () => {
   const port = srv.address().port;
@@ -204,6 +206,14 @@ const srv = http.createServer((req, resp) => {
   }
   const post = await get('/wiki/', { method: 'POST' });
   ck(post.code === 405, `POST /wiki/ should be 405, got ${post.code}`);
+  // the web client (server/webclient at /play/, the same file server): its page and scripts, nothing outside its folder
+  const play = await get('/play/');
+  ck(play.code === 200 && /<canvas id="game">/.test(play.body), `/play/ gave ${play.code}`);
+  for (const f of ['engine.js', 'net.js', 'game.js']) { const r = await get('/play/' + f); ck(r.code === 200 && /javascript/.test(r.h['content-type']), `/play/${f} gave ${r.code}`); }
+  for (const p of ['/play/../server.js', '/play/..%2fhandlers.js', '/play/%2e%2e/wiki/index.html', '/play/..%5cserver.js']) {
+    const r = await get(p);
+    ck(r.code === 404 || r.code === 400, `${p} should be refused, got ${r.code}`);
+  }
   srv.close();
   console.log(bad ? `${bad} wiki problem(s)` : `wiki OK (${D.shinobi.length} shinobi, ${D.gear.length} gear, ${D.guides.length} guides; file server refuses paths outside server/wiki)`);
   process.exit(bad ? 1 : 0);
