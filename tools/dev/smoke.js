@@ -327,6 +327,35 @@ for (const pick of [55, 56, 57]) {
     if (st !== 200 || page.includes('f-server') || !page.includes('<body class="player">')) { bad++; console.log('ADMIN_OPEN page:', st, page.slice(0, 80)); }
     for (const [k, v] of [['ADMIN_PASSWORD', keep.pw], ['ADMIN_OPEN', keep.open]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
   }
+  // Item page (owner, 12 Nov 2026, for a player): Golden Chōji (EXP material, Lv 25) can be given, and today's ramen / Hyourou-gan uses reset
+  {
+    const admin = require('../../server/admin'), game = require('../../server/game'), url = require('url');
+    const keep = process.env.ADMIN_OPEN; process.env.ADMIN_OPEN = '1';
+    const post = async (p, body) => {
+      let out = '';
+      await admin({ method: 'POST', headers: {} }, { writeHead() {}, end(x) { out = String(x || ''); }, setHeader() {} }, url.parse(p, true), db, async () => JSON.stringify(body)).catch((e) => { out = String(e); });
+      try { return JSON.parse(out); } catch { return { raw: out }; }
+    };
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const key = '77:' + pl.server_id;
+    const g = await post('/admin/api/givething', { uid: key, cat: 'material', id: 100016, count: 2 });
+    const mats = db.prepare('SELECT level FROM cards WHERE uid=77 AND ninja_id=100016').all();
+    if (!g.ok || g.given !== 2 || mats.length !== 2 || mats.some((c) => c.level !== 25)) { bad++; console.log('GIVE Golden Choji:', JSON.stringify(g), JSON.stringify(mats)); }
+    const max = game.useLimit(db, pl, 1).max;
+    db.prepare('INSERT OR REPLACE INTO prop_uses(uid, server_id, kind, day, used) VALUES(77,?,1,?,?)').run(pl.server_id, new Date().toLocaleDateString('sv'), max);
+    const before = game.useLimit(db, pl, 1).rest;
+    const r = await post('/admin/api/resetuses', { uid: key });
+    // the refused use itself: CTradeMgr::LoadUseConsumeInfo reads the root's message ATTRIBUTE (a null one closed the game)
+    const ramenId = game.table('consumeinfo').rows.find((x) => x[7] === 1)[1];
+    game.propAdd(db, 77, pl.server_id, ramenId, 1);
+    const usedUp = () => db.prepare('INSERT OR REPLACE INTO prop_uses(uid, server_id, kind, day, used) VALUES(77,?,1,?,?)').run(pl.server_id, new Date().toLocaleDateString('sv'), max);
+    usedUp();
+    const refused = require('../../server/errcodes').fix(handlers.rl_w_propuse({ db, params: { ...base, Cmd: 1800, Goodsid: ramenId } }));
+    await post('/admin/api/resetuses', { uid: key });
+    if (!/^<root code="130003" message="[^"]+">/.test(refused)) { bad++; console.log('RAMEN refusal without a message attribute (crashes the game):', refused); }
+    if (before !== 0 || !r.ok || r.ramen !== max || game.useLimit(db, pl, 1).rest !== max || max < 1) { bad++; console.log('RESET ramen uses:', JSON.stringify({ r, max, before })); }
+    if (keep === undefined) delete process.env.ADMIN_OPEN; else process.env.ADMIN_OPEN = keep;
+  }
   // Cards stop at level 50 (the upgrade tables' row count, client IUpgradeable::firefly_GetMaxLevel): the old 99 cap let a weapon reach 51,
   // and reincarnation only lists cards at exactly the top level ("No Lv.50 cards"). Also a card already above it is put back on start.
   {

@@ -56,6 +56,9 @@ function catalog() {
     seen.add(key);
     out.push({ cat: 'ninja', id: r[0], name: r[2], stars: r[11] || 0, sub: r[6] ? 'variant' : '' });
   }
+  // EXP material cards (owner, 12 Nov 2026: a player asked for Golden Chōji): ninjainfo [4] = 0 rows named "(Material)" (100015 Chōji Lv 3,
+  // 100016 Golden Chōji Lv 25: the Shop sells it for 50 gold). Feed them to a card in Level Up. Kept apart from 'ninja' so the team builder never offers them.
+  for (const r of game.ninjas().values()) if (r[4] !== 1 && /(Material)/.test(r[2])) out.push({ cat: 'material', id: r[0], name: r[2], stars: r[11] || 0, sub: 'Lv ' + (Number(r[7]) || 1) + ' EXP card' });
   for (const r of game.table('equipmentinfo').rows) out.push({ cat: 'equip', id: r[0], name: r[2], stars: r[6] || 0, sub: SLOT[r[3]] || '' });
   for (const r of game.table('ninjutsuinfo').rows) out.push({ cat: 'ninjutsu', id: r[0], name: r[2], stars: r[5] || 0, sub: '' });
   for (const r of game.table('markinfo').rows) out.push({ cat: 'seal', id: r[0], name: r[2], stars: r[6] || 0, sub: String(r[7] || '').trim() });
@@ -84,6 +87,7 @@ const setCard = (db, seq, c) => {
 function giveOne(db, pl, cat, id, n, opt = {}) {
   const uid = pl.uid, sid = pl.server_id, c = clampCard(cat, opt.level, opt.newlife, opt.growth);
   if (cat === 'ninja') { for (let i = 0; i < n; i++) setCard(db, game.giveCard(db, uid, sid, id), c); return n; }
+  if (cat === 'material') { for (let i = 0; i < n; i++) game.giveCard(db, uid, sid, id); return n; } // keeps its own level (Golden Chōji Lv 25)
   if (cat === 'equip') { let k = 0; for (let i = 0; i < n; i++) if (setCard(db, game.giveEquip(db, uid, sid, id), c)) k++; return k; }
   if (cat === 'ninjutsu') { for (let i = 0; i < n; i++) setCard(db, game.giveCard(db, uid, sid, id, 6), c); return n; }
   if (cat === 'seal') { for (let i = 0; i < n; i++) setCard(db, game.giveCard(db, uid, sid, id, 5), c); return n; }
@@ -690,6 +694,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
       setCard(db, card.seq, c);
       return json(res, { ok: true, level: c.lv, newlife: c.nl, growth: c.gr });
     }
+    if (u.pathname === '/admin/api/resetuses') { game.resetUses(db, pl); return json(res, { ok: true, ramen: game.useLimit(db, pl, 1).rest, pills: game.useLimit(db, pl, 2).rest }); }
     if (u.pathname === '/admin/api/unlockall') return json(res, { ok: true, ...game.unlockAll(db, pl) });
     if (u.pathname === '/admin/api/bench') {
       const t = (Array.isArray(b.targets) ? b.targets : []).map(Number).filter((x) => x > 0).slice(0, 12);

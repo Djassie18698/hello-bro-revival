@@ -215,6 +215,10 @@ html.embed .wrap{padding-top:18px}
           <div>🔓 <b>Unlock everything</b>: top player level, every training chapter and stage cleared, every team slot open, all Battles rounds cleared.</div>
           <button class="btn purple" onclick="unlockAll()">Unlock everything</button>
         </div>
+        <div class="note" style="margin-top:12px;justify-content:space-between;align-items:center">
+          <div>🍜 <b>Reset today's ramen uses</b>: ramen and Hyourou-gan can be eaten again today, as if the day just started (20 / 30 a day, more with VIP).</div>
+          <button class="btn" onclick="resetUses()">Reset ramen uses</button>
+        </div>
       </section>
 
       <section class="panel view" id="v-mail">
@@ -351,7 +355,7 @@ function toast(text, ok = true) {
 const GRAD = ['#ff8a1f,#ff3d5a', '#8b5cf6,#ec4899', '#06b6d4,#3b82f6', '#22c55e,#14b8a6', '#f59e0b,#ef4444', '#a855f7,#6366f1'];
 const avatar = (p) => '<div class="av" style="background:linear-gradient(135deg,' + GRAD[p.uid % GRAD.length] + ')">' + esc((p.nick || '?')[0].toUpperCase()) + '</div>';
 const RAR = { 1: '#94a3b8', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b', 6: '#ef4444' };
-const CATS = [['', '✨ All'], ['ninja', '🥷 Shinobi'], ['equip', '⚔️ Equipment'], ['ninjutsu', '🌀 Ninjutsu'], ['seal', '🔱 Seals'], ['item', '🍜 Items'], ['fragment', '🧩 Fragments'], ['pet', '🐸 Pets']];
+const CATS = [['', '✨ All'], ['ninja', '🥷 Shinobi'], ['equip', '⚔️ Equipment'], ['ninjutsu', '🌀 Ninjutsu'], ['seal', '🔱 Seals'], ['item', '🍜 Items'], ['material', '🍙 EXP cards'], ['fragment', '🧩 Fragments'], ['pet', '🐸 Pets']];
 const CATNAME = Object.fromEntries(CATS);
 
 let players = [], sel = null, cat = '', stars = 0, inv = { cards: [], props: [] };
@@ -401,6 +405,11 @@ async function unlockAll() {
   const r = await api('unlockall', { uid: sel });
   toast(r.ok ? 'Unlocked: level ' + r.level + ', ' + r.slots + ' team slots<br><small>Close the game completely and open it again.</small>' : r.error, r.ok); loadPlayers();
 }
+async function resetUses() {
+  if (!sel) return toast('Pick a player first', false);
+  const r = await api('resetuses', { uid: sel });
+  toast(r.ok ? 'Ramen uses reset for ' + esc(current().nick) + ': <b>' + r.ramen + '</b> ramen and <b>' + r.pills + '</b> Hyourou-gan left today<br><small>Works right away: press USE in Shop > Tool again.</small>' : r.error, r.ok);
+}
 async function sendMail(all) {
   if (!all && !sel) return toast('Pick a player first', false);
   if (all && !confirm('Send this gift to every player?')) return;
@@ -429,7 +438,7 @@ async function giveThing(c, id) {
   if (!sel) return toast('Pick a player first', false);
   const n = +$('n-' + c + '-' + id).value || 1;
   const r = await api('givething', { uid: sel, cat: c, id, count: n, level: +$('glv').value || 1, newlife: +$('gnl').value || 0, growth: +$('ggr').value || 0 });
-  toast(r.ok ? 'Gave <b>' + r.given + '× ' + esc(r.name) + '</b> to ' + esc(current().nick) + (['ninja', 'equip', 'ninjutsu', 'seal', 'pet'].includes(c) ? '<br><small>Restart the game to see it.</small>' : '') : r.error, r.ok);
+  toast(r.ok ? 'Gave <b>' + r.given + '× ' + esc(r.name) + '</b> to ' + esc(current().nick) + (['ninja', 'material', 'equip', 'ninjutsu', 'seal', 'pet'].includes(c) ? '<br><small>Restart the game to see it.</small>' : '') : r.error, r.ok);
   loadPlayers();
 }
 

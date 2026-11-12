@@ -937,7 +937,9 @@ module.exports = {
       return '<root code="0"></root>';
     }
     const r = game.propUse(db, pl, Number(p.Goodsid));
-    if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+    // A refusal needs message as an ATTRIBUTE of the root: CTradeMgr::LoadUseConsumeInfo copies Attribute("message") into a std::string, and
+    // without it that is a null pointer: the game closed on every refused use (daily ramen limit reached, grudge full ...). Found 12 Nov 2026.
+    if (r.error) return `<root code="5" message="${esc(r.error).replace(/"/g, '&quot;')}"><message>${esc(r.error)}</message></root>`;
     return `<root code="0"><propuse ap="${r.ap}" sp="${r.sp || 0}" yinzi="${r.coin}" left="${r.left}"${r.limit ? ` rest="${r.limit.rest}" max="${r.limit.max}"` : ''}${r.card ? ' ' + r.card.attr : ''}/></root>`;
   },
 
