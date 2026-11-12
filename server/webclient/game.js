@@ -213,7 +213,7 @@
   const tables = {};
   const table = async (name) => (tables[name] = tables[name] || (await HB.json('data/' + name + '.json')));
   async function homeScreen() {
-    const [main] = await Promise.all([HB.api('rl_r_mainpage', { Cmd: 1302 }), table('playerlevel'), table('functionconfig'), HB.loadCCB('MainMenu'), HB.loadCCB('sub_ui/DefaultMainMenu')]);
+    const [main] = await Promise.all([HB.api('rl_r_mainpage', { Cmd: 1302 }), HB.data.tables(), table('playerlevel'), table('functionconfig'), HB.loadCCB('MainMenu'), HB.loadCCB('sub_ui/DefaultMainMenu')]);
     if (main.code) return tip(errorText(main));
     const country = x.n(x.first(main, 'user'), 'country');
     const village = 'sub_ui/' + countryName(country) + 'CountryDefaultMenu';
@@ -223,6 +223,8 @@
     const o = { onButton: (sel, btn) => homeButton(sel, btn) };
     const root = screen('MainMenu', o);
     HB.game.menu = o; HB.game.root = root; HB.game.main = main;
+    HB.data.load(main);
+    await HB.loadCCB('sub_ui/MainCardView');
     selectBar('btn_mainpage');
     // the home part goes into node_content, laid out in the same 768-wide frame as MainMenu (CMainMenu::ChangeToSubView)
     const content = o.n.node_content;
@@ -253,6 +255,29 @@
       if (label) label.setText(HB.menu(272).replace('%d', need));
     }
     for (const k of ['sprite_activity_frame', 'label_activity_news', 'sprite_msg_frame', 'label_msg_news']) if (n[k]) n[k].visible = false; // counts come later
+    // the team's cards in a row (CActiveCardView, sub_ui/MainCardView.ccbi); the arrows move one card
+    {
+      const box = n.node_viewgroup, cellSize = n.node_cardview;
+      const row = new HB.ScrollView(); row.dir = 0; row.w = box.w; row.h = box.h;
+      const strip = new HB.Node(); strip.w = Math.max(box.w, HB.data.team.length * cellSize.w); strip.h = box.h;
+      HB.data.team.forEach((t, i) => {
+        const card = HB.data.card(t.seq); if (!card) return;
+        const co = {};
+        const cell = HB.build('sub_ui/MainCardView', co, [cellSize.w, cellSize.h]);
+        cell.ignoreAnchor = true; cell.x = i * cellSize.w; cell.y = 0; cell.w = cellSize.w; cell.h = cellSize.h;
+        const inf = HB.info(1, card.id), m = co.n;
+        const fr = HB.qualityFrame('ninjaSmall', inf.quality); if (fr) m.sprite_backview.setFrame(fr);
+        const pic = HB.iconFrame(1, inf.icon);
+        if (pic) { const sp = new HB.Sprite(pic); const k = Math.min(m.node_icon.w / pic.sw, m.node_icon.h / pic.sh); sp.sx = sp.sy = k; sp.x = m.node_icon.w / 2; sp.y = m.node_icon.h / 2; m.node_icon.add(sp); }
+        m.label_levelvalue.setText(String(card.level));
+        m.label_tupo_level.visible = card.tupo > 0; if (card.tupo > 0) m.label_tupo_level.setText('+' + card.tupo);
+        m.node_inlay_frame.visible = false;
+        strip.add(cell);
+      });
+      row.setContent(strip); strip.x = 0; strip.y = 0;
+      box.add(row);
+      HB.game.teamRow = { row, strip, step: cellSize.w };
+    }
     HB.home = { o, main };
     HB.game.subOwner = o;
     { const ci = x.first(main, 'chapinfo'); HB.game.chap = { cur: Number(x.a(ci, 'currentchap', 1)), stage: Number(x.a(ci, 'currentstage', 1)) }; }
@@ -305,7 +330,10 @@
     // buttons whose screens are the game's own Lua (CDefaultMainMenu::onBtnActivity ...)
     if (sel === 'BtnActivity' && HB.L) { if (HB.luaRun('business_proxy/activityPopup_business.lua')) HB.luaGlobal('initactivityPopupLayer'); return; }
     // the bottom bar (CMainMenu::onBtnDefault / onBtnMyTeam / onBtnBackpack / the Training, Spar and Shop buttons)
+    if (sel === 'BtnPreView' || sel === 'BtnNextView') { const t = HB.game.teamRow; if (t) HB.tween(t.strip, { x: Math.max(Math.min(0, t.row.w - t.strip.w), Math.min(0, t.strip.x + (sel === 'BtnPreView' ? t.step : -t.step))) }, 0.15); return; }
     if (sel === 'BtnMainMenu') return homeScreen();
+    if (sel === 'BtnTeam') return HB.screens.team();
+    if (sel === 'BtnBag') return HB.screens.backpack();
     if (sel === 'BtnRound') return HB.screens.training();
     tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
   }
@@ -338,6 +366,7 @@
       const main = await HB.api('rl_r_mainpage', { Cmd: 1301, HornFlag: 1 });
       if (main.code) return;
       HB.game.main = main;
+      HB.data.load(main);
       const u = x.first(main, 'user');
       HB.game.user = Object.fromEntries([...u.children].map((c) => [c.nodeName, c.textContent]));
       const ci = x.first(main, 'chapinfo');
@@ -345,6 +374,7 @@
       if (HB.game.subOwner) fillTopBar(HB.game.subOwner, main);
     } catch (e) { /* keeps the old numbers */ }
   };
+  HB.game.goHome = () => homeScreen();
   HB.screens = HB.screens || {};
   HB.ui = { screen, modal, tip, loading, errorText: (r) => errorText(r), W, H, FRAME, table, tables, fillTopBar: (o, m) => fillTopBar(o, m), VIP_FRAMES: () => VIP_FRAMES, x, msg };
 

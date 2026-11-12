@@ -105,7 +105,7 @@ HB.loadCCB = (file) => once('c:' + file, async () => {
   };
   walk(doc.root);
   await Promise.all(jobs);
-  doc.file = name.split('/').pop().toUpperCase(); // texts are found by NAME_FILE (tools/build_webclient.js buildStrings)
+  doc.name = name.split('/').pop(); doc.file = doc.name.toUpperCase(); // texts are found by NAME_FILE (tools/build_webclient.js buildStrings)
   return (HB.docs[name] = doc);
 });
 HB.docs = {};
@@ -179,7 +179,7 @@ HB.loadCCBNow = (file) => {
     for (const c of n.k || []) walk(c);
   };
   walk(doc.root);
-  doc.file = name.split('/').pop().toUpperCase();
+  doc.name = name.split('/').pop(); doc.file = doc.name.toUpperCase();
   return (HB.docs[name] = doc);
 };
 
@@ -187,6 +187,12 @@ HB.loadCCBNow = (file) => {
 HB.strings = { ui: {}, menu: {}, uiById: {} };
 HB.loadStrings = async () => { HB.strings = (await HB.json('strings.json')) || HB.strings; };
 HB.text = (key) => HB.strings.ui[key];
+HB.btnText = (key) => {
+  const u = HB.strings.ui;
+  if (u[key] !== undefined) return u[key];
+  for (let n = key.length - 1; n >= 50; n--) { const v = u[key.slice(0, n)]; if (v !== undefined) return v; }
+  return undefined;
+};
 HB.ui = (id) => HB.strings.uiById[id] ?? '';
 HB.menu = (id) => HB.strings.menu[id] ?? '';
 
@@ -534,7 +540,9 @@ function makeNode(j, ps, owner, doc) {
     if (p.zoomOnTouchDown !== undefined) n.zoom = p.zoomOnTouchDown;
     if (p.enabled !== undefined) n.enabled = p.enabled;
     if (p.ccControl) n.selector = p.ccControl[0];
-    const bt = j.n && HB.text('BTN_TEXT_' + j.n.toUpperCase() + '_' + doc.file);
+    // a button's text: BTN_TEXT_<selector>_<File>[<member name>_<File>], in the layout's own letter case; very long keys are cut off
+    // in the game's table (GetBtnStringFromMemberName), so the longest key that starts the same counts
+    const bt = n.selector ? HB.btnText('BTN_TEXT_' + n.selector + '_' + doc.name + (j.n ? j.n + '_' + doc.name : '')) ?? HB.btnText('BTN_TEXT_' + n.selector + '_' + doc.name) : undefined;
     if (bt != null) n.titles[1] = bt;
     n.layout();
   }

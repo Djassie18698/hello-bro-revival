@@ -147,7 +147,8 @@
     gfn('fightdataSetDefenseVipLevel', () => {}); gfn('InAppInitInstance', () => {}); gfn('InAppPurchase', () => {});
 
     // ---------------- not done yet: the rest answers nil and is logged (each name once)
-    for (const name of ['CTradeMgr', 'CUserGuideManager', 'CFightResultData', 'CGameObjElement', 'CProfileData']) {
+    HB.openGameObj(lua); // CGameObjElement: pictures and frames (data.js)
+    for (const name of ['CTradeMgr', 'CUserGuideManager', 'CFightResultData', 'CProfileData']) {
       const obj = gameObject(name, {});
       const t = new LuaTable();
       const mt = new LuaTable();

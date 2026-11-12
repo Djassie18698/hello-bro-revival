@@ -196,6 +196,7 @@
   class SpriteFrame { constructor(frame) { this.frame = frame; } }
   class Texture { constructor(img, path) { this.img = img; this.path = path; } }
   userdata(SpriteFrame); userdata(Texture);
+  HB.lua.SpriteFrame = SpriteFrame;
   methods(SpriteFrame, { getRect: (f) => new CCRect(f.frame.x, f.frame.y, f.frame.w, f.frame.h), getOriginalSize: (f) => new CCSize(f.frame.sw, f.frame.sh), retain: () => {}, release: () => {} });
   methods(Texture, { getContentSize: (t) => new CCSize(t.img ? t.img.naturalWidth : 0, t.img ? t.img.naturalHeight : 0), retain: () => {}, release: () => {} });
   const frameOf = (name) => { const f = HB.frameByName(txt(name)); return f ? new SpriteFrame(f) : undefined; };

@@ -209,7 +209,7 @@ const srv = http.createServer((req, resp) => {
   // the web client (server/webclient at /play/, the same file server): its page and scripts, nothing outside its folder
   const play = await get('/play/');
   ck(play.code === 200 && /<canvas id="game">/.test(play.body), `/play/ gave ${play.code}`);
-  for (const f of ['engine.js', 'lua.js', 'luabind.js', 'gamebind.js', 'net.js', 'train.js', 'fight.js', 'game.js']) { const r = await get('/play/' + f); ck(r.code === 200 && /javascript/.test(r.h['content-type']), `/play/${f} gave ${r.code}`); }
+  for (const f of ['engine.js', 'lua.js', 'luabind.js', 'gamebind.js', 'net.js', 'data.js', 'bag.js', 'team.js', 'train.js', 'fight.js', 'game.js']) { const r = await get('/play/' + f); ck(r.code === 200 && /javascript/.test(r.h['content-type']), `/play/${f} gave ${r.code}`); }
   for (const p of ['/play/../server.js', '/play/..%2fhandlers.js', '/play/%2e%2e/wiki/index.html', '/play/..%5cserver.js']) {
     const r = await get(p);
     ck(r.code === 404 || r.code === 400, `${p} should be refused, got ${r.code}`);
