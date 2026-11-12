@@ -156,6 +156,29 @@ tr:hover td{background:rgba(255,255,255,.03)}
 @keyframes tin{from{opacity:0;transform:translateX(40px) scale(.9)}}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
+/* Phone (owner, 12 Nov 2026): the player list no longer sticks over the page while scrolling, tabs are one row you swipe, nothing wider than the screen */
+@media(max-width:900px){
+  .wrap{padding:14px 12px 80px}
+  .grid{grid-template-columns:minmax(0,1fr)}.grid>*{min-width:0}
+  .players{position:static;max-height:300px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:16px 0 12px;padding:0 0 4px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:none;padding:10px 14px}
+  .tgrid{grid-template-columns:1fr}
+  .note[style*="space-between"]{flex-direction:column;align-items:stretch!important}
+}
+@media(max-width:600px){
+  .hero,.view{padding:14px}
+  .who .av{width:48px;height:48px;font-size:20px}.who h2{font-size:21px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat{padding:10px 12px}.stat b{font-size:18px;overflow-wrap:anywhere}
+  .quick{grid-template-columns:repeat(2,1fr);gap:8px}
+  .qb{padding:12px 10px}
+  .items{grid-template-columns:1fr}
+  .row>select{flex:1 1 100%}.row>input[type=number]{flex:1;min-width:0;width:auto!important}
+  #toasts{left:12px;right:12px;bottom:12px}.toast{min-width:0;max-width:none}
+  table{display:block;overflow-x:auto}
+}
 </style>
 <script>
 // Inside the control panel (panel.html) this page runs embedded: no own header or backdrop, the panel's tabs are at the top.

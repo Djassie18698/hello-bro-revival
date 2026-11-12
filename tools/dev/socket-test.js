@@ -64,6 +64,9 @@ function end(msg, code) {
   });
   const viaCaddy = await page('127.0.0.1', '/manager', { 'X-Forwarded-For': '203.0.113.9' });
   if (viaCaddy.code === 302) return end('SOCKET test: /manager through the website (from this machine) must not be sent away again: ' + viaCaddy.loc, 1);
+  // the control panel's home-screen app (Add to Home Screen): icon + manifest without a password, under /admin/ so Caddy passes them on
+  const icon = await page('127.0.0.1', '/admin/app-icon.png', { 'X-Forwarded-For': '203.0.113.10' }), man = await page('127.0.0.1', '/admin/app.webmanifest', { 'X-Forwarded-For': '203.0.113.10' });
+  if (icon.code !== 200 || man.code !== 200) return end(`SOCKET test: home-screen app files missing: icon ${icon.code}, manifest ${man.code}`, 1);
   const lan = Object.values(os.networkInterfaces()).flat().find((n) => n && n.family === 'IPv4' && !n.internal);
   let lanNote = 'no network address to test the redirect from';
   if (lan) {

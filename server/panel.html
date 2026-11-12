@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Hello Bro Control Panel</title>
+<link rel="manifest" href="/admin/app.webmanifest">
+<link rel="apple-touch-icon" href="/admin/app-icon.png">
+<link rel="icon" type="image/png" href="/admin/app-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HB Panel">
+<meta name="theme-color" content="#0b0a14">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -50,7 +58,20 @@ iframe.on{display:block}
 .track{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;display:flex}
 .track i{display:block;height:100%}
 .bar small{display:block;color:var(--muted);font-size:12px;margin-top:6px}
-@media(max-width:800px){main{top:150px}nav{margin-left:0}h1{font-size:28px}}
+/* Phone (owner, 12 Nov 2026): a slim top bar, the tabs are one row you swipe sideways; main starts right under the bar (script below measures it) */
+@media(max-width:800px){
+  .top{gap:10px;padding:10px 12px 8px;padding-top:max(10px,env(safe-area-inset-top))}
+  .logo{width:36px;height:36px;border-radius:11px;font-size:20px}
+  h1{font-size:24px}
+  .right .pill:first-child{display:none}
+  .pill{padding:7px 11px}
+  nav{order:3;width:100%;margin:0 -12px;padding:0 12px 2px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;width:calc(100% + 24px)}
+  nav::-webkit-scrollbar{display:none}
+  nav a{flex:none;padding:9px 14px;font-size:14px;border-radius:12px}
+  nav a:hover{transform:none}
+  #progress{padding:16px 12px 60px}
+  .prog table{display:block;overflow-x:auto}
+}
 </style>
 </head>
 <body>
@@ -144,7 +165,10 @@ async function loadProgress() {
     document.getElementById('prog').innerHTML = html.replace(/<h2>Summary<\/h2><table[\s\S]*?<\/table>/, '<h2>Summary</h2>' + bars(t)); // the bars replace the summary table
   } catch { document.getElementById('prog').textContent = 'Could not load the progress page.'; }
 }
-document.querySelector('nav').onclick = (e) => { const a = e.target.closest('a'); if (a) show(a.dataset.t); };
+document.querySelector('nav').onclick = (e) => { const a = e.target.closest('a'); if (a) { show(a.dataset.t); a.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } };
+// the pages start right under the top bar, however tall it is (phones, a narrow window)
+const fit = () => { document.querySelector('main').style.top = document.getElementById('top').offsetHeight + 'px'; };
+new ResizeObserver(fit).observe(document.getElementById('top')); fit();
 window.addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.goto) show(e.data.goto); });
 show(location.hash.slice(1) || document.body.dataset.start || 'server');
 // online dot

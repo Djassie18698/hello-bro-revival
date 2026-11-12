@@ -109,6 +109,17 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     resp.writeHead(302, { Location: process.env.HB_SITE_URL + (u.pathname === '/' ? '/panel' : u.pathname) + (u.search || '') });
     return resp.end();
   }
+  // Home-screen app for the control panel (owner, 12 Nov 2026: "an app for iPhone"): Safari > Share > Add to Home Screen opens /panel full screen.
+  // Under /admin/ so the website (Caddy, /admin*) passes them on. No password: a picture and a name only.
+  if (u.pathname === '/admin/app-icon.png') {
+    resp.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+    return resp.end(require('fs').readFileSync(require('path').join(__dirname, 'panel-icon.png')));
+  }
+  if (u.pathname === '/admin/app.webmanifest') {
+    resp.writeHead(200, { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' });
+    return resp.end(JSON.stringify({ name: 'Hello Bro Control Panel', short_name: 'HB Panel', start_url: '/panel', scope: '/', display: 'standalone',
+      background_color: '#0b0a14', theme_color: '#0b0a14', icons: [{ src: '/admin/app-icon.png', sizes: '512x512', type: 'image/png', purpose: 'any' }] }));
+  }
   if (u.pathname === '/' || u.pathname === '/panel') { // the control panel
     if (!admin.authorized(req)) { resp.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hello Bro"' }); return resp.end('password required'); }
     return admin.panel(resp, 'server');
