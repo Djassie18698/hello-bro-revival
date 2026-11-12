@@ -1,0 +1,48 @@
+# Builds Ninja Panel (tools/ios-panel: the control panel as an iPhone app) on GitHub's Mac and puts the unsigned NinjaPanel.ipa on the
+# release "ios-panel". Free for a public repo. Runs when tools/ios-panel changes, or by hand (Actions tab > iPhone panel app > Run workflow).
+name: iPhone panel app
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/ios-panel/**', '.github/workflows/ios-panel.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/ios-panel
+            .github
+      - name: Make the Xcode project
+        working-directory: tools/ios-panel
+        run: brew install xcodegen && xcodegen generate
+      - name: Build (unsigned)
+        working-directory: tools/ios-panel
+        run: |
+          xcodebuild -project NinjaPanel.xcodeproj -scheme NinjaPanel -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Pack the .ipa
+        working-directory: tools/ios-panel
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/NinjaPanel.app Payload/
+          zip -qry NinjaPanel.ipa Payload
+          ls -la NinjaPanel.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NinjaPanel-ipa
+          path: tools/ios-panel/NinjaPanel.ipa
+      - name: Put it on the release "ios-panel"
+        working-directory: tools/ios-panel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view ios-panel -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create ios-panel -R "$GITHUB_REPOSITORY" \
+            --title "Ninja Panel (iPhone app for the control panel)" \
+            --notes "The control panel as an iPhone app. Install NinjaPanel.ipa with Sideloadly: see tools/ios-panel/README.md. Built from $GITHUB_SHA."
+          gh release upload ios-panel NinjaPanel.ipa -R "$GITHUB_REPOSITORY" --clobber

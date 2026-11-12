@@ -28,3 +28,9 @@ __pycache__/
 *.pyc
 discord/bughelper-state.json
 .npm/
+
+# iPhone panel app: made on the Mac by XcodeGen / xcodebuild
+tools/ios-panel/NinjaPanel.xcodeproj/
+tools/ios-panel/build/
+tools/ios-panel/Payload/
+tools/ios-panel/*.ipa
