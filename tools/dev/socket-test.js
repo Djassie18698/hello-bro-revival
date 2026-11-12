@@ -70,7 +70,16 @@ function end(msg, code) {
   // phone / iPad: no frames (Safari on iPhone cannot scroll them), every tab is its own page with the tabs on top (server/appnav.js)
   const nav = await page('127.0.0.1', '/admin/appnav.js', { 'X-Forwarded-For': '203.0.113.10' });
   const S = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'server', f), 'utf8');
-  const noNav = ['manager.html', 'admin.html', 'playerlog.html', 'track.html', 'sitestats.js'].filter((f) => !S(f).includes('<script src="/admin/appnav.js"></script>'));
+  // the Bugs page (bugboard.js): the sample board answers, and the stages follow the PC app Bug Fixer (Store.cs MakeCard)
+  const demo = await new Promise((ok) => http.get({ host: '127.0.0.1', port: PORT, path: '/admin/bugs/api?demo=1', headers: { 'X-Forwarded-For': '203.0.113.11' } }, (r) => { let b = ''; r.on('data', (d) => { b += d; }); r.on('end', () => { try { ok(JSON.parse(b)); } catch (e) { ok({}); } }); }).on('error', () => ok({})));
+  const bb = require(path.join(__dirname, '..', '..', 'server', 'bugboard.js'));
+  const post = (forum, tags, extra) => ({ id: '1', forum, title: 'x', tags, author: 'p', starter: '', reportId: '', lastWho: 'fixer', lastText: '', lastTime: 1, created: 1, ...extra });
+  const stage = (pl, fx) => bb._card(pl, fx).stage;
+  const stages = [stage(post('bugs', ['Needs info']), null), stage(post('bugs', ['With the developer']), post('fixer', ['Question for you'])), stage(post('bugs', []), post('fixer', ['Question for you'], { lastWho: 'you' })),
+    stage(post('bugs', ['Fixed']), post('fixer', [])), stage(post('bugs', ['Live']), null), stage(post('bugs', []), post('fixer', ['Stopped']))].join(',');
+  if (!demo.ok || (demo.cards || []).length !== 8 || stages !== 'player,you,fixer,ready,live,closed')
+    return end(`SOCKET test: the Bugs page is broken: sample board ${demo.ok ? demo.cards.length + ' cards' : 'missing'}, stages ${stages}`, 1);
+  const noNav = ['manager.html', 'admin.html', 'playerlog.html', 'track.html', 'sitestats.js', 'bugboard.html'].filter((f) => !S(f).includes('<script src="/admin/appnav.js"></script>'));
   if (nav.code !== 200 || noNav.length || !/const APP = matchMedia/.test(S('panel.html')))
     return end(`SOCKET test: the phone panel (appnav.js) is broken: script ${nav.code}, pages without it: ${noNav.join(', ') || 'none'}`, 1);
   const lan = Object.values(os.networkInterfaces()).flat().find((n) => n && n.family === 'IPv4' && !n.internal);

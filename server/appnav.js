@@ -11,11 +11,12 @@
     ['team', '🛡️ Team builder', '/admin?embed=1&app=1&tab=team'],
     ['log', '📈 Player log', '/admin/playerlog?embed=1&app=1'],
     ['track', '🔎 Tracker', '/admin/track?embed=1&app=1'],
+    ['bugs', '🐞 Bugs', '/admin/bugs?embed=1&app=1'],
     ['site', '🌐 Website', '/admin/sitestats?embed=1&app=1'],
     ['progress', '📋 Progress', '/panel?app=1#progress'],
   ];
   const p = location.pathname;
-  const cur = p === '/manager' ? 'server' : p === '/admin/playerlog' ? 'log' : p === '/admin/track' ? 'track' : p === '/admin/sitestats' ? 'site'
+  const cur = p === '/manager' ? 'server' : p === '/admin/playerlog' ? 'log' : p === '/admin/track' ? 'track' : p === '/admin/sitestats' ? 'site' : p === '/admin/bugs' ? 'bugs'
     : p === '/admin' ? (q.get('tab') === 'team' ? 'team' : 'admin') : 'progress';
   // the notch: let the page reach under the status bar, the bar keeps clear of it
   const vp = document.querySelector('meta[name=viewport]');
@@ -33,11 +34,22 @@
   document.head.appendChild(css);
   const bar = document.createElement('div');
   bar.id = 'hbapp';
-  bar.innerHTML = '<div class="hd"><span class="lg">🍥</span><b>HELLO BRO</b></div><nav>' +
-    TABS.map(([k, t, h]) => `<a href="${h}"${k === cur ? ' class="on"' : ''}>${t.replace(/&/g, '&amp;')}</a>`).join('') + '</nav>';
-  document.body.insertBefore(bar, document.body.firstChild);
-  const on = bar.querySelector('a.on');
-  if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+  // inside the iPhone app Ninja Panel (tools/ios-panel) the tabs are the app's own bar at the bottom: here only the page's name
+  const NATIVE = /NinjaPanelApp/.test(navigator.userAgent);
+  if (NATIVE) {
+    document.documentElement.classList.add('native');
+    const name = (TABS.find(([k]) => k === cur) || TABS[0])[1].replace(/^\S+\s/, '');
+    css.textContent += `#hbapp.native{padding:max(12px,env(safe-area-inset-top)) 18px 10px}#hbapp.native h1{margin:0;font:800 30px/1.15 -apple-system,Inter,system-ui,sans-serif;letter-spacing:-.6px;color:#f3f1ff}`;
+    bar.className = 'native';
+    bar.innerHTML = '<h1>' + name.replace(/&/g, '&amp;') + '</h1>';
+    document.body.insertBefore(bar, document.body.firstChild);
+  } else {
+    bar.innerHTML = '<div class="hd"><span class="lg">🍥</span><b>HELLO BRO</b></div><nav>' +
+      TABS.map(([k, t, h]) => `<a href="${h}"${k === cur ? ' class="on"' : ''}>${t.replace(/&/g, '&amp;')}</a>`).join('') + '</nav>';
+    document.body.insertBefore(bar, document.body.firstChild);
+    const on = bar.querySelector('a.on');
+    if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
   // a page that asks the panel to switch tabs ({goto}) or the admin page's Team editor (?tab=team)
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || !e.data.goto) return;

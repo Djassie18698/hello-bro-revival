@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bug fixer</title>
+<link rel="icon" type="image/png" href="/admin/app-icon.png">
+<style>
+/* Bug fixer board (bugboard.js): the phone version of the PC app Bug Fixer. Same colours as the control panel. */
+:root{--bg:#0b0a14;--panel:rgba(24,22,40,.78);--panel2:rgba(34,31,56,.9);--line:rgba(255,255,255,.08);--text:#f3f1ff;--muted:#a39fc0;--orange:#ff8a1f;--orange2:#ffb648;--red:#ff5d73;--green:#34d399;--blue:#60a5fa;--purple:#a78bfa;--gray:#8b88a6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-text-size-adjust:100%}
+html.embed,html.embed body{background:transparent}
+.wrap{max-width:900px;margin:0 auto;padding:18px 14px 90px}
+.head{display:flex;align-items:center;gap:12px;margin:4px 0 18px}
+.head h1{margin:0;font-size:26px;letter-spacing:-.4px}
+html.native .head h1{display:none}html.native .head{margin-top:0}
+.head small{color:var(--muted);font-size:13px;margin-left:auto}
+.head button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px;padding:9px 12px;font:inherit;font-size:14px;font-weight:700}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:26px 2px 10px;display:flex;gap:8px;align-items:center}
+h2 .n{background:var(--panel2);color:var(--text);border-radius:999px;padding:1px 8px;font-size:12px;letter-spacing:0}
+.empty{color:var(--muted);font-size:15px;padding:14px 16px;border:1px dashed var(--line);border-radius:14px}
+.card{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c,var(--gray));border-radius:14px;padding:13px 14px;margin:0 0 10px;cursor:pointer}
+.card:active{transform:scale(.99)}
+.card .t{font-weight:800;font-size:16px;line-height:1.3}
+.card .m{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;color:var(--muted);font-size:13px}
+.card .why{margin-top:8px;font-size:14px;color:var(--orange2);font-weight:700}
+.card .last{margin-top:6px;font-size:14px;color:#d9d6ee;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .last b{color:var(--muted);font-weight:700}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;color:#0b0a14;background:var(--c,var(--gray))}
+.s-you{--c:var(--orange)}.s-fixer{--c:var(--blue)}.s-player{--c:var(--purple)}.s-ready{--c:var(--orange2)}.s-live{--c:var(--green)}.s-closed{--c:var(--gray)}
+.golive{background:linear-gradient(135deg,rgba(255,182,72,.14),rgba(255,138,31,.06));border:1px solid rgba(255,182,72,.35);border-radius:14px;padding:14px 16px}
+.golive ul{margin:8px 0 10px;padding-left:20px}.golive li{margin:4px 0;line-height:1.4}
+.golive p{margin:0;color:var(--muted);font-size:14px}
+a.btn,button.btn{display:inline-block;border:0;border-radius:12px;padding:11px 16px;font:inherit;font-weight:800;font-size:15px;text-decoration:none;background:linear-gradient(135deg,var(--orange2),var(--orange));color:#1a0f02}
+.more{width:100%;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:10px;font:inherit;font-weight:700}
+.err{color:var(--red);background:rgba(255,93,115,.1);border:1px solid rgba(255,93,115,.3);border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:14px}
+.loading{color:var(--muted);text-align:center;padding:50px 0}
+/* one report: a sheet over the page */
+.sheet{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+.sheet.on{display:block}
+.sheet .bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:max(12px,env(safe-area-inset-top)) 14px 12px;background:rgba(11,10,20,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.sheet .bar button{border:0;background:var(--panel2);color:var(--text);border-radius:12px;padding:9px 14px;font:inherit;font-weight:800}
+.sheet .bar .sp{flex:1}
+.sheet .in{max-width:760px;margin:0 auto;padding:16px 14px 80px}
+.sheet h3{font-size:21px;margin:0 0 8px;line-height:1.3}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}.tags span{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;margin:0 0 14px}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:14px;padding:9px;border-radius:9px}
+.seg button.on{background:var(--panel2);color:var(--text)}
+.msg{margin:0 0 10px;max-width:92%;padding:10px 13px;border-radius:14px;background:var(--panel);border:1px solid var(--line);line-height:1.45;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg .w{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:3px;white-space:normal}
+.msg.you{margin-left:auto;background:rgba(255,138,31,.14);border-color:rgba(255,138,31,.35)}
+.msg.fixer .w{color:var(--blue)}.msg.helper .w{color:var(--gray)}.msg.player .w{color:var(--purple)}.msg.you .w{color:var(--orange2)}
+.msg img{display:block;max-width:100%;border-radius:10px;margin-top:8px}
+.msg a{color:var(--orange2)}
+</style>
+<script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><h1>🐞 Bug fixer</h1><small id="age"></small><button id="reload" aria-label="Refresh">↻</button></div>
+  <div id="out"><div class="loading">Reading Discord…</div></div>
+</div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <div class="bar"><button id="back">‹ Back</button><span class="sp"></span><a class="btn" id="open" target="_blank" rel="noopener">Open in Discord</a></div>
+  <div class="in" id="detail"></div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const STAGES = [ // the PC app's columns, in the order a phone reads them
+  ['you', 'Waiting for you'], ['fixer', 'With the fixer'], ['player', 'Asking the player'], ['ready', 'Fixed, not live yet'], ['live', 'Live'], ['closed', 'Stopped, wishes, not possible'],
+];
+const LABEL = { you: 'Your turn', fixer: 'With the fixer', player: 'Asking player', ready: 'Not live yet', live: 'Live', closed: 'Closed' };
+const WHO = (w) => (w === 'you' ? 'You' : w === 'fixer' ? 'Fixer' : w === 'helper' ? 'Bug helper' : w || 'Player');
+function ago(ms) {
+  if (!ms) return '';
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  return Math.floor(s / 86400) + (s < 172800 ? ' day ago' : ' days ago');
+}
+let board = null, showAll = {};
+const DEMO = new URLSearchParams(location.search).has('demo'); // sample cards (bugboard.js demo())
+function cardHtml(c) {
+  return `<button class="card s-${c.stage}" data-id="${esc(c.id)}"><div class="t">${esc(c.title)}</div>
+<div class="m"><span class="pill">${LABEL[c.stage]}</span>${c.player ? '<span>' + esc(c.player === 'you' ? 'your request' : 'by ' + c.player) + '</span>' : ''}<span>${ago(c.lastTime)}</span></div>
+${c.why ? `<div class="why">${esc(c.why)}</div>` : ''}${c.lastText ? `<div class="last"><b>${esc(WHO(c.lastWho))}:</b> ${esc(c.lastText)}</div>` : ''}</button>`;
+}
+function render() {
+  if (!board) return;
+  const cards = board.cards.filter((c) => !c.test);
+  let h = board.error ? `<div class="err">Discord could not be read just now: ${esc(board.error)}</div>` : '';
+  h += '<h2>For you</h2>';
+  const you = cards.filter((c) => c.stage === 'you');
+  h += you.length ? you.map(cardHtml).join('') : '<div class="empty">Nothing waiting for you. 🎉</div>';
+  if (board.goLive && board.goLive.length) {
+    h += `<div class="golive" style="margin-top:12px"><b>📦 Waiting to go live: ${board.goLive.length} ${board.goLive.length === 1 ? 'fix' : 'fixes'}</b><ul>${board.goLive.map((l) => '<li>' + esc(l) + '</li>').join('')}</ul>
+${board.goLiveBehind ? '<p>' + esc(board.goLiveBehind) + '</p>' : ''}<p style="margin:8px 0 12px">Write <b>update the public server</b> in this post and the fixer puts them live.</p>
+${board.goLiveLink ? `<a class="btn" href="${esc(board.goLiveLink)}" target="_blank" rel="noopener">Open the post</a>` : ''}</div>`;
+  }
+  for (const [k, name] of STAGES.slice(1)) {
+    const list = cards.filter((c) => c.stage === k);
+    if (!list.length) continue;
+    const cut = (k === 'live' || k === 'closed') && !showAll[k] ? 4 : 99;
+    h += `<h2>${esc(name)} <span class="n">${list.length}</span></h2>` + list.slice(0, cut).map(cardHtml).join('');
+    if (list.length > cut) h += `<button class="more" data-more="${k}">Show all ${list.length}</button>`;
+  }
+  $('out').innerHTML = h;
+  $('age').textContent = board.fetched ? 'updated ' + ago(board.fetched) : '';
+}
+async function load(first) {
+  try {
+    const r = await fetch('/admin/bugs/api' + (DEMO ? '?demo=1' : first ? '?wait=1' : ''), { cache: 'no-store' });
+    if (r.status === 401) { location.reload(); return; }
+    const j = await r.json();
+    if (j.ok) { board = j; render(); }
+    else if (j.error) $('out').innerHTML = `<div class="err">${esc(j.error)}</div>`;
+    if (!j.ok) setTimeout(() => load(true), 3000);
+  } catch (e) { if (!board) $('out').innerHTML = '<div class="err">The server could not be reached. Pull down or tap ↻ to try again.</div>'; }
+}
+$('out').onclick = (e) => {
+  const m = e.target.closest('[data-more]');
+  if (m) { showAll[m.dataset.more] = 1; return render(); }
+  const b = e.target.closest('.card');
+  if (b) openCard(board.cards.find((c) => c.id === b.dataset.id));
+};
+$('reload').onclick = () => load(true);
+// one report: both posts (the player's in #bugs-and-issues, the fixer's in #bug-fixer)
+let cur = null;
+function msgHtml(m) {
+  const txt = esc(m.text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const cls = ['you', 'fixer', 'helper'].includes(m.who) ? m.who : 'player';
+  return `<div class="msg ${cls}"><span class="w">${esc(WHO(m.who))} · ${esc(ago(m.time))}</span>${txt}${(m.images || []).map((u) => `<img src="${esc(u)}" alt="picture" loading="lazy">`).join('')}</div>`;
+}
+async function openCard(c) {
+  if (!c) return;
+  cur = c;
+  $('open').href = c.link;
+  $('sheet').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  history.pushState({ sheet: 1 }, '');
+  const head = `<h3>${esc(c.title)}</h3><div class="tags"><span class="pill s-${c.stage}" style="color:#0b0a14">${LABEL[c.stage]}</span>${c.tags.map((t) => '<span>' + esc(t) + '</span>').join('')}</div>`;
+  $('detail').innerHTML = head + '<div class="loading">Loading the messages…</div>';
+  try {
+    const q = new URLSearchParams();
+    if (c.playerId) q.set('id', c.playerId);
+    if (c.fixerId) q.set('fx', c.fixerId);
+    const j = DEMO ? { bugs: [{ who: c.player, time: c.created, text: c.title }], fixer: [{ who: c.lastWho, time: c.lastTime, text: c.lastText }] }
+      : await (await fetch('/admin/bugs/api/post?' + q, { cache: 'no-store' })).json();
+    if (cur !== c) return;
+    if (j.error) throw new Error(j.error);
+    const parts = [['bugs', "Player's post"], ['fixer', "Fixer's post"]].filter(([k]) => j[k]);
+    let tab = c.stage === 'player' || !j.fixer ? 'bugs' : 'fixer';
+    const draw = () => {
+      $('detail').innerHTML = head + (parts.length > 1 ? `<div class="seg">${parts.map(([k, n]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</div>` : '') +
+        ((j[tab] || []).map(msgHtml).join('') || '<div class="empty">No messages.</div>');
+      $('detail').querySelectorAll('.seg button').forEach((b) => { b.onclick = () => { tab = b.dataset.k; draw(); }; });
+    };
+    draw();
+  } catch (e) { if (cur === c) $('detail').innerHTML = head + `<div class="err">Could not load the messages: ${esc(e.message)}</div>`; }
+}
+function closeSheet() { $('sheet').classList.remove('on'); document.body.style.overflow = ''; cur = null; }
+$('back').onclick = () => history.back();
+window.addEventListener('popstate', () => { if ($('sheet').classList.contains('on')) closeSheet(); });
+load(true);
+setInterval(() => { if (!document.hidden) load(false); }, 30000);
+setInterval(() => { if (board) $('age').textContent = 'updated ' + ago(board.fetched); }, 10000);
+</script>
+<script src="/admin/appnav.js"></script>
+</body>
+</html>

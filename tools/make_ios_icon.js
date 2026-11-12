@@ -11,3 +11,12 @@ const html = `<!doctype html><html><body style="margin:0;background:#0b1430">
 </div></body></html>`;
 renderPng(html, path.join(__dirname, '..', 'tools', 'ios-panel', 'NinjaPanel', 'Assets.xcassets', 'AppIcon.appiconset', 'icon-1024.png'), S, S, "document.getElementById('l').complete")
   .then(() => console.log('saved tools/ios-panel/NinjaPanel/Assets.xcassets/AppIcon.appiconset/icon-1024.png'));
+
+// the start screen's logo (see-through, shown 280 points wide = 840 px on a 3x iPhone): LaunchLogo.imageset
+const LW = 840, LH = Math.round(840 * 958 / 1642);
+const logoHtml = `<!doctype html><html><body style="margin:0;background:transparent"><img id="l" src="${logo}" style="display:block;width:${LW}px;height:${LH}px"></body></html>`;
+const setDir = path.join(__dirname, '..', 'tools', 'ios-panel', 'NinjaPanel', 'Assets.xcassets', 'LaunchLogo.imageset');
+fs.mkdirSync(setDir, { recursive: true });
+fs.writeFileSync(path.join(setDir, 'Contents.json'), JSON.stringify({ images: [{ idiom: 'universal', filename: 'LaunchLogo@3x.png', scale: '3x' }], info: { author: 'xcode', version: 1 } }, null, 2) + '\n');
+setTimeout(() => renderPng(logoHtml, path.join(setDir, 'LaunchLogo@3x.png'), LW, LH, "document.getElementById('l').complete")
+  .then(() => console.log('saved tools/ios-panel/NinjaPanel/Assets.xcassets/LaunchLogo.imageset/LaunchLogo@3x.png')), 3000);

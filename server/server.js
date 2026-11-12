@@ -132,6 +132,10 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   if (u.pathname === '/manager' || u.pathname.startsWith('/manager/')) {
     try { return await manager(req, resp, u, db, parseBody); } catch (e) { logError('manager error', e); resp.writeHead(500); return resp.end('error'); }
   }
+  if (u.pathname === '/admin/bugs' || u.pathname.startsWith('/admin/bugs/')) { // bug fixer board (bugboard.js): the owner only
+    if (!admin.authorized(req)) return admin.deny(req, resp);
+    try { return await require('./bugboard').handle(req, resp); } catch (e) { logError('bugboard error', e); resp.writeHead(500); return resp.end('error'); }
+  }
   if (u.pathname === '/admin/sitestats') { // website visitors (sitestats.js): the owner only, like the control panel
     if (!admin.authorized(req)) return admin.deny(req, resp);
     try { return require('./sitestats').page(req, resp, u, db); } catch (e) { logError('sitestats error', e); resp.writeHead(500); return resp.end('error'); }

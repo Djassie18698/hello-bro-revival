@@ -6,6 +6,7 @@
 //   e.g. node tools/dev/pageshot.js http://127.0.0.1:18090/ re/home.png 390 844 0 0     (phone size, top of the page)
 const { spawn } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
+// HB_UA=<browser name> pretends to be another browser (the iPhone app: HB_UA=NinjaPanelApp)
 const [url, out, W = '1440', Hh = '900', full = '1', still = '1'] = process.argv.slice(2);
 if (!url || !out) { console.log('usage: node tools/dev/pageshot.js <url> <out.png> [width] [height] [full=1] [still=1]'); process.exit(1); }
 const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -31,6 +32,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const w = Number(W), h = Number(Hh);
   await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 700 });
+  if (process.env.HB_UA) await send('Emulation.setUserAgentOverride', { userAgent: process.env.HB_UA }); // e.g. the iPhone app's name (NinjaPanelApp)
   await send('Emulation.setEmulatedMedia', { features: still === '1' ? [{ name: 'prefers-reduced-motion', value: 'reduce' }] : [] });
   await send('Page.enable'); await send('Runtime.enable');
   await send('Page.navigate', { url });

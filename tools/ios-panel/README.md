@@ -1,7 +1,8 @@
 # Ninja Panel: the control panel as an iPhone app
 
 The control panel (https://ninjaonlinereborn.com/panel) in its own app with the NINJA ONLINE logo. Same pages as the home-screen app;
-the app only adds the icon, full screen, pull down to reload, and links to other sites (Discord) opening in Safari.
+the app adds its own tab bar at the bottom (Server, Players, Team, Bugs with a red number when the fixer waits for you, More),
+a start screen with the logo, pull down to reload, and links to other sites (Discord) opening in Safari or the Discord app.
 
 GitHub's Mac builds it by itself when anything in this folder changes (`.github/workflows/ios-panel.yml`) and puts
 **NinjaPanel.ipa** on the release **ios-panel**: https://github.com/Djassie18698/hello-bro-revival/releases/tag/ios-panel
