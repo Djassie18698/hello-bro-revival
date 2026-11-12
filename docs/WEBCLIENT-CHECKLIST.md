@@ -3,6 +3,8 @@
 Everything the Android game has, and where the browser version (`server/webclient`, opened at `/play/`) stands.
 Goal (owner, 12 Nov 2026): the whole game in a browser, so iPhone players can play again.
 
+**13 Nov 2026: a second, better route exists.** `server/webclient/emu` runs the original app itself in the browser (an ARM emulator), so every screen below comes for free once its open points are done (sound, typing, files, iPhone memory and speed: see `server/webclient/emu/README.md`). This list stays as the plan for the hand rebuild, the fall-back.
+
 ✅ works · 🟡 partly · ⬜ not yet · 🚫 not planned. "C++" = had to be rebuilt by hand; "Lua" = the game's own script runs, it only needs the helpers it calls.
 Update this file with every round of work. How it is built and the rules found: `server/webclient/README.md`.
 
@@ -15,8 +17,8 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Lua 5.1 engine (`lua.js`) | checked against real Lua 5.1 |
 | ✅ | Bridge for the scripts (`luabind.js`, `gamebind.js`) | cocos classes, CCBProxy, table views, actions, HTTP, XML |
 | ✅ | Requests like the phone (`net.js`) | same server, same accounts |
-| ⬜ | Player data kept like the phone (CPlayerDataMgr): every card, item, fragment, team | section 2 needs it; many Lua screens too |
-| ⬜ | Card / item pictures and frames (CGameObjElement) | icons, quality frames, stars, element marks |
+| 🟡 | Player data kept like the phone (CPlayerDataMgr): cards and teams (data.js); items and fragments not yet | section 2 needs it; many Lua screens too |
+| 🟡 | Card / item pictures and frames (CGameObjElement, data.js) | icons, quality frames, stars, element marks |
 | ⬜ | Common windows: confirm (CommonDialogView), buy item (BuyItemDlg), reward box (ShowBoxView), item details | used everywhere |
 | ⬜ | Level-up window (PlayerLevelUpDlg) | |
 | ⬜ | Loading picture (LoadingView), time-out window, system notice window | plain grey cover for now |
@@ -43,13 +45,13 @@ Update this file with every round of work. How it is built and the rules found: 
 | | Screen | Layouts |
 |---|---|---|
 | ✅ | Home: top bar, village, buildings, level locks | MainMenu, DefaultMainMenu, <Country>CountryDefaultMenu |
-| ⬜ | Home: team cards row with arrows | MainCardView |
+| ✅ | Home: team cards row with arrows | MainCardView |
 | ⬜ | Home: the base scene buttons (Base: ramen, money tree, national treasure, secret shop, border war, shinobi house) | CDefaultSLGMenu, firescene.xml |
 | ⬜ | Home: red number bubbles (events, messages) | |
 | ⬜ | Player info window (tap the top bar) | PlayerInfoDlg, meritRankCell |
 | 🟡 | Bottom bar | Home, Training work |
-| ⬜ | **Team**: line-up, change ninja, gear slots, ninjutsu slots, seals, chains, Team 2 | ListMyTeamView, TeamNinjaView |
-| ⬜ | **Backpack**: ninja / weapon / armor / trinket / ninjutsu / seal / item tabs, sell, use | MyBackpackView, gameobjlist/*, BackpackTips |
+| 🟡 | **Team**: line-up, change ninja, gear slots, ninjutsu slots, seals, chains, Team 2 (changing is coded, not tried yet) | ListMyTeamView, TeamNinjaView |
+| 🟡 | **Backpack**: ninja / weapon / armor / trinket / ninjutsu / seal tabs (shown; no sell, use, fragments yet) | MyBackpackView, gameobjlist/*, BackpackTips |
 | ⬜ | Card details: ninja, gear (+ set), ninjutsu, seal, pet | NinjaDetailView, EquipDetailView, NinjasuDetailView, MarkDetailView, PetDetailView |
 | ⬜ | Upgrade a card (feed cards) | upgrade/CardUpgradeView, UpgradeNinja, MaterialNinjaView, UpgradeProcessView, UpgradeCompleteView |
 | ⬜ | Strengthen gear (Growth) | sub_ui/StrengthView |

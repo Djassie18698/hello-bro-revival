@@ -162,9 +162,14 @@
   status('');
   const render = sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender');
   let dead = false, frames = 0;
+  const perf = (window.emu.perf = { ms: 0, steps: 0, n: 0 });
   const frame = () => {
     if (dead) return;
+    const f0 = performance.now(), s0 = cpu.steps;
     try { while (later.length) later.shift()(); cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; } catch (e) { dead = true; status('The game stopped: ' + e.message); console.error(e); return; }
+    // how heavy a frame is: time and instructions, averaged (window.emu.perf); logged every 10 s with &log=1
+    perf.ms += performance.now() - f0; perf.steps += cpu.steps - s0; perf.n++;
+    if (perf.n >= 600) { if (q.get('log')) console.log('[perf] ' + (perf.ms / perf.n).toFixed(1) + ' ms and ' + (perf.steps / perf.n / 1000).toFixed(0) + ' K instructions per frame'); perf.last = { ms: perf.ms / perf.n, steps: perf.steps / perf.n }; perf.ms = perf.steps = perf.n = 0; }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
