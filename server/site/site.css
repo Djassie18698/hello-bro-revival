@@ -88,6 +88,7 @@ section { position: relative; }
 .btn.sm svg { width: 20px; height: 20px; }
 .wiki-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; font-weight: 800; color: var(--moon); text-decoration: none; border-bottom: 2px solid transparent; }
 .wiki-link:hover { border-color: currentColor; }
+.wiki-link + .wiki-link { margin-top: 12px; }
 .wiki-link svg { width: 18px; height: 18px; }
 
 .lineup { position: relative; height: min(64vh, 560px); min-height: 360px; }
@@ -210,6 +211,11 @@ section { position: relative; }
   border-image: url(img/ui/dialog.webp) 60 125 110 fill / 60px 125px 110px stretch; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .5)); color: var(--paper-ink); }
 .dialog-head { margin: -60px -95px 0; height: 60px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 34px;
   -webkit-text-stroke: 6px #0d2a52; paint-order: stroke fill; }
+.quick { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 22px -60px 0; padding: 18px 24px; border: 2px dashed rgba(122, 74, 30, .35); border-radius: 14px; background: rgba(255, 244, 214, .45); }
+.quick h3 { color: #6a2a08; font-size: 26px; }
+.quick p { margin: 6px 0 0; color: #4b3420; }
+.quick .btn { flex: none; }
+.or { color: #6a2a08; font-size: 22px; margin: 26px 0 -8px; text-align: center; }
 .steps { list-style: none; padding: 0; margin: 26px -85px -70px; display: grid; grid-template-columns: repeat(3, 1fr); counter-reset: s; }
 .steps li { counter-increment: s; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 4px 26px 8px; }
 .steps li + li { border-left: 2px dashed rgba(122, 74, 30, .3); }
@@ -423,6 +429,7 @@ section { position: relative; }
   .join .cta { justify-content: center; }
   .dialog { border-width: 40px 70px 66px; border-image-width: 40px 70px 66px; }
   .dialog-head { margin: -40px -54px 0; height: 40px; font-size: 24px; -webkit-text-stroke-width: 5px; }
+  .quick { flex-direction: column; align-items: flex-start; margin: 18px -40px 0; padding: 14px 16px; }
   .steps { grid-template-columns: 1fr; margin: 18px -50px -40px; }
   .steps li { padding: 16px 6px; }
   .steps li + li { border-left: 0; border-top: 2px dashed rgba(122, 74, 30, .3); }

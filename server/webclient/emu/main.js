@@ -26,18 +26,32 @@
     if (!site && diag.js > 30) { site = true; try { localStorage.setItem('hb.app.site', '1'); } catch { /* */ } }
     if (site) { location.replace('https://ninjaonlinereborn.com/play/emu/?app=1&files=' + encodeURIComponent(location.origin + '/play/assets/emu/')); return; }
   }
-  if (q.get('diag') === '1') {
+  let diagOn = false;
+  const showDiag = () => {
+    if (diagOn) return; diagOn = true;
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;left:4px;top:4px;right:4px;z-index:9;color:#9f9;font:11px/1.3 monospace;background:rgba(0,0,0,.55);padding:3px 5px;pointer-events:none;white-space:pre-wrap;word-break:break-all';
     document.body.appendChild(d);
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v14 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v15 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
-  }
-  window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
-  window.addEventListener('unhandledrejection', (e) => { diag.err = String((e.reason && (e.reason.message || e.reason)) || e.reason).slice(0, 300); });
+  };
+  if (q.get('diag') === '1') showDiag();
+  // how the start went on this device, as one line in the server log (webapi.js /api/emulog): a black screen on a phone we
+  // don't have (Poco X7 Pro, 13 Nov 2026) then shows its cause. Only the game's state, the browser's name and the graphics chip.
+  const reported = new Set();
+  const report = (kind) => {
+    if (reported.has(kind) || q.get('noreport') === '1') return; reported.add(kind);
+    const p = { k: kind, s: diag.stage, e: diag.err || (diag.glerr ? 'GL error 0x' + diag.glerr.toString(16) : ''), f: diag.frames, w: innerWidth + 'x' + innerHeight + '@' + (devicePixelRatio || 1).toFixed(2), j: Math.round(diag.js), g: diag.gpu || '', u: navigator.userAgent };
+    const base = location.hostname === '127.0.0.1' && !location.port.startsWith('1808') ? 'https://ninjaonlinereborn.com' : '';
+    try { fetch(base + '/api/emulog?' + new URLSearchParams(p), { mode: 'no-cors', keepalive: true, cache: 'no-store' }).catch(() => {}); } catch { /* */ }
+  };
+  // still starting after 90 s: say how far it got
+  setTimeout(() => { if (!/^running/.test(diag.stage) && !diag.err) report('stuck'); }, 90000);
+  window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); report('error'); });
+  window.addEventListener('unhandledrejection', (e) => { diag.err = String((e.reason && (e.reason.message || e.reason)) || e.reason).slice(0, 300); report('error'); });
   const logLines = (window.emuLog = []);
   const log = (s) => { logLines.push(s); if (logLines.length > 3000) logLines.shift(); if (q.get('log')) console.log('[app] ' + s); };
   const get = async (name) => { const r = await fetch(ASSETS + name); if (!r.ok) throw new Error(name + ' is missing: run node tools/build_webclient.js --emu'); return new Uint8Array(await r.arrayBuffer()); };
@@ -48,6 +62,7 @@
   try { if (!so) so = await get('libgame.dat'); parts = JSON.parse(new TextDecoder().decode(await get('parts.json'))); } catch (e) { status(e.message); return; }
   apk = { length: parts.apk.size }; obb = { length: parts.obb.size };
 
+  if (!innerWidth || !innerHeight) await new Promise((ok) => { const k = setInterval(() => { if (innerWidth && innerHeight) { clearInterval(k); ok(); } }, 200); });
   const canvas = document.getElementById('game');
   // The game is made for screens up to 16:9 (1.78 tall). On a taller one (an iPhone home-screen app or the iPhone app: 390x797 = 2.04)
   // its Home screen leaves a black band between the team row and the village picture (buva, 13 Nov 2026): keep the game 16:9, black above and below.
@@ -55,14 +70,20 @@
   const [cw, ch] = fit();
   const dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
-  canvas.addEventListener('webglcontextlost', (e) => { diag.lost = true; e.preventDefault(); });
+  canvas.addEventListener('webglcontextlost', (e) => {
+    diag.lost = true; e.preventDefault(); report('lost');
+    status('The graphics stopped (the browser took them away). Tap here to start again.');
+    const m = document.getElementById('msg'); m.style.pointerEvents = 'auto'; m.style.cursor = 'pointer'; m.onclick = () => location.reload();
+  });
+  canvas.addEventListener('webglcontextrestored', () => location.reload());
   diag.stage = 'code loaded, screen ' + canvas.width + 'x' + canvas.height;
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, stencil: true, depth: true, preserveDrawingBuffer: !!q.get('keep') });
-  if (!gl) { status('This browser has no WebGL'); return; }
+  if (!gl) { status('This browser has no WebGL'); diag.err = 'no WebGL'; report('error'); return; }
+  { const dbg = gl.getExtension('WEBGL_debug_renderer_info'); try { diag.gpu = String(dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 120); } catch { /* */ } }
 
   const MEM = (Number(q.get('mem')) || 128) << 20, BASE = 0x10000;
   let cpu;
-  try { cpu = new Cpu(MEM); } catch (e) { status('Not enough memory for the game (' + (MEM >> 20) + ' MB): ' + e.message); diag.err = 'memory ' + e.message; return; }
+  try { cpu = new Cpu(MEM); } catch (e) { status('Not enough memory for the game (' + (MEM >> 20) + ' MB): ' + e.message); diag.err = 'memory ' + e.message; report('error'); return; }
   diag.stage = 'memory ok ' + (MEM >> 20) + ' MB';
   const APK = '/data/app/com.hello.bro.yo.apk', OBB = '/sdcard/Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb', FILES = '/data/data/com.hello.bro.yo/files';
   // the phone's files: the two big ones from the server, the rest (settings, downloads) kept in the browser
@@ -338,18 +359,40 @@
     await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)], 3e6, tick);
     await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetObbPath'), [jni.env, 0, jni.ref(OBB)], 3e6, tick);
     await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, canvas.width, canvas.height], 3e6, tick);
-  } catch (e) { status('The game stopped while starting: ' + e.message); diag.err = 'start: ' + e.message; console.error(e); return; }
+  } catch (e) { status('The game stopped while starting: ' + e.message); diag.err = 'start: ' + e.message; report('error'); console.error(e); return; }
   diag.stage = 'running (start took ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s)';
   console.log(`app started: ${(cpu.steps / 1e6).toFixed(0)} M instructions in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
   status('');
+  report('start');
   const render = sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender');
+  // a black screen with the game running (13 Nov 2026, Android Chrome): look at a few points of the picture 15 s and 45 s after the
+  // start, right after a frame is drawn; all black = show the diagnostics line by itself and report it
+  const runStart = performance.now(), looks = [15000, 45000];
+  const lookBlack = () => {
+    const ge = gl.getError(); if (ge) diag.glerr = ge; // the app never sees WebGL's errors (gl.js glGetError = 0): kept for the report
+    const was = gl.getParameter(gl.FRAMEBUFFER_BINDING), px = new Uint8Array(4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    let lit = 0;
+    for (const [fx, fy] of [[0.5, 0.5], [0.25, 0.3], [0.75, 0.3], [0.25, 0.7], [0.75, 0.7], [0.5, 0.15], [0.5, 0.85]]) {
+      gl.readPixels(Math.floor(fx * canvas.width), Math.floor(fy * canvas.height), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      if (px[0] + px[1] + px[2] > 24) lit++;
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, was);
+    return lit === 0;
+  };
   let dead = false, frames = 0;
   const perf = (window.emu.perf = { ms: 0, steps: 0, n: 0 });
   const frame = () => {
     if (dead) return;
     const f0 = performance.now(), s0 = cpu.steps;
-    try { while (later.length) later.shift()(); cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; diag.frames = frames; diag.ms = diag.ms * 0.95 + (performance.now() - f0) * 0.05; } catch (e) { dead = true; diag.err = 'frame: ' + e.message; status('The game stopped: ' + e.message); console.error(e); return; }
+    try { while (later.length) later.shift()(); cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; diag.frames = frames; diag.ms = diag.ms * 0.95 + (performance.now() - f0) * 0.05; } catch (e) { dead = true; diag.err = 'frame: ' + e.message; report('error'); status('The game stopped: ' + e.message); console.error(e); return; }
     // how heavy a frame is: time and instructions, averaged (window.emu.perf); logged every 10 s with &log=1
+    if (looks.length && performance.now() - runStart > looks[0]) {
+      looks.shift();
+      let black = false; try { black = lookBlack(); } catch { /* */ }
+      if (black && !diag.black) { diag.black = true; report('black'); showDiag(); status('Black screen? Please send a screenshot of this to #bugs-and-issues on our Discord.'); }
+      else if (!black && diag.black) { diag.black = false; status(''); }
+    }
     perf.ms += performance.now() - f0; perf.steps += cpu.steps - s0; perf.n++;
     if (perf.n >= 600) { if (q.get('log')) console.log('[perf] ' + (perf.ms / perf.n).toFixed(1) + ' ms and ' + (perf.steps / perf.n / 1000).toFixed(0) + ' K instructions per frame'); perf.last = { ms: perf.ms / perf.n, steps: perf.steps / perf.n }; perf.ms = perf.steps = perf.n = 0; }
     requestAnimationFrame(frame);

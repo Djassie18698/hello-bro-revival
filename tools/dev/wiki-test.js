@@ -65,6 +65,12 @@ const ck = (ok, what) => { if (!ok) { bad++; console.log('WIKI:', what); } };
   ck(call('POST', '/api/top').code === 405, 'POST /api/top must be refused');
   ck(call('GET', '/api/nothing').code === 404 && call('GET', '/api/player?name=zzz').code === 404, '/api unknown should be 404');
   ck(call('GET', '/api/online?days=7').code === 200, 'GET /api/online gave an error');
+  // the browser game's start report (webclient/emu/main.js): one log line, control characters and long text cut, nothing private
+  { const keep = console.log, lines = []; console.log = (s) => lines.push(String(s));
+    try { call('GET', '/api/emulog?k=black&s=running%0Afake&e=' + 'x'.repeat(900) + '&g=Mali-G720&u=Chrome'); call('GET', '/api/emulog?s=no-kind'); } finally { console.log = keep; }
+    ck(lines.length === 1 && /^\[emu\] black \| running fake \|/.test(lines[0]) && lines[0].includes('Mali-G720') && !lines[0].includes('\n') && lines[0].length < 900, '/api/emulog: ' + JSON.stringify(lines).slice(0, 200)); }
+  // the home page shows the browser game (owner, 13 Nov 2026: "why is the site not updated with the online emulator?")
+  ck((fs.readFileSync(path.join(W, '..', 'site', 'index.html'), 'utf8').match(/href="\/play\/emu\/"/g) || []).length >= 3, 'the home page lost its Play in browser buttons');
   db.close();
   // site files: short links in the Caddy script, search-engine files, the player page and live script, the calculator in the wiki
   const site = (n) => fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'site', n), 'utf8');

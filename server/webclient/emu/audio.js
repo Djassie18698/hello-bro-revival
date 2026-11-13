@@ -19,7 +19,7 @@
       if (!n) return Promise.resolve(null);
       if (!buffers.has(n)) {
         buffers.set(n, fetch(base + encodeURIComponent(n)).then((r) => (r.ok ? r.arrayBuffer() : null))
-          .then((b) => (b ? new Promise((ok) => ctx.decodeAudioData(b, ok, () => ok(null))) : null)).catch(() => null));
+          .then((b) => (b ? new Promise((ok) => { const p = ctx.decodeAudioData(b, ok, () => ok(null)); if (p && p.catch) p.catch(() => ok(null)); }) : null)).catch(() => null));
       }
       return buffers.get(n);
     };

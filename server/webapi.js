@@ -7,6 +7,9 @@
 //   /api/online?days=1|7  players online, logged every 5 minutes (also by statuswatch's /status), for the graph
 //   /api/calc?s=...       team calculator (wiki): the game's own team maths (game.teamSlots) for cards, gear, seals and ninjutsu you pick
 //   /api/hit?p=&r=        one page view for the website visitor counter (sitestats.js; no cookies, no stored addresses)
+//   /api/emulog?k=&s=...  the browser game (webclient/emu/main.js) says how its start went on this device: one line "[emu] ..." in the
+//                         server log (journalctl -u hellobro | grep emu), so a black screen on a phone we don't have shows its cause.
+//                         Only the game's own state + the browser's name and graphics chip; no address, no account. At most 300 an hour.
 const game = require('./game');
 const settings = require('./settings');
 const vip = require('./vip');
@@ -263,6 +266,17 @@ function send(resp, code, body) {
   resp.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': code === 200 ? 'public, max-age=30' : 'no-store', 'X-Content-Type-Options': 'nosniff' });
   resp.end(JSON.stringify(body));
 }
+// the browser game's reports (see the top): kind start / black / lost / error / slow, stage, error, frames, screen, graphics chip, browser
+const emuSeen = { hour: 0, n: 0 };
+function emuLog(q) {
+  const hour = Math.floor(Date.now() / 3600000);
+  if (emuSeen.hour !== hour) { emuSeen.hour = hour; emuSeen.n = 0; }
+  if (++emuSeen.n > 300) return;
+  const f = (k, n) => String(q[k] == null ? '' : q[k]).replace(/[\x00-\x1f]/g, ' ').slice(0, n);
+  const kind = f('k', 10).replace(/[^a-z]/g, '');
+  if (!kind) return;
+  console.log('[emu] ' + kind + ' | ' + f('s', 120) + (q.e ? ' | ERROR ' + f('e', 300) : '') + ' | frames ' + f('f', 10) + ' | screen ' + f('w', 20) + ' | js ' + f('j', 8) + ' ms | gpu ' + f('g', 120) + ' | ' + f('u', 200));
+}
 function handle(req, resp, u, db) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(resp, 405, { error: 'GET only' });
   const q = u.query || {};
@@ -273,6 +287,7 @@ function handle(req, resp, u, db) {
       case '/api/today': return send(resp, 200, today(db));
       case '/api/online': return send(resp, 200, online(db, Number(q.days) || 1));
       case '/api/calc': return send(resp, 200, calc(q.s));
+      case '/api/emulog': { emuLog(q); resp.writeHead(204, { 'Cache-Control': 'no-store' }); return resp.end(); }
       case '/api/hit': { require('./sitestats').record(db, req, q); resp.writeHead(204, { 'Cache-Control': 'no-store' }); return resp.end(); } // a page view (sitestats.js)
       default: return send(resp, 404, { error: 'unknown' });
     }
