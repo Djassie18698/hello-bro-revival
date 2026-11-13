@@ -55,6 +55,14 @@ $WIKI_HOST {
 	redir @install /wiki/#/guides/install-help 302
 	@play path /play /play/
 	redir @play /#play 302
+	# the game in the browser (server/webclient, e.g. /play/emu/) over https: iPhones only run JavaScript with Safari's fast
+	# compiler on secure pages (seen on iOS 27: 50x slower on the plain http address); its game requests go to /game/<path>
+	handle /play/* {
+		reverse_proxy 127.0.0.1:18080
+	}
+	handle_path /game/* {
+		reverse_proxy 127.0.0.1:18080
+	}
 	# public read-only data from the game server (server/webapi.js): top 10, player pages, today in the game, players-online graph, team calculator
 	handle /api/* {
 		reverse_proxy 127.0.0.1:18080

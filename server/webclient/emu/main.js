@@ -5,6 +5,11 @@
 (async function () {
   const Cpu = window.EmuCpu, status = (t) => { const m = document.getElementById('msg'); m.textContent = t || ''; m.style.display = t ? '' : 'none'; };
   const q = new URLSearchParams(location.search);
+  // the public server's plain http address -> the secure website: iPhones only run JavaScript with the browser's fast compiler on
+  // https pages (iOS 27: 50x slower on http). ?stay=1 keeps the http page (for tests)
+  if (location.protocol === 'http:' && /(^|\.)ninjaonline\.duckdns\.org$/.test(location.hostname) && q.get('stay') !== '1') { location.replace('https://ninjaonlinereborn.com/play/emu/' + location.search); return; }
+  // on the website (no port in the address) the game's requests go through /game/ (tools/vps/wiki-site.sh); on a game server straight
+  const API = location.port ? '' : '/game';
   const diag = { stage: 'loading', frames: 0, err: '', lost: false, ms: 0 };
   // how fast this browser runs plain JavaScript: about 3 ms on a phone or PC with the browser's fast compiler on, 50+ ms when
   // it is off (iPhone Lockdown Mode turns it off; Low Power Mode slows it too)
@@ -17,7 +22,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v7 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v8 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -104,7 +109,7 @@
     // the hot-update zips also sit next to the other emulator files as .dat (tools/build_webclient.js --emu): some browsers
     // hand a script an empty answer for a .zip address (seen in headless Chrome: status 204)
     const cdn = rq.method === 'GET' && u.pathname.startsWith('/cdn/') && u.pathname.endsWith('.zip');
-    x.open(rq.method, cdn ? '../assets/emu/cdn/' + u.pathname.slice(5, -4) + '.dat' : u.pathname + u.search, false);
+    x.open(rq.method, cdn ? '../assets/emu/cdn/' + u.pathname.slice(5, -4) + '.dat' : API + u.pathname + u.search, false);
     x.overrideMimeType('text/plain; charset=x-user-defined'); // the bytes as they are
     if (rq.body) x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     x.send(rq.body || null);
@@ -121,7 +126,7 @@
   // the account window (the Gumptech SDK's Java code on the phone): the same accounts on our server (server/gumplogin.js)
   const later = []; // things to do at the start of the next frame (never from inside a call of the app)
   const account = { uid: '', session: '', nick: '' };
-  const form = (path, data) => { const x = new XMLHttpRequest(); x.open('POST', path, false); x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); x.send(new URLSearchParams({ appId: 10015, ...data }).toString()); try { return JSON.parse(x.responseText); } catch { return null; } };
+  const form = (path, data) => { const x = new XMLHttpRequest(); x.open('POST', API + path, false); x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); x.send(new URLSearchParams({ appId: 10015, ...data }).toString()); try { return JSON.parse(x.responseText); } catch { return null; } };
   const deviceId = () => { if (q.get('device')) return 'web-test-' + q.get('device'); let d = store.get('hb.device'); if (!d) { d = 'web-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join(''); store.set('hb.device', d); } return d; };
   const guestLogin = () => {
     const dev = deviceId(), pw = store.get('hb.guestpw');
