@@ -5,6 +5,20 @@
 (async function () {
   const Cpu = window.EmuCpu, status = (t) => { const m = document.getElementById('msg'); m.textContent = t || ''; m.style.display = t ? '' : 'none'; };
   const q = new URLSearchParams(location.search);
+  const diag = { stage: 'loading', frames: 0, err: '', lost: false, ms: 0 };
+  window.emuDiag = diag;
+  if (q.get('diag') !== '0') {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:4px;top:4px;right:4px;z-index:9;color:#9f9;font:11px/1.3 monospace;background:rgba(0,0,0,.55);padding:3px 5px;pointer-events:none;white-space:pre-wrap;word-break:break-all';
+    document.body.appendChild(d);
+    setInterval(() => {
+      const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
+      const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
+      d.textContent = 'v3 ' + diag.stage + ' · frames ' + diag.frames + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+    }, 500);
+  }
+  window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
+  window.addEventListener('unhandledrejection', (e) => { diag.err = String((e.reason && (e.reason.message || e.reason)) || e.reason).slice(0, 300); });
   const logLines = (window.emuLog = []);
   const log = (s) => { logLines.push(s); if (logLines.length > 3000) logLines.shift(); if (q.get('log')) console.log('[app] ' + s); };
   const get = async (name) => { const r = await fetch('../assets/emu/' + name); if (!r.ok) throw new Error(name + ' is missing: run node tools/build_webclient.js --emu'); return new Uint8Array(await r.arrayBuffer()); };
@@ -18,11 +32,15 @@
   const [cw, ch] = fit();
   const dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
+  canvas.addEventListener('webglcontextlost', (e) => { diag.lost = true; e.preventDefault(); });
+  diag.stage = 'files loaded ' + ((so.length + apk.length + obb.length) >> 20) + ' MB, ' + canvas.width + 'x' + canvas.height;
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, stencil: true, depth: true, preserveDrawingBuffer: !!q.get('keep') });
   if (!gl) { status('This browser has no WebGL'); return; }
 
-  const MEM = (Number(q.get('mem')) || 384) << 20, BASE = 0x10000;
-  const cpu = new Cpu(MEM);
+  const MEM = (Number(q.get('mem')) || 192) << 20, BASE = 0x10000;
+  let cpu;
+  try { cpu = new Cpu(MEM); } catch (e) { status('Not enough memory for the game (' + (MEM >> 20) + ' MB): ' + e.message); diag.err = 'memory ' + e.message; return; }
+  diag.stage = 'memory ok ' + (MEM >> 20) + ' MB';
   const APK = '/data/app/com.hello.bro.yo.apk', OBB = '/sdcard/Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb', FILES = '/data/data/com.hello.bro.yo/files';
   // the phone's files: the two big ones from the server, the rest (settings, downloads) kept in the browser
   const mem = new Map();
@@ -151,13 +169,15 @@
 
   // ---------------------------------------------------------------- boot, then one frame per screen refresh
   const t0 = performance.now();
+  diag.stage = 'booting';
   try {
     for (const f of lib.init) cpu.call(f, []);
     cpu.call(sym('JNI_OnLoad'), [jni.vm, 0]);
     cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)]);
     cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetObbPath'), [jni.env, 0, jni.ref(OBB)]);
     cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, canvas.width, canvas.height]);
-  } catch (e) { status('The game stopped while starting: ' + e.message); console.error(e); return; }
+  } catch (e) { status('The game stopped while starting: ' + e.message); diag.err = 'start: ' + e.message; console.error(e); return; }
+  diag.stage = 'running (start took ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s)';
   console.log(`app started: ${(cpu.steps / 1e6).toFixed(0)} M instructions in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
   status('');
   const render = sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender');
@@ -166,7 +186,7 @@
   const frame = () => {
     if (dead) return;
     const f0 = performance.now(), s0 = cpu.steps;
-    try { while (later.length) later.shift()(); cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; } catch (e) { dead = true; status('The game stopped: ' + e.message); console.error(e); return; }
+    try { while (later.length) later.shift()(); cpu.call(render, [jni.env, 0]); sys.runThreads(); frames++; diag.frames = frames; diag.ms = diag.ms * 0.95 + (performance.now() - f0) * 0.05; } catch (e) { dead = true; diag.err = 'frame: ' + e.message; status('The game stopped: ' + e.message); console.error(e); return; }
     // how heavy a frame is: time and instructions, averaged (window.emu.perf); logged every 10 s with &log=1
     perf.ms += performance.now() - f0; perf.steps += cpu.steps - s0; perf.n++;
     if (perf.n >= 600) { if (q.get('log')) console.log('[perf] ' + (perf.ms / perf.n).toFixed(1) + ' ms and ' + (perf.steps / perf.n / 1000).toFixed(0) + ' K instructions per frame'); perf.last = { ms: perf.ms / perf.n, steps: perf.steps / perf.n }; perf.ms = perf.steps = perf.n = 0; }
