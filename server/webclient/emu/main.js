@@ -14,7 +14,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v3 ' + diag.stage + ' · frames ' + diag.frames + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v4 ' + diag.stage + ' · frames ' + diag.frames + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -24,20 +24,21 @@
   const get = async (name) => { const r = await fetch('../assets/emu/' + name); if (!r.ok) throw new Error(name + ' is missing: run node tools/build_webclient.js --emu'); return new Uint8Array(await r.arrayBuffer()); };
   status('Loading the game files…');
   let so, apk, obb;
-  try { so = await get('libgame.dat'); apk = await get('game-apk.dat'); obb = await get('main-obb.dat'); } catch (e) { status(e.message); return; }
+  let parts;
+  try { so = await get('libgame.dat'); parts = JSON.parse(new TextDecoder().decode(await get('parts.json'))); } catch (e) { status(e.message); return; }
+  apk = { length: parts.apk.size }; obb = { length: parts.obb.size };
 
-  console.log('files: code ' + so.length + ', apk ' + apk.length + ', data ' + obb.length + ' bytes');
   const canvas = document.getElementById('game');
   const fit = () => { let w = innerWidth, h = innerHeight; if (h / w < 1.5) w = Math.round(h / 1.78); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; return [w, h]; };
   const [cw, ch] = fit();
   const dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
   canvas.addEventListener('webglcontextlost', (e) => { diag.lost = true; e.preventDefault(); });
-  diag.stage = 'files loaded ' + ((so.length + apk.length + obb.length) >> 20) + ' MB, ' + canvas.width + 'x' + canvas.height;
+  diag.stage = 'code loaded, screen ' + canvas.width + 'x' + canvas.height;
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, stencil: true, depth: true, preserveDrawingBuffer: !!q.get('keep') });
   if (!gl) { status('This browser has no WebGL'); return; }
 
-  const MEM = (Number(q.get('mem')) || 192) << 20, BASE = 0x10000;
+  const MEM = (Number(q.get('mem')) || 128) << 20, BASE = 0x10000;
   let cpu;
   try { cpu = new Cpu(MEM); } catch (e) { status('Not enough memory for the game (' + (MEM >> 20) + ' MB): ' + e.message); diag.err = 'memory ' + e.message; return; }
   diag.stage = 'memory ok ' + (MEM >> 20) + ' MB';
@@ -47,8 +48,34 @@
   const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* private window */ } } };
   const b64 = (u) => { let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); };
   const unb64 = (s) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+  // a big file in pieces (tools/build_webclient.js --emu writes assets/emu/<name>/<n>.dat, each 512 KB): fetched when first read,
+  // the last 48 pieces kept (24 MB); the app's reads wait for the piece like a phone waits for its storage
+  const PIECE = 512 << 10, kept = new Map();
+  diag.pieces = 0;
+  const piece = (name, i) => {
+    const key = name + i;
+    if (kept.has(key)) { const v = kept.get(key); kept.delete(key); kept.set(key, v); return v; }
+    const x = new XMLHttpRequest();
+    x.open('GET', '../assets/emu/' + name + '/' + String(i).padStart(4, '0') + '.dat', false);
+    x.overrideMimeType('text/plain; charset=x-user-defined');
+    x.send();
+    if (x.status !== 200) throw new Error('game file piece ' + name + ' ' + i + ' missing (' + x.status + ')');
+    const t = x.responseText, b = new Uint8Array(t.length);
+    for (let k = 0; k < t.length; k++) b[k] = t.charCodeAt(k) & 255;
+    kept.set(key, b); diag.pieces++;
+    if (kept.size > 48) kept.delete(kept.keys().next().value);
+    return b;
+  };
+  const pieces = (name, info) => ({ size: info.size, read(pos, n) {
+    n = Math.max(0, Math.min(n, info.size - pos));
+    const out = new Uint8Array(n);
+    let done = 0;
+    while (done < n) { const p = pos + done, i = Math.floor(p / PIECE), off = p - i * PIECE, b = piece(name, i), k = Math.min(n - done, b.length - off); out.set(b.subarray(off, off + k), done); done += k; }
+    return out;
+  } });
   const vfs = {
-    read(p) { if (p === APK) return apk; if (p === OBB) return obb; if (mem.has(p)) return mem.get(p); const s = store.get('emu.file.' + p); if (s === null) return null; const u = unb64(s); mem.set(p, u); return u; },
+    openLazy(p) { return p === APK ? pieces('apk', parts.apk) : p === OBB ? pieces('obb', parts.obb) : null; },
+    read(p) { if (p === APK || p === OBB) return null; if (mem.has(p)) return mem.get(p); const s = store.get('emu.file.' + p); if (s === null) return null; const u = unb64(s); mem.set(p, u); return u; },
     write(p, data) { if (data === null) { mem.delete(p); store.set('emu.file.' + p, null); return; } const u = new Uint8Array(data); mem.set(p, u); if (u.length < 300000) store.set('emu.file.' + p, b64(u)); },
     exists(p) { return this.read(p) !== null; }, isDir: () => false, list: () => [],
   };

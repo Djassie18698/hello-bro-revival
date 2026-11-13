@@ -358,6 +358,18 @@ function emuFiles() {
   if (fs.existsSync(apk)) fs.copyFileSync(apk, path.join(dst, 'game-apk.dat')); else console.log('  no ' + apk);
   const obb = path.join(ROOT, 're', 'emu', 'main.28.com.hello.bro.yo.obb');
   if (fs.existsSync(obb)) fs.copyFileSync(obb, path.join(dst, 'main-obb.dat')); else console.log('  no ' + obb + ' (unpack it from the .xapk: Android/obb/com.hello.bro.yo/main.28.com.hello.bro.yo.obb)');
+  // the apk and the data file also in 512 KB pieces (the browser reads only the pieces the app asks for: phones run out of memory
+  // holding all 133 MB) + parts.json with their sizes
+  const parts = {};
+  for (const [name, file] of [['apk', 'game-apk.dat'], ['obb', 'main-obb.dat']]) {
+    const src = path.join(dst, file);
+    if (!fs.existsSync(src)) continue;
+    const data = fs.readFileSync(src), dir = path.join(dst, name);
+    fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    for (let i = 0, k = 0; i < data.length; i += 512 << 10, k++) fs.writeFileSync(path.join(dir, String(k).padStart(4, '0') + '.dat'), data.subarray(i, i + (512 << 10)));
+    parts[name] = { size: data.length };
+  }
+  fs.writeFileSync(path.join(dst, 'parts.json'), JSON.stringify(parts));
   fs.mkdirSync(path.join(dst, 'cdn'), { recursive: true });
   for (const f of fs.readdirSync(path.join(ROOT, 'server', 'cdn'))) if (f.endsWith('.zip')) fs.copyFileSync(path.join(ROOT, 'server', 'cdn', f), path.join(dst, 'cdn', f.replace(/.zip$/, '.dat'))); // the hot update
   console.log('emulator files copied to server/webclient/assets/emu');

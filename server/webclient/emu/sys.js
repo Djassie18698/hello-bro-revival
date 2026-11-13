@@ -112,8 +112,13 @@
     const files = new Map(); // FILE* / fd -> { path, data: Uint8Array, pos, len, write, dirty }
     const sF = calloc(3, 84); // stdin, stdout, stderr
     let nextFd = 10;
+    // a big read-only file can come in pieces: vfs.openLazy(path) -> { size, read(pos, n) -> Uint8Array } (the game's data file)
+    const lazyBytes = (lz) => ({ length: lz.size, subarray: (a, b) => lz.read(a, Math.max(0, b - a)) });
+    const at = (f, i) => (f.data.lazy ? f.data.subarray(i, i + 1)[0] : f.data[i]);
+    sys.at = at;
     const openFile = (path, mode) => {
       const wr = /[wa+]/.test(mode);
+      if (!wr && vfs.openLazy) { const lz = vfs.openLazy(path); if (lz) { const d = lazyBytes(lz); d.lazy = true; return { path, data: d, pos: 0, len: lz.size, write: false, dirty: false }; } }
       let data = vfs.read(path);
       if (!data && !wr) return null;
       if (mode.startsWith('w') || !data) data = new Uint8Array(0);
@@ -204,15 +209,15 @@
       rewind: (c, fp) => { const f = files.get(fp); if (f) f.pos = 0; },
       fflush: (c, fp) => { flush(files.get(fp)); return 0; },
       ferror: () => 0,
-      fgets: (c, dst, n, fp) => { const f = files.get(fp); if (!f || f.pos >= f.len) return 0; let i = 0; while (i < n - 1 && f.pos < f.len) { const ch = f.data[f.pos++]; u8[dst + i++] = ch; if (ch === 10) break; } u8[dst + i] = 0; return dst; },
-      getc: (c, fp) => { const f = files.get(fp); return f && f.pos < f.len ? f.data[f.pos++] : -1; },
-      __srget: (c, fp) => { const f = files.get(fp); return f && f.pos < f.len ? f.data[f.pos++] : -1; },
+      fgets: (c, dst, n, fp) => { const f = files.get(fp); if (!f || f.pos >= f.len) return 0; let i = 0; while (i < n - 1 && f.pos < f.len) { const ch = at(f, f.pos++); u8[dst + i++] = ch; if (ch === 10) break; } u8[dst + i] = 0; return dst; },
+      getc: (c, fp) => { const f = files.get(fp); return f && f.pos < f.len ? at(f, f.pos++) : -1; },
+      __srget: (c, fp) => { const f = files.get(fp); return f && f.pos < f.len ? at(f, f.pos++) : -1; },
       ungetc: (c, ch, fp) => { const f = files.get(fp); if (f && f.pos > 0) f.pos--; return ch; },
       remove: (c, path) => { vfs.write(cpu.cstr(path), null); return 0; },
       rename: (c, a, b) => { const d = vfs.read(cpu.cstr(a)); if (!d) return -1; vfs.write(cpu.cstr(b), d); vfs.write(cpu.cstr(a), null); return 0; },
-      access: (c, path) => (vfs.exists(cpu.cstr(path)) ? 0 : -1),
+      access: (c, path) => (vfs.exists(cpu.cstr(path)) || (vfs.openLazy && vfs.openLazy(cpu.cstr(path))) ? 0 : -1),
       mkdir: () => 0, chmod: () => 0, umask: () => 0,
-      stat: (c, path, st) => { const p = cpu.cstr(path), d = vfs.read(p), dir = !d && vfs.isDir && vfs.isDir(p); if (!d && !dir) { setErrno(2); return -1; } u8.fill(0, st, st + 104); cpu.w32(st + 16, dir ? 0o40755 : 0o100644); cpu.w32(st + 48, d ? d.length : 0); return 0; },
+      stat: (c, path, st) => { const p = cpu.cstr(path), lz = vfs.openLazy && vfs.openLazy(p), d = lz ? { length: lz.size } : vfs.read(p), dir = !d && vfs.isDir && vfs.isDir(p); if (!d && !dir) { setErrno(2); return -1; } u8.fill(0, st, st + 104); cpu.w32(st + 16, dir ? 0o40755 : 0o100644); cpu.w32(st + 48, d ? d.length : 0); return 0; },
       open: (c, path, flags) => { const p = cpu.cstr(path), f = openFile(p, (flags & 3) === 0 ? 'r' : flags & 0x200 ? 'w' : flags & 0x40 ? 'a' : 'r+'); if (opts.traceFiles) log('open ' + p + (f ? '' : ' (missing)')); if (!f) { setErrno(2); return -1; } const fd = nextFd++; files.set(fd, f); return fd; },
       close: (c, fd) => { flush(files.get(fd)); files.delete(fd); return 0; },
       read: (c, fd, dst, n) => { const f = files.get(fd); if (!f) return -1; const got = Math.min(n >>> 0, f.len - f.pos); u8.set(f.data.subarray(f.pos, f.pos + got), dst); f.pos += got; return got; },
