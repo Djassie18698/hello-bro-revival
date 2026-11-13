@@ -311,6 +311,19 @@ for (const pick of [55, 56, 57]) {
     const web = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'SmokePhone', passwd: 'pass1234' }, '10.9.9.4');
     const badpw = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'smokephone', passwd: 'wrong' }, '10.9.9.4');
     if (named.userId !== pg.userId || web.userId !== pg.userId || !web.sessionKey || badpw.code === 100000) { bad++; console.log('LOGIN ON ANOTHER DEVICE:', JSON.stringify({ guest: pg.userId, named: named.userId, web: web.userId, badpw: badpw.code })); }
+    // lost password (owner, 13 Nov 2026): the owner sets a new one in the control panel; the old one stops working, nobody can take
+    // another account's login name, and a guest without a name can be given one
+    const set = gump.setPassword(db, pg.userId, 'SMOKEPHONE', 'newpass99');
+    const oldpw = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'smokephone', passwd: 'pass1234' }, '10.9.9.4');
+    const newpw = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'smokephone', passwd: 'newpass99' }, '10.9.9.4');
+    const steal = gump.setPassword(db, g.userId, 'smokephone', 'mine1234');
+    const lone = await callIp('/quick/reg.do', { deviceId: 'smoke-phone-2', appId: '10015' }, '10.9.9.5');
+    const give = gump.setPassword(db, lone.userId, 'smokegiven', 'given123');
+    const given = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'smokegiven', passwd: 'given123' }, '10.9.9.4');
+    const names = gump.loginsOf(db, lone.userId).map((l) => l.kind + ':' + l.name).join(',');
+    if (!set.ok || set.created || oldpw.code === 100000 || newpw.userId !== pg.userId || !steal.error || !give.created || given.userId !== lone.userId || names !== 'quick:,gump:smokegiven' || JSON.stringify(gump.loginsOf(db, pg.userId)).includes('pwhash')) {
+      bad++; console.log('NEW PASSWORD:', JSON.stringify({ set, oldpw: oldpw.code, newpw: newpw.userId, steal, give, given: given.userId, names }));
+    }
   }
   // ADMIN_OPEN=1 (public server, owner 3 Nov 2026): the item page works without the password; wiping a player and the manager still ask for it
   {
@@ -327,8 +340,8 @@ for (const pick of [55, 56, 57]) {
     process.env.ADMIN_PASSWORD = 'smoke-secret';
     const shut = await hit(admin, '/admin/api/players');
     process.env.ADMIN_OPEN = '1';
-    const r = { players: await hit(admin, '/admin/api/players'), reset: await hit(admin, '/admin/api/reset', 'POST'), purple: await hit(admin, '/admin/api/purplename', 'POST'), manager: await hit(manager, '/manager') };
-    if (shut !== 401 || r.players !== 200 || r.reset !== 401 || r.purple !== 401 || r.manager !== 401) { bad++; console.log('ADMIN_OPEN:', JSON.stringify({ shut, ...r })); }
+    const r = { players: await hit(admin, '/admin/api/players'), reset: await hit(admin, '/admin/api/reset', 'POST'), purple: await hit(admin, '/admin/api/purplename', 'POST'), login: await hit(admin, '/admin/api/login', 'POST'), manager: await hit(manager, '/manager') };
+    if (shut !== 401 || r.players !== 200 || r.reset !== 401 || r.purple !== 401 || r.login !== 401 || r.manager !== 401) { bad++; console.log('ADMIN_OPEN:', JSON.stringify({ shut, ...r })); }
     // a player gets the item page alone (the control panel around it polls /manager, which asked for the password) without the Reset tab
     const st = await hit(admin, '/admin');
     if (st !== 200 || page.includes('f-server') || !page.includes('<body class="player">')) { bad++; console.log('ADMIN_OPEN page:', st, page.slice(0, 80)); }

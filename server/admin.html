@@ -218,6 +218,7 @@ html.embed .wrap{padding-top:18px}
         <button class="tab" data-v="team">🛡️ Team editor</button>
         <button class="tab" data-v="mail">📬 Award Center</button>
         <button class="tab" data-v="purple">✨ Glowing name</button>
+        <button class="tab" data-v="login">🔑 Login</button>
         <button class="tab" data-v="danger">⚠️ Reset</button>
       </nav>
 
@@ -353,6 +354,20 @@ html.embed .wrap{padding-top:18px}
         </style>
       </section>
 
+      <section class="panel view" id="v-login">
+        <h3>🔑 Login and lost password</h3>
+        <p class="hint">Passwords are stored scrambled, so nobody can read the old one, not even here. A player who forgot it gets a <b>new password</b>:
+          check it is really them (ask for the character name and the login name), set a new one here and send it to them in a private message.
+          They log in with <b>Login with Gumptech</b>, the login name and the new password. A player who only played as a guest (no login name) can be given one here,
+          so they can also log in on another phone.</p>
+        <div id="lg-list" class="hint"></div>
+        <div class="row"><input class="in" id="lg-name" placeholder="Login name" maxlength="60" style="flex:1;min-width:200px" autocomplete="off">
+          <input class="in" id="lg-pw" placeholder="New password" maxlength="40" style="flex:1;min-width:160px" autocomplete="off">
+          <button class="btn ghost" onclick="$('lg-pw').value = newPw()">Make one</button></div>
+        <div class="row"><button class="btn" onclick="setLogin()">Save new password</button></div>
+        <p class="hint" id="lg-sent" style="user-select:all"></p>
+      </section>
+
       <section class="panel view" id="v-danger">
         <div class="danger-box">
           <h3>Reset this player</h3>
@@ -409,7 +424,7 @@ function renderPlayers() {
     '<div style="min-width:0"><div class="pname">' + gname(p) + (p.vip ? '<span class="vip">VIP ' + p.vip + '</span>' : '') + '</div>' +
     '<div class="pmeta">Lv ' + p.level + ' · ' + fmt(p.gold) + ' gold · #' + p.uid + (p.server_id > 1 ? ' · starter slot ' + (p.server_id - 1) : '') + '</div></div></div>').join('') || '<div class="empty">No players yet</div>';
 }
-function pick(uid) { sel = uid; renderPlayers(); renderHero(); renderPurple(); if ($('v-inv').classList.contains('on')) loadInv(); if ($('v-team').classList.contains('on')) loadTeam(); }
+function pick(uid) { sel = uid; renderPlayers(); renderHero(); renderPurple(); if ($('v-inv').classList.contains('on')) loadInv(); if ($('v-team').classList.contains('on')) loadTeam(); if ($('v-login').classList.contains('on')) loadLogin(); }
 function current() { return players.find((p) => p.key === sel); }
 function renderHero() {
   const p = current();
@@ -658,6 +673,31 @@ async function setPurple(on) {
   toast(r.ok ? (on ? '💜 Saved: ' + esc(r.nick) + '<br><small>They see it after reopening the game.</small>' : 'Glowing name removed') : esc(r.error || 'failed'), r.ok);
   await loadPlayers();
 }
+// 🔑 Login (gumplogin.js): login names of the player, set a new password for a lost one
+const newPw = () => { const a = 'abcdefghjkmnpqrstuvwxyz23456789', r = crypto.getRandomValues(new Uint32Array(8)); return 'ninja-' + [...r].map((x) => a[x % a.length]).join(''); };
+const day = (t) => t ? new Date(t).toLocaleString() : 'never';
+function showLogins(ls) {
+  const named = ls.filter((l) => l.kind === 'gump'), guests = ls.length - named.length;
+  $('lg-list').innerHTML = (named.length ? named.map((l) => 'Login name <b>' + esc(l.name) + '</b> · last login ' + esc(day(l.last))).join('<br>') : 'No login name yet.')
+    + (guests ? '<br>' + guests + ' guest login' + (guests > 1 ? 's' : '') + ' (Play button on a phone).' : '');
+  if (named.length) $('lg-name').value = named[named.length - 1].name; else $('lg-name').value = '';
+}
+async function loadLogin() {
+  if (!current()) { $('lg-list').textContent = 'Pick a player first.'; return; }
+  $('lg-pw').value = ''; $('lg-sent').textContent = '';
+  const r = await api('login', { uid: sel });
+  if (r.ok) showLogins(r.logins); else $('lg-list').textContent = r.error || 'failed';
+}
+async function setLogin() {
+  const p = current(); if (!p) return toast('Pick a player first', false);
+  const name = $('lg-name').value.trim(), pw = $('lg-pw').value;
+  if (!confirm('Set a new password for ' + p.nick + ' (login name ' + name + ')? The old password stops working.')) return;
+  const r = await api('login', { uid: sel, name, password: pw });
+  if (!r.ok) return toast(esc(r.error || 'failed'), false);
+  showLogins(r.logins);
+  $('lg-sent').innerHTML = '🔑 Saved. Send them (copy it now, it is not shown again):<br><b>Login name:</b> <code>' + esc(r.name) + '</code><br><b>Password:</b> <code>' + esc(pw) + '</code>';
+  toast('🔑 New password saved', true);
+}
 async function resetPlayer() {
   const p = current(); if (!p) return;
   if (!confirm('Reset ' + p.nick + '? Their character and everything they own will be deleted.')) return;
@@ -671,6 +711,7 @@ document.querySelector('.tabs').onclick = (e) => {
   document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === 'v-' + b.dataset.v));
   if (b.dataset.v === 'inv') loadInv();
   if (b.dataset.v === 'team') loadTeam();
+  if (b.dataset.v === 'login') loadLogin();
 };
 // drifting leaves
 for (let i = 0; i < 14; i++) { const l = document.createElement('div'); l.className = 'leaf'; l.textContent = ['🍃', '🍥', '✦'][i % 3]; l.style.left = Math.random() * 100 + 'vw'; l.style.animationDuration = 14 + Math.random() * 18 + 's'; l.style.animationDelay = -Math.random() * 30 + 's'; document.querySelector('.bg').appendChild(l); }

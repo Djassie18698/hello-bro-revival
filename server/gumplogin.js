@@ -157,7 +157,28 @@ async function handle(req, resp, parseBody, db) {
   resp.end(JSON.stringify(out));
 }
 
+// Lost passwords (owner, 13 Nov 2026): passwords are kept only as scrypt hashes, so nobody can read one back; the owner sets a new one
+// in the control panel (admin.html tab 🔑 Login, owner only). The app's account window has no "forgot password" button (its only
+// .do paths are the four above), so this is the way back in. A player with only a guest login (no name) can be given a name + password
+// the same way, so they can log in on another phone.
+function loginsOf(db, uid) {
+  ensure(db);
+  return db.prepare('SELECT id, kind, email, created, last FROM logins WHERE uid=? ORDER BY id').all(uid)
+    .map((l) => ({ id: l.id, kind: l.kind, name: l.kind === 'gump' ? l.email : '', created: l.created, last: l.last }));
+}
+function setPassword(db, uid, name, pw) {
+  ensure(db);
+  name = String(name || '').trim(); pw = String(pw || '');
+  if (name.length < 3) return { error: 'the login name needs at least 3 characters' };
+  if (pw.length < 4) return { error: 'the password needs at least 4 characters' };
+  const row = db.prepare("SELECT * FROM logins WHERE kind='gump' AND email=? COLLATE NOCASE").get(name);
+  if (row && row.uid !== uid) return { error: 'that login name belongs to another account' };
+  if (row) db.prepare('UPDATE logins SET pwhash=? WHERE id=?').run(hash(pw), row.id);
+  else db.prepare("INSERT INTO logins(kind,device,email,pwhash,uid,created) VALUES('gump','',?,?,?,?)").run(name, hash(pw), uid, now());
+  return { ok: true, name: row ? row.email : name, created: !row };
+}
+
 // LOGIN_LOCK=1: the game may only enter with a session this server handed out (Revival APKs with the new login). Older APKs
 // (their session comes from Gumptech) are refused, so nobody can play an account just by knowing its number.
 const locked = () => process.env.LOGIN_LOCK === '1';
-module.exports = { handle, ensure, locked };
+module.exports = { handle, ensure, locked, loginsOf, setPassword };

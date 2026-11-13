@@ -23,6 +23,9 @@ Playing on the public server? You only need step 3: tap **Confirm** when the gam
 ## 4. I lost my account after reinstalling
 The game links your account to your device. To move it, first tap **Change** > **Login with Gumptech** > **Signup** on the old device and pick a name and password. Then use **Login** with them on the new device. Without a name and password, a reinstall makes a new account.
 
+## 4b. I forgot my password
+Nobody can look up your old password (it is stored scrambled), but you can get a new one. Ask in **#support** with your **character name** and the **login name** you signed up with. The owner sets a new password and sends it to you in a private message. Then tap **Change** > **Login with Gumptech** > **Login** and type your login name and the new password.
+
 ## 5. Is it really free?
 Yes. Top-ups cost nothing and still raise your VIP level. On the public server you can top up once a day; on your own server as often as you like (the owner of a server can change this in its control panel). Never pay anyone for gold, accounts or items.
 

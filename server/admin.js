@@ -628,7 +628,7 @@ function benchmark(db, pl, targets, runs = 300) {
 
 // ADMIN_OPEN=1: players may use the item pages (/admin) without the password (owner, 3 Nov 2026: players add resources themselves on
 // the public server "for now"; later only their own account). The control panel (/, /manager) and wiping a player stay the owner's.
-const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin/track', '/admin/api/track', '/admin/api/trackuids']);
+const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin/api/login', '/admin/track', '/admin/api/track', '/admin/api/trackuids']);
 const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
 
 module.exports = async function admin(req, res, u, db, readBody) {
@@ -639,7 +639,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (u.pathname === '/admin' || u.pathname === '/admin/') {
     if (!pageCache || process.env.HB_DEBUG) pageCache = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    return res.end(owner ? pageCache : pageCache.replace('<body>', '<body class="player"><style>.player [data-v="danger"],.player [data-v="purple"],.player a[href="/manager"]{display:none!important}</style>'));
+    return res.end(owner ? pageCache : pageCache.replace('<body>', '<body class="player"><style>.player [data-v="danger"],.player [data-v="purple"],.player [data-v="login"],.player a[href="/manager"]{display:none!important}</style>'));
   }
   game.ensure(db);
   if (u.pathname === '/admin/playerlog') { // progress log per player (playerlog.js), the panel's "Player log" tab
@@ -769,6 +769,12 @@ module.exports = async function admin(req, res, u, db, readBody) {
       const sn = require('./specialnames');
       const r = b.on ? sn.set(db, pl.uid, b.nick || pl.nick, b.color, b.effect) : sn.clear(db, pl.uid);
       return json(res, r.error ? { ok: false, error: r.error } : { ok: true, nick: r.nick, color: r.color, effect: r.effect });
+    }
+    if (u.pathname === '/admin/api/login') { // lost password (gumplogin.js): the player's login names; with name + password: set a new password
+      const gl = require('./gumplogin');
+      if (b.password === undefined) return json(res, { ok: true, logins: gl.loginsOf(db, pl.uid) });
+      const r = gl.setPassword(db, pl.uid, b.name, b.password);
+      return json(res, r.error ? { ok: false, error: r.error } : { ok: true, name: r.name, created: r.created, logins: gl.loginsOf(db, pl.uid) });
     }
     if (u.pathname === '/admin/api/reset') {
       resetPlayer(db, pl.uid, pl.server_id);
