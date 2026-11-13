@@ -32,6 +32,10 @@ discord/bughelper-state.json
 # iPhone panel app: made on the Mac by XcodeGen / xcodebuild
 tools/ios-panel/NinjaPanel.xcodeproj/
 tools/ios-panel/build/
+# iPhone game app: the same, plus its page + game files put together by the workflow
+tools/ios-game/NinjaOnline.xcodeproj/
+tools/ios-game/build/
+tools/ios-game/web/
 tools/ios-panel/Payload/
 tools/ios-panel/*.ipa
 server/webclient/assets/

@@ -15,6 +15,17 @@
   // it is off (iPhone Lockdown Mode turns it off; Low Power Mode slows it too)
   { const b0 = performance.now(); let x = 0; for (let i = 0; i < 3e6; i++) x = (Math.imul(x, 31) + i) | 0; diag.js = performance.now() - b0 + (x & 0); }
   window.emuDiag = diag;
+  // where the game files come from: the server next to this page, or (?files=) the iPhone app's own little web server on 127.0.0.1
+  // that has them all inside the app (tools/ios-game): then nothing big is downloaded
+  const appFiles = /^http:\/\/127\.0\.0\.1:\d+\/[\w/.-]*$/.test(q.get('files') || '') ? q.get('files') : '';
+  let ASSETS = appFiles || '../assets/emu/';
+  // in the iPhone app the page itself comes from 127.0.0.1 (?app=1). If the phone runs JavaScript slowly there (iPhones turn the fast
+  // compiler off on pages that are not secure), use the website's page with the app's files instead; remembered
+  if (q.get('app') === '1' && location.hostname === '127.0.0.1' && q.get('local') !== '1') {
+    let site = false; try { site = localStorage.getItem('hb.app.site') === '1'; } catch { /* */ }
+    if (!site && diag.js > 30) { site = true; try { localStorage.setItem('hb.app.site', '1'); } catch { /* */ } }
+    if (site) { location.replace('https://ninjaonlinereborn.com/play/emu/?app=1&files=' + encodeURIComponent(location.origin + '/play/assets/emu/')); return; }
+  }
   if (q.get('diag') === '1') {
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;left:4px;top:4px;right:4px;z-index:9;color:#9f9;font:11px/1.3 monospace;background:rgba(0,0,0,.55);padding:3px 5px;pointer-events:none;white-space:pre-wrap;word-break:break-all';
@@ -22,18 +33,19 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v12 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v13 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
   window.addEventListener('unhandledrejection', (e) => { diag.err = String((e.reason && (e.reason.message || e.reason)) || e.reason).slice(0, 300); });
   const logLines = (window.emuLog = []);
   const log = (s) => { logLines.push(s); if (logLines.length > 3000) logLines.shift(); if (q.get('log')) console.log('[app] ' + s); };
-  const get = async (name) => { const r = await fetch('../assets/emu/' + name); if (!r.ok) throw new Error(name + ' is missing: run node tools/build_webclient.js --emu'); return new Uint8Array(await r.arrayBuffer()); };
+  const get = async (name) => { const r = await fetch(ASSETS + name); if (!r.ok) throw new Error(name + ' is missing: run node tools/build_webclient.js --emu'); return new Uint8Array(await r.arrayBuffer()); };
   status('Loading the game files…');
   let so, apk, obb;
   let parts;
-  try { so = await get('libgame.dat'); parts = JSON.parse(new TextDecoder().decode(await get('parts.json'))); } catch (e) { status(e.message); return; }
+  try { so = await get('libgame.dat'); } catch (e) { if (!appFiles) { status(e.message); return; } ASSETS = '../assets/emu/'; } // the app's files out of reach: download them like the website
+  try { if (!so) so = await get('libgame.dat'); parts = JSON.parse(new TextDecoder().decode(await get('parts.json'))); } catch (e) { status(e.message); return; }
   apk = { length: parts.apk.size }; obb = { length: parts.obb.size };
 
   const canvas = document.getElementById('game');
@@ -64,7 +76,7 @@
     const key = name + i;
     if (kept.has(key)) { const v = kept.get(key); kept.delete(key); kept.set(key, v); return v; }
     const x = new XMLHttpRequest();
-    x.open('GET', '../assets/emu/' + name + '/' + String(i).padStart(4, '0') + '.dat', false);
+    x.open('GET', ASSETS + name + '/' + String(i).padStart(4, '0') + '.dat', false);
     x.overrideMimeType('text/plain; charset=x-user-defined');
     x.send();
     if (x.status !== 200) throw new Error('game file piece ' + name + ' ' + i + ' missing (' + x.status + ')');
@@ -120,7 +132,7 @@
     // the hot-update zips also sit next to the other emulator files as .dat (tools/build_webclient.js --emu): some browsers
     // hand a script an empty answer for a .zip address (seen in headless Chrome: status 204)
     const cdn = rq.method === 'GET' && u.pathname.startsWith('/cdn/') && u.pathname.endsWith('.zip');
-    x.open(rq.method, cdn ? '../assets/emu/cdn/' + u.pathname.slice(5, -4) + '.dat' : API + u.pathname + u.search, false);
+    x.open(rq.method, cdn ? ASSETS + 'cdn/' + u.pathname.slice(5, -4) + '.dat' : API + u.pathname + u.search, false);
     x.overrideMimeType('text/plain; charset=x-user-defined'); // the bytes as they are
     if (rq.body) x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     x.send(rq.body || null);
@@ -213,7 +225,7 @@
     });
   };
   // music and sound effects (audio.js plays assets/emu/sound/<file>.mp3)
-  const audio = window.EmuAudio ? window.EmuAudio('../assets/emu/sound/') : null;
+  const audio = window.EmuAudio ? window.EmuAudio(ASSETS + 'sound/') : null;
   const A = (fn, dflt) => (j, args) => (audio ? fn(...args) : dflt);
   const java = {
     'org/cocos2dx/lib/Cocos2dxHelper.showEditTextDialog': (j, args) => { editText(...args); },

@@ -1,0 +1,31 @@
+# XcodeGen project for Ninja Online (the game as an iPhone app, App.swift says how). The Mac on GitHub turns this into an Xcode project
+# and builds an unsigned .ipa (.github/workflows/ios-game.yml); Sideloadly signs it with your own Apple ID when it installs it.
+# The folder "web" (the game page + every game file) is put together by the workflow, it is not in git.
+name: NinjaOnline
+options:
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  NinjaOnline:
+    type: application
+    platform: iOS
+    sources:
+      - path: NinjaOnline
+      - path: web
+        type: folder
+        buildPhase: resources
+    scheme: {}
+    settings:
+      base:
+        PRODUCT_NAME: NinjaOnline
+        PRODUCT_BUNDLE_IDENTIFIER: com.ninjaonlinereborn.game
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_FILE: NinjaOnline/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""

@@ -1,0 +1,57 @@
+# Builds Ninja Online for iPhone (tools/ios-game: the browser version of the game inside an app, with every game file packed in) on
+# GitHub's Mac and puts the unsigned NinjaOnline.ipa on the release "ios-game". Free for a public repo.
+# The big game files (the app's code + pictures + sounds, not in git) come from game-files.tar on that same release
+# (tools/ios-game/PACK-GAME-FILES.sh uploads it); the page comes from server/webclient/emu and the hot update from server/cdn.
+# Runs when those change, or by hand (Actions tab > iPhone game app > Run workflow).
+name: iPhone game app
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/ios-game/**', '.github/workflows/ios-game.yml', 'server/webclient/emu/**', 'server/cdn/*.zip']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/ios-game
+            .github
+            server/webclient/emu
+            server/cdn
+      - name: Put the game page and files together
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          W=tools/ios-game/web
+          mkdir -p $W/emu $W/assets/emu/cdn
+          cp server/webclient/emu/*.js server/webclient/emu/index.html $W/emu/
+          gh release download ios-game -R "$GITHUB_REPOSITORY" -p game-files.tar -O game-files.tar
+          tar -xf game-files.tar -C $W/assets/emu
+          rm game-files.tar
+          for f in server/cdn/*.zip; do cp "$f" "$W/assets/emu/cdn/$(basename "$f" .zip).dat"; done
+          ls $W/assets/emu; du -sh $W
+      - name: Make the Xcode project
+        working-directory: tools/ios-game
+        run: brew install xcodegen && xcodegen generate
+      - name: Build (unsigned)
+        working-directory: tools/ios-game
+        run: |
+          xcodebuild -project NinjaOnline.xcodeproj -scheme NinjaOnline -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Pack the .ipa
+        working-directory: tools/ios-game
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/NinjaOnline.app Payload/
+          zip -qry NinjaOnline.ipa Payload
+          ls -la NinjaOnline.ipa
+      - name: Put it on the release "ios-game"
+        working-directory: tools/ios-game
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ios-game NinjaOnline.ipa -R "$GITHUB_REPOSITORY" --clobber
