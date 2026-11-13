@@ -16,7 +16,7 @@
       this.r = new Int32Array(16);
       this.N = 0; this.Z = 0; this.C = 0; this.V = 0; this.T = 0; this.Q = 0;
       this.traps = [null]; this.trapNames = ['<return>']; // trap 0 = "the called function has returned"
-      this.steps = 0; this.stop = false;
+      this.steps = 0; this.stop = false; this.budget = Infinity; this.pauseDepth = -1; this.busy = false;
       this.hooks = new Map(); // address -> fn(cpu): replaces an internal function (soft-float helpers and the like)
     }
     // ---- memory (little endian); unaligned access goes byte by byte
@@ -51,6 +51,33 @@
       return res;
     }
 
+    // the same as call(), but the work is cut into slices of `slice` instructions with a pause in between, so the browser stays
+    // alive during long work (the app's start: ~1 billion instructions). Only pauses at the top level (not inside a trap's own
+    // calls, not inside another thread), so nothing else may use the processor until it resolves.
+    async callAsync(addr, args = [], slice = 3e6, onSlice) {
+      const r = this.r, save = [r[13], r[14], r[15], this.T, this.depth | 0];
+      let sp = r[13] & ~7;
+      if (args.length > 4) { sp -= ((args.length - 4) * 4 + 7) & ~7; for (let i = 4; i < args.length; i++) this.w32(sp + (i - 4) * 4, args[i]); }
+      for (let i = 0; i < 4 && i < args.length; i++) r[i] = args[i];
+      r[13] = sp; r[14] = TRAP_BASE | 0;
+      this.T = addr & 1; r[15] = addr & ~1;
+      this.depth = (this.depth | 0) + 1;
+      const my = this.depth;
+      this.pauseDepth = my; this.busy = true;
+      try {
+        for (;;) {
+          this.budget = this.steps + slice;
+          const how = this.run(my);
+          if (how !== 'pause') break;
+          if (onSlice) onSlice();
+          await new Promise((ok) => setTimeout(ok, 0));
+        }
+      } finally { this.pauseDepth = -1; this.budget = Infinity; this.busy = false; }
+      const res = r[0];
+      r[13] = save[0]; r[14] = save[1]; r[15] = save[2]; this.T = save[3]; this.depth = save[4];
+      return res;
+    }
+
     // run until the call started at `depth` returns (pc reaches trap 0)
     run(depth) {
       const r = this.r;
@@ -77,7 +104,7 @@
         }
         if (this.hooks.size) { const h = this.hooks.get(pc | this.T); if (h) { const lr = r[14]; h(this); this.T = lr & 1; r[15] = lr & ~1; continue; } }
         if (this.T) this.thumb(pc); else this.arm(pc);
-        this.steps++;
+        if (++this.steps >= this.budget && depth === this.pauseDepth && this.depth === depth && !this.thread) return 'pause';
       }
     }
 

@@ -14,7 +14,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v4 ' + diag.stage + ' · frames ' + diag.frames + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v5 ' + diag.stage + ' · frames ' + diag.frames + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -198,11 +198,13 @@
   const t0 = performance.now();
   diag.stage = 'booting';
   try {
-    for (const f of lib.init) cpu.call(f, []);
-    cpu.call(sym('JNI_OnLoad'), [jni.vm, 0]);
-    cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)]);
-    cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetObbPath'), [jni.env, 0, jni.ref(OBB)]);
-    cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, canvas.width, canvas.height]);
+    // in slices, so the phone stays responsive and the green line shows how far the start is (about 1 000 M on the PC)
+    const tick = () => { const s = (performance.now() - t0) / 1000; diag.stage = 'starting ' + Math.round(cpu.steps / 1e6) + ' M instructions, ' + s.toFixed(0) + ' s (' + (cpu.steps / 1e6 / Math.max(0.1, s)).toFixed(0) + ' M/s)'; status('Starting the game… ' + Math.min(99, Math.round(cpu.steps / 1e7)) + '%'); };
+    for (const f of lib.init) await cpu.callAsync(f, [], 3e6, tick);
+    await cpu.callAsync(sym('JNI_OnLoad'), [jni.vm, 0], 3e6, tick);
+    await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)], 3e6, tick);
+    await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetObbPath'), [jni.env, 0, jni.ref(OBB)], 3e6, tick);
+    await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, canvas.width, canvas.height], 3e6, tick);
   } catch (e) { status('The game stopped while starting: ' + e.message); diag.err = 'start: ' + e.message; console.error(e); return; }
   diag.stage = 'running (start took ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s)';
   console.log(`app started: ${(cpu.steps / 1e6).toFixed(0)} M instructions in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
@@ -223,9 +225,9 @@
   window.emu.frames = () => frames;
   // touches: Cocos2dxRenderer.nativeTouchesBegin(id, x, y) / nativeTouchesEnd / nativeTouchesMove(int[] ids, float[] xs, float[] ys)
   const pos = (e) => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * canvas.width, (e.clientY - r.top) / r.height * canvas.height]; };
-  const touch = (name, e) => { if (dead) return; const [x, y] = pos(e); try { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + name), [jni.env, 0, 0, sys.retF(x), sys.retF(y)]); } catch (err) { console.error(err); } };
+  const touch = (name, e) => { if (dead || cpu.busy) return; const [x, y] = pos(e); try { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + name), [jni.env, 0, 0, sys.retF(x), sys.retF(y)]); } catch (err) { console.error(err); } };
   // test switch: &taps=0.5,0.86@12;0.5,0.6@20 = tap at that part of the screen (x,y from 0 to 1) so many seconds after the start
-  const tapAt = (fx, fy) => { for (const n of ['nativeTouchesBegin', 'nativeTouchesEnd']) cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + n), [jni.env, 0, 0, sys.retF(fx * canvas.width), sys.retF(fy * canvas.height)]); };
+  const tapAt = (fx, fy) => { if (cpu.busy) return; for (const n of ['nativeTouchesBegin', 'nativeTouchesEnd']) cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + n), [jni.env, 0, 0, sys.retF(fx * canvas.width), sys.retF(fy * canvas.height)]); };
   for (const t of (q.get('taps') || '').split(';').filter(Boolean)) { const [xy, at] = t.split('@'), [fx, fy] = xy.split(',').map(Number); setTimeout(() => { try { tapAt(fx, fy); } catch (e) { console.error(e); } }, Number(at) * 1000); }
   window.emu.tap = tapAt;
   canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); touch('nativeTouchesBegin', e); });
