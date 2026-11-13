@@ -15,6 +15,7 @@ phone (236 C library, 82 OpenGL ES 2, 21 threads, 1 log).
 | `jni.js` | the JNI table (how the C++ calls Java); the Java methods themselves are in `main.js` |
 | `gl.js` | OpenGL ES 2 -> WebGL, including "client arrays" copied into a buffer before each draw |
 | `net.js` | the app's own libcurl replaced at `curl_easy_*` (browsers have no sockets): requests go to the page's server |
+| `fast.js` | the busiest library functions in JavaScript (cut the start from 990 M to 350 M instructions): zlib `inflate_fast`, `crc32`, `adler32`, libpng `png_read_filter_row`, 64-bit division, the `__sync_fetch_and_add/sub` of std::string, CCImage's alpha loop. Code without a name is checked byte by byte first |
 | `main.js` | the page: files, the Java side (settings, text drawn with a 2D canvas, the account login as a guest, the opening video skipped), frames, touches |
 
 Files it needs (not in git): `node tools/build_webclient.js --emu` copies `re/libgame.so`, an apk from `release/` and the data
@@ -22,12 +23,14 @@ file `re/emu/main.28.com.hello.bro.yo.obb` (unpack it once from the `.xapk`: `An
 hot-update zips into `server/webclient/assets/emu/` as `.dat`.
 
 Test without a browser: `node tools/dev/emu-boot.js [frames] [-v]` (no graphics; shows how far the app gets, its requests and the
-next missing function). In a browser: `/play/emu/?log=1` (app log in the console), `&device=e1` (the same test guest every time),
+next missing function). `HB_PROFILE=1` lists the functions that take the most instructions (tools/dev/emu-profile.js); `HB_FAST=0` runs
+without fast.js; `HB_FASTCHECK=1` runs fast.js and the original side by side for every call and stops at a difference
+(tools/dev/emu-fastcheck.js); the "pictures" fingerprint must stay the same with and without fast.js. In a browser: `/play/emu/?log=1` (app log in the console), `&device=e1` (the same test guest every time),
 `&taps=0.5,0.86@22;0.5,0.66@52` (tap at x,y of the screen, 0..1, so many seconds after the start), `&keep=1` (for screenshots).
 
 ## State on 13 Nov 2026 (headless Chrome on the PC)
 
-The app starts (about 990 M instructions, 10-12 s), asks our server for the version, downloads and unpacks the hot update, logs
+The app starts (about 350 M instructions with fast.js, 4.7 s; it was 990 M and 10-15 s), asks our server for the version, downloads and unpacks the hot update, logs
 in as a guest, creates a character (nation, ninja, name), shows the real home screen and the Training stage list.
 Home costs about 134 K instructions = 2 ms a frame.
 

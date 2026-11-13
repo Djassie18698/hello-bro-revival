@@ -17,7 +17,10 @@
       this.N = 0; this.Z = 0; this.C = 0; this.V = 0; this.T = 0; this.Q = 0;
       this.traps = [null]; this.trapNames = ['<return>']; // trap 0 = "the called function has returned"
       this.steps = 0; this.stop = false; this.budget = Infinity; this.pauseDepth = -1; this.busy = false;
-      this.hooks = new Map(); // address -> fn(cpu): replaces an internal function (soft-float helpers and the like)
+      // address|T -> fn(cpu): replaces an internal function (returns to lr; false = run the original; a number = jump there).
+      // hookPages marks the 4 KB pages that hold a hook, so the other instructions skip the lookup (it is in the hottest loop)
+      const pages = (this.hookPages = new Uint8Array((size >>> 12) + 1));
+      this.hooks = new (class extends Map { set(k, v) { if ((k >>> 12) < pages.length) pages[k >>> 12] = 1; return super.set(k, v); } })();
     }
     // ---- memory (little endian); unaligned access goes byte by byte
     r8(a) { return this.u8[a]; }
@@ -102,7 +105,7 @@
           if (this.yielding) { if (this.depth === depth && this.thread) { this.yielding = false; return 'yield'; } this.yielding = false; }
           continue;
         }
-        if (this.hooks.size) { const h = this.hooks.get(pc | this.T); if (h) { const lr = r[14]; h(this); this.T = lr & 1; r[15] = lr & ~1; continue; } }
+        if (pc < this.size && this.hookPages[pc >>> 12]) { const h = this.hooks.get(pc | this.T); if (h) { const lr = r[14], v = h(this); if (v !== false) { if (typeof v === 'number') { this.T = v & 1; r[15] = v & ~1; } else { this.T = lr & 1; r[15] = lr & ~1; } continue; } } } // false: run the original, a number: go on at that address
         if (this.T) this.thumb(pc); else this.arm(pc);
         if (++this.steps >= this.budget && depth === this.pauseDepth && this.depth === depth && !this.thread) return 'pause';
       }

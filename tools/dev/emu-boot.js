@@ -22,7 +22,16 @@ const real = (p) => {
   if (p === OBB) return obbFile;
   return null;
 };
+// the apk and the data file are read in 512 KB pieces like in the browser (main.js), counting the pieces the app needs
+const pieceSeen = new Set(), pieceReads = { n: 0 };
+const lazy = (p) => {
+  const file = p === APK ? apkFile : p === OBB ? obbFile : null;
+  if (!file) return null;
+  const data = vfs.read(p);
+  return { size: data.length, read(pos, n) { n = Math.max(0, Math.min(n, data.length - pos)); pieceReads.n++; for (let i = pos >> 19; i <= (pos + n - 1) >> 19; i++) pieceSeen.add(p + i); return data.slice(pos, pos + n); } };
+};
 const vfs = {
+  openLazy: lazy,
   read(p) { if (written.has(p)) return written.get(p); if (cache.has(p)) return cache.get(p); const f = real(p); try { const d = f && fs.statSync(f).isFile() ? new Uint8Array(fs.readFileSync(f)) : null; if (d) cache.set(p, d); return d; } catch { return null; } },
   write(p, data) { if (data === null) written.delete(p); else written.set(p, new Uint8Array(data)); },
   exists(p) { return written.has(p) || (() => { const f = real(p); return !!f && fs.existsSync(f); })(); },
@@ -37,6 +46,16 @@ let sys;
 const str = {};
 const cstrOf = (s) => (str[s] = str[s] || sys.strdup(s));
 for (const n of 'ActiveTexture AttachShader BindAttribLocation BindBuffer BindFramebuffer BindRenderbuffer BindTexture BlendEquation BlendFunc BufferData BufferSubData Clear ClearColor ClearDepthf ClearStencil CompileShader CompressedTexImage2D DeleteBuffers DeleteFramebuffers DeleteProgram DeleteRenderbuffers DeleteShader DeleteTextures DepthFunc DepthMask Disable DisableVertexAttribArray DrawArrays DrawElements Enable EnableVertexAttribArray FramebufferRenderbuffer FramebufferTexture2D GenerateMipmap GetBooleanv GetFloatv GetProgramInfoLog GetShaderInfoLog GetShaderSource IsEnabled LinkProgram PixelStorei ReadPixels RenderbufferStorage Scissor ShaderSource StencilFunc StencilMask StencilOp TexImage2D TexParameteri Uniform1f Uniform1i Uniform2f Uniform2fv Uniform2i Uniform2iv Uniform3f Uniform3fv Uniform3i Uniform3iv Uniform4f Uniform4fv Uniform4i Uniform4iv UniformMatrix4fv UseProgram VertexAttribPointer Viewport'.split(' ')) gl('gl' + n);
+// a fingerprint of every picture the app hands to the graphics card (the same with and without fast.js = nothing changed)
+let texHash = 0x811c9dc5 | 0, texBytes = 0;
+gl('glTexImage2D', (c, target, level, ifmt, w) => {
+  const h = sys.arg(4), format = sys.arg(6), type = sys.arg(7), p = sys.arg(8) >>> 0;
+  if (!p) return 0;
+  const bpp = type === 0x1401 ? (format === 0x1908 ? 4 : format === 0x1907 ? 3 : format === 0x190a ? 2 : 1) : 2, n = w * h * bpp, u = cpu.u8;
+  for (let i = p, e = p + n; i < e; i++) texHash = Math.imul(texHash ^ u[i], 16777619);
+  texBytes += n;
+  return 0;
+});
 gl('glCreateProgram', () => glId++); gl('glCreateShader', () => glId++); gl('glGetUniformLocation', () => glId++); gl('glGetError', () => 0); gl('glCheckFramebufferStatus', () => 0x8cd5);
 for (const n of ['Textures', 'Buffers', 'Framebuffers', 'Renderbuffers']) gl('glGen' + n, (c, count, out) => { for (let i = 0; i < count; i++) cpu.w32(out + i * 4, glId++); });
 gl('glGetShaderiv', (c, s, pname, out) => { cpu.w32(out, pname === 0x8b81 ? 1 : 0); }); gl('glGetProgramiv', (c, s, pname, out) => { cpu.w32(out, pname === 0x8b82 ? 1 : 0); });
@@ -63,6 +82,13 @@ hookCurl(cpu, sys, lib, (q) => {
   requests.push(q.method + ' ' + u.pathname + (q.body ? ' [' + Buffer.from(q.body).toString().slice(0, 60) + ']' : '') + ' -> ' + status + ', ' + body.length + ' bytes');
   return { status, body };
 }, log);
+// the app's busiest library functions in fast JavaScript (fast.js); HB_FAST=0 runs the original code, HB_FASTCHECK=1 runs
+// both for every call and stops at the first difference
+if (process.env.HB_FAST !== '0') {
+  const hookFast = require(path.join(E, 'fast.js'));
+  console.log('fast functions: ' + hookFast(cpu, lib, log));
+  if (process.env.HB_FASTCHECK) require('./emu-fastcheck.js')(cpu, lib);
+}
 console.log(`loaded: image ${(lib.end - BASE) >> 10} KB, ${lib.init.length} start-up functions, ${sys.missing.size} of the imports not written yet`);
 
 const java = {
@@ -86,12 +112,15 @@ const step = (label, fn) => {
   console.log(`${label}: ${(n / 1e6).toFixed(2)} M instructions in ${ms} ms${ms > 20 ? ' (' + (n / 1e3 / ms).toFixed(0) + ' MIPS)' : ''}`);
 };
 const summary = () => {
+  console.log('game file pieces read: ' + pieceSeen.size + ' of 512 KB (' + pieceReads.n + ' reads)');
+  if (texBytes) console.log('pictures: ' + (texBytes >> 20) + ' MB, fingerprint ' + (texHash >>> 0).toString(16));
   console.log(`total ${(cpu.steps / 1e6).toFixed(1)} M instructions, ${((Date.now() - t0) / 1000).toFixed(1)} s, heap ${(sys.heapUsed() >> 20)} MB, ${sys.threads.length} threads asked for`);
   const g = [...glCalls].sort((a, b) => b[1] - a[1]);
   if (g.length) console.log('GL calls: ' + g.slice(0, 14).map(([k, v]) => k.slice(2) + '×' + v).join(' '));
   const files = logLines.filter((l) => /^f?open /.test(l));
   if (files.length) console.log(`files asked for: ${files.length}, missing: ${[...new Set(files.filter((l) => l.endsWith('(missing)')).map((l) => l.split(' ')[1]))].slice(0, 12).join(', ')}`);
 };
+if (process.env.HB_PROFILE) require('./emu-profile.js')(cpu, BASE, ROOT); // HB_PROFILE=1: where the instructions go
 step('start-up functions (C++ constructors)', () => { for (const f of lib.init) cpu.call(f, []); });
 step('JNI_OnLoad', () => cpu.call(sym('JNI_OnLoad'), [jni.vm, 0]));
 step('nativeSetApkPath', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)]));

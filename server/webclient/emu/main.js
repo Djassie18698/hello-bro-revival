@@ -6,6 +6,9 @@
   const Cpu = window.EmuCpu, status = (t) => { const m = document.getElementById('msg'); m.textContent = t || ''; m.style.display = t ? '' : 'none'; };
   const q = new URLSearchParams(location.search);
   const diag = { stage: 'loading', frames: 0, err: '', lost: false, ms: 0 };
+  // how fast this browser runs plain JavaScript: about 3 ms on a phone or PC with the browser's fast compiler on, 50+ ms when
+  // it is off (iPhone Lockdown Mode turns it off; Low Power Mode slows it too)
+  { const b0 = performance.now(); let x = 0; for (let i = 0; i < 3e6; i++) x = (Math.imul(x, 31) + i) | 0; diag.js = performance.now() - b0 + (x & 0); }
   window.emuDiag = diag;
   if (q.get('diag') !== '0') {
     const d = document.createElement('div');
@@ -14,7 +17,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v5 ' + diag.stage + ' · frames ' + diag.frames + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v6 ' + diag.stage + ' · frames ' + diag.frames + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -92,6 +95,7 @@
   const sym = (n) => lib.sym(n);
   // the app's requests: sent to this page's own server, whatever address the app was built for (waits for the answer, like the app's own network thread did)
   const requests = (window.emuRequests = []);
+  window.EmuHookFast(cpu, lib, (m) => console.log(m)); // the busiest library functions (pictures, zip) in fast JavaScript
   window.EmuHookCurl(cpu, sys, lib, (rq) => {
     const u = new URL(rq.url);
     const x = new XMLHttpRequest();
@@ -198,8 +202,8 @@
   const t0 = performance.now();
   diag.stage = 'booting';
   try {
-    // in slices, so the phone stays responsive and the green line shows how far the start is (about 1 000 M on the PC)
-    const tick = () => { const s = (performance.now() - t0) / 1000; diag.stage = 'starting ' + Math.round(cpu.steps / 1e6) + ' M instructions, ' + s.toFixed(0) + ' s (' + (cpu.steps / 1e6 / Math.max(0.1, s)).toFixed(0) + ' M/s)'; status('Starting the game… ' + Math.min(99, Math.round(cpu.steps / 1e7)) + '%'); };
+    // in slices, so the phone stays responsive and the green line shows how far the start is (about 350 M)
+    const tick = () => { const s = (performance.now() - t0) / 1000; diag.stage = 'starting ' + Math.round(cpu.steps / 1e6) + ' M instructions, ' + s.toFixed(0) + ' s (' + (cpu.steps / 1e6 / Math.max(0.1, s)).toFixed(0) + ' M/s)'; status('Starting the game… ' + Math.min(99, Math.round(cpu.steps / 3.5e6)) + '%'); };
     for (const f of lib.init) await cpu.callAsync(f, [], 3e6, tick);
     await cpu.callAsync(sym('JNI_OnLoad'), [jni.vm, 0], 3e6, tick);
     await cpu.callAsync(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetApkPath'), [jni.env, 0, jni.ref(APK)], 3e6, tick);
