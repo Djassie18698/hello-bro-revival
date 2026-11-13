@@ -82,6 +82,8 @@ hookCurl(cpu, sys, lib, (q) => {
   requests.push(q.method + ' ' + u.pathname + (q.body ? ' [' + Buffer.from(q.body).toString().slice(0, 60) + ']' : '') + ' -> ' + status + ', ' + body.length + ' bytes');
   return { status, body };
 }, log);
+// often-used code turned into JavaScript blocks (jit.js); HB_JIT=0 runs every instruction through cpu.js
+if (process.env.HB_JIT !== '0') { require(path.join(E, 'jit.js'))(Cpu); cpu.enableJit(lib.base, lib.end, Number(process.env.HB_JIT) || 64); }
 // the app's busiest library functions in fast JavaScript (fast.js); HB_FAST=0 runs the original code, HB_FASTCHECK=1 runs
 // both for every call and stops at the first difference
 if (process.env.HB_FAST !== '0') {
@@ -113,6 +115,7 @@ const step = (label, fn) => {
 };
 const summary = () => {
   console.log('game file pieces read: ' + pieceSeen.size + ' of 512 KB (' + pieceReads.n + ' reads)');
+  if (cpu.jitCount) console.log('JIT blocks made: ' + cpu.jitCount);
   if (texBytes) console.log('pictures: ' + (texBytes >> 20) + ' MB, fingerprint ' + (texHash >>> 0).toString(16));
   console.log(`total ${(cpu.steps / 1e6).toFixed(1)} M instructions, ${((Date.now() - t0) / 1000).toFixed(1)} s, heap ${(sys.heapUsed() >> 20)} MB, ${sys.threads.length} threads asked for`);
   const g = [...glCalls].sort((a, b) => b[1] - a[1]);
@@ -128,4 +131,4 @@ step('nativeSetObbPath', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelpe
 step('nativeInit 720x1280 (the app starts)', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, 720, 1280]));
 step(frames + ' frames (with the other threads)', () => { for (let i = 0; i < frames; i++) { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender'), [jni.env, 0]); sys.runThreads(); } });
 console.log('requests: ' + (requests.join(' | ') || 'none'));
-summary();
+summary(); if (global.gc) global.gc(); console.log("js memory " + (process.memoryUsage().heapUsed >> 20) + " MB heap, " + (process.memoryUsage().rss >> 20) + " MB total");

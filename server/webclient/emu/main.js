@@ -17,7 +17,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v6 ' + diag.stage + ' · frames ' + diag.frames + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v7 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -96,6 +96,8 @@
   // the app's requests: sent to this page's own server, whatever address the app was built for (waits for the answer, like the app's own network thread did)
   const requests = (window.emuRequests = []);
   window.EmuHookFast(cpu, lib, (m) => console.log(m)); // the busiest library functions (pictures, zip) in fast JavaScript
+  // often-used code turned into JavaScript blocks (jit.js); ?jit=0 runs every instruction through cpu.js
+  if (q.get('jit') !== '0') { window.EmuAttachJit(Cpu); cpu.enableJit(lib.base, lib.end, Number(q.get('jit')) || 64); window.emuCpu = cpu; }
   window.EmuHookCurl(cpu, sys, lib, (rq) => {
     const u = new URL(rq.url);
     const x = new XMLHttpRequest();

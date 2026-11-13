@@ -20,7 +20,8 @@
       // address|T -> fn(cpu): replaces an internal function (returns to lr; false = run the original; a number = jump there).
       // hookPages marks the 4 KB pages that hold a hook, so the other instructions skip the lookup (it is in the hottest loop)
       const pages = (this.hookPages = new Uint8Array((size >>> 12) + 1));
-      this.hooks = new (class extends Map { set(k, v) { if ((k >>> 12) < pages.length) pages[k >>> 12] = 1; return super.set(k, v); } })();
+      const cpu = this;
+      this.hooks = new (class extends Map { set(k, v) { if ((k >>> 12) < pages.length) pages[k >>> 12] = 1; if (cpu.heat && !super.has(k)) cpu.flushJit(); return super.set(k, v); } })();
     }
     // ---- memory (little endian); unaligned access goes byte by byte
     r8(a) { return this.u8[a]; }
@@ -83,9 +84,21 @@
 
     // run until the call started at `depth` returns (pc reaches trap 0)
     run(depth) {
-      const r = this.r;
+      const r = this.r, u8 = this.u8, i32 = this.i32;
+      // jit.js blocks (made already) are run first, with as little work as possible in between
+      const jidx = this.jidx, fns = this.fns, jlo = this.jitLo | 0, jn = jidx ? jidx.length : 0;
       for (;;) {
         const pc = r[15] >>> 0;
+        if (jn !== 0) {
+          const i = (pc - jlo) >>> 1;
+          if (i < jn) {
+            const j = jidx[i];
+            if (j !== 0 && (j & 1) === this.T) { // jidx = the block's number * 2 + Thumb bit
+              if ((this.steps += fns[j >>> 1](this, r, u8, i32)) >= this.budget && depth === this.pauseDepth && this.depth === depth && !this.thread) return 'pause';
+              continue;
+            }
+          }
+        }
         if (pc >= TRAP_BASE) {
           if (pc >= 0xffff0000) { // ARM Linux kernel helpers (ARMv5 has no atomic instructions): cmpxchg, get_tls, memory barrier
             if (pc === 0xffff0fc0) { const ptr = r[2] >>> 0; if (this.r32(ptr) === r[0]) { this.w32(ptr, r[1]); r[0] = 0; this.C = 1; } else { r[0] = 1; this.C = 0; } }
@@ -106,6 +119,10 @@
           continue;
         }
         if (pc < this.size && this.hookPages[pc >>> 12]) { const h = this.hooks.get(pc | this.T); if (h) { const lr = r[14], v = h(this); if (v !== false) { if (typeof v === 'number') { this.T = v & 1; r[15] = v & ~1; } else { this.T = lr & 1; r[15] = lr & ~1; } continue; } } } // false: run the original, a number: go on at that address
+        if (this.heat !== undefined && pc >= this.jitLo && pc < this.jitHi) { // jit.js: run often-used code as JavaScript blocks
+          const i = (pc - this.jitLo) >>> 1, j = this.jidx[i];
+          if (j === 0) { const h = this.heat[i]; if (h >= this.jitHot && !(this.hookPages[pc >>> 12] && this.hooks.has(pc | this.T))) { this.fns.push(this.compile(pc, this.T)); this.jidx[i] = ((this.fns.length - 1) << 1) | this.T; continue; } this.heat[i] = h + 1; }
+        }
         if (this.T) this.thumb(pc); else this.arm(pc);
         if (++this.steps >= this.budget && depth === this.pauseDepth && this.depth === depth && !this.thread) return 'pause';
       }
