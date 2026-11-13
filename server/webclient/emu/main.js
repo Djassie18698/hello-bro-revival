@@ -22,7 +22,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v8 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v9 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -137,8 +137,9 @@
   };
   const java = {
     'org/cocos2dx/lib/Cocos2dxBitmap.getFontSizeAccordingHeight': (j, [h]) => Math.max(1, Math.round(h / 1.17)),
-    // the opening video after creating a character: skipped, the app is told it has finished
-    'com/xckoo/renlong/CustomDialog.playGameStartVideo': () => { later.push(() => cpu.call(sym('Java_com_xckoo_renlong_RLVideoActivity_playRLVideoComplete'), [jni.env, 0])); },
+    // the opening video after creating a character: skipped, the app is told it has finished (its int argument is stored as
+    // "still playing": 0 = done; the app set it to 1 and its CVideoPlayingScene waits for 0)
+    'com/xckoo/renlong/CustomDialog.playGameStartVideo': () => { later.push(() => cpu.call(sym('Java_com_xckoo_renlong_RLVideoActivity_playRLVideoComplete'), [jni.env, 0, 0])); },
     'org/cocos2dx/lib/Cocos2dxHelper.stopAllEffects': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.pauseBackgroundMusic': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.resumeBackgroundMusic': () => {},
     'com/xckoo/renlong/sdk/SDKHelper.setRoleInfo': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.isBackgroundMusicPlaying': () => false,
     'com/xckoo/renlong/sdk/SDKHelper.isLogined': () => !!account.session,
