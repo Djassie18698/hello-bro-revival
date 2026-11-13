@@ -15,14 +15,14 @@
   // it is off (iPhone Lockdown Mode turns it off; Low Power Mode slows it too)
   { const b0 = performance.now(); let x = 0; for (let i = 0; i < 3e6; i++) x = (Math.imul(x, 31) + i) | 0; diag.js = performance.now() - b0 + (x & 0); }
   window.emuDiag = diag;
-  if (q.get('diag') !== '0') {
+  if (q.get('diag') === '1') {
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;left:4px;top:4px;right:4px;z-index:9;color:#9f9;font:11px/1.3 monospace;background:rgba(0,0,0,.55);padding:3px 5px;pointer-events:none;white-space:pre-wrap;word-break:break-all';
     document.body.appendChild(d);
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v9 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v11 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -81,10 +81,21 @@
     while (done < n) { const p = pos + done, i = Math.floor(p / PIECE), off = p - i * PIECE, b = piece(name, i), k = Math.min(n - done, b.length - off); out.set(b.subarray(off, off + k), done); done += k; }
     return out;
   } });
+  // files the app writes (the hot update it downloads and unpacks, its settings) are kept in the browser's IndexedDB, so the
+  // next visit does not download the update again (localStorage holds only ~5 MB). All of them are read into memory before the
+  // start; writes are saved in the background. ?fresh=1 starts with none.
+  const db = await new Promise((ok) => { try { const r = indexedDB.open('emu-files', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); } catch { ok(null); } });
+  const dbDo = (fn) => { if (!db) return; try { const t = db.transaction('f', 'readwrite'); fn(t.objectStore('f')); } catch { /* storage full or blocked */ } };
+  if (db && q.get('fresh') === '1') dbDo((s) => s.clear());
+  else if (db) await new Promise((ok) => { try { const t = db.transaction('f', 'readonly'), s = t.objectStore('f'), c = s.openCursor(); c.onsuccess = () => { const cur = c.result; if (!cur) return ok(); mem.set(cur.key, new Uint8Array(cur.value)); cur.continue(); }; c.onerror = () => ok(); } catch { ok(); } });
   const vfs = {
     openLazy(p) { return p === APK ? pieces('apk', parts.apk) : p === OBB ? pieces('obb', parts.obb) : null; },
     read(p) { if (p === APK || p === OBB) return null; if (mem.has(p)) return mem.get(p); const s = store.get('emu.file.' + p); if (s === null) return null; const u = unb64(s); mem.set(p, u); return u; },
-    write(p, data) { if (data === null) { mem.delete(p); store.set('emu.file.' + p, null); return; } const u = new Uint8Array(data); mem.set(p, u); if (u.length < 300000) store.set('emu.file.' + p, b64(u)); },
+    write(p, data) {
+      if (data === null) { mem.delete(p); store.set('emu.file.' + p, null); dbDo((s) => s.delete(p)); return; }
+      const u = new Uint8Array(data); mem.set(p, u);
+      if (db) dbDo((s) => s.put(u.slice().buffer, p)); else if (u.length < 300000) store.set('emu.file.' + p, b64(u));
+    },
     exists(p) { return this.read(p) !== null; }, isDir: () => false, list: () => [],
   };
   let sys, jni, lib;
@@ -135,20 +146,106 @@
     if (r && r.code === 100000) { account.uid = String(r.userId); account.session = r.sessionKey; account.nick = r.nick || ''; return true; }
     return false;
   };
+  // the account window (on Android: the Gumptech SDK's window): Play as a guest, Log in or Sign up with a name and password
+  // (server/gumplogin.js, the same accounts as the Android app). The login is kept in this browser (hb.login / hb.guestpw);
+  // the game's "user center" buttons (login screen, game settings) open it again to sign up, switch or log out.
+  const CODES = { 100010: 'Wrong password.', 100011: 'That name is already taken.', 100012: 'No account with that name.', 100013: 'Name or password too short (name 3+, password 4+ characters).' };
+  const savedLogin = () => { try { return JSON.parse(store.get('hb.login') || 'null'); } catch { return null; } };
+  const useAnswer = (r) => { account.uid = String(r.userId); account.session = r.sessionKey; account.nick = r.nick || ''; };
+  const named = (email, pw, how) => {
+    const r = form(how === 'reg' ? '/gump/reg.do' : '/gump/login.do', { deviceId: deviceId(), email, passwd: pw, appkey: '' });
+    if (r && r.code === 100000) { store.set('hb.login', JSON.stringify({ email, pw })); useAnswer(r); return ''; }
+    return (r && CODES[r.code]) || 'The server did not answer. Try again.';
+  };
+  const silentLogin = () => { const s = savedLogin(); if (s) return !named(s.email, s.pw, 'login'); return store.get('hb.guestpw') ? guestLogin() : false; };
+  const loginForm = async (how, error) => {
+    const reg = how === 'reg';
+    const r = await window.EmuUI.dialog({
+      title: reg ? 'Sign up' : 'Log in',
+      text: reg ? (store.get('hb.guestpw') && !savedLogin() ? 'Your guest character gets this name and password, so you can play it on any device.' : 'Pick a name and a password for your account.') : 'Log in with the name and password of your account (the same as in the Android game).',
+      fields: [{ name: 'email', label: 'Account name', autocomplete: 'username', max: 40 }, { name: 'pw', label: 'Password', type: 'password', autocomplete: reg ? 'new-password' : 'current-password', max: 40 }].concat(reg ? [{ name: 'pw2', label: 'Password again', type: 'password', autocomplete: 'new-password', max: 40 }] : []),
+      buttons: [{ label: reg ? 'Sign up' : 'Log in', value: 'go' }, { label: 'Back', value: 'back', kind: 'grey' }],
+      error,
+    });
+    if (r.button !== 'go') return false;
+    const email = r.values.email.trim(), pw = r.values.pw;
+    if (reg && pw !== r.values.pw2) return loginForm(how, 'The two passwords are not the same.');
+    const err = named(email, pw, how);
+    return err ? loginForm(how, err) : true;
+  };
+  const firstWindow = async () => {
+    for (;;) {
+      const r = await window.EmuUI.dialog({
+        title: 'Ninja Online', text: 'Play right away as a guest, or log in to play your own account. A guest character is kept in this browser only: sign up later to keep it safe.',
+        buttons: [{ label: 'Play as guest', value: 'guest' }, { label: 'Log in', value: 'login', kind: 'blue' }, { label: 'Sign up', value: 'reg', kind: 'blue' }],
+      });
+      if (r.button === 'guest') { if (guestLogin()) return true; continue; }
+      if (await loginForm(r.button)) return true;
+    }
+  };
+  const userCenter = async () => {
+    const s = savedLogin();
+    const r = await window.EmuUI.dialog(s
+      ? { title: 'Your account', text: 'Logged in as ' + s.email + '.', buttons: [{ label: 'Close', value: 'close' }, { label: 'Log out', value: 'out', kind: 'grey' }] }
+      : { title: 'Your account', text: 'You play as a guest: this character is kept in this browser only. Sign up (free) to keep it safe and play it on other devices too.', buttons: [{ label: 'Sign up', value: 'reg' }, { label: 'Log in to another account', value: 'login', kind: 'blue' }, { label: 'Close', value: 'close', kind: 'grey' }] });
+    if (r.button === 'out') { store.set('hb.login', null); store.set('hb.guestpw', null); store.set('hb.device', null); location.reload(); return; }
+    if (r.button === 'reg') { await loginForm('reg'); return; } // the guest's own account gets the name: nothing else changes
+    if (r.button === 'login') { if (await loginForm('login')) location.reload(); } // another account: start the game again with it
+  };
+  // typing (CCEditBox -> Cocos2dxHelper.showEditTextDialog): the page's own input box; the text goes back as UTF-8 bytes
+  const editText = (title, message, inputMode, inputFlag, returnType, maxLength) => {
+    window.EmuUI.dialog({
+      title: title || '', fields: [{ name: 't', value: message || '', type: inputFlag === 0 ? 'password' : 'text', max: maxLength > 0 ? maxLength : 0, inputmode: inputMode === 2 || inputMode === 5 ? 'decimal' : inputMode === 3 ? 'tel' : inputMode === 1 ? 'email' : '' }],
+      buttons: [{ label: 'OK', value: 'ok' }, { label: 'Cancel', value: 'cancel', kind: 'grey' }],
+    }).then((r) => {
+      const text = r.button === 'ok' ? r.values.t : (message || '');
+      later.push(() => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelper_nativeSetEditTextDialogResult'), [jni.env, 0, jni.ref(new TextEncoder().encode(text))]));
+    });
+  };
+  // music and sound effects (audio.js plays assets/emu/sound/<file>.mp3)
+  const audio = window.EmuAudio ? window.EmuAudio('../assets/emu/sound/') : null;
+  const A = (fn, dflt) => (j, args) => (audio ? fn(...args) : dflt);
   const java = {
+    'org/cocos2dx/lib/Cocos2dxHelper.showEditTextDialog': (j, args) => { editText(...args); },
+    'com/xckoo/renlong/sdk/SDKHelper.openUserCenter': () => { userCenter(); },
+    'com/xckoo/renlong/sdk/SDKHelper.logout': () => { store.set('hb.login', null); later.push(() => cpu.call(sym('Java_com_xckoo_renlong_sdk_SDKCallbacks_didLogouted'), [jni.env, 0])); },
+    'org/cocos2dx/lib/Cocos2dxHelper.preloadBackgroundMusic': A((p) => audio.preload(p)),
+    'org/cocos2dx/lib/Cocos2dxHelper.playBackgroundMusic': A((p, loop) => audio.playMusic(p, loop)),
+    'org/cocos2dx/lib/Cocos2dxHelper.stopBackgroundMusic': A(() => audio.stopMusic()),
+    'org/cocos2dx/lib/Cocos2dxHelper.pauseBackgroundMusic': A(() => audio.pauseMusic()),
+    'org/cocos2dx/lib/Cocos2dxHelper.resumeBackgroundMusic': A(() => audio.resumeMusic()),
+    'org/cocos2dx/lib/Cocos2dxHelper.rewindBackgroundMusic': A(() => audio.rewindMusic()),
+    'org/cocos2dx/lib/Cocos2dxHelper.isBackgroundMusicPlaying': A(() => audio.isMusicPlaying(), false),
+    'org/cocos2dx/lib/Cocos2dxHelper.getBackgroundMusicVolume': A(() => audio.musicVolume, 0),
+    'org/cocos2dx/lib/Cocos2dxHelper.setBackgroundMusicVolume': A((v) => audio.setMusicVolume(v)),
+    'org/cocos2dx/lib/Cocos2dxHelper.preloadEffect': A((p) => audio.preload(p)),
+    'org/cocos2dx/lib/Cocos2dxHelper.playEffect': A((p, loop) => audio.playEffect(p, loop), 0),
+    'org/cocos2dx/lib/Cocos2dxHelper.stopEffect': A((id) => audio.stopEffect(id)),
+    'org/cocos2dx/lib/Cocos2dxHelper.pauseEffect': A((id) => audio.stopEffect(id)),
+    'org/cocos2dx/lib/Cocos2dxHelper.resumeEffect': A(() => {}),
+    'org/cocos2dx/lib/Cocos2dxHelper.stopAllEffects': A(() => audio.stopAllEffects()),
+    'org/cocos2dx/lib/Cocos2dxHelper.pauseAllEffects': A(() => audio.stopAllEffects()),
+    'org/cocos2dx/lib/Cocos2dxHelper.resumeAllEffects': A(() => {}),
+    'org/cocos2dx/lib/Cocos2dxHelper.unloadEffect': A(() => {}),
+    'org/cocos2dx/lib/Cocos2dxHelper.getEffectsVolume': A(() => audio.effectsVolume, 0),
+    'org/cocos2dx/lib/Cocos2dxHelper.setEffectsVolume': A((v) => audio.setEffectsVolume(v)),
+    'org/cocos2dx/lib/Cocos2dxHelper.end': A(() => { audio.stopMusic(); audio.stopAllEffects(); }),
     'org/cocos2dx/lib/Cocos2dxBitmap.getFontSizeAccordingHeight': (j, [h]) => Math.max(1, Math.round(h / 1.17)),
     // the opening video after creating a character: skipped, the app is told it has finished (its int argument is stored as
     // "still playing": 0 = done; the app set it to 1 and its CVideoPlayingScene waits for 0)
     'com/xckoo/renlong/CustomDialog.playGameStartVideo': () => { later.push(() => cpu.call(sym('Java_com_xckoo_renlong_RLVideoActivity_playRLVideoComplete'), [jni.env, 0, 0])); },
-    'org/cocos2dx/lib/Cocos2dxHelper.stopAllEffects': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.pauseBackgroundMusic': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.resumeBackgroundMusic': () => {},
-    'com/xckoo/renlong/sdk/SDKHelper.setRoleInfo': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.isBackgroundMusicPlaying': () => false,
+    'com/xckoo/renlong/sdk/SDKHelper.setRoleInfo': () => {},
     'com/xckoo/renlong/sdk/SDKHelper.isLogined': () => !!account.session,
     'com/xckoo/renlong/sdk/SDKHelper.userId': () => account.uid,
     'com/xckoo/renlong/sdk/SDKHelper.session': () => account.session,
     'com/xckoo/renlong/sdk/SDKHelper.nickName': () => account.nick,
-    'org/cocos2dx/lib/Cocos2dxHelper.playBackgroundMusic': () => {}, 'org/cocos2dx/lib/Cocos2dxHelper.playEffect': () => 0, 'org/cocos2dx/lib/Cocos2dxHelper.stopBackgroundMusic': () => {},
     'com/xckoo/renlong/FileHelper.deleteFolder': () => true,
-    'com/xckoo/renlong/sdk/SDKHelper.login': () => { const ok = guestLogin(); later.push(() => cpu.call(sym('Java_com_xckoo_renlong_sdk_SDKCallbacks_' + (ok ? 'didLogined' : 'loginCancel')), [jni.env, 0])); },
+    'com/xckoo/renlong/sdk/SDKHelper.login': () => {
+      const done = (ok) => later.push(() => cpu.call(sym('Java_com_xckoo_renlong_sdk_SDKCallbacks_' + (ok ? 'didLogined' : 'loginCancel')), [jni.env, 0]));
+      if (q.get('device')) return done(guestLogin()); // tests: the same guest every time, no window
+      if (silentLogin()) return done(true);
+      firstWindow().then(done);
+    },
     'org/cocos2dx/lib/Cocos2dxHelper.getCocos2dxPackageName': () => 'com.hello.bro.yo',
     'org/cocos2dx/lib/Cocos2dxHelper.getCurrentLanguage': () => 'en',
     'org/cocos2dx/lib/Cocos2dxHelper.getDeviceModel': () => 'Web',
@@ -242,7 +339,8 @@
   const tapAt = (fx, fy) => { if (cpu.busy) return; for (const n of ['nativeTouchesBegin', 'nativeTouchesEnd']) cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_' + n), [jni.env, 0, 0, sys.retF(fx * canvas.width), sys.retF(fy * canvas.height)]); };
   for (const t of (q.get('taps') || '').split(';').filter(Boolean)) { const [xy, at] = t.split('@'), [fx, fy] = xy.split(',').map(Number); setTimeout(() => { try { tapAt(fx, fy); } catch (e) { console.error(e); } }, Number(at) * 1000); }
   window.emu.tap = tapAt;
-  canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); touch('nativeTouchesBegin', e); });
+  canvas.addEventListener('pointerdown', (e) => { if (audio) audio.unlock(); canvas.setPointerCapture(e.pointerId); touch('nativeTouchesBegin', e); });
+  document.addEventListener('visibilitychange', () => { if (audio) { if (document.hidden) audio.pauseAll(); else audio.resumeAll(); } });
   canvas.addEventListener('pointerup', (e) => touch('nativeTouchesEnd', e));
   canvas.addEventListener('pointercancel', (e) => touch('nativeTouchesEnd', e));
   canvas.addEventListener('pointermove', (e) => { if (dead || !(e.buttons & 1) && e.pointerType === 'mouse') return; const [x, y] = pos(e); try { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeTouchesMove'), [jni.env, 0, jni.ref(new Int32Array([0])), jni.ref(new Float32Array([x])), jni.ref(new Float32Array([y]))]); } catch (err) { console.error(err); } });

@@ -372,6 +372,9 @@ function emuFiles() {
   fs.writeFileSync(path.join(dst, 'parts.json'), JSON.stringify(parts));
   fs.mkdirSync(path.join(dst, 'cdn'), { recursive: true });
   for (const f of fs.readdirSync(path.join(ROOT, 'server', 'cdn'))) if (f.endsWith('.zip')) fs.copyFileSync(path.join(ROOT, 'server', 'cdn', f), path.join(dst, 'cdn', f.replace(/.zip$/, '.dat'))); // the hot update
+  // the game's sounds (mp3: every browser plays them; the page plays music and effects itself, the app only names the file)
+  const snd = path.join(ROOT, 're', 'obb', 'sound');
+  if (fs.existsSync(snd)) { fs.mkdirSync(path.join(dst, 'sound'), { recursive: true }); for (const f of fs.readdirSync(snd)) if (f.endsWith('.mp3')) fs.copyFileSync(path.join(snd, f), path.join(dst, 'sound', f)); }
   console.log('emulator files copied to server/webclient/assets/emu');
 }
 if (require.main === module && process.argv.includes('--emu')) { emuFiles(); process.exit(0); }

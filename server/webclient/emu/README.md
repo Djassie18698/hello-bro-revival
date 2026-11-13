@@ -17,6 +17,9 @@ phone (236 C library, 82 OpenGL ES 2, 21 threads, 1 log).
 | `net.js` | the app's own libcurl replaced at `curl_easy_*` (browsers have no sockets): requests go to the page's server |
 | `jit.js` | often-used code (64 runs) turned into JavaScript blocks with the decoding done once: flags nobody reads left out, registers in local variables, small loops kept inside a block; rare instructions call cpu.js. Same instruction count and results as cpu.js. At most 20 000 blocks (then all are made again). `?jit=0` / `HB_JIT=0` switch it off |
 | `fast.js` | the busiest library functions in JavaScript (cut the start from 990 M to 350 M instructions): zlib `inflate_fast`, `crc32`, `adler32`, libpng `png_read_filter_row`, 64-bit division, the `__sync_fetch_and_add/sub` of std::string, CCImage's alpha loop. Code without a name is checked byte by byte first |
+| `ui.js` | the page's own windows (dialog with fields and buttons): the account window and typing |
+| `audio.js` | music and sound effects with Web Audio (assets/emu/sound/*.mp3; plays after the first touch; iPhone: also on silent) |
+| `speed.html` | a browser speed test (is the browser's fast JavaScript compiler on?) |
 | `main.js` | the page: files, the Java side (settings, text drawn with a 2D canvas, the account login as a guest, the opening video skipped), frames, touches |
 
 Files it needs (not in git): `node tools/build_webclient.js --emu` copies `re/libgame.so`, an apk from `release/` and the data
@@ -29,6 +32,21 @@ without fast.js; `HB_FASTCHECK=1` runs fast.js and the original side by side for
 (tools/dev/emu-fastcheck.js); the "pictures" fingerprint must stay the same with and without fast.js. In a browser: `/play/emu/?log=1` (app log in the console), `&device=e1` (the same test guest every time),
 `&taps=0.5,0.86@22;0.5,0.66@52` (tap at x,y of the screen, 0..1, so many seconds after the start), `&keep=1` (for screenshots).
 
+## Where players open it
+
+**https://ninjaonlinereborn.com/play/emu/** (Caddy passes /play/ and the game's requests at /game/ to the game server:
+tools/vps/wiki-site.sh). It must be https: iPhones (iOS 27) only run JavaScript with Safari's fast compiler on secure pages
+(arrays 52 ms on http, 3 ms on https). The plain http address on :18080 sends the page there (?stay=1 keeps it).
+On the owner's iPhone 16 the start takes ~4 s and the home screen plays (13 Nov 2026).
+
+- Accounts: the first visit shows Play as guest / Log in / Sign up (server/gumplogin.js, the same accounts as the Android
+  app). Sign up on a browser that plays as a guest gives that guest's account the name. The login is kept in the browser;
+  the game's own "Register Account"/"Change" button on the login screen and "User Center" in the settings open the window
+  again (sign up, log in to another account, log out). Test URLs with &device=<x> skip the window (a fixed guest).
+- Typing: CCEditBox -> Cocos2dxHelper.showEditTextDialog -> the page's input box -> nativeSetEditTextDialogResult (UTF-8).
+- Files the app writes (the hot update) are kept in IndexedDB "emu-files": the update is downloaded once (?fresh=1 forgets them).
+- The green diagnostics line only with ?diag=1.
+
 ## State on 13 Nov 2026 (headless Chrome on the PC)
 
 The app starts (about 350 M instructions with fast.js, 2.4 s with jit.js; it was 990 M and 10-15 s). Speed: PC Chrome ~170 M/s;
@@ -38,15 +56,11 @@ Home costs about 134 K instructions = 2 ms a frame.
 
 ## Not done yet
 
-- Sound: the Java sound calls do nothing.
-- Typing (edit boxes) and the account window (log in or sign up with a name): only a guest account so far.
-- Files between visits: only small files are kept (browser storage); the hot update is downloaded again every visit.
-- The big download: 133 MB of game files are fetched and held in memory; they should load in pieces.
-- Start-up takes 10-12 s; memory is 384 MB: both matter for iPhones. Not run in Safari or on a real iPhone yet.
+- Sound effects that the app pauses/resumes one by one just stop (rare).
+- Typing with the in-game text field kind CCTextFieldTTF (openIMEKeyboard) is not wired: no screen found that uses it yet.
 - Drag touches (scrolling lists) are wired but not tried; fights and the other screens are not walked through yet.
 - Text: labels are close, not exact (the phone's font and line heights).
 - A Lua error shows at Home (`mainActivity` line 30, string.format without its argument): to compare with the phone's log.
-- The start screen shows the old Hello Bro logo (the hot update's logo is not picked up yet).
 
 ## Things learned
 
@@ -56,4 +70,5 @@ Home costs about 134 K instructions = 2 ms a frame.
 - `nativeSetObbPath` wants the path of the .obb FILE; the app reads the zip itself.
 - The SDK login: `SDKHelper.login()` -> `SDKCallbacks.didLogined()`, then the app asks `userId()`, `session()`, `nickName()`.
 - After creating a character the app plays a video in Java (`CustomDialog.playGameStartVideo`) and waits for
-  `RLVideoActivity.playRLVideoComplete`.
+  `RLVideoActivity.playRLVideoComplete(0)`: the int is the "still playing" flag (the app set it to 1 and waits for 0); without the 0
+  the iPhone hung on a black screen.
