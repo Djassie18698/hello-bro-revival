@@ -304,6 +304,13 @@ for (const pick of [55, 56, 57]) {
     const same = await callIp('/gump/reg.do', { deviceId: '', appId: '10015', email: 'smokelink', passwd: 'pass1234' }, '10.9.9.1');
     const other = await callIp('/gump/reg.do', { deviceId: '', appId: '10015', email: 'smokelink2', passwd: 'pass1234' }, '10.9.9.2');
     if (same.userId !== g.userId || other.userId === g.userId) { bad++; console.log('SIGN-UP LINK:', JSON.stringify({ guest: g.userId, same: same.userId, other: other.userId })); }
+    // an Android guest that signs up on its phone (with its phone ID) logs in on another device (the browser game) with that
+    // name and gets the same account (owner, 13 Nov 2026: "people can login to their account")
+    const pg = await callIp('/quick/reg.do', { deviceId: 'smoke-phone-1', appId: '10015' }, '10.9.9.3');
+    const named = await callIp('/gump/reg.do', { deviceId: 'smoke-phone-1', appId: '10015', email: 'smokephone', passwd: 'pass1234' }, '10.9.9.3');
+    const web = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'SmokePhone', passwd: 'pass1234' }, '10.9.9.4');
+    const badpw = await callIp('/gump/login.do', { deviceId: 'web-smoke', appId: '10015', email: 'smokephone', passwd: 'wrong' }, '10.9.9.4');
+    if (named.userId !== pg.userId || web.userId !== pg.userId || !web.sessionKey || badpw.code === 100000) { bad++; console.log('LOGIN ON ANOTHER DEVICE:', JSON.stringify({ guest: pg.userId, named: named.userId, web: web.userId, badpw: badpw.code })); }
   }
   // ADMIN_OPEN=1 (public server, owner 3 Nov 2026): the item page works without the password; wiping a player and the manager still ask for it
   {

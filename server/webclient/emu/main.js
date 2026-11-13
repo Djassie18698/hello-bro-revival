@@ -22,7 +22,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v11 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v12 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -164,22 +164,32 @@
       title: reg ? 'Sign up' : 'Log in',
       text: reg ? (store.get('hb.guestpw') && !savedLogin() ? 'Your guest character gets this name and password, so you can play it on any device.' : 'Pick a name and a password for your account.') : 'Log in with the name and password of your account (the same as in the Android game).',
       fields: [{ name: 'email', label: 'Account name', autocomplete: 'username', max: 40 }, { name: 'pw', label: 'Password', type: 'password', autocomplete: reg ? 'new-password' : 'current-password', max: 40 }].concat(reg ? [{ name: 'pw2', label: 'Password again', type: 'password', autocomplete: 'new-password', max: 40 }] : []),
-      buttons: [{ label: reg ? 'Sign up' : 'Log in', value: 'go' }, { label: 'Back', value: 'back', kind: 'grey' }],
+      buttons: [{ label: reg ? 'Sign up' : 'Log in', value: 'go' }, { label: 'Back', value: 'back', kind: 'grey' }].concat(reg ? [] : [{ label: 'Android player without a name? Read this', value: 'android', kind: 'link' }]),
       error,
     });
+    if (r.button === 'android') { await androidHelp(); return loginForm(how, error); }
     if (r.button !== 'go') return false;
     const email = r.values.email.trim(), pw = r.values.pw;
     if (reg && pw !== r.values.pw2) return loginForm(how, 'The two passwords are not the same.');
     const err = named(email, pw, how);
     return err ? loginForm(how, err) : true;
   };
+  const androidHelp = () => window.EmuUI.dialog({
+    title: 'Your Android account',
+    text: 'Log in here with the account name and password you use in the Android game.\n\n' +
+      'Did you always tap PLAY on Android? Then your account has no name yet. Give it one first: open the game on your phone, ' +
+      'tap "Login with Gumptech", then "Signup", and pick a name and password. Your character stays the same. ' +
+      'After that, log in here with that name and play the same character.\n\nOne device at a time: the other one has to log in again.',
+    buttons: [{ label: 'OK', value: 'ok' }],
+  });
   const firstWindow = async () => {
     for (;;) {
       const r = await window.EmuUI.dialog({
         title: 'Ninja Online', text: 'Play right away as a guest, or log in to play your own account. A guest character is kept in this browser only: sign up later to keep it safe.',
-        buttons: [{ label: 'Play as guest', value: 'guest' }, { label: 'Log in', value: 'login', kind: 'blue' }, { label: 'Sign up', value: 'reg', kind: 'blue' }],
+        buttons: [{ label: 'Play as guest', value: 'guest' }, { label: 'Log in', value: 'login', kind: 'blue' }, { label: 'Sign up', value: 'reg', kind: 'blue' }, { label: 'I play on Android: how do I log in here?', value: 'android', kind: 'link' }],
       });
       if (r.button === 'guest') { if (guestLogin()) return true; continue; }
+      if (r.button === 'android') { await androidHelp(); continue; }
       if (await loginForm(r.button)) return true;
     }
   };

@@ -12,7 +12,7 @@
   .emu-ui .box { width: min(420px, 100%); background: linear-gradient(#3b2a1c, #24170e); border: 3px solid #c8913c; border-radius: 14px;
     box-shadow: 0 8px 30px rgba(0,0,0,.6); color: #f4e6cc; font: 16px/1.4 "Trebuchet MS", Arial, sans-serif; padding: 18px 18px 14px; box-sizing: border-box; }
   .emu-ui h2 { margin: 0 0 8px; font-size: 22px; color: #ffd36b; text-align: center; text-shadow: 0 2px 0 #000; }
-  .emu-ui p { margin: 0 0 12px; color: #e9d7b6; text-align: center; }
+  .emu-ui p { margin: 0 0 12px; color: #e9d7b6; text-align: center; white-space: pre-line; }
   .emu-ui label { display: block; margin: 10px 0 4px; font-size: 14px; color: #d9c29a; }
   .emu-ui input { width: 100%; box-sizing: border-box; font-size: 17px; padding: 10px 12px; border-radius: 8px; border: 2px solid #8a6533;
     background: #fff8ea; color: #2a1a0c; outline: none; }
