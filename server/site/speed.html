@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Speed test</title>
+<style>body{background:#111;color:#9f9;font:16px/1.5 monospace;padding:16px}b{color:#fff}</style></head>
+<body>
+<b>Browser speed test</b> (secure https copy)<br>
+<div id="out">running…</div>
+<script>
+// The same small loop run 6 times: with the browser's fast compiler the later runs drop to a few ms; without it they stay
+// around 50-100 ms. The typed-array test is close to what the emulator does all the time.
+'use strict';
+const out = document.getElementById('out'), lines = [];
+const show = () => { out.innerHTML = lines.join('<br>'); };
+function loop() { let x = 0; for (let i = 0; i < 3e6; i++) x = (Math.imul(x, 31) + i) | 0; return x; }
+function typed() { const a = new Int32Array(65536); let s = 0; for (let k = 0; k < 40; k++) for (let i = 0; i < 65536; i++) { a[i] = (a[i] + i * k) | 0; s ^= a[i]; } return s; }
+const time = (fn) => { const t = performance.now(); fn(); return performance.now() - t; };
+const runs = [];
+let n = 0;
+const step = () => {
+  runs.push(time(loop).toFixed(0));
+  lines[0] = 'loop: ' + runs.join(' / ') + ' ms';
+  show();
+  if (++n < 6) setTimeout(step, 200);
+  else setTimeout(() => {
+    const t = [time(typed), time(typed), time(typed)].map((v) => v.toFixed(0));
+    lines[1] = 'typed arrays: ' + t.join(' / ') + ' ms';
+    const fast = Number(runs[5]) < 25;
+    lines[2] = fast ? 'RESULT: fast compiler is ON (good)' : 'RESULT: fast compiler looks OFF (everything runs 10-20x slower)';
+    lines[3] = 'browser: ' + navigator.userAgent;
+    show();
+  }, 200);
+};
+setTimeout(step, 300);
+</script>
+</body></html>
