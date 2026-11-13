@@ -64,6 +64,8 @@ Home costs about 134 K instructions = 2 ms a frame.
 
 ## Things learned
 
+- Screen shape: the app lays its screens out for 1.5 to 16:9. Taller (an iPhone home-screen app: 390x797) leaves a black band on
+  Home, so `fit()` in main.js caps the height at 1.78 x the width and the page centres the game (13 Nov 2026).
 - Headless Chrome hands scripts an empty answer (status 204) for addresses ending in `.bin` / `.zip` served as octet-stream: the
   emulator's files are `.dat` (type application/x-game-data) and the update zip is fetched from its `.dat` copy.
 - JNI functions with five arguments take the fifth from the stack (GetByteArrayRegion): the garbled text was that.

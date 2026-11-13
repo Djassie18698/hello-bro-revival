@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 13 | 5 | 1 | 1 |
+| Discord reports | 13 | 6 | 1 | 1 |
 
 ## Bug list 1
 
@@ -123,6 +123,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ⏳ | "hello" thread with no report (10 Nov, enzobfer) | Nothing described; asked the player once what went wrong |
 | 🚫 | The game does not run on 64-bit-only phones (4 Nov) | The game's engine (libgame.so) exists only as a 32-bit file and there is no source code to rebuild it; phones that dropped 32-bit apps can't run it (a player answered this on Discord) |
 | ✅ | Flower Worship "Detailed Information": the goddess card was a huge picture over the list (lephuc, #general, 12 Nov) | the reply sent the big card art (npc/) instead of the small icon (icon/icon_npc...); also Tsunade's and Sakura's rows had swapped names (the list names rows in a fixed order). Both fixed, seen in game |
+| 🧪 | Game in the browser, added to the iPhone home screen: a thick black band on Home between the team row and the village (13 Nov, buva) | As a home-screen app the page gets the whole tall screen (iPhone 15: 390x797, 2.04 times as tall as wide); the game is made for screens up to 16:9 and leaves a gap on Home when it is taller. The page now keeps the game 16:9 on tall screens (black above and below, bottom bar clear of the swipe line). Checked in Chrome at that size; not on a real iPhone. The iPhone app gets it with its next build |
 
 ## Built on request (chat)
 

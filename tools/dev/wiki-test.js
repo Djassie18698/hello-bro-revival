@@ -210,6 +210,14 @@ const srv = http.createServer((req, resp) => {
   const play = await get('/play/');
   ck(play.code === 200 && /<canvas id="game">/.test(play.body), `/play/ gave ${play.code}`);
   for (const f of ['engine.js', 'lua.js', 'luabind.js', 'gamebind.js', 'net.js', 'data.js', 'bag.js', 'team.js', 'train.js', 'fight.js', 'game.js']) { const r = await get('/play/' + f); ck(r.code === 200 && /javascript/.test(r.h['content-type']), `/play/${f} gave ${r.code}`); }
+  // the emulator page keeps the game's screen between 1.5 and 16:9 (taller = a black band on Home: iPhone home-screen app, buva 13 Nov 2026)
+  const emuMain = await get('/play/emu/main.js');
+  const fitSrc = (/const fit = \(\) => \{.*?return \[w, h\]; \};/.exec(emuMain.body) || [])[0];
+  ck(fitSrc, '/play/emu/main.js: fit() not found');
+  if (fitSrc) for (const [iw, ih] of [[390, 797], [390, 844], [390, 664], [432, 768], [1440, 900], [768, 1024]]) {
+    const [w, h] = new Function('innerWidth', 'innerHeight', 'canvas', fitSrc + ' return fit();')(iw, ih, { style: {} });
+    ck(h / w <= 1.79 && h / w >= 1.33 && w <= iw && h <= ih, `emulator screen for a ${iw}x${ih} window is ${w}x${h}`);
+  }
   for (const p of ['/play/../server.js', '/play/..%2fhandlers.js', '/play/%2e%2e/wiki/index.html', '/play/..%5cserver.js']) {
     const r = await get(p);
     ck(r.code === 404 || r.code === 400, `${p} should be refused, got ${r.code}`);

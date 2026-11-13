@@ -33,7 +33,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v13 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v14 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   }
   window.addEventListener('error', (e) => { diag.err = String(e.message || e.error).slice(0, 300); });
@@ -49,7 +49,9 @@
   apk = { length: parts.apk.size }; obb = { length: parts.obb.size };
 
   const canvas = document.getElementById('game');
-  const fit = () => { let w = innerWidth, h = innerHeight; if (h / w < 1.5) w = Math.round(h / 1.78); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; return [w, h]; };
+  // The game is made for screens up to 16:9 (1.78 tall). On a taller one (an iPhone home-screen app or the iPhone app: 390x797 = 2.04)
+  // its Home screen leaves a black band between the team row and the village picture (buva, 13 Nov 2026): keep the game 16:9, black above and below.
+  const fit = () => { let w = innerWidth, h = innerHeight; if (h / w < 1.5) w = Math.round(h / 1.78); if (h / w > 1.78) h = Math.round(w * 1.78); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; return [w, h]; };
   const [cw, ch] = fit();
   const dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
