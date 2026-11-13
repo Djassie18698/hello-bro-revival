@@ -366,6 +366,8 @@ html.embed .wrap{padding-top:18px}
           <button class="btn ghost" onclick="$('lg-pw').value = newPw()">Make one</button></div>
         <div class="row"><button class="btn" onclick="setLogin()">Save new password</button></div>
         <p class="hint" id="lg-sent" style="user-select:all"></p>
+        <h3 style="margin-top:18px">🛡️ What mods changed</h3>
+        <div id="lg-modlog" class="hint">...</div>
       </section>
 
       <section class="panel view" id="v-danger">
@@ -682,7 +684,14 @@ function showLogins(ls) {
     + (guests ? '<br>' + guests + ' guest login' + (guests > 1 ? 's' : '') + ' (Play button on a phone).' : '');
   if (named.length) $('lg-name').value = named[named.length - 1].name; else $('lg-name').value = '';
 }
+async function loadModLog() { // mod_log (admin.js): every change a mod made, newest first
+  try {
+    const r = await (await fetch('/admin/api/modlog')).json();
+    $('lg-modlog').innerHTML = r.log.length ? r.log.map((l) => esc(day(l.at)) + ' · <b>' + esc(l.nick || '-') + '</b> · ' + esc(l.what)).join('<br>') : 'Nothing yet.';
+  } catch { $('lg-modlog').textContent = ''; }
+}
 async function loadLogin() {
+  loadModLog();
   if (!current()) { $('lg-list').textContent = 'Pick a player first.'; return; }
   $('lg-pw').value = ''; $('lg-sent').textContent = '';
   const r = await api('login', { uid: sel });

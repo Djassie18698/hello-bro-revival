@@ -50,6 +50,36 @@ function authorized(req) {
 const crypto = require('crypto');
 const loginToken = (pw) => crypto.createHash('sha256').update('hb-admin-login|' + pw).digest('hex');
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+// ---- Mods (owner, 13 Nov 2026: "a complete helper page for mods: more access than a normal player who can edit items, but less than me,
+// so it can't stop the server etc"; first mod: Goat_RyouYuuta). Own password: MOD_PASSWORD, else the first line of mod-password.txt
+// next to the save (git-ignored). The same login page takes it; it sets the cookie hb_mod and opens /mod = the item page with the
+// 🔑 Login tab (new passwords). Mods never get the control panel, the Server Manager (stop/restart, settings, backups), wiping a player,
+// glowing names, the Tracker, Bugs or Website. Accounts in HB_MOD_PROTECT (uids; cloud: DEAN) can't get a new password from a mod.
+// Every change a mod makes is logged in mod_log (owner and mods see it in the 🔑 Login tab).
+let modFile = { at: 0, pw: '' };
+function modPassword() {
+  let pw = process.env.MOD_PASSWORD || '';
+  if (!pw) {
+    if (Date.now() - modFile.at > 30000) { // re-read now and then: a new password works without a restart
+      let p = '';
+      try { p = fs.readFileSync(path.join(process.cwd(), 'mod-password.txt'), 'utf8').split(/\r?\n/)[0].trim(); } catch { /* none */ }
+      modFile = { at: Date.now(), pw: p };
+    }
+    pw = modFile.pw;
+  }
+  return pw.length >= 8 && pw !== (process.env.ADMIN_PASSWORD || '') ? pw : ''; // too short, or the admin password: no mod login
+}
+const modToken = (pw) => crypto.createHash('sha256').update('hb-mod-login|' + pw).digest('hex');
+function isMod(req) {
+  const pw = modPassword();
+  const c = /(?:^|;\s*)hb_mod=([a-f0-9]{64})/.exec(req.headers.cookie || '');
+  return !!pw && !!c && safeEq(c[1], modToken(pw));
+}
+const modProtected = (uid) => String(process.env.HB_MOD_PROTECT || '').split(',').map((s) => Number(s.trim())).includes(Number(uid));
+function logout(req, res) {
+  res.writeHead(303, { Location: '/mod', 'Cache-Control': 'no-store', 'Set-Cookie': ['hb_mod=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax', 'hb_admin=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'] });
+  return res.end();
+}
 const visitor = (req) => String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress;
 const fails = new Map(); // visitor -> times of wrong passwords: 10 wrong in 10 minutes = wait
 const safeNext = (n) => (/^\/(?!\/)[\w\-./?=&%#]*$/.test(n || '') ? n : '/panel');
@@ -65,9 +95,9 @@ img{width:84px;height:84px;border-radius:20px;align-self:center}h1{margin:0;text
 input{width:100%;padding:14px;border-radius:12px;border:1px solid #3a3658;background:#17152a;color:#fff;font-size:17px}
 input:focus{outline:2px solid #ff8a1f;outline-offset:1px}button{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:#ff8a1f;color:#1a0f02;font-weight:800;font-size:17px}
 .err{color:#ff8b9b}</style></head><body><main><img src="/admin/app-icon.png" alt=""><h1>Hello Bro Control Panel</h1>
-<p>${msg ? '<span class="err">' + escA(msg) + '</span>' : 'Type the admin password. This phone or computer remembers it.'}</p>
+<p>${msg ? '<span class="err">' + escA(msg) + '</span>' : 'Type your password (admin or mod). This phone or computer remembers it.'}</p>
 <form method="post" action="/admin/login"><input type="hidden" name="next" value="${escA(safeNext(next))}">
-<input type="password" name="pw" autocomplete="current-password" placeholder="Admin password" aria-label="Admin password" required autofocus>
+<input type="password" name="pw" autocomplete="current-password" placeholder="Password" aria-label="Password" required autofocus>
 <button>Open the panel</button></form></main></body></html>`;
 }
 // a page or an API call that needs the password: the form for a page opened in the browser, a plain 401 for everything else
@@ -83,9 +113,15 @@ async function login(req, res, readBody) {
   const f = new URLSearchParams(await readBody(req)), next = safeNext(f.get('next'));
   const who = visitor(req), now = Date.now(), list = (fails.get(who) || []).filter((t) => now - t < 600000);
   if (list.length >= 10) return page(429, next, 'Too many wrong passwords. Wait 10 minutes and try again.');
-  if (!pw || !safeEq(loginToken(f.get('pw') || ''), loginToken(pw))) { list.push(now); fails.set(who, list); return page(401, next, 'Wrong password, try again.'); }
-  fails.delete(who);
+  const given = f.get('pw') || '', mpw = modPassword();
   const https = req.headers['x-forwarded-proto'] === 'https' || !!process.env.HB_SITE_URL;
+  if (mpw && safeEq(modToken(given), modToken(mpw))) { // a mod: the mod page, whatever page asked
+    fails.delete(who);
+    res.writeHead(303, { Location: '/mod', 'Cache-Control': 'no-store', 'Set-Cookie': `hb_mod=${modToken(mpw)}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${https ? '; Secure' : ''}` });
+    return res.end();
+  }
+  if (!pw || !safeEq(loginToken(given), loginToken(pw))) { list.push(now); fails.set(who, list); return page(401, next, 'Wrong password, try again.'); }
+  fails.delete(who);
   res.writeHead(303, { Location: next, 'Cache-Control': 'no-store',
     'Set-Cookie': `hb_admin=${loginToken(pw)}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${https ? '; Secure' : ''}` });
   return res.end();
@@ -631,15 +667,31 @@ function benchmark(db, pl, targets, runs = 300) {
 const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin/api/login', '/admin/track', '/admin/api/track', '/admin/api/trackuids']);
 const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
 
+const MOD_OK = new Set(['/admin/api/login']); // owner-only things a mod may use too
+const PLAYER_HIDE = '.player [data-v="danger"],.player [data-v="purple"],.player [data-v="login"],.player a[href="/manager"]{display:none!important}';
+const MOD_HIDE = '.mod [data-v="danger"],.mod [data-v="purple"],.mod a[href="/manager"]{display:none!important}'
+  + '.modbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;background:#1d2b4a;color:#dfe7ff;font:600 14px system-ui,sans-serif}.modbar a{color:#9fd8ff}';
+
 module.exports = async function admin(req, res, u, db, readBody) {
-  if (!authorized(req) && !openToPlayers(u)) return deny(req, res);
-  const owner = authorized(req);
+  const owner = authorized(req), mod = !owner && isMod(req);
+  if (!owner && !(mod && (!OWNER_ONLY.has(u.pathname) || MOD_OK.has(u.pathname))) && !openToPlayers(u)) return deny(req, res);
+  if (u.pathname === '/admin/api/modlog') { // what mods changed (mod_log): owner and mods only
+    if (!owner && !mod) return deny(req, res);
+    ensureModLog(db);
+    return json(res, { log: db.prepare('SELECT at, what, nick FROM mod_log ORDER BY id DESC LIMIT 30').all() });
+  }
+  if (u.pathname === '/mod') { // the mods' page: the item page with their tabs (server.js sends /mod here)
+    if (!owner && !mod) return deny(req, res);
+    if (!pageCache || process.env.HB_DEBUG) pageCache = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(pageCache.replace('<body>', `<body class="mod"><style>${MOD_HIDE}</style><div class="modbar"><span>🛡️ Mod page</span><span><a href="/admin/playerlog">Player log</a> · <a href="/admin/logout">Log out</a></span></div>`));
+  }
   // players (ADMIN_OPEN) get the item page alone: the control panel around it polls /manager, which would ask them for the password
   if ((u.pathname === '/admin' || u.pathname === '/admin/') && !u.query.embed && owner) return panel(res, 'admin');
   if (u.pathname === '/admin' || u.pathname === '/admin/') {
     if (!pageCache || process.env.HB_DEBUG) pageCache = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    return res.end(owner ? pageCache : pageCache.replace('<body>', '<body class="player"><style>.player [data-v="danger"],.player [data-v="purple"],.player [data-v="login"],.player a[href="/manager"]{display:none!important}</style>'));
+    return res.end(owner ? pageCache : mod ? pageCache.replace('<body>', `<body class="mod"><style>${MOD_HIDE}</style>`) : pageCache.replace('<body>', `<body class="player"><style>${PLAYER_HIDE}</style>`));
   }
   game.ensure(db);
   if (u.pathname === '/admin/playerlog') { // progress log per player (playerlog.js), the panel's "Player log" tab
@@ -696,6 +748,12 @@ module.exports = async function admin(req, res, u, db, readBody) {
   if (req.method === 'POST') {
     let b;
     try { b = JSON.parse(await readBody(req)); } catch { return json(res, { ok: false, error: 'bad json' }); }
+    if (mod && !(u.pathname === '/admin/api/login' && b.password === undefined)) { // every change a mod makes (never the password typed)
+      ensureModLog(db);
+      const target = b.uid ? findPlayer(db, b.uid) : null;
+      const what = u.pathname.replace('/admin/api/', '') + ' ' + JSON.stringify(b, (k, v) => (k === 'password' ? '***' : v)).slice(0, 300);
+      db.prepare('INSERT INTO mod_log(at, what, nick) VALUES(?,?,?)').run(Date.now(), what, target ? target.nick : (b.all ? 'everyone' : ''));
+    }
     // Award Center mail (awardcenter.js): to one player or (b.all) everyone; the player claims it in the game ("Receive" on Home)
     if (u.pathname === '/admin/api/sendmail') {
       const to = b.all ? 'all' : findPlayer(db, b.uid);
@@ -773,6 +831,7 @@ module.exports = async function admin(req, res, u, db, readBody) {
     if (u.pathname === '/admin/api/login') { // lost password (gumplogin.js): the player's login names; with name + password: set a new password
       const gl = require('./gumplogin');
       if (b.password === undefined) return json(res, { ok: true, logins: gl.loginsOf(db, pl.uid) });
+      if (mod && modProtected(pl.uid)) return json(res, { ok: false, error: "this account is the owner's: ask the owner" });
       const r = gl.setPassword(db, pl.uid, b.name, b.password);
       return json(res, r.error ? { ok: false, error: r.error } : { ok: true, name: r.name, created: r.created, logins: gl.loginsOf(db, pl.uid) });
     }
@@ -790,7 +849,10 @@ module.exports = async function admin(req, res, u, db, readBody) {
   res.writeHead(404); res.end('not found');
 };
 
+function ensureModLog(db) { db.exec("CREATE TABLE IF NOT EXISTS mod_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, what TEXT NOT NULL, nick TEXT NOT NULL DEFAULT '')"); }
 module.exports.authorized = authorized;
+module.exports.isMod = isMod;
+module.exports.logout = logout;
 module.exports.deny = deny; // the password page (server.js, manager.js)
 module.exports.login = login;
 module.exports.resetPlayer = resetPlayer; // for tools/dev/smoke.js

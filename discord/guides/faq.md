@@ -51,7 +51,9 @@ Hello Bro is a game from 2015 and its engine is a **32-bit** app. Some new phone
 Other ways: **BlueStacks** on a PC (steps in <#1565697833150058507>), or another phone or tablet.
 
 ## 10. Is there an iPhone / iPad version?
-No. Only the Android game survived, so on Apple devices you can't play. Use an Android phone or tablet, or **BlueStacks** on a Windows PC.
+Yes, two ways. Both play on the same server as Android, and you can log in with your Android account (give it a name first: question 4).
+• **In the browser:** open **https://ninjaonlinereborn.com/play/emu/** in Safari. Tap Share > **Add to Home Screen** to get it as an app icon.
+• **As an iPhone app:** download **NinjaOnline.ipa** from https://github.com/Djassie18698/hello-bro-revival/releases/tag/ios-game and install it from a Windows PC with **Sideloadly** (free, needs iTunes and your Apple ID). Steps: https://github.com/Djassie18698/hello-bro-revival/blob/main/tools/ios-game/README.md. With a free Apple ID you press Start in Sideloadly again every 7 days; your login stays.
 
 ## 11. Something is broken
 Post it in <#1569836981016592484> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.

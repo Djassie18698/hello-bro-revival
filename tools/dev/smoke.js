@@ -373,6 +373,56 @@ for (const pick of [55, 56, 57]) {
       && back.status === 200 && old.status === 401;
     if (!ok) { bad++; console.log('PASSWORD PAGE:', JSON.stringify({ form: form.status, api: api.status, wrong: wrong.status, right: right.status, loc: right.h.Location, cookie, back: back.status, old: old.status })); }
   }
+  // Mods (owner, 13 Nov 2026: "more access than a normal player who can edit items, but less than me, so it can't stop the server"):
+  // own password, the item page + new passwords; never the manager, wiping, glowing names or the tracker; changes logged without passwords
+  {
+    const admin = require('../../server/admin'), manager = require('../../server/manager'), gump = require('../../server/gumplogin'), url = require('url');
+    const keep = { m: process.env.MOD_PASSWORD, a: process.env.ADMIN_PASSWORD, p: process.env.HB_MOD_PROTECT, o: process.env.ADMIN_OPEN };
+    const call = async (fn, method, p, headers = {}, body = '') => {
+      const out = { status: 200, h: {}, body: '' };
+      const res = { writeHead(s, h) { out.status = s; out.h = h || {}; }, end(s) { out.body = String(s || ''); }, setHeader() {} };
+      const req = { method, url: p, headers, socket: { remoteAddress: '10.7.7.7' } };
+      await (fn === 'login' ? admin.login(req, res, async () => body) : fn(req, res, url.parse(p, true), db, async () => body)).catch((e) => { out.body = 'ERR ' + e.message; });
+      return out;
+    };
+    const gcall = async (u2, form) => { let o = ''; await gump.handle({ method: 'POST', url: u2, socket: { remoteAddress: '10.7.7.8' } }, { writeHead() {}, end(s) { o = s; } }, async () => new URLSearchParams(form).toString(), db); return JSON.parse(o); };
+    const acc = await gcall('/gump/reg.do', { deviceId: 'smoke-mod', appId: '10015', email: 'smokemodp', passwd: 'first123' });
+    const boss = await gcall('/gump/reg.do', { deviceId: 'smoke-mod-2', appId: '10015', email: 'smokeboss', passwd: 'boss1234' });
+    db.prepare("INSERT OR IGNORE INTO players(uid, server_id, nick, created) VALUES(?,1,'ModSmokeNinja',0),(?,1,'ModSmokeBoss',0)").run(Number(acc.userId), Number(boss.userId));
+    process.env.ADMIN_PASSWORD = 'smoke-secret'; delete process.env.ADMIN_OPEN; process.env.HB_MOD_PROTECT = String(boss.userId);
+    process.env.MOD_PASSWORD = 'smoke-secret'; // the same as the admin password: no mod login (it logs in as the owner instead)
+    const same = await call('login', 'POST', '/admin/login', {}, 'pw=smoke-secret&next=%2Fpanel');
+    process.env.MOD_PASSWORD = 'mod-smoke-pw';
+    const nobody = await call(admin, 'GET', '/admin/api/players');
+    const page = await call(admin, 'GET', '/mod', { accept: 'text/html' });
+    const right = await call('login', 'POST', '/admin/login', {}, 'pw=mod-smoke-pw&next=%2Fpanel');
+    const cookie = String((right.h['Set-Cookie'] || '')).split(';')[0];
+    const h = { cookie };
+    const r = {
+      mod: (await call(admin, 'GET', '/mod', h)).body.includes('<body class="mod">'),
+      players: (await call(admin, 'GET', '/admin/api/players', h)).status,
+      logins: JSON.parse((await call(admin, 'POST', '/admin/api/login', h, JSON.stringify({ uid: acc.userId + ':1' }))).body).ok,
+      set: JSON.parse((await call(admin, 'POST', '/admin/api/login', h, JSON.stringify({ uid: acc.userId + ':1', name: 'smokemodp', password: 'second12' }))).body).ok,
+      owner: JSON.parse((await call(admin, 'POST', '/admin/api/login', h, JSON.stringify({ uid: boss.userId + ':1', name: 'smokeboss', password: 'taken123' }))).body).error,
+      give: JSON.parse((await call(admin, 'POST', '/admin/api/give', h, JSON.stringify({ uid: acc.userId + ':1', field: 'gold', amount: 5 }))).body).ok,
+      reset: (await call(admin, 'POST', '/admin/api/reset', h, JSON.stringify({ uid: acc.userId + ':1' }))).status,
+      purple: (await call(admin, 'POST', '/admin/api/purplename', h, '{}')).status,
+      track: (await call(admin, 'GET', '/admin/track', h)).status,
+      manager: (await call(manager, 'GET', '/manager/api/status', h)).status,
+      panelAuth: admin.authorized({ headers: h }),
+    };
+    const newpw = await gcall('/gump/login.do', { deviceId: 'web-m', appId: '10015', email: 'smokemodp', passwd: 'second12' });
+    const log = JSON.parse((await call(admin, 'GET', '/admin/api/modlog', h)).body).log;
+    const playerLog = (await call(admin, 'GET', '/admin/api/modlog', {})).status;
+    process.env.MOD_PASSWORD = 'mod-smoke-new'; // a new mod password logs the old cookie out (after the 30 s file cache: env is read at once)
+    const old = (await call(admin, 'GET', '/admin/api/players', h)).status;
+    for (const [k, v] of [['MOD_PASSWORD', keep.m], ['ADMIN_PASSWORD', keep.a], ['HB_MOD_PROTECT', keep.p], ['ADMIN_OPEN', keep.o]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    const ok = /^hb_admin=/.test(String(same.h['Set-Cookie'] || '')) && nobody.status === 401 && page.status === 401 && page.body.includes('/admin/login')
+      && right.status === 303 && right.h.Location === '/mod' && /^hb_mod=[a-f0-9]{64}$/.test(cookie)
+      && r.mod && r.players === 200 && r.logins && r.set && r.owner && r.give && r.reset === 401 && r.purple === 401 && r.track === 401 && r.manager === 401 && !r.panelAuth
+      && newpw.userId === acc.userId && log.length === 3 && log.some((l) => l.what.startsWith('login') && l.what.includes('***') && !l.what.includes('second12')) && playerLog === 401 && old === 401;
+    if (!ok) { bad++; console.log('MODS:', JSON.stringify({ same: same.h['Set-Cookie'], nobody: nobody.status, page: page.status, right: right.status, loc: right.h.Location, cookie, ...r, newpw: newpw.userId, log, playerLog, old })); }
+  }
   // Item page (owner, 12 Nov 2026, for a player): Golden Chōji (EXP material, Lv 25) can be given, and today's ramen / Hyourou-gan uses reset
   {
     const admin = require('../../server/admin'), game = require('../../server/game'), url = require('url');

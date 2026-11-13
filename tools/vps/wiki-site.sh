@@ -43,9 +43,9 @@ $WIKI_HOST {
 	redir @discord https://discord.gg/2Cbp4UDHrU 302
 	@patreon path /patreon /patreon/
 	redir @patreon https://www.patreon.com/cw/NinjaOnlineHelloBro 302
-	# the public game server's control panel (/panel, /manager: the game server asks for the admin password) and item page (/admin, open to players),
+	# the public game server's control panel (/panel, /manager: the game server asks for the admin password), the mods' page (/mod, /helper: mod password) and item page (/admin, open to players),
 	# over https; the game server sends browsers that open them on ninjaonline.duckdns.org:18080 here (HB_SITE_URL in run.sh)
-	@gamepages path /panel /panel/ /admin /admin/* /manager /manager/* /progress.md
+	@gamepages path /panel /panel/ /admin /admin/* /manager /manager/* /progress.md /mod /helper
 	handle @gamepages {
 		reverse_proxy 127.0.0.1:18080
 	}

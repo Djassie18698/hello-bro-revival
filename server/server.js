@@ -110,7 +110,7 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   }
   // HB_SITE_URL (cloud, tools/vps/run.sh; owner 10 Nov 2026: "I don't like the duckdns"): a browser opening the control panel or item page straight on
   // ninjaonline.duckdns.org:18080 is sent to the website, which passes them on here over https (tools/vps/wiki-site.sh). The game never asks for these pages.
-  if (process.env.HB_SITE_URL && req.method === 'GET' && !LOCAL.has(req.socket.remoteAddress) && /^\/(panel|admin(\/playerlog|\/track)?|manager)?\/?$/.test(u.pathname)) {
+  if (process.env.HB_SITE_URL && req.method === 'GET' && !LOCAL.has(req.socket.remoteAddress) && /^\/(panel|admin(\/playerlog|\/track)?|manager|mod|helper)?\/?$/.test(u.pathname)) {
     resp.writeHead(302, { Location: process.env.HB_SITE_URL + (u.pathname === '/' ? '/panel' : u.pathname) + (u.search || '') });
     return resp.end();
   }
@@ -128,6 +128,12 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   if (u.pathname === '/admin/appnav.js') { // the panel's tabs on a phone (appnav.js): no password, the pages themselves ask for it
     resp.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
     return resp.end(require('fs').readFileSync(require('path').join(__dirname, 'appnav.js')));
+  }
+  // the mods' page (admin.js, owner 13 Nov 2026): its own password; more than a player, less than the owner
+  if (u.pathname === '/helper' || u.pathname === '/mod/') { resp.writeHead(301, { Location: '/mod' }); return resp.end(); }
+  if (u.pathname === '/admin/logout') return admin.logout(req, resp);
+  if (u.pathname === '/mod') {
+    try { return await admin(req, resp, u, db, parseBody); } catch (e) { logError('admin error', e); resp.writeHead(500); return resp.end('error'); }
   }
   if (u.pathname === '/admin/login') return admin.login(req, resp, parseBody); // the password page (admin.js): sets the login cookie
   if (u.pathname === '/' || u.pathname === '/panel') { // the control panel
