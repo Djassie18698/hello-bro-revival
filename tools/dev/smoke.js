@@ -39,6 +39,21 @@ const run = (name, cmd, extra = {}) => {
 };
 run('rl_w_login2', 0); run('rl_w_reg2', 0, { Nick: 'Smoke', Card: 1 });
 for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[name] || [])])) run(name, c);
+// Golden Chōji x10 (owner, 14 Nov 2026, ours: a player asked to buy EXP Chōji in bulk; the app's buy window always buys 1): pack 23 in the
+// Shop list, 500 gold for 10 Golden Chōji at Lv 25, every card's seq in <bagid> so the app adds all ten at once
+{
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  const q = () => db.prepare("SELECT gold, (SELECT COUNT(*) FROM cards WHERE uid=77 AND ninja_id=100016 AND level=25) n FROM players WHERE uid=77").get();
+  db.prepare('UPDATE players SET gold=1000 WHERE uid=77').run();
+  const before = q(), list = call('rl_r_shoplist', { Cmd: 1600 }), buy = call('rl_w_shopbuy', { Cmd: 1701, Packageid: 23, Count: 1 }), after = q();
+  const bag = (buy.match(/<bagid bagid="([^"]*)"/) || [])[1] || '';
+  if (!/package_id="?23/.test(list.replace(/<package_id>23</, 'package_id="23')) || !/package_yuanbao="?>?500/.test(list.replace(/<package_yuanbao>500</, 'package_yuanbao="500')) || after.gold !== before.gold - 500 || after.n !== before.n + 10 || bag.split('|').length !== 10) {
+    bad++; console.log('GOLDEN CHOJI x10:', JSON.stringify({ before, after, bag }), buy.slice(0, 200));
+  }
+  db.prepare('UPDATE players SET gold=100 WHERE uid=77').run();
+  if (!/code="5"/.test(call('rl_w_shopbuy', { Cmd: 1701, Packageid: 23, Count: 1 })) || q().n !== after.n) { bad++; console.log('GOLDEN CHOJI x10: bought without enough gold'); }
+  db.prepare('DELETE FROM cards WHERE uid=77 AND ninja_id=100016').run(); // the item page test below counts its own
+}
 // Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
 {
   const ck = (ok, what) => { if (!ok) { bad++; console.log('SUPER NINJA', what); } };
