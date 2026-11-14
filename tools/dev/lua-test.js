@@ -82,5 +82,18 @@ if (fs.existsSync(dirs[0])) {
   } } };
   for (const d of dirs) if (fs.existsSync(d)) walk(d);
 }
+// the browser game's C library (server/webclient/emu/sys.js) strftime: every code becomes text, never a lone '%' (14 Nov 2026: '%X' stayed
+// in the app's Clinettime request field and the Lua screens that log their request with string.format stopped: Hot Treasure stayed empty)
+{
+  const E = path.join(__dirname, '..', '..', 'server', 'webclient', 'emu');
+  const Cpu = require(path.join(E, 'cpu.js')), makeSys = require(path.join(E, 'sys.js'));
+  const cpu = new Cpu(32 << 20), sys = makeSys(cpu, { heapStart: 0x100000, heapEnd: 24 << 20, vfs: { read: () => null, exists: () => false, isDir: () => false, list: () => [] }, log: () => {} });
+  const tm = sys.F.calloc ? sys.F.calloc(0, 1, 64) : 0x200000;
+  [5, 4, 3, 14, 10, 126, 6, 317].forEach((v, i) => cpu.w32(tm + i * 4, v)); // 03:04:05, 14 Nov 2026, Saturday, day 318
+  const strf = (fmt) => { const dst = 0x300000, f = 0x301000; sys.putStr(f, fmt, 256); const n = sys.F.strftime(null, dst, 256, f, tm); return cpu.cstr(dst).slice(0, n); };
+  const want = { '%Y/%m/%d %X %A': '2026/11/14 03:04:05 Saturday', '%T %D %F': '03:04:05 11/14/26 2026-11-14', '%I:%M %p %j': '03:04 AM 318', '%x|%c': '11/14/26|Sat Nov 14 03:04:05 2026', '100%%': '100%' };
+  for (const [fmt, out] of Object.entries(want)) { const got = strf(fmt); if (got !== out) { bad++; console.log('strftime', fmt, '->', JSON.stringify(got), 'want', JSON.stringify(out)); } }
+  if (/%/.test(strf('%Q %X'))) { bad++; console.log('strftime leaves a % for an unknown code:', strf('%Q %X')); }
+}
 console.log(bad ? `${bad} Lua problem(s)` : `Lua OK (${cases.length} programs match Lua 5.1; ${files - known} of ${files} game scripts compile in ${ms} ms, ${known} broken in the original too)`);
 process.exit(bad ? 1 : 0);

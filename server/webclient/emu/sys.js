@@ -236,7 +236,17 @@
       strftime: (c, dst, max, f, tm) => {
         const g = (o) => cpu.r32(tm + o), p2 = (n) => String(n).padStart(2, '0');
         const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const s = cpu.cstr(f).replace(/%(.)/g, (all, k) => ({ Y: String(g(20) + 1900), y: p2(g(20) % 100), m: p2(g(16) + 1), d: p2(g(12)), H: p2(g(8)), M: p2(g(4)), S: p2(g(0)), A: DAYS[g(24)], a: DAYS[g(24)].slice(0, 3), B: MON[g(16)], b: MON[g(16)].slice(0, 3), w: String(g(24)), '%': '%' })[k] ?? all);
+        // every code the phone's C library knows (14 Nov 2026: %X was left as it was, so the app's request field Clinettime held a '%X';
+        // the Lua screens that log their request with string.format (util/common.lua sendRequest, log = 1: Hot Treasure) stopped there
+        // with 'bad argument #2 to format' and never filled in). A code it does not know becomes nothing, never a lone '%'.
+        const H = g(8), h12 = H % 12 || 12, yday = g(28), off = -new Date().getTimezoneOffset();
+        const one = (k) => ({ Y: String(g(20) + 1900), C: p2(Math.floor((g(20) + 1900) / 100)), y: p2(g(20) % 100), m: p2(g(16) + 1), d: p2(g(12)), e: String(g(12)).padStart(2, ' '),
+          H: p2(H), I: p2(h12), l: String(h12).padStart(2, ' '), k: String(H).padStart(2, ' '), M: p2(g(4)), S: p2(g(0)), p: H < 12 ? 'AM' : 'PM', P: H < 12 ? 'am' : 'pm',
+          A: DAYS[g(24)] || '', a: (DAYS[g(24)] || '').slice(0, 3), B: MON[g(16)] || '', b: (MON[g(16)] || '').slice(0, 3), h: (MON[g(16)] || '').slice(0, 3),
+          w: String(g(24)), u: String(g(24) || 7), j: String(yday + 1).padStart(3, '0'), n: String.fromCharCode(10), t: String.fromCharCode(9), '%': '%',
+          z: (off < 0 ? '-' : '+') + p2(Math.floor(Math.abs(off) / 60)) + p2(Math.abs(off) % 60), Z: '' })[k];
+        const combo = { X: '%H:%M:%S', T: '%H:%M:%S', R: '%H:%M', r: '%I:%M:%S %p', x: '%m/%d/%y', D: '%m/%d/%y', F: '%Y-%m-%d', c: '%a %b %e %H:%M:%S %Y' };
+        const s = cpu.cstr(f).replace(/%[EO]?(.)/g, (all, k) => (combo[k] ? combo[k].replace(/%(.)/g, (x, kk) => one(kk)) : one(k) ?? ''));
         return putStr(dst, s, max) < max ? Cpu.enc.encode(s).length : 0;
       },
       usleep: () => { cpu.yielding = true; return 0; }, alarm: () => 0, // in a thread: let the others run

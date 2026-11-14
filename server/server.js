@@ -97,6 +97,18 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
   if (u.pathname.startsWith('/wiki/')) return require('./wikiserve')(req, resp, u.pathname);
   // The web client (server/webclient, the game in a browser for iPhones; game files from tools/build_webclient.js): static files, no password
   if (u.pathname === '/play') { resp.writeHead(301, { Location: '/play/' }); return resp.end(); }
+  // the browser game asks for the hot update as /play/assets/emu/cdn/<version>_update.dat (webclient/emu/main.js: some browsers give a
+  // script an empty answer for a .zip address). Answered from server/cdn itself, so a new hot update reaches the browser game at once
+  // (14 Nov 2026: the copy tools/build_webclient.js made was still 28.0.48 when 28.0.49 came, and the update download got a 404)
+  {
+    const m = /^\/play\/assets\/emu\/cdn\/(\d+\.\d+\.\d+_update)\.dat$/.exec(u.pathname);
+    const zip = m && require('path').join(__dirname, 'cdn', m[1] + '.zip');
+    if (zip && require('fs').existsSync(zip)) {
+      console.log(`[cdn] ${req.method} ${u.pathname} (browser game)`);
+      resp.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': require('fs').statSync(zip).size, 'Cache-Control': 'no-cache' });
+      return req.method === 'HEAD' ? resp.end() : require('fs').createReadStream(zip).pipe(resp);
+    }
+  }
   if (u.pathname.startsWith('/play/')) return playServe()(req, resp, u.pathname);
   if (u.pathname.endsWith('.do')) return require('./gumplogin').handle(req, resp, parseBody, db); // the APK's account window (gumplogin.js)
   if (u.pathname === '/status') { // version + start time, for the Discord #server-status watcher (discord/statuswatch.js)

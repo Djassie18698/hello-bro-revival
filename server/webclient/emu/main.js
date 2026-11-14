@@ -35,7 +35,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v15 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v16 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
     }, 500);
   };
   if (q.get('diag') === '1') showDiag();
@@ -248,7 +248,8 @@
     });
   };
   // music and sound effects (audio.js plays assets/emu/sound/<file>.mp3)
-  const audio = window.EmuAudio ? window.EmuAudio(ASSETS + 'sound/') : null;
+  // ?mute=1: no sound at all, nothing of assets/emu/sound is fetched (tests on a PC where a download manager pops up for every mp3)
+  const audio = window.EmuAudio && q.get('mute') !== '1' ? window.EmuAudio(ASSETS + 'sound/') : null;
   const A = (fn, dflt) => (j, args) => (audio ? fn(...args) : dflt);
   const java = {
     'org/cocos2dx/lib/Cocos2dxHelper.showEditTextDialog': (j, args) => { editText(...args); },
