@@ -869,6 +869,20 @@ for (const pick of [55, 56, 57]) {
     const at = (lv) => g.gateBonus(lv * 8 - 2).pct * 100; // level lv, 6 of its 8 points open (as on the photos)
     if (Math.abs(at(100) - 81) > 1 || Math.abs(at(150) - 140.5) > 1 || Math.abs(at(45) - 21) > 1.5) { bad++; console.log('EIGHT GATES percent', at(45).toFixed(1), at(100).toFixed(1), at(150).toFixed(1), '(want 21 / 81 / 140.5)'); }
   }
+  // Chain partners are the same character whatever the word order or bracket part of the card name (14 Nov 2026, Tayler Uchiha: Madara Uchiha
+  // (God) lit Susa Indra's "Fight with Susa Madara" but not Santa of The Six Paths' "Fight with Six Path Madara", whose list has plain Madara 2 / 154)
+  {
+    const game = require('../../server/game');
+    const card = (id, i) => ({ seq: 900 + i, ninja_id: id, type: 1, level: 1, exp: 0, starlevel: 0, newlife: 0 });
+    const on = (team, id, row) => game.teamSlots(team.map(card), [], null).find((s) => s.ninja_id === id).active.includes(row);
+    const wrong = [];
+    if (!on([5037, 2031], 5037, 1730)) wrong.push('Santa + Madara Uchiha (God): 1730 off');
+    if (!on([5070, 2031], 5070, 1907)) wrong.push('Susa Indra + Madara Uchiha (God): 1907 off');
+    if (!on([5059, 2031], 5059, 1817)) wrong.push('Hokage Naruto + Madara Uchiha (God): 1817 off');
+    if (on([5037, 2032], 5037, 1730)) wrong.push('Santa + Hashirama: 1730 on');
+    if (on([5037, 2028], 5037, 1730)) wrong.push('Santa + Sage of the Six Paths: 1730 on');
+    if (wrong.length) { bad++; console.log('CHAIN CHARACTER MATCH:', wrong.join('; ')); }
+  }
   // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
   // goal stat, may use copies, and the split team math (teamSlots + teamTotals) still gives what teamStats gives
   {

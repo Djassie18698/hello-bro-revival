@@ -1474,7 +1474,11 @@ const cardWordsCache = new Map();
 const cardWords = (id) => { let w = cardWordsCache.get(id); if (!w) { w = new Set(words((ninjas().get(id) || [])[2] || '')); cardWordsCache.set(id, w); } return w; };
 // a ninja's character name without "(God)" and spaces (chain partners match by character)
 const whoCache = new Map();
-const whoOf = (id) => { let w = whoCache.get(id); if (w === undefined) { w = String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, ''); whoCache.set(id, w); } return w; };
+// Word order and the bracket part don't matter: "Uchiha Madara" = "Madara Uchiha (God)", "Susa Madara(ATK)" = "Susa Madara(God)",
+// "Hokage Naruto" = "Hokage Naruto（God）" (full-width brackets). Until 14 Nov 2026 the letters were compared in order, so Madara Uchiha (God)
+// lit "Fight with Susa Madara" (the table lists its id) but not Santa of The Six Paths' "Fight with Six Path Madara" (lists plain Madara 2 / 154; Discord report).
+const whoName = (name) => String(name).toLowerCase().replace(/[（(][^)）]*[)）]/g, ' ').split(/[^a-zāēīōū]+/).filter(Boolean).sort().join(' ');
+const whoOf = (id) => { let w = whoCache.get(id); if (w === undefined) { w = whoName((ninjas().get(id) || [])[2] || id); whoCache.set(id, w); } return w; };
 const ALIAS = [[/raikagand/gi, 'Raikage and'], [/itachiand/gi, 'Itachi and'], [/fukasakun/gi, 'Fukasaku'], [/\bforth\b/gi, 'Fourth'], [/sasu sasuke/gi, 'Susa Sasuke'],
   [/\bkyubi\b/gi, 'Kurama'], [/eight tails/gi, 'Gyūki'], [/mei tsunade onoki/gi, 'Mei, Tsunade, Onoki'], [/fourth sage minato/gi, 'Fourth Sage, Minato']];
 const chainParts = new Map(); // row id -> { any, parts: [[words]...] } | null
@@ -1584,7 +1588,7 @@ function teamSlots(team, eqRows, owned, cache) {
     if (p.parts.length === 1) return listedHit || ok(p.parts[0]);
     return p.any ? p.parts.some(ok) || listedHit : p.parts.every(ok);
   };
-  const ownedWho = owned ? new Set([...owned].map((id) => String((ninjas().get(id) || [])[2] || id).toLowerCase().replace(/\(god\)/g, '').replace(/[^a-z]/g, ''))) : null;
+  const ownedWho = owned ? new Set([...owned].map(who)) : null;
   const chain = slots.map(() => ({}));
   const leaderDone = new Set(); // RULES.leaderOnce: each whole-team chain counts once, however many copies of the card are in the team
   const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };

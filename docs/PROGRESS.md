@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 15 | 6 | 2 | 1 |
+| Discord reports | 15 | 7 | 2 | 1 |
 
 ## Bug list 1
 
@@ -127,6 +127,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ⏳ | Website stays a black screen in Chrome on Android (13 Nov, Goat_RyouYuuta; Poco X7 Pro, Android 16) | Not reproduced: the home page and the browser game both load from outside and in Chrome at phone size. The picture is pure black with no text, which is how the browser game page (/play/emu/) looks, not the home page (night blue). Asked the player which page it is and for a screenshot of /play/emu/?diag=1 (shows where the game stops). Since 13 Nov evening the game page finds a black screen by itself (it looks at the picture 15 s and 45 s after the start), then shows its diagnostics line and asks for a screenshot; it also says so when the phone takes the graphics away, and sends one line about how its start went (also the graphics chip) to the server log (/api/emulog), so the next black screen shows its cause. Live after the next public server update |
 | ✅ | Ninjutsu and seals could not be levelled: the Skill Bag / Ninjutsu Bags / Shukaku Seal Bag "Buy" did nothing (14 Nov, Tayler Uchiha in #general, browser version) | The game's own pack code can't add ninjutsu or seal cards, so the server refused those bags. Now the bag is paid and its cards go to the Awards chest on Home (mail "Skill Bag (S)": Claim): Skill Bag = 10 Water Dragon Bullet (Material), Ninjutsu Bags their random card, Shukaku Seal Bag = 10 No Tail Seal (Material) (ours: its table drop was 3 Sage Jiraiya fragments). Checked in game: bought, claimed, all 10 in a ninjutsu's Level Up |
 | ✅ | Treasure (Hot Treasure) screen showed only its placeholders in the browser version (time 0000, Chinese label, 10 hunts 2000 gold) (14 Nov, Tayler Uchiha) | The browser's C library left the time code %X as it was, so every game request carried "Clinettime=... %X ..."; screens that log their request through Lua's string.format (Hot Treasure) stopped with a Lua error before filling in. The browser now writes the time like a phone. Also fixed with it: game updates newer than the browser's own copy gave a 404 (the server now hands the browser the real update). Checked in the browser version: time left, prizes, 900 gold, free hunt works |
+| 🧪 | Chains: Madara Uchiha (God) counted for "Fight with Susa Madara" but not for Santa of The Six Paths' "Fight with Six Path Madara" (Tayler Uchiha, 14 Nov) | The server compared card names letter by letter, so "Uchiha Madara" and "Madara Uchiha (God)" were two different characters. Now the word order and the bracket part don't matter. A chain's name is one version of the character: any Madara counts, like the game's own partner lists. Test save only |
 
 ## Built on request (chat)
 
