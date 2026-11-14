@@ -1109,10 +1109,28 @@ function resetUses(db, pl) {
 // armor / trinket / skill bags (ours) the same. The rest keeps the giftinfo price (Ninja Bag (L) 13 000 and SageStone bags match the photos).
 const PACK_SILVER = { 1: 2000, 3: 2000, 4: 2000, 5: 2000, 6: 2000 };
 const packSilver = (r) => PACK_SILVER[r[0]] ?? r[5];
-// Gift packs (Shop > Giftpack): item bags give their items, card bags shinobi / gear; ninjutsu bags stay refused (the client crashes on them).
+// Gift packs (Shop > Giftpack): item bags give their items, card bags shinobi / gear.
+// Ninjutsu and seal bags (14 Nov 2026, player Tayler Uchiha: "no way to level up ninjutsu or seals, the Skill Bag buy does nothing"):
+// the app's pack code (CTradeMgr::UseGiftPackItem) can only add items and shinobi / weapon / armor / trinket cards (retobj 1-6 = card
+// kinds 1, 2, 4, 3, 3; checked in the disassembly), so their cards go to the Award Center instead ("Receive" on Home), whose claim
+// reply (<award>) adds ninjutsu and seal cards at once. Skill Bag (S) = 10 Water Dragon Bullet (Material), the Ninjutsu Bags their random
+// card, the Shukaku Seal Bag = 10 seal material cards (drop 22, from its own text "10 seal upgrade cards"; its table drop 1611 is three
+// Sage Jiraiya fragments, which does not match) (ours).
+const MAIL_PACKS = { 22: 22 }; // giftinfo id -> drop id when the table's drop is not what the bag's text says
 function packBuy(db, pl, packId) {
   const g = table('giftinfo').rows.find((r) => r[0] === packId);
   if (!g) return { error: 'no such pack' };
+  {
+    const dropId = MAIL_PACKS[packId] || Math.round(g[8]), drop = table('dropinfo').rows.find((r) => r[0] === dropId);
+    if (g[7] === 1 && drop && (drop[5] || drop[6]) && !drop[3] && !drop[4]) {
+      const costG = g[4], costS = packSilver(g);
+      if (pl.gold < costG || pl.coin < costS) return { error: 'not enough gold' };
+      db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
+      const name = String(g[2]);
+      require('./awardcenter').send(db, { uid: pl.uid, server_id: pl.server_id }, name, 'The cards from your ' + name + ': tap Claim.', { drops: [dropId] });
+      return { costG, costS, mail: true };
+    }
+  }
   // giftinfo [7] = 2: a bag of items, [8] = the item (consumeinfo id), [9] = how many (Rāmen Bag 10 / 50 Rāmen (L), Tael Bag 10 taels,
   // SageStone Bag 100 stones). ORIGINAL (the bags' own texts). The client adds them itself from <retobj type="1" id count>.
   // Before 2 Nov 2026 [8] was read as a drop id: a Rāmen Bag gave 10 Chōji cards, a Tael Bag a random ninja.
@@ -1133,9 +1151,6 @@ function packBuy(db, pl, packId) {
   let give; // () => [type, id, seq]
   if (drop[3] && ninjas().has(drop[3])) give = () => [1, drop[3], giveCard(db, pl.uid, pl.server_id, drop[3])];
   else if (drop[4] && equipRows().some((r) => r[0] === drop[4] && r[5] === 3)) give = () => [2, drop[4], giveEquip(db, pl.uid, pl.server_id, drop[4])];
-  // Ninjutsu / Skill bags stay closed: the client's package code (CTradeMgr::UseGiftPackItem) only knows items, shinobi and gear
-  // (retobj type 1-5); any ninjutsu reply crashed the game (checked 2 Nov 2026), so a buyer would pay without seeing the card.
-  else if (drop[5] && /ninjutsu|ninjitsu|skill/.test(name)) return { error: 'this pack is not available on the revival server yet' };
   else if (/weapon|armor|trinket/.test(name)) {
     const slot = /weapon/.test(name) ? 0 : /armor/.test(name) ? 1 : 2;
     const minStar = /4☆/.test(name) ? 3 : 2;

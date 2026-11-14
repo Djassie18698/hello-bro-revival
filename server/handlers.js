@@ -899,6 +899,9 @@ module.exports = {
     if (Number(p.Cmd) === 1701) {
       const r = game.packBuy(db, pl, Number(p.Packageid));
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
+      // ninjutsu / seal bag: its cards wait in the Award Center (game.packBuy). The app still needs a <retobj> it can add, else it
+      // crashes (fault 0x0, 2 Nov 2026): one it knows (Tael (small)) with count 0
+      if (r.mail) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(1, 1, 0)}</root>`;
       if (r.item) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(1, r.item, r.n)}</root>`; // a bag of items
       // CTradeMgr::LoadTradeInfo reads <retobj>, <bagid bagid="a|b"/> and <attr attr=".."/> as ROOT children (next to <shopbuy>);
       // UseGiftPackItem then adds every bagid as a card of retobj type, so the items show at once (was: only after re-login)

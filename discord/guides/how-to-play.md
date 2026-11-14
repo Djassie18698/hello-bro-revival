@@ -17,7 +17,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 ## 3. Your team and elements
 • More team slots open as you level up (level 2, 6, 15, 30 ...) and clear story stages.
 • Every card has an **element**: Water beats Fire, Fire beats Wind, Wind beats Thunder, Thunder beats Earth, Earth beats Water. Hitting the weak element does **15% more** ("Restrain" on the result screen).
-• Give each ninja a weapon, armor, trinket, seal and ninjutsu. Gear makes the biggest difference.
+• Give each ninja a weapon, armor, trinket, seal and ninjutsu. Gear makes the biggest difference. **Golden Chōji x10** (Shop > Giftpack, 500 gold) = 10 big EXP cards at once.
 • From level 100 the **Team 2** tab opens: build a second line-up (it may use the same cards) and press **Activate** to fight with it.
 
 ## 4. Getting cards and gear
@@ -59,7 +59,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • **Super Ninja** (Home): open **all day, every day** for now. Every hour a new god card is the prize. Gold draw 300 (10 for 2800) gives 4-5 star cards, every 10th draw is a sure 5-star, and you get 1 free draw a day. Every draw is 10 points; **every hour** 1st place wins that god card, 2nd-3rd get 300 gold, 4th-10th 100 gold (you need at least 50 points). When the hour ends the next card starts right away and the prizes arrive in your **Awards** chest.
 • **World Boss** (Event menu): an Akatsuki member invades every day from **14:00 to 14:30**: 10 hits, then a short wait. Hit it for reputation and spend that in its shop. A new boss comes after each one falls (Kakuzu, Sasori, Deidara, Hidan ...).
 • **Ninja Treasure** (chest on Home, left side): Explore for gold to win the 9 prizes on the board (35, 70, 300 ... gold, rising). Every board hides one big card from **Top Rewards**; a new board comes every 2 hours, or press Refresh (100 gold).
-• **Awards** chest (Home, right side): gifts the server owner sends you and event prizes (Super Ninja). Press **Claim**; they stay 7 days.
+• **Awards** chest (Home, right side): gifts the server owner sends you, event prizes (Super Ninja) and the cards from **Skill Bags, Ninjutsu Bags and the Shukaku Seal Bag** (Shop > Giftpack, or Buy in a ninjutsu's or seal's Level Up: the game can't show those cards right away, so they wait here). Press **Claim**; they stay 7 days.
 • Free top-ups (one a day) raise your VIP, up to **VIP 23**. Badges stop at VIP18, but your real level counts.
 
 ## 10. God cards: evolve and fragments

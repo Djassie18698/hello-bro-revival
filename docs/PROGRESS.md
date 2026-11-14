@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 13 | 6 | 2 | 1 |
+| Discord reports | 14 | 6 | 3 | 1 |
 
 ## Bug list 1
 
@@ -125,6 +125,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Flower Worship "Detailed Information": the goddess card was a huge picture over the list (lephuc, #general, 12 Nov) | the reply sent the big card art (npc/) instead of the small icon (icon/icon_npc...); also Tsunade's and Sakura's rows had swapped names (the list names rows in a fixed order). Both fixed, seen in game |
 | 🧪 | Game in the browser, added to the iPhone home screen: a thick black band on Home between the team row and the village (13 Nov, buva) | As a home-screen app the page gets the whole tall screen (iPhone 15: 390x797, 2.04 times as tall as wide); the game is made for screens up to 16:9 and leaves a gap on Home when it is taller. The page now keeps the game 16:9 on tall screens (black above and below, bottom bar clear of the swipe line). Checked in Chrome at that size; not on a real iPhone. The iPhone app gets it with its next build |
 | ⏳ | Website stays a black screen in Chrome on Android (13 Nov, Goat_RyouYuuta; Poco X7 Pro, Android 16) | Not reproduced: the home page and the browser game both load from outside and in Chrome at phone size. The picture is pure black with no text, which is how the browser game page (/play/emu/) looks, not the home page (night blue). Asked the player which page it is and for a screenshot of /play/emu/?diag=1 (shows where the game stops). Since 13 Nov evening the game page finds a black screen by itself (it looks at the picture 15 s and 45 s after the start), then shows its diagnostics line and asks for a screenshot; it also says so when the phone takes the graphics away, and sends one line about how its start went (also the graphics chip) to the server log (/api/emulog), so the next black screen shows its cause. Live after the next public server update |
+| ✅ | Ninjutsu and seals could not be levelled: the Skill Bag / Ninjutsu Bags / Shukaku Seal Bag "Buy" did nothing (14 Nov, Tayler Uchiha in #general, browser version) | The game's own pack code can't add ninjutsu or seal cards, so the server refused those bags. Now the bag is paid and its cards go to the Awards chest on Home (mail "Skill Bag (S)": Claim): Skill Bag = 10 Water Dragon Bullet (Material), Ninjutsu Bags their random card, Shukaku Seal Bag = 10 No Tail Seal (Material) (ours: its table drop was 3 Sage Jiraiya fragments). Checked in game: bought, claimed, all 10 in a ninjutsu's Level Up |
+| ⏳ | Treasure (Hot Treasure) screen shows only its placeholders in the browser version (time 0000, Chinese label, 10 hunts 2000 gold) (14 Nov, Tayler Uchiha) | The server answered every request (info, one hunt, ten hunts) and the screen works in the Android app (time left, prizes, 900 gold). Something in the browser version keeps the screen from filling in: not found yet |
 
 ## Built on request (chat)
 

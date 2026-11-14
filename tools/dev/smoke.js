@@ -54,6 +54,22 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   if (!/code="5"/.test(call('rl_w_shopbuy', { Cmd: 1701, Packageid: 23, Count: 1 })) || q().n !== after.n) { bad++; console.log('GOLDEN CHOJI x10: bought without enough gold'); }
   db.prepare('DELETE FROM cards WHERE uid=77 AND ninja_id=100016').run(); // the item page test below counts its own
 }
+// Ninjutsu and seal bags (14 Nov 2026, Tayler Uchiha: the Skill Bag buy did nothing): paid, no card in the reply (the app's pack code
+// can't add ninjutsu / seals), a reply it can read (retobj type 1 count 0), the cards waiting in the Award Center and claimed from there
+{
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  const n = (type, id) => db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=? AND ninja_id=?').get(type, id).n;
+  db.prepare('UPDATE players SET coin=100000, gold=1000 WHERE uid=77').run();
+  const coin0 = db.prepare('SELECT coin FROM players WHERE uid=77').get().coin, jut0 = n(6, 53), seal0 = n(5, 91);
+  const skill = call('rl_w_shopbuy', { Cmd: 1701, Packageid: 6, Count: 1 }), seal = call('rl_w_shopbuy', { Cmd: 1701, Packageid: 22, Count: 1 });
+  const list = call('rl_x_award_msg', { Cmd: 1 });
+  const claim = call('rl_x_award_msg', { Cmd: 3 });
+  const coin1 = db.prepare('SELECT coin FROM players WHERE uid=77').get().coin;
+  if (!skill.includes('<retobj type="1" id="1" count="0"/>') || !/costyz="2000"/.test(skill) || !/code="0"/.test(seal) || !/Skill Bag \(S\)/.test(list) || !/Shukaku Seal Bag/.test(list)
+    || n(6, 53) !== jut0 + 10 || n(5, 91) !== seal0 + 10 || coin1 !== coin0 - 2000 || !/<award/.test(claim)) {
+    bad++; console.log('SKILL / SEAL BAG:', JSON.stringify({ jut: n(6, 53) - jut0, seal: n(5, 91) - seal0, coin: coin0 - coin1 }), skill.slice(0, 160), seal.slice(0, 160), claim.slice(0, 120));
+  }
+}
 // Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
 {
   const ck = (ok, what) => { if (!ok) { bad++; console.log('SUPER NINJA', what); } };
