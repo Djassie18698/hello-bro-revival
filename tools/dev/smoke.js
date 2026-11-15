@@ -309,6 +309,33 @@ for (const pick of [55, 56, 57]) {
     if (!cards.length || miss) { bad++; console.log('LOGIN DATA', cards.length ? `${miss} card(s) without <${f}>` : 'no cards'); break; }
   }
 }
+// Card elements (15 Nov 2026, Discord: "every card is Water"): a new shinobi card gets one of the five elements, the reply that shows it
+// carries the same one, and cards from before (attri 0) get one once while cards changed with a pill keep theirs.
+{
+  const game = require('../../server/game');
+  const seqs = []; for (let i = 0; i < 60; i++) seqs.push(game.giveCard(db, 77, 1, 55));
+  const got = seqs.map((q) => db.prepare('SELECT attri FROM cards WHERE seq=?').get(q).attri);
+  if (got.some((x) => !(x >= 1 && x <= 5)) || new Set(got).size < 3) { bad++; console.log('CARD ELEMENT: new cards', JSON.stringify(got)); }
+  const jutsu = game.giveCard(db, 77, 1, 1, 6);
+  if (db.prepare('SELECT attri FROM cards WHERE seq=?').get(jutsu).attri !== 0) { bad++; console.log('CARD ELEMENT: a ninjutsu card got an element'); }
+  for (let i = 0; i < 10; i++) {
+    const seq = game.giveCard(db, 77, 1, 56), xml = game.awardXml({ ninja: 56, seq });
+    const sent = Number((xml.match(/<attri>(\d+)<\/attri>/) || [])[1]), kept = db.prepare('SELECT attri FROM cards WHERE seq=?').get(seq).attri;
+    if (sent !== kept) { bad++; console.log('CARD ELEMENT: reply says', sent, 'save says', kept); break; }
+  }
+  if (db.prepare('SELECT COUNT(*) n FROM cards WHERE type=1 AND attri=0').get().n) { bad++; console.log('CARD ELEMENT: shinobi cards without an element in the save'); }
+  const old = new DatabaseSync(':memory:');
+  require('../../server/schema')(old);
+  game.ensure(old);
+  const ins = old.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level,attri) VALUES(5,1,?,?,1,?)');
+  for (let i = 0; i < 80; i++) ins.run(1, 55, 0);
+  const pill = Number(ins.run(1, 55, 4).lastInsertRowid), wpn = Number(ins.run(2, 1, 0).lastInsertRowid);
+  game.elementBackfill(old);
+  const after = old.prepare('SELECT attri, COUNT(*) n FROM cards WHERE type=1 GROUP BY attri').all();
+  const at = (q) => old.prepare('SELECT attri FROM cards WHERE seq=?').get(q).attri;
+  if (after.some((r) => !(r.attri >= 1 && r.attri <= 5)) || after.length < 3 || at(pill) !== 4 || at(wpn) !== 0) { bad++; console.log('CARD ELEMENT: old cards', JSON.stringify(after), at(pill), at(wpn)); }
+  old.close();
+}
 // Account window on Android 14+ (the app targets Android 7, so the phone ID is hidden): PLAY sends deviceId="" and must still make a
 // guest, and the kept password must log that same guest in again.
 (async () => {

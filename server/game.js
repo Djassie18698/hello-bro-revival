@@ -65,6 +65,8 @@ function ensure(db) {
   try { for (const t of [1, 2, 3, 4, 5, 6]) db.prepare('UPDATE cards SET level=? WHERE type=? AND level>?').run(cardMaxLevel(t), t, cardMaxLevel(t)); } catch (e) { /* cards table not there yet */ }
   // EXP material cards made before 9 Nov 2026 sat at Lv 1: raise them to their starting level (see startLevel).
   try { for (const r of table('ninjainfo').rows) if (r[0] >= 100000 && r[7] > 1) db.prepare('UPDATE cards SET level=? WHERE type=1 AND ninja_id=? AND level<?').run(r[7], r[0], r[7]); } catch (e) { /* cards table not there yet */ }
+  // Shinobi cards made before 15 Nov 2026 had no element (0, shown as Water): give each a random one, once (see randomElement).
+  elementBackfill(db);
   ready.add(db);
 }
 
@@ -89,9 +91,21 @@ function ninjutsuBonus(st, id) {
 // and its Level Up preview counts the EXP of that level; before 9 Nov 2026 the server stored them at Lv 1, so a Golden Chōji gave
 // 75 EXP instead of 8125 (Discord report, Kaguya went Lv 1 -> 2 instead of -> 18).
 const startLevel = (ninjaId) => Math.max(1, Math.round(Number((ninjas().get(ninjaId) || [])[7]) || 1));
+// Element of a shinobi card (cards.attri: 1 water, 2 fire, 3 wind, 4 earth, 5 thunder). ORIGINAL: a card had an element from the moment
+// you got it (Backpack photos batch-84/3415 and batch-81/2651: Wind / Water / Thunder / Fire / Earth on ordinary Lv 1 cards of a VIP 0
+// player). The rule lived on the dead server; (ours): a random one of the five (owner, 15 Nov 2026). Before that every card was 0 = Water;
+// ensure() gives those a random element once (cards changed with an Element Change Pill are not 0 and keep theirs).
+const randomElement = () => 1 + Math.floor(Math.random() * 5);
+function elementBackfill(db) { try { db.exec('UPDATE cards SET attri = 1 + abs(random()) % 5 WHERE type=1 AND attri=0'); } catch (e) { /* cards table not there yet */ } }
+const madeElement = new Map(); // seq -> element of the cards just made, for the reply builders that have no save at hand (awardXml)
+const elementOf = (db, seq) => (db.prepare('SELECT attri FROM cards WHERE seq=?').get(seq) || {}).attri || 1;
 function giveCard(db, uid, sid, ninjaId, type = 1) {
-  const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level) VALUES(?,?,?,?,?)').run(uid, sid, type, ninjaId, type === 1 ? startLevel(ninjaId) : 1);
-  return Number(r.lastInsertRowid);
+  ensure(db);
+  const attri = type === 1 ? randomElement() : 0;
+  const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level,attri) VALUES(?,?,?,?,?,?)').run(uid, sid, type, ninjaId, type === 1 ? startLevel(ninjaId) : 1, attri);
+  const seq = Number(r.lastInsertRowid);
+  if (attri) { if (madeElement.size > 2000) madeElement.clear(); madeElement.set(seq, attri); }
+  return seq;
 }
 
 function ensureStarterTeam(db, uid, sid, pick) {
@@ -370,7 +384,7 @@ function pull(db, pl, type, count, free) {
 }
 function awardXml(c) {
   if (c.award) return c.award; // a gold prize: the game's own drop row (its Rewards card shows the gold picture and "Gold*500")
-  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', c.newlife || 0) + el('starlevel', c.starlevel || 0) +
+  return '<award dropid="1"><cardlist><card>' + el('id', c.ninja) + el('type', 1) + el('num', 1) + el('attri', c.attri || madeElement.get(c.seq) || 1) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', c.newlife || 0) + el('starlevel', c.starlevel || 0) +
     '</card></cardlist><proplist></proplist><chipbag></chipbag><coin>0</coin><cash>0</cash><exp>0</exp><chip>0</chip><action>0</action><merit>0</merit><pk_action>0</pk_action><soul>0</soul></award>';
 }
 // ---- Real game drops (dropinfo.dbf): [3] ninja, [4] equipment, [5] ninjutsu, [6] mark, [7] prop, [8] equip piece,
@@ -506,7 +520,7 @@ function grantDrop(db, pl, dropId) {
   // 4 ninjutsu, 5 seal. Our card table uses 2/3/4 for weapon/armor/trinket and 6 for ninjutsu; sending those drew ninjutsu as the
   // "beast" placeholder card (GitHub #4) and armor/trinkets as the wrong kind.
   const AWARD_TYPE = { 1: 1, 2: 2, 3: 2, 4: 2, 5: 5, 6: 4 };
-  const cardXml = cards.map((c) => '<card>' + el('id', c.id) + el('type', AWARD_TYPE[c.type] || c.type) + el('num', 1) + el('attri', 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
+  const cardXml = cards.map((c) => '<card>' + el('id', c.id) + el('type', AWARD_TYPE[c.type] || c.type) + el('num', 1) + el('attri', c.type === 1 ? elementOf(db, c.seq) : 0) + el('bagIndex', c.seq) + el('level', 1) + el('newlife', 0) + el('starlevel', 0) + '</card>').join('');
   const propXml = props.map((x) => '<prop>' + el('id', x.id) + el('num', x.num) + '</prop>').join('');
   // seal fragments are shown as seal cards with the fragment's markinfo id (picture + name "Shukaku Seal Fragment 1"); they are kept as
   // props 20000 + id, which the seal screens read from the server
@@ -1044,8 +1058,8 @@ function propUse(db, pl, goodsId) {
       : /Shinobi/.test(row[2]) ? { ninja: pick(pools()[star]) } : /Equipment/.test(row[2]) ? { equip: randomEquip(Math.floor(Math.random() * 3), star, star) }
       : { ninjutsu: pick(table('ninjutsuinfo').rows.filter((x) => x[5] === star && x[6] === 1))[0] };
     propAdd(db, pl.uid, pl.server_id, goodsId, -need);
-    let card = null; // CItemView reads the new card from <propuse> attributes: ninjaid / equipid / skillid + their bag ids
-    if (roll.ninja) card = { attr: `ninjaid="${roll.ninja}" ninjabagid="${giveCard(db, pl.uid, pl.server_id, roll.ninja)}" ninjaattr="0"` };
+    let card = null, nseq = 0; // CItemView reads the new card from <propuse> attributes: ninjaid / equipid / skillid + their bag ids
+    if (roll.ninja) card = { attr: `ninjaid="${roll.ninja}" ninjabagid="${nseq = giveCard(db, pl.uid, pl.server_id, roll.ninja)}" ninjaattr="${elementOf(db, nseq)}"` };
     else if (roll.equip) card = { attr: `equipid="${roll.equip}" equipbagid="${giveEquip(db, pl.uid, pl.server_id, roll.equip)}"` };
     else if (roll.ninjutsu) card = { attr: `skillid="${roll.ninjutsu}" skillbagid="${giveCard(db, pl.uid, pl.server_id, roll.ninjutsu, 6)}"` };
     return { ap: 0, coin: 0, left: have - need, card };
@@ -2129,4 +2143,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
