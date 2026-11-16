@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 16 | 8 | 2 | 2 |
+| Discord reports | 16 | 9 | 3 | 2 |
 
 ## Bug list 1
 
@@ -131,6 +131,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Every card is Water (luffyTaro / uchiha, 14 Nov) | True for everyone: the server never gave a new card an element. Old Backpack photos (3415, 2651) show mixed elements in the original. Owner chose (15 Nov): every new shinobi card gets a random element (ours: the original rule is lost), and every card from before got a random one once; cards changed with an Element Change Pill kept theirs. Breakthrough stats of god cards follow their new element. Checked on a test save, not in the game |
 | 🚫 | Ninja Village Lottery "never works" (Tayler Uchiha, 14 Nov): not a bug. A number is drawn every day and prizes can be claimed; his bets had no digit in the right place. The Chinese titles on that screen are pictures inside the app. The winning rule is now in the how-to-play guide |
 | ✅ | Main account stays on "Loading..." for ever after a top-up; a new account works (11TAILS, 15 Nov) | Not the top-up: the account had grown to 8 300 cards, and at login the server sends the whole card list in one reply (3.2 MB). The app waits 40 seconds for a reply and then gives up without saying so, so on a slower connection it stayed on "Loading...". Each card in that list is now less than half the size (empty fields are left out, which the app allows): 1.4 MB. Checked in the game with a copy of the account on a slowed-down connection: before stuck, now Home after 20 s. Returning to Home is also quicker for big accounts |
+| 🧪 | Browser version stops with "out of emulated memory (121 MB)" (Zeraora, 16 Nov; the server's start reports show the same on iPhones, Android phones and a PC, some after seconds, some after 10+ minutes) | The browser game gives the app 104 MB of memory. Its memory manager could only reuse a freed big block for a request of exactly the same size, so every picture size left a dead block behind: at the title screen 13 of the 20 MB taken were free but unusable, and it only got worse while playing. Now freed big blocks are cut to size and joined with their neighbours (title screen: 8 MB instead of 20, same pictures). Checked in a test browser up to character creation and with a stress test (`emu-mem-test.js`); not on a phone. The message now also says how much was asked and how much was free |
+| ⏳ | Browser version stays black with green text on a Samsung Galaxy S21 (Mali-G78), Samsung Browser and Chrome (Koolmanm598, 16 Nov) | The game runs (it reached the "new version" question) but nothing is drawn, and the phone's browser reports a graphics error (0x502) that other phones don't. We have no such phone: the page now finds out by itself which drawing call or shader fails after a black picture and sends it to the server log (`[emu] gl ...`), and shows it on the green line. Next: read that line after the public update and fix the call |
 
 ## Built on request (chat)
 

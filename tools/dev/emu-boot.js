@@ -131,4 +131,4 @@ step('nativeSetObbPath', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxHelpe
 step('nativeInit 720x1280 (the app starts)', () => cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeInit'), [jni.env, 0, 720, 1280]));
 step(frames + ' frames (with the other threads)', () => { for (let i = 0; i < frames; i++) { cpu.call(sym('Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeRender'), [jni.env, 0]); sys.runThreads(); } });
 console.log('requests: ' + (requests.join(' | ') || 'none'));
-summary(); if (global.gc) global.gc(); console.log("js memory " + (process.memoryUsage().heapUsed >> 20) + " MB heap, " + (process.memoryUsage().rss >> 20) + " MB total");
+console.log("freed and reusable: " + (sys.heapIdle() >> 10) + " KB in " + sys.heapRanges().length + " ranges"); summary(); if (global.gc) global.gc(); console.log("js memory " + (process.memoryUsage().heapUsed >> 20) + " MB heap, " + (process.memoryUsage().rss >> 20) + " MB total");

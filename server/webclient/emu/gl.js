@@ -36,7 +36,18 @@
       return used;
     }
     const uniforms = [null]; // id -> WebGLUniformLocation
-    const def = (name, fn) => { F['gl' + name] = fn; };
+    // what goes wrong on a phone we don't have (16 Nov 2026, black screen on a Mali-G78): shaders that don't compile or link are
+    // noted always; with check.on every call is followed by WebGL's own error check (slow: main.js switches it on for a few
+    // frames after it saw a black picture) and the first failing calls are noted. main.js sends the notes to /api/emulog.
+    const check = { on: false, notes: [] };
+    const note = (s) => { s = String(s).replace(/s+/g, ' ').slice(0, 140); if (check.notes.length < 6 && !check.notes.includes(s)) check.notes.push(s); };
+    const def = (name, fn) => {
+      F['gl' + name] = (c, a, b, x, y) => {
+        const r = fn(c, a, b, x, y);
+        if (check.on) { const e = gl.getError(); if (e) note(name + '(' + [a, b, x, y].map((v) => (v >>> 0).toString(16)).join(',') + ') 0x' + e.toString(16)); }
+        return r;
+      };
+    };
     // plain pass-throughs: (name, how the arguments are read)  i = integer, f = float, o = object id
     const pass = (name, sig, method) => {
       const m = gl[method || name[0].toLowerCase() + name.slice(1)].bind(gl);
@@ -46,6 +57,8 @@
       ['DeleteProgram', 'o'], ['DeleteShader', 'o'], ['DepthFunc', 'i'], ['DepthMask', 'b'], ['Disable', 'i'], ['Enable', 'i'], ['GenerateMipmap', 'i'], ['LinkProgram', 'o'], ['Scissor', 'iiii'],
       ['StencilFunc', 'iii'], ['StencilMask', 'i'], ['StencilOp', 'iii'], ['TexParameteri', 'iii'], ['Viewport', 'iiii'], ['FramebufferRenderbuffer', 'iiio'], ['FramebufferTexture2D', 'iiioi'], ['RenderbufferStorage', 'iiii'],
       ['Uniform1f', 'uf'], ['Uniform2f', 'uff'], ['Uniform3f', 'ufff'], ['Uniform4f', 'uffff'], ['Uniform1i', 'ui'], ['Uniform2i', 'uii'], ['Uniform3i', 'uiii'], ['Uniform4i', 'uiiii']]) pass(n, s);
+    def('CompileShader', (c, sh) => { const o = objs[sh]; if (!o) return; gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS) && !gl.isContextLost()) note('shader ' + sh + ': ' + (gl.getShaderInfoLog(o) || 'did not compile')); });
+    def('LinkProgram', (c, p) => { const o = objs[p]; if (!o) return; gl.linkProgram(o); if (!gl.getProgramParameter(o, gl.LINK_STATUS) && !gl.isContextLost()) note('program ' + p + ': ' + (gl.getProgramInfoLog(o) || 'did not link')); });
     def('ClearDepthf', (c, d) => gl.clearDepth(flt(d)));
     def('PixelStorei', (c, pname, v) => { if (pname === 0x0cf5 || pname === 0x0d05) gl.pixelStorei(pname, v); });
     def('IsEnabled', (c, cap) => (gl.isEnabled(cap) ? 1 : 0));
@@ -111,6 +124,7 @@
     def('GetIntegerv', (c, pname, out) => { const v = gl.getParameter(pname); if (v && v.length) for (let i = 0; i < v.length; i++) cpu.w32(out + i * 4, v[i]); else cpu.w32(out, typeof v === 'number' ? v : v === true ? 1 : 0); });
     def('GetFloatv', (c, pname, out) => { const v = gl.getParameter(pname); if (v && v.length) for (let i = 0; i < v.length; i++) cpu.wf32(out + i * 4, v[i]); else cpu.wf32(out, Number(v) || 0); });
     def('GetBooleanv', (c, pname, out) => { cpu.w8(out, gl.getParameter(pname) ? 1 : 0); });
+    makeGl.check = check; // not in F: every name in F is a function the app can ask for
     return F;
   }
   const Cpu = typeof module !== 'undefined' && module.exports ? require('./cpu.js') : root.EmuCpu;

@@ -19,36 +19,87 @@
     const flt = (w) => { cpu.i32[SCR >>> 2] = w; return cpu.dv.getFloat32(SCR, true); };
     const retF = (v) => { cpu.dv.setFloat32(SCR, v, true); return cpu.i32[SCR >>> 2]; };
 
-    // ---------------------------------------------------------------- memory: a simple size-class allocator
+    // ---------------------------------------------------------------- memory
+    // Small blocks (up to 4096 bytes): one free list per size, cut from 64 KB chunks. Big blocks: whole 4 KB pages, the best
+    // fitting freed range is reused, cut to size, and freed neighbours are joined again. (Until 16 Nov 2026 a freed big block
+    // could only serve a request of exactly its own size: every picture size left a dead block behind and phones ran into
+    // "out of emulated memory" although most of the memory was free.)
     let brk = opts.heapStart, heapEnd = opts.heapEnd;
     const SCR = brk; brk += 16; // 16 scratch bytes for number conversions
+    brk = (brk + 4095) & ~4095;
+    const SMALL = 4096, CHUNK = 65536;
     const freeLists = new Map();
-    const cls = (n) => { if (n <= 16) return 16; if (n <= 4096) return (n + 15) & ~15; let c = 8192; while (c < n) c *= 2; return n > 1 << 20 ? (n + 4095) & ~4095 : c; };
+    const fa = [], fz = []; // freed big ranges: start address and length (header included), sorted by address
+    let chunk = 0, chunkEnd = 0, idle = 0;
+    const oom = (n) => new EmuError('out of emulated memory (' + (brk >>> 20) + ' MB, asked ' + (n >>> 10) + ' KB, free ' + (idle >>> 10) + ' KB)');
+    function bigTake(total) { // a range of `total` bytes (a multiple of 4096); returns its address, the length really given in bigLen
+      let best = -1, bz = 0xffffffff;
+      for (let i = 0; i < fz.length; i++) { const z = fz[i]; if (z >= total && z < bz) { best = i; bz = z; if (z === total) break; } }
+      if (best >= 0) {
+        const at = fa[best];
+        if (bz - total >= 4096) { fa[best] = at + total; fz[best] = bz - total; } else { fa.splice(best, 1); fz.splice(best, 1); }
+        idle -= total; bigLen = total;
+        return at;
+      }
+      let at = brk;
+      const last = fa.length - 1;
+      if (last >= 0 && fa[last] + fz[last] === brk) at = fa[last]; // the top freed range touches the end: grow from there
+      if (total > heapEnd - at) throw oom(total);
+      if (at !== brk) { idle -= fz[last]; fa.pop(); fz.pop(); }
+      brk = at + total; bigLen = total;
+      return at;
+    }
+    let bigLen = 0;
+    function bigGive(at, total) {
+      let lo = 0, hi = fa.length;
+      while (lo < hi) { const m = (lo + hi) >> 1; if (fa[m] < at) lo = m + 1; else hi = m; }
+      if ((lo > 0 && fa[lo - 1] + fz[lo - 1] > at) || (lo < fa.length && fa[lo] < at + total)) return; // freed twice: leave it
+      idle += total;
+      const joinPrev = lo > 0 && fa[lo - 1] + fz[lo - 1] === at, joinNext = lo < fa.length && at + total === fa[lo];
+      if (joinPrev && joinNext) { fz[lo - 1] += total + fz[lo]; fa.splice(lo, 1); fz.splice(lo, 1); }
+      else if (joinPrev) fz[lo - 1] += total;
+      else if (joinNext) { fa[lo] = at; fz[lo] += total; }
+      else { fa.splice(lo, 0, at); fz.splice(lo, 0, total); }
+      const last = fa.length - 1;
+      if (fa[last] + fz[last] === brk) { brk = fa[last]; idle -= fz[last]; fa.pop(); fz.pop(); } // free at the very end: give it back
+    }
     function malloc(n) {
       n = n >>> 0;
-      const size = cls(n || 1);
-      const fl = freeLists.get(size);
       let p;
+      if (n > SMALL) {
+        if (n > 0x7fffffff) throw oom(n);
+        const at = bigTake((n + 8 + 4095) & ~4095);
+        cpu.i32[at >>> 2] = bigLen - 8;
+        return at + 8;
+      }
+      const size = n <= 16 ? 16 : (n + 15) & ~15;
+      const fl = freeLists.get(size);
       if (fl && fl.length) p = fl.pop();
-      else { p = brk + 8; brk += size + 8; if (brk > heapEnd) throw new EmuError('out of emulated memory (' + (brk >>> 20) + ' MB)'); }
+      else {
+        if (chunkEnd - chunk < size + 8) { chunk = bigTake(CHUNK); chunkEnd = chunk + CHUNK; }
+        p = chunk + 8; chunk += size + 8;
+      }
       cpu.i32[(p - 8) >>> 2] = size;
       return p;
     }
     function free(p) {
       if (!p) return;
       const size = cpu.i32[(p - 8) >>> 2];
+      if (size > SMALL) { if (((size + 8) & 4095) === 0 && p - 8 >= opts.heapStart && p + size <= brk) bigGive(p - 8, size + 8); return; }
       let fl = freeLists.get(size); if (!fl) freeLists.set(size, (fl = []));
       fl.push(p);
     }
     function calloc(n, m) { const s = Math.imul(n, m) >>> 0, p = malloc(s); u8.fill(0, p, p + s); return p; }
     function realloc(p, n) {
       if (!p) return malloc(n);
+      n = n >>> 0;
       const old = cpu.i32[(p - 8) >>> 2];
-      if ((n >>> 0) <= old) return p;
-      const q = malloc(n); u8.copyWithin(q, p, p + old); free(p); return q;
+      if (n <= old) return p;
+      // a growing buffer gets a quarter extra, so a download that grows piece by piece is not copied at every piece
+      const q = malloc(old > SMALL ? Math.max(n, old + (old >>> 2)) : n); u8.copyWithin(q, p, p + old); free(p); return q;
     }
     const strdup = (s) => { const b = Cpu.enc.encode(s); const p = malloc(b.length + 1); u8.set(b, p); u8[p + b.length] = 0; return p; };
-    Object.assign(sys, { malloc, free, calloc, realloc, strdup, heapUsed: () => brk - opts.heapStart });
+    Object.assign(sys, { malloc, free, calloc, realloc, strdup, heapUsed: () => brk - opts.heapStart, heapIdle: () => idle, heapRanges: () => fa.map((x, i) => [x, fz[i]]) });
     const strlen = (a) => { let e = a; while (u8[e]) e++; return e - a; };
     const errnoAddr = malloc(4); cpu.w32(errnoAddr, 0);
     const setErrno = (e) => cpu.w32(errnoAddr, e);

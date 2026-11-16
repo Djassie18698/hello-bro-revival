@@ -35,7 +35,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v16 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + '\n' + last;
+      d.textContent = 'v17 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + (window.emuHeap ? ' · mem ' + window.emuHeap() : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + (diag.gl ? '\nGL: ' + diag.gl : '') + '\n' + last;
     }, 500);
   };
   if (q.get('diag') === '1') showDiag();
@@ -44,7 +44,7 @@
   const reported = new Set();
   const report = (kind) => {
     if (reported.has(kind) || q.get('noreport') === '1') return; reported.add(kind);
-    const p = { k: kind, s: diag.stage, e: diag.err || (diag.glerr ? 'GL error 0x' + diag.glerr.toString(16) : ''), f: diag.frames, w: innerWidth + 'x' + innerHeight + '@' + (devicePixelRatio || 1).toFixed(2), j: Math.round(diag.js), g: diag.gpu || '', u: navigator.userAgent };
+    const p = { k: kind, s: diag.stage, e: kind === 'gl' ? diag.gl : diag.err || (diag.glerr ? 'GL error 0x' + diag.glerr.toString(16) : ''), f: diag.frames, w: innerWidth + 'x' + innerHeight + '@' + (devicePixelRatio || 1).toFixed(2), j: Math.round(diag.js), g: diag.gpu || '', u: navigator.userAgent };
     const base = location.hostname === '127.0.0.1' && !location.port.startsWith('1808') ? 'https://ninjaonlinereborn.com' : '';
     try { fetch(base + '/api/emulog?' + new URLSearchParams(p), { mode: 'no-cors', keepalive: true, cache: 'no-store' }).catch(() => {}); } catch { /* */ }
   };
@@ -137,6 +137,7 @@
   const GLF = {};
   sys = window.EmuMakeSys(cpu, { heapStart: 0x01000000, heapEnd: MEM - (8 << 20), vfs, log, extra: GLF });
   Object.assign(GLF, window.EmuMakeGl(cpu, sys, gl, log));
+  window.emuHeap = () => (sys.heapUsed() >> 20) + ' MB (' + (sys.heapIdle() >> 20) + ' free) of ' + ((MEM >> 20) - 24); // the game's own memory, on the diagnostics line
   status('Starting the game…');
   await new Promise((ok) => setTimeout(ok, 30));
   lib = window.EmuLoadElf(cpu, so, BASE, sys.resolve);
@@ -381,6 +382,12 @@
     gl.bindFramebuffer(gl.FRAMEBUFFER, was);
     return lit === 0;
   };
+  // after a black picture: three frames with WebGL's error check behind every call (gl.js check), then one report line "gl"
+  // with the calls that failed and the shaders that did not compile or link
+  const glCheck = window.EmuMakeGl.check;
+  let glFrames = 0;
+  const glLook = () => { while (gl.getError()) { /* empty the old errors */ } glCheck.on = true; glFrames = 3; };
+  const glDone = () => { glCheck.on = false; diag.gl = glCheck.notes.join(' ; ') || 'no failing call in 3 frames'; report('gl'); showDiag(); };
   let dead = false, frames = 0;
   const perf = (window.emu.perf = { ms: 0, steps: 0, n: 0 });
   const frame = () => {
@@ -391,9 +398,10 @@
     if (looks.length && performance.now() - runStart > looks[0]) {
       looks.shift();
       let black = false; try { black = lookBlack(); } catch { /* */ }
-      if (black && !diag.black) { diag.black = true; report('black'); showDiag(); status('Black screen? Please send a screenshot of this to #bugs-and-issues on our Discord.'); }
+      if (black && !diag.black) { diag.black = true; report('black'); showDiag(); if (!diag.lost) glLook(); status('Black screen? Please send a screenshot of this to #bugs-and-issues on our Discord.'); }
       else if (!black && diag.black) { diag.black = false; status(''); }
     }
+    if (glFrames && !--glFrames) glDone();
     perf.ms += performance.now() - f0; perf.steps += cpu.steps - s0; perf.n++;
     if (perf.n >= 600) { if (q.get('log')) console.log('[perf] ' + (perf.ms / perf.n).toFixed(1) + ' ms and ' + (perf.steps / perf.n / 1000).toFixed(0) + ' K instructions per frame'); perf.last = { ms: perf.ms / perf.n, steps: perf.steps / perf.n }; perf.ms = perf.steps = perf.n = 0; }
     requestAnimationFrame(frame);

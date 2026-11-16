@@ -11,7 +11,7 @@ phone (236 C library, 82 OpenGL ES 2, 21 threads, 1 log).
 |---|---|
 | `cpu.js` | the processor: ARM + Thumb-1 instructions, the phone's memory, "traps" (addresses that call JavaScript), threads run in turns, the Linux kernel helpers at 0xffff0fxx |
 | `elf.js` | Android's linker: loads `libgame.so`, fills in addresses, points imports at traps, lists the 403 start-up functions |
-| `sys.js` | the C library and friends in JavaScript: memory, strings, printf / sscanf, files on a virtual file system, time, math (soft-float calling convention), setjmp, pthread |
+| `sys.js` | the C library and friends in JavaScript: memory (small sizes: one free list per size; big blocks: freed ranges cut to size and joined again, test `tools/dev/emu-mem-test.js`), strings, printf / sscanf, files on a virtual file system, time, math (soft-float calling convention), setjmp, pthread |
 | `jni.js` | the JNI table (how the C++ calls Java); the Java methods themselves are in `main.js` |
 | `gl.js` | OpenGL ES 2 -> WebGL, including "client arrays" copied into a buffer before each draw |
 | `net.js` | the app's own libcurl replaced at `curl_easy_*` (browsers have no sockets): requests go to the page's server |
