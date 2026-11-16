@@ -12,7 +12,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hb-sock-'));
 const PORT = 18000 + Math.floor(Math.random() * 900);
 const srv = spawn(process.execPath, [path.join(__dirname, '..', '..', 'server', 'server.js')], {
   cwd: dir, stdio: ['ignore', 'pipe', 'pipe'],
-  env: { ...process.env, PORT: String(PORT), DB: path.join(dir, 'test.db'), HB_BACKUPS: path.join(dir, 'backups'), HB_WATCHDOG: '', HB_MANAGED: '', RATE_LIMIT: '40', HB_SITE_URL: 'https://site.test' },
+  env: { ...process.env, PORT: String(PORT), DB: path.join(dir, 'test.db'), HB_BACKUPS: path.join(dir, 'backups'), HB_WATCHDOG: '', HB_MANAGED: '', RATE_LIMIT: '40', HB_GZIP_MIN: '0', HB_SITE_URL: 'https://site.test' },
 });
 let log = '';
 srv.stdout.on('data', (d) => { log += d; });
@@ -82,6 +82,18 @@ function end(msg, code) {
   const noNav = ['manager.html', 'admin.html', 'playerlog.html', 'track.html', 'sitestats.js', 'bugboard.html'].filter((f) => !S(f).includes('<script src="/admin/appnav.js"></script>'));
   if (nav.code !== 200 || noNav.length || !/const APP = matchMedia/.test(S('panel.html')))
     return end(`SOCKET test: the phone panel (appnav.js) is broken: script ${nav.code}, pages without it: ${noNav.join(', ') || 'none'}`, 1);
+  // game replies go out gzipped when the phone asks for it (the app's curl sends Accept-Encoding: gzip,deflate): big login replies of
+  // accounts with thousands of cards were too slow for the app's 40 s limit (11TAILS, 16 Nov 2026); without the header: plain XML
+  const game = (enc) => new Promise((ok) => {
+    const q = http.request({ host: '127.0.0.1', port: PORT, path: '/xk_r_dir', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Forwarded-For': '203.0.113.12', ...(enc ? { 'Accept-Encoding': enc } : {}) } }, (r) => {
+      const parts = []; r.on('data', (d) => parts.push(d)); r.on('end', () => ok({ enc: r.headers['content-encoding'] || '', buf: Buffer.concat(parts) }));
+    });
+    q.on('error', () => ok({ enc: 'error', buf: Buffer.alloc(0) })); q.end('Cmd=0&Uid=1&Session=x');
+  });
+  const gz = await game('gzip,deflate'), plain = await game('');
+  let gzText = ''; try { gzText = require('zlib').gunzipSync(gz.buf).toString(); } catch (e) {}
+  if (gz.enc !== 'gzip' || !gzText.startsWith('<?xml') || plain.enc !== '' || !plain.buf.toString().startsWith('<?xml'))
+    return end(`SOCKET test: gzip game replies wrong: with gzip -> "${gz.enc}" ${gzText.slice(0, 30)}, without -> "${plain.enc}" ${plain.buf.toString().slice(0, 30)}`, 1);
   const lan = Object.values(os.networkInterfaces()).flat().find((n) => n && n.family === 'IPv4' && !n.internal);
   let lanNote = 'no network address to test the redirect from';
   if (lan) {
@@ -90,5 +102,5 @@ function end(msg, code) {
       return end(`SOCKET test: HB_SITE_URL redirect wrong: /admin -> ${r1.code} ${r1.loc}, / -> ${r2.code} ${r2.loc}, /status -> ${r3.code}`, 1);
     lanNote = 'control panel on :18080 goes to the website';
   }
-  end('socket test: server survived 10 cut connections; /status counts players; flood guard counts visitors behind Caddy one by one; ' + lanNote, 0);
+  end('socket test: server survived 10 cut connections; /status counts players; flood guard counts visitors behind Caddy one by one; game replies gzipped; ' + lanNote, 0);
 })();

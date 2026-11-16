@@ -192,13 +192,27 @@ const httpServer = http.createServer({ insecureHTTPParser: true }, async (req, r
     console.log(`\x1b[90m[ok] ${cgi} Cmd=${params.Cmd || ''} ${Date.now() - t0} ms ${(out.length / 1024).toFixed(1)} KB\x1b[0m`); // grey: game requests
   }
   out = require('./errcodes').fix(out); // code 5 = "energy level is full" in the game's own texts: use a fitting code
-  resp.writeHead(200, { 'Content-Type': 'text/xml; charset=utf-8' });
   // The Lua side looks for a <RENLONG> root; the C++ side accepts any root name.
   out = out.replace(/^<root/, '<RENLONG').replace(/<\/root>$/, '</RENLONG>');
   // Dev aid: HB_REPLY_LOG=<file> keeps every request + full reply (the emulator log cuts long replies at ~4 KB)
   if (process.env.HB_REPLY_LOG) require('fs').appendFile(process.env.HB_REPLY_LOG, `${new Date().toISOString()} ${cgi} ${req.url.split("?")[1] || ""} ${body}\n${out}\n\n`, () => {});
-  resp.end('<?xml version="1.0" encoding="UTF-8"?>' + out);
+  sendXml(req, resp, '<?xml version="1.0" encoding="UTF-8"?>' + out);
 });
+
+// Big replies go out gzipped. The app's curl asks for it on every request ("Accept-Encoding: gzip,deflate", seen on the Claude
+// emulator 16 Nov 2026) and unpacks it itself; a browser does the same. The app gives a request 40 s in all (CCHttpClient 0x4f07f4):
+// the login reply of an account with thousands of cards (0.8-2.6 MB of XML) did not make it on a slow line, gzipped it is ~10x smaller.
+const zlib = require('zlib');
+const GZIP_MIN = Number(process.env.HB_GZIP_MIN || 8192); // smaller replies are not worth it (HB_GZIP_MIN=0 in socket-test.js)
+function sendXml(req, resp, xml) {
+  const head = { 'Content-Type': 'text/xml; charset=utf-8' };
+  if (xml.length < GZIP_MIN || !/\bgzip\b/i.test(req.headers['accept-encoding'] || '')) { resp.writeHead(200, head); return resp.end(xml); }
+  zlib.gzip(xml, { level: 6 }, (err, buf) => {
+    if (err) { resp.writeHead(200, head); return resp.end(xml); }
+    resp.writeHead(200, { ...head, 'Content-Encoding': 'gzip', 'Content-Length': buf.length, Vary: 'Accept-Encoding' });
+    resp.end(buf);
+  });
+}
 
 // The game's Lua code puts raw spaces in request URLs ("Clinettime=2026/10/29 05:42:45 Thursday"),
 // which Node's strict parser rejects. Percent-encode them in the request line before parsing.
