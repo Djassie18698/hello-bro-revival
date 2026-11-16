@@ -1515,9 +1515,46 @@ const partsOf = (r) => {
   return v;
 };
 const allCards = () => [...ninjas().values()].filter((n) => n[4] === 1 && n[19] > 0).map((n) => n[0]);
-const fits = (part, id) => { const c = cardWords(id); return part.every((w) => c.has(w)); };
+const fitsWords = (part, id) => { const c = cardWords(id); return part.every((w) => c.has(w)); };
+// CHARACTERS (16 Nov 2026, Discord report by Tayler Uchiha): the versions of one character are the cards that the table itself lists together
+// as the partners of a one-partner chain ("Fight with Kakashi Hatake" lists Kakashi Hatake, Kamui Kakashi and Hokage Kakashi; Maito Gai's
+// "Fight with Kakashi" adds Susa Kakashi; Kaguya's "Fight Sage of the Six Paths" lists Santa of The Six Paths). That gives 18 clean groups
+// (Naruto: Uzumaki / Sage / Kyuubi / Six Paths / Hokage / Teenager; Minato = The Fourth Sage ...). Pair cards ("Naruto and Hinata") join nothing.
+// Until then Night Kai's "Fight Kakashi Hatake" stayed off with Susa Kakashi, and "Fight with Naruto Uzumaki" with Hokage / Six Paths Naruto.
+let charIndex = null;
+const charOf = (id) => {
+  if (!charIndex) {
+    const par = new Map();
+    const find = (x) => { if (!par.has(x)) par.set(x, x); while (par.get(x) !== x) { par.set(x, par.get(par.get(x))); x = par.get(x); } return x; };
+    for (const r of table('ninjamatch').rows) {
+      if (r[5] !== 1) continue;
+      const p = partsOf(r);
+      if (p && p.parts.length > 1) continue;
+      const listed = r.slice(6, 14).filter((x) => x > 0 && ninjas().has(x) && !/\band\b/i.test(String(ninjas().get(x)[2])));
+      for (const x of listed) { const a = find(whoOf(listed[0])), b = find(whoOf(x)); if (a !== b) par.set(b, a); }
+    }
+    charIndex = new Map([...par.keys()].map((k) => [k, find(k)]));
+  }
+  const w = whoOf(id);
+  return charIndex.get(w) || w;
+};
+// A name in a chain text that means ONE character ("Sage Naruto", "Kakashi Hatake", "Sage of the Six Paths") counts for every version of that
+// character; a name that fits several characters ("Six Paths", "Uchiha") stays a plain word match.
+const partChar = new Map(); // part text -> the one character it names | null
+const charOfPart = (part) => {
+  const k = part.join(' ');
+  if (!partChar.has(k)) { const cs = new Set(allCards().filter((id) => fitsWords(part, id)).map(charOf)); partChar.set(k, cs.size === 1 ? [...cs][0] : null); }
+  return partChar.get(k);
+};
+const fitCache = new Map();
+const fits = (part, id) => {
+  const k = `${part.join(' ')}|${id}`;
+  let v = fitCache.get(k);
+  if (v === undefined) { const c = charOfPart(part); v = fitsWords(part, id) || (c !== null && c === charOf(id)); fitCache.set(k, v); }
+  return v;
+};
 const knownPart = new Map(); // part text -> does any card have that name
-const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) knownPart.set(k, allCards().some((id) => fits(part, id))); return knownPart.get(k); };
+const isKnown = (part) => { const k = part.join(' '); if (!knownPart.has(k)) knownPart.set(k, allCards().some((id) => fitsWords(part, id))); return knownPart.get(k); };
 
 // Gear and ninjutsu sets, ORIGINAL table skill_suit_info (the game's "Equip 2 / 3 / 4 pieces" set screen, EquipSuitSubView): type 2 = gear
 // (weapon, armour, trinket, seal ids in [4]-[7]), type 1 = ninjutsu (4 ninjutsu ids). [8]-[25] = attack, defense, chakra, each for 2 / 3 / 4
@@ -1590,7 +1627,7 @@ function teamSlots(team, eqRows, owned, cache) {
   // by it; type 0 = a leader effect: while the card is in the team every ninja gets the ratio. Each chain adds ratio x the slot's stats (after gear).
   // Chain partners match by CHARACTER, not by card id: the table has 8 partner places and often lists only some variants
   // (Kaguya "Fight with Susa Kakashi" lists 5026 but not 5027 or Susa Kakashi (God) 5028; GitHub #5).
-  const who = whoOf;
+  const who = charOf;
   // The partner lists also miss whole variants (Six Paths Madara (God) "Fight with Six Paths Obito" lists only plain Obito; Hokage Naruto
   // "Fight with Madara" misses Six Paths Madara; GitHub #5), so the names written in the chain text count too: every word of a name must be in
   // the card's name ("Madara" = every Madara, "Six Paths Obito" = every Six Paths Obito, "Sage Six Path" = Sage of the Six Paths).
@@ -1611,7 +1648,10 @@ function teamSlots(team, eqRows, owned, cache) {
   const leaderDone = new Set(); // RULES.leaderOnce: each whole-team chain counts once, however many copies of the card are in the team
   const add = (i, r) => { const s = slots[i]; [['al', 'ah', 16], ['dl', 'dh', 17], ['cl', 'ch', 18]].forEach(([lo, hi, col]) => { if (r[col] > 0) { chain[i][lo] = (chain[i][lo] || 0) + Math.round(s[lo] * r[col]); chain[i][hi] = (chain[i][hi] || 0) + Math.round(s[hi] * r[col]); } }); };
   slots.forEach((s, i) => {
-    const worn = eqRows.filter((x) => x.slot === i + 1).map((x) => x.ninja_id);
+    // "Equip <gear>" reads equipment ids (weapon / armour / trinket), "Equip <ninjutsu>" ninjutsu ids: the id lists overlap, so each only
+    // counts in its own kind (Night Kai's "Equip Eight inner gate", ninjutsu 32, lit up with Thunder god armour, equipment 32; 16 Nov 2026)
+    const mine = eqRows.filter((x) => x.slot === i + 1);
+    const wornGear = mine.filter((x) => x.type >= 2 && x.type <= 4).map((x) => x.ninja_id), wornJutsu = mine.filter((x) => x.type === 6).map((x) => x.ninja_id);
     s.active = []; s.ready = [];
     const others = slots.filter((_, j) => j !== i).map((o) => o.ninja_id), otherIds = new Set(others), otherWho = new Set(others.map(who));
     for (const r of matchRows(s.ninja_id)) {
@@ -1620,7 +1660,7 @@ function teamSlots(team, eqRows, owned, cache) {
         leaderDone.add(r[0]); s.active.push(r[0]); continue;
       }
       const partner = partnersIn(r, otherIds, otherWho);
-      if (partner || (r[14] > 0 && worn.includes(r[14])) || (r[15] > 0 && worn.includes(r[15]))) { add(i, r); s.active.push(r[0]); }
+      if (partner || (r[14] > 0 && wornGear.includes(r[14])) || (r[15] > 0 && wornJutsu.includes(r[15]))) { add(i, r); s.active.push(r[0]); }
       else if (owned && partnersIn(r, new Set([...owned].filter((id) => id !== s.ninja_id)), ownedWho)) s.ready.push(r[0]); // the partners are owned but not all in the team yet
     }
   });

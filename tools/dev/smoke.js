@@ -918,6 +918,21 @@ for (const pick of [55, 56, 57]) {
     if (!on([5059, 2031], 5059, 1817)) wrong.push('Hokage Naruto + Madara Uchiha (God): 1817 off');
     if (on([5037, 2032], 5037, 1730)) wrong.push('Santa + Hashirama: 1730 on');
     if (on([5037, 2028], 5037, 1730)) wrong.push('Santa + Sage of the Six Paths: 1730 on');
+    // 16 Nov 2026 (Tayler Uchiha again): versions of one character are the cards the table lists together, so a full name in the chain text
+    // counts for every version; a name of several characters ("Six Paths") does not spread; gear and ninjutsu ids don't mix
+    if (!on([2067, 5028], 2067, 1240)) wrong.push('Night Kai + Susa Kakashi (God): 1240 off');
+    if (!on([2023, 5061], 2023, 979)) wrong.push('Six Paths Obito + Hokage Naruto: 979 off');
+    if (!on([2088, 2024, 5007], 2088, 1358)) wrong.push('Immortal Hashirama + Fourth Sage + Six Paths Naruto: 1358 off');
+    if (on([2088, 2024], 2088, 1358)) wrong.push('Immortal Hashirama + Fourth Sage only: 1358 on');
+    if (!on([2115, 5004, 5037], 2115, 1505)) wrong.push('Hamura + Mother Kaguya + Santa of the Six Paths: 1505 off');
+    if (on([2115, 5037], 2115, 1505)) wrong.push('Hamura + Santa only: 1505 on');
+    if (on([2077, 5], 2077, 1270)) wrong.push('Asura + plain Naruto: "Fight with Six Paths" 1270 on');
+    if (on([2067, 37], 2067, 1240)) wrong.push('Night Kai + Maito Gai: 1240 on');
+    {
+      const worn = (kind, type, id) => game.teamSlots([card(2067, 0)], [{ slot: 1, kind, seq: 990, ninja_id: id, type, level: 1, exp: 0, starlevel: 0, newlife: 0 }], null)[0].active.includes(1239);
+      if (worn(2, 3, 32)) wrong.push('Night Kai with armour 32: "Equip Eight inner gate" 1239 on');
+      if (!worn(5, 6, 32)) wrong.push('Night Kai with ninjutsu 32: 1239 off');
+    }
     if (wrong.length) { bad++; console.log('CHAIN CHARACTER MATCH:', wrong.join('; ')); }
   }
   // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
