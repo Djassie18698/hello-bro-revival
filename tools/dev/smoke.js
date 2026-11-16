@@ -304,10 +304,20 @@ for (const pick of [55, 56, 57]) {
 {
   const home = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });
   const cards = home.match(/<card>.*?<\/card>/g) || [];
-  for (const f of ['type', 'id', 'seq', 'level', 'attri', 'starlevel', 'newlife']) {
+  for (const f of ['type', 'id', 'exp', 'seq', 'level', 'attri', 'starlevel', 'newlife', 'status']) {
     const miss = cards.filter((c) => !c.includes(`<${f}>`)).length;
     if (!cards.length || miss) { bad++; console.log('LOGIN DATA', cards.length ? `${miss} card(s) without <${f}>` : 'no cards'); break; }
   }
+  // 16 Nov 2026 (Discord, 11TAILS: stuck on "Loading..." with 8 300 cards): the app gives the login reply 40 s, so a card must stay
+  // small: the fields the app reads only when present are left out at 0, and sent when they hold something (Breakthrough, potential).
+  const game = require('../../server/game');
+  const plain = game.giveCard(db, base.Uid, 1, 55), strong = game.giveCard(db, base.Uid, 1, 55);
+  db.prepare('UPDATE cards SET breaklvl=3, pot_att=7, pot_def=8, pot_ckr=9 WHERE seq=?').run(strong);
+  const again = handlers.rl_r_mainpage({ db, params: { ...base, Cmd: 1302 } });
+  const one = (seq) => (again.match(/<card>.*?<\/card>/g) || []).find((c) => c.includes(`<seq>${seq}</seq>`)) || '';
+  if (!one(plain) || one(plain).length > 200 || /tupo|_add|attackadd/.test(one(plain))) { bad++; console.log('LOGIN DATA plain card too big', one(plain)); }
+  if (!['<tupo_level>3</tupo_level>', '<attack_add>7</attack_add><defence_add>8</defence_add><cha_add>9</cha_add>'].every((x) => one(strong).includes(x))) { bad++; console.log('LOGIN DATA strong card lost a value', one(strong)); }
+  db.prepare('DELETE FROM cards WHERE seq IN (?,?)').run(plain, strong);
 }
 // Card elements (15 Nov 2026, Discord: "every card is Water"): a new shinobi card gets one of the five elements, the reply that shows it
 // carries the same one, and cards from before (attri 0) get one once while cards changed with a pill keep theirs.

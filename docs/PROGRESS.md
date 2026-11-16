@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 15 | 8 | 2 | 2 |
+| Discord reports | 16 | 8 | 2 | 2 |
 
 ## Bug list 1
 
@@ -130,6 +130,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Chains: Madara Uchiha (God) counted for "Fight with Susa Madara" but not for Santa of The Six Paths' "Fight with Six Path Madara" (Tayler Uchiha, 14 Nov) | The server compared card names letter by letter, so "Uchiha Madara" and "Madara Uchiha (God)" were two different characters. Now the word order and the bracket part don't matter. A chain's name is one version of the character: any Madara counts, like the game's own partner lists. Test save only |
 | 🧪 | Every card is Water (luffyTaro / uchiha, 14 Nov) | True for everyone: the server never gave a new card an element. Old Backpack photos (3415, 2651) show mixed elements in the original. Owner chose (15 Nov): every new shinobi card gets a random element (ours: the original rule is lost), and every card from before got a random one once; cards changed with an Element Change Pill kept theirs. Breakthrough stats of god cards follow their new element. Checked on a test save, not in the game |
 | 🚫 | Ninja Village Lottery "never works" (Tayler Uchiha, 14 Nov): not a bug. A number is drawn every day and prizes can be claimed; his bets had no digit in the right place. The Chinese titles on that screen are pictures inside the app. The winning rule is now in the how-to-play guide |
+| ✅ | Main account stays on "Loading..." for ever after a top-up; a new account works (11TAILS, 15 Nov) | Not the top-up: the account had grown to 8 300 cards, and at login the server sends the whole card list in one reply (3.2 MB). The app waits 40 seconds for a reply and then gives up without saying so, so on a slower connection it stayed on "Loading...". Each card in that list is now less than half the size (empty fields are left out, which the app allows): 1.4 MB. Checked in the game with a copy of the account on a slowed-down connection: before stuck, now Home after 20 s. Returning to Home is also quicker for big accounts |
 
 ## Built on request (chat)
 

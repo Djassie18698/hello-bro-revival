@@ -141,8 +141,12 @@ function cardXml(c) {
     newlife: c.newlife || 0, tupo_level: c.breaklvl || 0, cha_tupo: 0, defence_tupo: 0, attack_tupo: 0, attackadd: 0, defenseadd: 0,
     attack_add: c.pot_att || 0, defence_add: c.pot_def || 0, cha_add: c.pot_ckr || 0, status: 0,
   };
-  return '<card>' + Object.entries(f).map(([k, v]) => el(k, v)).join('') + '</card>';
+  // The app reads tupo_level ... cha_add only when they are there (CPlayerDataMgr::firefly_AddObjFromXML 0x27ff8c checks each for
+  // null and starts them at 0), so a 0 is left out: a card is ~165 bytes instead of ~390. The login reply (Cmd 1302) lists EVERY card
+  // and the app gives a request 40 s (CCHttpClient 0x4f07f4): an account with 8 300 cards (3.2 MB) never got past "Loading...".
+  return '<card>' + Object.entries(f).map(([k, v]) => (v === 0 && CARD_OPTIONAL.has(k) ? '' : el(k, v))).join('') + '</card>';
 }
+const CARD_OPTIONAL = new Set(['tupo_level', 'cha_tupo', 'defence_tupo', 'attack_tupo', 'attackadd', 'defenseadd', 'attack_add', 'defence_add', 'cha_add']);
 
 // One team slot as CTeamCard::firefly_InitFromXml reads it (ninjaid = the card's seq).
 function slotXml(seq, slot, eq = {}, st = {}) {
@@ -257,7 +261,7 @@ function stateXml(db, uid, sid) {
     active,
     suitlist: '<suitlist>' + t1.suits + '</suitlist>',
     totals: used.ts.total, // the used line-up's attack / defense (top bar, rankings)
-    cards: cards.map(cardXml).join(''),
+    get cards() { return cards.map(cardXml).join(''); }, // built only when asked for (login, rl_r_bagage): Home (Cmd 1301) does not send it
     ninjalist: '<ninjalist>' + t1.slots + '</ninjalist>',
     defensesuitlist: '<defensesuitlist>' + t2.suits + '</defensesuitlist>',
     defenseninjalist: '<defenseninjalist>' + t2.slots + '</defenseninjalist>',
