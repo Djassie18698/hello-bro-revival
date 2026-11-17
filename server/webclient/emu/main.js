@@ -35,7 +35,7 @@
     setInterval(() => {
       const mb = performance.memory ? ' js ' + (performance.memory.usedJSHeapSize >> 20) + ' MB' : '';
       const last = (window.emuLog || []).filter((l) => !/GETTING FILE|CCTextureCache|no node/.test(l)).slice(-2).join(' | ').slice(0, 160);
-      d.textContent = 'v17 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + (window.emuHeap ? ' · mem ' + window.emuHeap() : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + (diag.gl ? '\nGL: ' + diag.gl : '') + '\n' + last;
+      d.textContent = 'v18 ' + diag.stage + ' · frames ' + diag.frames + (window.emuCpu && window.emuCpu.jitCount ? ' · blocks ' + window.emuCpu.jitCount : '') + ' · pieces ' + (diag.pieces || 0) + (diag.ms ? ' · ' + diag.ms.toFixed(1) + ' ms' : '') + (window.emuHeap ? ' · mem ' + window.emuHeap() : '') + mb + ' · js ' + diag.js.toFixed(0) + ' ms' + (diag.js > 60 ? ' (slow: Lockdown/Low Power Mode?)' : '') + (diag.lost ? ' · GL LOST' : '') + (diag.black ? ' · BLACK' : '') + (diag.gpu ? String.fromCharCode(10) + diag.gpu : '') + (diag.err ? '\nERROR: ' + diag.err : '') + (diag.gl ? '\nGL: ' + diag.gl : '') + '\n' + last;
     }, 500);
   };
   if (q.get('diag') === '1') showDiag();

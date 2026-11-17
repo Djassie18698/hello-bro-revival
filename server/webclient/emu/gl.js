@@ -4,6 +4,7 @@
 // a scratch buffer right before each draw call.
 'use strict';
 (function (root) {
+  function samePrecision(src, prec) { return src.replace(/uniform\s+(mat4|vec4)\s+(CC_\w+)\s*;/g, 'uniform ' + prec + ' $1 $2;'); }
   function makeGl(cpu, sys, gl, log) {
     const objs = [null]; // id -> WebGL object
     const add = (o) => { objs.push(o); return objs.length - 1; };
@@ -40,7 +41,7 @@
     // noted always; with check.on every call is followed by WebGL's own error check (slow: main.js switches it on for a few
     // frames after it saw a black picture) and the first failing calls are noted. main.js sends the notes to /api/emulog.
     const check = { on: false, notes: [] };
-    const note = (s) => { s = String(s).replace(/s+/g, ' ').slice(0, 140); if (check.notes.length < 6 && !check.notes.includes(s)) check.notes.push(s); };
+    const note = (s) => { s = String(s).replace(/\s+/g, ' ').slice(0, 140); if (check.notes.length < 6 && !check.notes.includes(s)) check.notes.push(s); };
     const def = (name, fn) => {
       F['gl' + name] = (c, a, b, x, y) => {
         const r = fn(c, a, b, x, y);
@@ -65,7 +66,16 @@
     def('GetError', () => 0);
     def('CreateProgram', () => add(gl.createProgram()));
     def('CreateShader', (c, type) => add(gl.createShader(type)));
-    def('ShaderSource', (c, sh, count, strings, lengths) => { let src = ''; for (let i = 0; i < count; i++) { const p = cpu.r32(strings + i * 4), l = lengths ? cpu.r32(lengths + i * 4) : -1; src += l >= 0 ? Cpu.dec.decode(u8.subarray(p, p + l)) : cpu.cstr(p); } gl.shaderSource(objs[sh], src); });
+    def('ShaderSource', (c, sh, count, strings, lengths) => { let src = ''; for (let i = 0; i < count; i++) { const p = cpu.r32(strings + i * 4), l = lengths ? cpu.r32(lengths + i * 4) : -1; src += l >= 0 ? Cpu.dec.decode(u8.subarray(p, p + l)) : cpu.cstr(p); } gl.shaderSource(objs[sh], ccPrecision(src)); });
+    // cocos2d-x puts the same uniforms (CC_MVMatrix, CC_Time ...) on top of every shader, under 'precision highp float' in the vertex
+    // shader and 'mediump' in the fragment shader. Phone drivers let that pass, but WebGL wants a uniform used by both to have the same
+    // precision: Firefox, Mali and PowerVR refused to link every program and the picture stayed black (GL error 0x502; found with the
+    // page's GL reports, 17 Nov 2026). Both shaders now say the precision outright: highp where the fragment shader has it, else mediump.
+    let ccPrec = null;
+    function ccPrecision(src) {
+      if (!ccPrec) { try { const h = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT); ccPrec = h && h.precision > 0 ? 'highp' : 'mediump'; } catch (e) { ccPrec = 'mediump'; } }
+      return samePrecision(src, ccPrec);
+    }
     def('GetShaderiv', (c, sh, pname, out) => { const v = pname === 0x8b84 ? (gl.getShaderInfoLog(objs[sh]) || '').length + 1 : pname === 0x8b88 ? (gl.getShaderSource(objs[sh]) || '').length + 1 : gl.getShaderParameter(objs[sh], pname); cpu.w32(out, v === true ? 1 : v === false ? 0 : v | 0); });
     def('GetProgramiv', (c, p, pname, out) => { const v = pname === 0x8b84 ? (gl.getProgramInfoLog(objs[p]) || '').length + 1 : gl.getProgramParameter(objs[p], pname); cpu.w32(out, v === true ? 1 : v === false ? 0 : v | 0); });
     def('GetShaderInfoLog', (c, sh, max, lenp, out) => { const n = sys.putStr(out, gl.getShaderInfoLog(objs[sh]) || '', max); if (lenp) cpu.w32(lenp, Math.min(n, max - 1)); });
@@ -128,5 +138,6 @@
     return F;
   }
   const Cpu = typeof module !== 'undefined' && module.exports ? require('./cpu.js') : root.EmuCpu;
+  makeGl.samePrecision = samePrecision; // tools/dev/emu-gl-test.js
   if (typeof module !== 'undefined' && module.exports) module.exports = makeGl; else root.EmuMakeGl = makeGl;
 })(typeof window !== 'undefined' ? window : globalThis);
