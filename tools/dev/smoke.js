@@ -87,6 +87,19 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     bad++; console.log('NINJUTSU BAG:', v2(13), v2(14), v2(22), v2(7), buy.slice(0, 200), mails.slice(0, 200), claim.slice(0, 120), jut() - j0);
   }
 }
+// Gear bags (Zeraora, 18 Nov 2026: the 4☆ Armor Bag closed the game): the app has ONE retobj type for gear, 3 (weapon, armor and
+// trinket; 5 = seal, 4 = ninjutsu), and the card in the reply must be the one saved under that bagid.
+{
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  db.prepare('UPDATE players SET gold=10000, coin=coin+100000 WHERE uid=77').run();
+  const want = { 4: 3, 7: 2, 8: 3, 9: 4, 10: 2, 11: 3, 12: 4 }; // pack -> cards.type it must give
+  for (const [pack, type] of Object.entries(want)) {
+    const buy = call('rl_w_shopbuy', { Cmd: 1701, Packageid: pack, Count: 1 });
+    const m = /<retobj type="(\d+)" id="(\d+)" count="\d+"\/><bagid bagid="(\d+)/.exec(buy) || [];
+    const card = m[3] && db.prepare('SELECT type, ninja_id FROM cards WHERE uid=77 AND seq=?').get(Number(m[3]));
+    if (m[1] !== '3' || !card || card.type !== type || card.ninja_id !== Number(m[2])) { bad++; console.log('GEAR BAG', pack, buy.slice(0, 200), JSON.stringify(card)); }
+  }
+}
 // Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
 {
   const ck = (ok, what) => { if (!ok) { bad++; console.log('SUPER NINJA', what); } };

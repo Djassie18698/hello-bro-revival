@@ -97,9 +97,11 @@ const allServers = (ctx) => [
   { id: 4, name: 'Starter slot 3', domain: `http://${publicHost(ctx)}`, busy: 1, para1: 1062, para2: 2, payzoneid: 4 },
 ];
 const retobjXml = (type, id, count) => `<retobj type="${type}" id="${id}" count="${count}"/>`;
-// retobj type is NOT our card type: CTradeMgr::UseGiftPackItem switches 1 item, 2 shinobi, 3 weapon, 4 trinket, 5 armor
-// (cards.type 1 shinobi, 2 weapon, 3 armor, 4 trinket). Sending 2 for a weapon added the bought weapons as shinobi.
-const RETOBJ_TYPE = { 1: 2, 2: 3, 3: 5, 4: 4 };
+// retobj type is NOT our card type (cards.type 1 shinobi, 2 weapon, 3 armor, 4 trinket). CTradeMgr::UseGiftPackItem (0x290648)
+// switches 1 item, 2 shinobi, 3 gear (weapon, armor AND trinket: firefly_AddObjFromNetCardData 0x27f7a0 picks the slot from
+// equipmentinfo itself), 4 ninjutsu, 5 / 6 seal. Before 18 Nov 2026 armor went out as 5 and trinkets as 4: the app added the
+// armor as a seal and the "you got" window of the 4☆ / 3☆ Armor Bag closed the game (fault 0x0; player Zeraora).
+const RETOBJ_TYPE = { 1: 2, 2: 3, 3: 3, 4: 3 };
 const serverXml = (s, tag) =>
   `<${tag}>` + Object.entries(s).map(([k, v]) => el(k, v)).join('') + `</${tag}>`;
 
