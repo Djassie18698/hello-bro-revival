@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 16 | 10 | 3 | 2 |
+| Discord reports | 17 | 10 | 3 | 2 |
 
 ## Bug list 1
 
@@ -134,6 +134,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Browser version stops with "out of emulated memory (121 MB)" (Zeraora, 16 Nov; the server's start reports show the same on iPhones, Android phones and a PC, some after seconds, some after 10+ minutes) | The browser game gives the app 104 MB of memory. Its memory manager could only reuse a freed big block for a request of exactly the same size, so every picture size left a dead block behind: at the title screen 13 of the 20 MB taken were free but unusable, and it only got worse while playing. Now freed big blocks are cut to size and joined with their neighbours (title screen: 8 MB instead of 20, same pictures). Checked in a test browser up to character creation and with a stress test (`emu-mem-test.js`); not on a phone. The message now also says how much was asked and how much was free |
 | ⏳ | Browser version stays black with green text on a Samsung Galaxy S21 (Mali-G78), Samsung Browser and Chrome (Koolmanm598, 16 Nov) | The game runs (it reached the "new version" question) but nothing is drawn, and the phone's browser reports a graphics error (0x502) that other phones don't. We have no such phone: the page now finds out by itself which drawing call or shader fails after a black picture and sends it to the server log (`[emu] gl ...`), and shows it on the green line. Next: read that line after the public update and fix the call |
 | 🧪 | Chains stay off although the partner is in the team: Night Kai with Susa Kakashi, Six Paths Obito and The Fourth Sage with Hokage / Six Paths Naruto, Immortal Hashirama "Fourth Sage, Sage Naruto", Hamura "Kaguya, Sage of the Six Paths" with Santa of The Six Paths; and Night Kai's "Equip Eight inner gate" lit without the ninjutsu (Tayler Uchiha, 16 Nov) | The chain table lists only some versions of a character, and the server compared names word by word ("Kakashi Hatake" is not in "Susa Kakashi"). Now the versions of one character are the cards the table itself lists together (18 groups: every Naruto, every Kakashi, Sage = Santa of the Six Paths ...), so a chain that names a character lights with any version of it. The Eight Gates chain lit because the armour he wore (Thunder god armour) has the same number as that ninjutsu: gear and ninjutsu are now told apart. Checked on a copy of the public save with his team (every reported chain lights, the Eight Gates one is off); not looked at in the game. smoke.js "CHAIN CHARACTER MATCH". |
+| ✅ | The game closes when you buy a 4☆ or 3☆ Ninjutsu Bag in the Shop (Zeraora, 17 Nov) | The server's pack list told the app to open its "you got this card" window after the buy; the cards of these bags wait in the Awards chest, so there was no card to show and the app crashed. The list no longer asks for that window for these bags (and the Shukaku Seal Bag): the buy now says "Successfully purchased". Reproduced and checked on the Claude emulator; smoke check "NINJUTSU BAG" |
 
 ## Built on request (chat)
 

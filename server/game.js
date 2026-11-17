@@ -1135,18 +1135,23 @@ const packSilver = (r) => PACK_SILVER[r[0]] ?? r[5];
 // card, the Shukaku Seal Bag = 10 seal material cards (drop 22, from its own text "10 seal upgrade cards"; its table drop 1611 is three
 // Sage Jiraiya fragments, which does not match) (ours).
 const MAIL_PACKS = { 22: 22 }; // giftinfo id -> drop id when the table's drop is not what the bag's text says
+// The drop of a bag whose cards go to the Award Center (0 = an ordinary bag).
+function packMailDrop(g) {
+  const dropId = MAIL_PACKS[g[0]] || Math.round(g[8]), drop = table('dropinfo').rows.find((r) => r[0] === dropId);
+  return g[7] === 1 && drop && (drop[5] || drop[6]) && !drop[3] && !drop[4] ? dropId : 0;
+}
 function packBuy(db, pl, packId) {
   const g = table('giftinfo').rows.find((r) => r[0] === packId);
   if (!g) return { error: 'no such pack' };
   {
-    const dropId = MAIL_PACKS[packId] || Math.round(g[8]), drop = table('dropinfo').rows.find((r) => r[0] === dropId);
-    if (g[7] === 1 && drop && (drop[5] || drop[6]) && !drop[3] && !drop[4]) {
+    const dropId = packMailDrop(g);
+    if (dropId) {
       const costG = g[4], costS = packSilver(g);
       if (pl.gold < costG || pl.coin < costS) return { error: 'not enough gold' };
       db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
       const name = String(g[2]);
       require('./awardcenter').send(db, { uid: pl.uid, server_id: pl.server_id }, name, 'The cards from your ' + name + ': tap Claim.', { drops: [dropId] });
-      return { costG, costS, mail: true };
+      return { costG, costS, mail: true, show: Math.round(g[9]) === 1 }; // show: the app opens its "you got" window for this pack
     }
   }
   // giftinfo [7] = 2: a bag of items, [8] = the item (consumeinfo id), [9] = how many (Rāmen Bag 10 / 50 Rāmen (L), Tael Bag 10 taels,
@@ -2187,4 +2192,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

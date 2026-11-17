@@ -901,6 +901,11 @@ module.exports = {
       if (r.error) return `<root code="5"><message>${r.error}</message></root>`;
       // ninjutsu / seal bag: its cards wait in the Award Center (game.packBuy). The app still needs a <retobj> it can add, else it
       // crashes (fault 0x0, 2 Nov 2026): one it knows (Tael (small)) with count 0
+      // A pack with giftinfo [9] = 1 (4☆ / 3☆ Ninjutsu Bag, Shukaku Seal Bag) closed the app (17 Nov 2026, player Zeraora):
+      // CItemView::onHttpRequestCompleted (0x3527dc) then opens the "you got" window (CDialogShowBox_Store), which reads the first
+      // bagid without checking that there is one, and looks that card up in the bag (fault 0x0 both times). With retobj id 0 the
+      // window draws no card (InitUI 0x2a9370 leaves at once) and type 7 makes UseGiftPackItem add nothing (it knows 1-6).
+      if (r.mail && r.show) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(7, 0, 0)}<bagid bagid="0"/><attr attr="0"/></root>`;
       if (r.mail) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(1, 1, 0)}</root>`;
       if (r.item) return `<root code="0"><shopbuy costyb="${r.costG}" costyz="${r.costS}"/>${retobjXml(1, r.item, r.n)}</root>`; // a bag of items
       // CTradeMgr::LoadTradeInfo reads <retobj>, <bagid bagid="a|b"/> and <attr attr=".."/> as ROOT children (next to <shopbuy>);
@@ -1666,7 +1671,8 @@ module.exports = {
     if (Number(p.Cmd) === 1600) {
       const packs = game.table('giftinfo').rows.map((r, k) => ({
         package_id: r[0], package_name: esc(r[2]), package_icon: r[3], package_yuanbao: r[4], package_yinzi: game.packSilver(r), package_show: 1,
-        package_function: r[7], package_function_value1: n(r[8]), package_function_value2: n(r[9]), package_function_value3: n(r[10]), package_function_value4: n(r[11]),
+        package_function: r[7], package_function_value1: n(r[8]), package_function_value2: game.packMailDrop(r) ? 0 : n(r[9]), // value2 = 1 opens the "you got" card window after a buy; a bag whose cards go to the Award Center has no card to show there (17 Nov 2026)
+        package_function_value3: n(r[10]), package_function_value4: n(r[11]),
       }));
       return '<root code="0"><shoplist>' + rows('packages', packs) + rows('goods', goods) + rows('recruit', recruits) + limits + '</shoplist></root>';
     }

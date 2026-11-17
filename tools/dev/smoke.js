@@ -70,6 +70,23 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     bad++; console.log('SKILL / SEAL BAG:', JSON.stringify({ jut: n(6, 53) - jut0, seal: n(5, 91) - seal0, coin: coin0 - coin1 }), skill.slice(0, 160), seal.slice(0, 160), claim.slice(0, 120));
   }
 }
+// 4☆ / 3☆ Ninjutsu Bag (Zeraora, 17 Nov 2026: the app closed on buying one): the pack list must not ask for the "you got" card
+// window for a bag whose cards go to the Awards chest, and the buy reply must be safe for an app that still has the old list.
+{
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  db.prepare('UPDATE players SET gold=10000 WHERE uid=77').run();
+  const list = call('rl_r_shoplist', { Cmd: 1600 });
+  const v2 = (id) => (list.match(new RegExp('<package_id>' + id + '</package_id>.*?<package_function_value2>(\\d+)<')) || [])[1];
+  const jut = () => db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=6').get().n;
+  const j0 = jut(), g0 = db.prepare('SELECT gold FROM players WHERE uid=77').get().gold;
+  const buy = call('rl_w_shopbuy', { Cmd: 1701, Packageid: 13, Count: 1 });
+  const mails = call('rl_x_award_msg', { Cmd: 1 });
+  const claim = call('rl_x_award_msg', { Cmd: 3 });
+  if (v2(13) !== '0' || v2(14) !== '0' || v2(22) !== '0' || v2(7) !== '1' || !/<retobj type="7" id="0" count="0"\/><bagid bagid="0"\/>/.test(buy)
+    || db.prepare('SELECT gold FROM players WHERE uid=77').get().gold !== g0 - 300 || !/4☆ Ninjutsu Bag/.test(mails) || !/<award/.test(claim) || jut() !== j0 + 1) {
+    bad++; console.log('NINJUTSU BAG:', v2(13), v2(14), v2(22), v2(7), buy.slice(0, 200), mails.slice(0, 200), claim.slice(0, 120), jut() - j0);
+  }
+}
 // Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
 {
   const ck = (ok, what) => { if (!ok) { bad++; console.log('SUPER NINJA', what); } };
