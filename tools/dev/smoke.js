@@ -951,6 +951,11 @@ for (const pick of [55, 56, 57]) {
       if (!worn(5, 6, 32)) wrong.push('Night Kai with ninjutsu 32: 1239 off');
     }
     if (wrong.length) { bad++; console.log('CHAIN CHARACTER MATCH:', wrong.join('; ')); }
+    // copies (owner, 17 Nov 2026, the original rule): a card's "all Shinobi +X %" (whole-team chain, ninjamatch row 1 of ninja 1) counts once,
+    // however many copies of that card are in the team; until then 22 copies gave 22 x the bonus
+    const boost = (team) => game.teamSlots(team.map(card), [], null).find((s) => s.ninja_id === 2067).chain.al || 0;
+    const one = boost([1, 2067]), three = boost([1, 1, 1, 2067]);
+    if (!game.RULES.leaderOnce || !(one > 0) || three !== one) { bad++; console.log('COPIES STACK: whole-team chain with 1 copy', one, 'with 3 copies', three, 'leaderOnce', game.RULES.leaderOnce); }
   }
   // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
   // goal stat, may use copies, and the split team math (teamSlots + teamTotals) still gives what teamStats gives

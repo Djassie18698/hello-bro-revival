@@ -18,6 +18,7 @@ A short guide to the game on the revival servers. Not installed yet? See <#15656
 • More team slots open as you level up (level 2, 6, 15, 30 ...) and clear story stages.
 • Every card has an **element**: Water beats Fire, Fire beats Wind, Wind beats Thunder, Thunder beats Earth, Earth beats Water. Hitting the weak element does **15% more** ("Restrain" on the result screen). A card gets a random element when you get it; Element Change Pills roll a new one.
 • Give each ninja a weapon, armor, trinket, seal and ninjutsu. Gear makes the biggest difference. **Golden Chōji x10** (Shop > Giftpack, 500 gold) = 10 big EXP cards at once.
+• **Copies don't stack:** a card's "all Shinobi +X%" chain counts **once**, however many copies of that card are in your team (like the original game). A mix of different strong cards whose chains light each other up is the way to a strong team.
 • From level 100 the **Team 2** tab opens: build a second line-up (it may use the same cards) and press **Activate** to fight with it.
 
 ## 4. Getting cards and gear

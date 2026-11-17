@@ -1604,8 +1604,9 @@ function teamStats(db, uid, sid, t = USED) {
 }
 // leaderOnce: ORIGINAL rule (official Q&A, hydr.zqgame.com news 17406, Dec 2014): a "whole team" chain (type 0) counts once per card version;
 // "three Kakashi cards, 2 attack 1 defence, still give only two effects" (the attack and defence versions are different ids with their own rows).
-// Off = every copy adds it again (how this server worked until now). Waiting for the owner's decision (7 Nov 2026).
-const RULES = { leaderOnce: process.env.HB_LEADER_ONCE === '1' };
+// ON since 17 Nov 2026 (owner: "I don't want the same cards to work multiple times for the bonuses. It looks dumb when they have 25 Sasukes
+// in the team"). Until then every copy added it again (22 copies of Hokage Naruto (God) = 22 x 18 %). HB_LEADER_ONCE=0 = the old stacking.
+const RULES = { leaderOnce: process.env.HB_LEADER_ONCE !== '0' };
 // The per-ninja part of teamStats: each team card's stats with its gear, sets and chains, from plain rows (team = cards in slot order,
 // eqRows = worn cards with .slot 1-based and .kind). No database, so the admin's Best team search can score line-ups without saving them.
 // owned = the player's ninja ids (only for the "ready" chain hints; null skips them).
