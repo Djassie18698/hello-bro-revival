@@ -65,6 +65,8 @@ function ensure(db) {
   try { for (const t of [1, 2, 3, 4, 5, 6]) db.prepare('UPDATE cards SET level=? WHERE type=? AND level>?').run(cardMaxLevel(t), t, cardMaxLevel(t)); } catch (e) { /* cards table not there yet */ }
   // EXP material cards made before 9 Nov 2026 sat at Lv 1: raise them to their starting level (see startLevel).
   try { for (const r of table('ninjainfo').rows) if (r[0] >= 100000 && r[7] > 1) db.prepare('UPDATE cards SET level=? WHERE type=1 AND ninja_id=? AND level<?').run(r[7], r[0], r[7]); } catch (e) { /* cards table not there yet */ }
+  // Gear material cards made before 18 Nov 2026 sat at Lv 1 too (see gearStartLevel).
+  try { for (const r of table('equipmentinfo').rows) if (r[5] > 1) db.prepare('UPDATE cards SET level=? WHERE type IN (2,3,4) AND ninja_id=? AND level<?').run(Math.round(r[5]), r[0], Math.round(r[5])); } catch (e) { /* cards table not there yet */ }
   // Shinobi cards made before 15 Nov 2026 had no element (0, shown as Water): give each a random one, once (see randomElement).
   elementBackfill(db);
   ready.add(db);
@@ -91,6 +93,12 @@ function ninjutsuBonus(st, id) {
 // and its Level Up preview counts the EXP of that level; before 9 Nov 2026 the server stored them at Lv 1, so a Golden Chōji gave
 // 75 EXP instead of 8125 (Discord report, Kaguya went Lv 1 -> 2 instead of -> 18).
 const startLevel = (ninjaId) => Math.max(1, Math.round(Number((ninjas().get(ninjaId) || [])[7]) || 1));
+// Gear the same way: equipmentinfo [5] (m_e_level) is the level a piece starts at: 3 for the three "(Material)" cards of the Weapon /
+// Armor / Trinket Bag (S) (ids 71-73), 1 for everything else. The app makes a card bought in the Shop from its own table
+// (CPlayerWeapon::firefly_InitFromID), so its Level Up preview counted 450 EXP a card while the server, which stored them at Lv 1,
+// gave 250 (Discord report 18 Nov 2026, Itachi: 8 cards, preview Lv 26 -> 29/30, result 28; reproduced in game: 3600 vs 2000 EXP).
+const gearStartLevel = (equipId) => Math.max(1, Math.round(Number((equipRows().find((r) => r[0] === equipId) || [])[5]) || 1));
+const cardStartLevel = (type, id) => (type === 1 ? startLevel(id) : type >= 2 && type <= 4 ? gearStartLevel(id) : 1);
 // Element of a shinobi card (cards.attri: 1 water, 2 fire, 3 wind, 4 earth, 5 thunder). ORIGINAL: a card had an element from the moment
 // you got it (Backpack photos batch-84/3415 and batch-81/2651: Wind / Water / Thunder / Fire / Earth on ordinary Lv 1 cards of a VIP 0
 // player). The rule lived on the dead server; (ours): a random one of the five (owner, 15 Nov 2026). Before that every card was 0 = Water;
@@ -102,7 +110,7 @@ const elementOf = (db, seq) => (db.prepare('SELECT attri FROM cards WHERE seq=?'
 function giveCard(db, uid, sid, ninjaId, type = 1) {
   ensure(db);
   const attri = type === 1 ? randomElement() : 0;
-  const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level,attri) VALUES(?,?,?,?,?,?)').run(uid, sid, type, ninjaId, type === 1 ? startLevel(ninjaId) : 1, attri);
+  const r = db.prepare('INSERT INTO cards(uid,server_id,type,ninja_id,level,attri) VALUES(?,?,?,?,?,?)').run(uid, sid, type, ninjaId, cardStartLevel(type, ninjaId), attri);
   const seq = Number(r.lastInsertRowid);
   if (attri) { if (madeElement.size > 2000) madeElement.clear(); madeElement.set(seq, attri); }
   return seq;
@@ -1202,7 +1210,7 @@ function strengthen(db, pl, srcSeq, eatSeqs) {
   // (ours): the ninja EXP-card bonus multiplier the client has for special cards is not applied.
   const up = (type) => table(UPGRADE_TABLE(type)).rows;
   let exp = 0, cost = 0;
-  for (const e of eat) { const lv = Math.max(e.level || 1, e.type === 1 ? startLevel(e.ninja_id) : 1); const r = up(e.type).find((x) => x[1] === lv) || []; exp += r[3] || 0; cost += r[4] || 0; }
+  for (const e of eat) { const lv = Math.max(e.level || 1, cardStartLevel(e.type, e.ninja_id)); const r = up(e.type).find((x) => x[1] === lv) || []; exp += r[3] || 0; cost += r[4] || 0; }
   if (pl.coin < cost) return { error: 'not enough silver' };
   const rows = up(src.type);
   let level = src.level, cur = src.exp + exp;

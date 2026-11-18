@@ -100,6 +100,24 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     if (m[1] !== '3' || !card || card.type !== type || card.ninja_id !== Number(m[2])) { bad++; console.log('GEAR BAG', pack, buy.slice(0, 200), JSON.stringify(card)); }
   }
 }
+// Gear material cards (Itachi, 18 Nov 2026: the Level Up preview said more than the result): the "(Material)" cards of the Weapon Bag (S)
+// start at Lv 3 like the app's own table says (equipmentinfo m_e_level), so 8 of them give 8 x 450 EXP for 8 x 270 silver, as the app previews.
+{
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  db.prepare('UPDATE players SET coin=coin+100000 WHERE uid=77').run();
+  call('rl_w_shopbuy', { Cmd: 1701, Packageid: 3, Count: 1 });
+  const mats = db.prepare('SELECT seq, level FROM cards WHERE uid=77 AND type=2 AND ninja_id=73 ORDER BY seq DESC LIMIT 8').all();
+  const sword = require('../../server/game').giveEquip(db, 77, 1, 2);
+  db.prepare('UPDATE cards SET level=26, exp=1250 WHERE seq=?').run(sword);
+  db.prepare('UPDATE cards SET level=1 WHERE seq=?').run(mats[0] ? mats[0].seq : 0); // an old Lv 1 one counts as Lv 3 too
+  const me = db.prepare('SELECT coin, level FROM players WHERE uid=77').get(), c0 = me.coin;
+  db.prepare('UPDATE players SET level=30 WHERE uid=77').run(); // a card's top level is 2 x the player's level + 10
+  const up = call('rl_w_strengthen', { Cmd: 2501, SRCBagID: sword, EATCardsBagIDList: mats.map((m) => m.seq).join('|') });
+  db.prepare('UPDATE players SET level=? WHERE uid=77').run(me.level);
+  const after = db.prepare('SELECT level, exp FROM cards WHERE seq=?').get(sword);
+  if (mats.length !== 8 || mats.some((m) => m.level !== 3) || !/eatexp="3600"/.test(up) || after.level !== 29 || after.exp !== 800
+    || db.prepare('SELECT coin FROM players WHERE uid=77').get().coin !== c0 - 2160) { bad++; console.log('GEAR MATERIAL:', JSON.stringify(mats), up, JSON.stringify(after)); }
+}
 // Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
 {
   const ck = (ok, what) => { if (!ok) { bad++; console.log('SUPER NINJA', what); } };

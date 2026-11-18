@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 18 | 11 | 2 | 2 |
+| Discord reports | 19 | 11 | 2 | 2 |
 
 ## Bug list 1
 
@@ -136,6 +136,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Chains stay off although the partner is in the team: Night Kai with Susa Kakashi, Six Paths Obito and The Fourth Sage with Hokage / Six Paths Naruto, Immortal Hashirama "Fourth Sage, Sage Naruto", Hamura "Kaguya, Sage of the Six Paths" with Santa of The Six Paths; and Night Kai's "Equip Eight inner gate" lit without the ninjutsu (Tayler Uchiha, 16 Nov) | The chain table lists only some versions of a character, and the server compared names word by word ("Kakashi Hatake" is not in "Susa Kakashi"). Now the versions of one character are the cards the table itself lists together (18 groups: every Naruto, every Kakashi, Sage = Santa of the Six Paths ...), so a chain that names a character lights with any version of it. The Eight Gates chain lit because the armour he wore (Thunder god armour) has the same number as that ninjutsu: gear and ninjutsu are now told apart. Checked on a copy of the public save with his team (every reported chain lights, the Eight Gates one is off); not looked at in the game. smoke.js "CHAIN CHARACTER MATCH". |
 | ✅ | The game closes when you buy a 4☆ or 3☆ Ninjutsu Bag in the Shop (Zeraora, 17 Nov) | The server's pack list told the app to open its "you got this card" window after the buy; the cards of these bags wait in the Awards chest, so there was no card to show and the app crashed. The list no longer asks for that window for these bags (and the Shukaku Seal Bag): the buy now says "Successfully purchased". Reproduced and checked on the Claude emulator; smoke check "NINJUTSU BAG" |
 | ✅ | The game closes when you buy a 4☆ or 3☆ Armor Bag in the Shop (Zeraora, 18 Nov) | The server told the app the new armor was a seal (and a trinket from the Trinket Bags a ninjutsu): the app has one number for all gear. Its "you got this card" window then could not find the card and the game closed; the small Armor / Trinket Bags put their cards in the wrong list until the next login. Now all gear goes out as gear. Reproduced and checked on the Claude emulator: 4☆ Armor, Trinket and Weapon Bag each show their card; smoke check "GEAR BAG" |
+| ✅ | Gear Level Up gave fewer levels than the preview showed (Itachi, 18 Nov) | The "(Material)" cards from the Weapon / Armor / Trinket Bag (S) are Lv 3 cards in the game's own table (450 EXP each). The app counted that in its preview for cards bought since the last login, but the server stored them as Lv 1 (250 EXP each): 8 cards showed Lv 26 -> 29 and gave 28. Now they are Lv 3 on the server too (the ones players already own as well), so preview and result match. Reproduced and checked on the Claude emulator (preview 29, result 29). smoke.js "GEAR MATERIAL". |
 
 ## Built on request (chat)
 
