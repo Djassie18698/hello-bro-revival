@@ -456,7 +456,7 @@ function rollPack(r) {
   // Ten-Tails Seal only comes from its own fixed drops). Before 2 Nov 2026 these gave a random shinobi.
   if (/seal/i.test(t) && !/card|shinobi|ninj[ui]tsu|equipment|weapon|armou?r|trinket|gold/i.test(t)) {
     const merges = table('markmerge').rows;
-    if (/fragment/i.test(t)) { const frags = merges.flatMap((m) => m.slice(3, 9).filter((x) => x > 0)); return { sealFrag: frags[Math.floor(Math.random() * frags.length)] }; }
+    if (/fragment/i.test(t)) { const frags = merges.flatMap((m) => m.slice(3, 11).filter((x) => x > 0)); return { sealFrag: frags[Math.floor(Math.random() * frags.length)] }; }
     const seals = merges.map((m) => m[0]).filter((id) => id >= 1 && id <= 9);
     return { seal: seals[Math.floor(Math.random() * seals.length)] };
   }

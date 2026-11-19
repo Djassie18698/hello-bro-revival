@@ -532,6 +532,10 @@ module.exports = {
     // (drop 1284) in the bag, without showing it on the loss screen. (ours)
     if (!r.win && firstSpar && inTutorial(db, pl)) game.grantDrop(db, pl, 1284);
     if (r.win) award = require('./shards').addToAward(award, require('./shards').drop(db, pl, 'spar')); // god card fragments (shards.js)
+    // A plundered fragment: the award's <chip> = its markinfo id. The victory screen (CNewResultWinView::InitUI 0x2b6932) shows the fragment
+    // with that id, and with 0 its own text "Unlucky! ... your opponent ran away with <fragment>": until 19 Nov 2026 it was always 0, so
+    // every plunder looked failed although the fragment was in the seal list.
+    if (got) award = award.replace('<chip>0</chip>', `<chip>${chip}</chip>`);
     return `<root code="0"><userinfo><LastSPUpdatePastTime>${game.spState(db, pl).pass}</LastSPUpdatePastTime></userinfo>` + r.xml + award + (got ? '<message>Seal fragment plundered!</message>' : '') + '</root>';
   },
 

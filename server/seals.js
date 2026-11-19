@@ -1,4 +1,5 @@
-// Tailed-beast seals (Plunder screen). Each seal (markmerge row) has up to 6 fragment ids (cols 3-8).
+// Tailed-beast seals (Plunder screen). Each seal (markmerge row) has up to 8 fragment ids (cols 3-10: 5 or 6 for most, 8 for the
+// Gyūki and Ten-Tails Seals; until 19 Nov 2026 only cols 3-8 were read, so their fragments 7 and 8 showed 0 and could never be got).
 // Fragments are stored as props 20000+fragmentId. Plundering a fragment = a fight against a rival; a win
 // usually takes the fragment. Synthesis turns one of each fragment into a seal card (cards.type 5, ninja_id = mark id).
 // ORIGINAL synthesis flow (CMarkCardView, rl_w_markchip): Claim on a seal with every fragment starts a synthesis (Cmd 2800 MarkID): the
@@ -12,7 +13,7 @@ const game = require('./game');
 const el = (n, v) => `<${n}>${v}</${n}>`;
 const FRAG = 20000;
 const merges = () => game.table('markmerge').rows;
-const fragIds = (row) => row.slice(3, 9).filter((x) => x > 0);
+const fragIds = (row) => row.slice(3, 11).filter((x) => x > 0);
 const conf = (id, dflt) => { const r = game.table('normalconfig').rows.find((x) => x[0] === id); return r ? Number(r[3]) : dflt; };
 const now = () => Math.floor(Date.now() / 1000);
 function ensure(db) { db.exec('CREATE TABLE IF NOT EXISTS seal_merge (uid INTEGER, server_id INTEGER, mark_id INTEGER, ready_at INTEGER, PRIMARY KEY(uid,server_id,mark_id))'); }
@@ -70,4 +71,4 @@ function plunder(db, pl, fragId, win, rivalLevel) {
   return false;
 }
 
-module.exports = { listXml, merge, fetch, plunder, plunderChance, FRAG };
+module.exports = { fragIds, listXml, merge, fetch, plunder, plunderChance, FRAG };

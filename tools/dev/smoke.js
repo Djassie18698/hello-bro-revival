@@ -345,6 +345,41 @@ for (const pick of [55, 56, 57]) {
     db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=5 AND ninja_id=1').get().n >= 1 && !(seals.FRAG + 11 in require('../../server/game').propCounts(db, 77, 1) && require('../../server/game').propCounts(db, 77, 1)[seals.FRAG + 11] > 0);
   if (!ok) { bad++; console.log('SEAL SYNTHESIS', JSON.stringify({ list0: list0.slice(0, 40), start, list1: (list1.match(/<markmerge>.*<\/markmerge>/) || [''])[0], early, pay, gold, got })); }
 }
+// Seal fragments 7 and 8 (19 Nov 2026, splash_bros_40): the Gyuki and Ten-Tails Seals have 8 fragments (markmerge cols 3-10). The seal
+// list must count all 8, a won plunder can take them, the fragment packs can give them, and the seal needs all 8.
+{
+  const seals = require('../../server/seals'), game = require('../../server/game');
+  const set = (f, n) => db.prepare('INSERT INTO props(uid,server_id,prop_id,count) VALUES(77,1,?,?) ON CONFLICT(uid,server_id,prop_id) DO UPDATE SET count=excluded.count').run(seals.FRAG + f, n);
+  const pl = db.prepare('SELECT * FROM players WHERE uid=77').get();
+  const all = game.table('markmerge').rows.flatMap(seals.fragIds);
+  for (const f of [67, 68, 69, 70, 71, 72, 73, 74]) set(f, 0);
+  let took = 0; for (let i = 0; i < 20; i++) if (seals.plunder(db, pl, 74, true, pl.level + 200)) took++; // rival 91+ levels higher: always
+  const list = handlers.rl_r_markchip({ db, params: { ...base, Cmd: 1600 } });
+  for (const f of [67, 68, 69, 70, 71, 72]) set(f, 1); set(73, 0); set(74, 1);
+  const short = handlers.rl_w_markchip({ db, params: { ...base, Cmd: 2800, MarkID: 8 } });
+  set(73, 1);
+  const full = handlers.rl_w_markchip({ db, params: { ...base, Cmd: 2800, MarkID: 8 } });
+  const left = game.propCounts(db, 77, 1)[seals.FRAG + 73] || 0;
+  db.prepare('DELETE FROM seal_merge WHERE uid=77 AND mark_id=8').run();
+  // the fight reply names the fragment it gave (<chip>74</chip>), else the victory screen says the rival ran away with it
+  db.prepare('UPDATE players SET level=1 WHERE uid=77').run(); set(74, 0);
+  const rival = db.prepare('SELECT uid FROM players WHERE uid<>77 AND server_id=1 ORDER BY level DESC').get();
+  let chipOk = true, wins = 0;
+  for (let i = 0; i < 30 && rival; i++) {
+    const before = game.propCounts(db, 77, 1)[seals.FRAG + 74] || 0;
+    db.prepare('UPDATE players SET sp=5 WHERE uid=77').run(); db.exec('DELETE FROM spar_pairs WHERE uid=77');
+    const x = handlers.rl_w_pvp({ db, params: { ...base, Cmd: 2701, ToUid: rival.uid, Chip: 74 } });
+    const gotIt = (game.propCounts(db, 77, 1)[seals.FRAG + 74] || 0) > before;
+    if (gotIt) wins++;
+    if (/code="0"/.test(x) && gotIt !== x.includes('<chip>74</chip>')) chipOk = false;
+  }
+  db.prepare('UPDATE players SET level=? WHERE uid=77').run(pl.level);
+  if (process.env.HB_DBG) console.log('plunder wins', wins, rival);
+  if (!chipOk || !wins) { bad++; console.log('PLUNDER CHIP: the reply does not name the plundered fragment', wins); }
+  const ok = all.length === 60 && [73, 74, 89, 90].every((f) => all.includes(f)) && took === 20 && list.includes('<chip><id>74</id><count>20</count></chip>') &&
+    list.includes('<chip><id>90</id>') && /code="5"/.test(short) && /message="started"/.test(full) && left === 0;
+  if (!ok) { bad++; console.log('SEAL FRAGMENTS 7-8', JSON.stringify({ n: all.length, took, short: short.slice(0, 120), full: full.slice(0, 120), left, chip: list.slice(list.indexOf('<chip><id>74<'), list.indexOf('<chip><id>74<') + 50) })); }
+}
 // Arena: a gap in the ranks (a player wiped by the admin reset) must not stop the next newcomer from joining (was UNIQUE constraint failed).
 {
   const g = require('../../server/game');
@@ -792,7 +827,7 @@ for (const pick of [55, 56, 57]) {
     {
       const meNow = () => db.prepare('SELECT level, coin, exp FROM players WHERE uid=77 AND server_id=1').get();
       const rv = db.prepare('SELECT uid FROM players WHERE uid!=77 AND server_id=1 AND uid<9000000 LIMIT 1').get();
-      const frag = (game.table('markmerge').rows[0] || []).slice(3, 9).find((x) => x > 0);
+      const frag = (game.table('markmerge').rows[0] || []).slice(3, 11).find((x) => x > 0);
       if (rv && frag) {
         db.prepare('UPDATE players SET coin=50000 WHERE uid=77').run();
         const lvRow = game.table('playerlevel').rows.find((x) => x[1] === meNow().level);

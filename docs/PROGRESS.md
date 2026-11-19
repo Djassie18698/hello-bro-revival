@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 19 | 12 | 2 | 4 |
+| Discord reports | 20 | 12 | 2 | 4 |
 
 ## Bug list 1
 
@@ -140,6 +140,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🚫 | Country War reward "shows 5* but gives 3* / 4*" (lephuc, 18 Nov) | Not a bug. His recording shows the 8000-exploit "Equipment Pack III": its text says a chance of Five-Star gear, a great chance of Four-Star and at least Three-Star; the list only cuts the text off after "Five-Star Equipment, a". It is a random pack (5☆ 10 % / 4☆ 60 % / 3☆ 30 %, ours) and he got a 3☆ and a 4☆ |
 | 🧪 | Lag and slow loading on the public server, also on fast wifi (Zeraora, 19 Nov) | The server was the slow part: for every home screen, fight and ranking it read ALL cards of the account 56 times to count the card sets. Accounts with 5 000 to 22 000 cards made such a request take 1-2 seconds on the cloud machine (the No.1 Shinobi list 10-20 s), and every other player waited meanwhile (1 800 requests of over a second in one day). The count is now one question to the save with its own index: 5-7x faster on a copy of the live save, the same team numbers for all 84 players. Measured on the copy, not timed on the live server yet |
 | 🚫 | Luck draw (God Recruit): "spinning does not add energy for Exchange" (lephuc, 19 Nov) | Not a bug. Energy never came from the spin itself: the game's own rule text says you get gold and energy "as compensation for unnecessary cards in return". After a spin the Congrat window has two buttons: keep the card, or Return it for gold back + 20 energy (ours). He kept his card, so energy stayed 0; 16 of the 28 players who spun on ninjaonline have energy |
+| ✅ | The last two fragments of the Gyūki (8-Tails) and Ten-Tails Seals could never be got (11TAILS, 19 Nov) | These two seals have 8 fragments in the game's table, the server only read the first 6: fragments 7 and 8 always showed 0, a won plunder never gave them, fragment packs never held them. Now all 8 count. Also: after a plunder that DID take a fragment (any seal) the victory screen still said "your opponent ran away with it"; it now shows "You get it!" with the fragment. Checked in game. Not live until the public server is updated. |
 
 ## Built on request (chat)
 
