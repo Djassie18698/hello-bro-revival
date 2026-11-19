@@ -1467,11 +1467,15 @@ function activeSuits(db, uid, sid) {
   // type 1 = N cards with at least X stars (a god card counts as 6 stars, so also for 4 and 5); type 2 = N cards with Sage GROWTH level >= X
   // ("Six-/Nine-/Twelve-Level Cards" = growth 6/9/12, cards.starlevel). Per type the set with the biggest bonus wins (21 five-star beats 21 four-star;
   // rows 49-56 repeat 41-48 with Chinese names, so on a tie the lower id).
-  const cards = db.prepare('SELECT ninja_id, level, starlevel FROM cards WHERE uid=? AND server_id=? AND type=1').all(uid, sid);
+  // Counted per (card id, growth) group by the database (index cards_kind, db.js): an account with 22 000 cards made every home screen and
+  // fight read all of them 56 times (1-2 s on the cloud machine, and everyone else waits meanwhile; "lag" report 19 Nov 2026).
+  const cards = db.prepare('SELECT ninja_id, starlevel, COUNT(*) n FROM cards WHERE uid=? AND server_id=? AND type=1 GROUP BY ninja_id, starlevel').all(uid, sid);
+  for (const c of cards) c.stars = (ninjas().get(c.ninja_id) || [])[11] || 0;
   const best = {};
   for (const r of table('suit_info').rows) {
     const [, , type, need, count] = r;
-    const have = cards.filter((c) => (type === 1 ? ((ninjas().get(c.ninja_id) || [])[11] || 0) >= need : (c.starlevel || 0) >= need)).length;
+    let have = 0;
+    for (const c of cards) if ((type === 1 ? c.stars : (c.starlevel || 0)) >= need) have += c.n;
     const b = best[type];
     if (have >= count && (!b || r[5] > b[5] || (r[5] === b[5] && r[6] > b[6]))) best[type] = r;
   }

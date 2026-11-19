@@ -177,6 +177,16 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const armed = game.table('skill_suit_info').rows.find((r) => r[2] === 'Armed');
   const at = [2, 3, 4].map((num) => game.setBonus(b, [{ row: armed, num }]).al);
   ck(at.join() === '1150,1300,1450', 'Armed set 2/3/4 pieces: ' + at.join());
+  { // card sets are counted per group by the database (19 Nov 2026: 22 000 cards read 56 times a request made the public server lag)
+    const four = game.table('ninjainfo').rows.find((r) => r[11] === 4 && r[19] > 0)[0], suitOf = () => game.teamStats(db, 9977, 1).suits.filter((r) => r[2] === 1).map((r) => r[0]).join();
+    const give = (n) => { for (let i = 0; i < n; i++) db.prepare('INSERT INTO cards (uid, server_id, type, ninja_id, level, starlevel) VALUES (9977, 1, 1, ?, 1, 0)').run(four); };
+    give(4); const s4 = suitOf(); give(2); const s6 = suitOf(); give(1); const s7 = suitOf();
+    ck(s4 === '' && s6 === '1' && s7 === '2', 'SET COUNT: 4 / 6 / 7 four-star cards give sets ' + [s4, s6, s7].join(' / ') + ' (want none / 1 / 2)');
+    require('../../server/db').indexes(db);
+    const plan = db.prepare('EXPLAIN QUERY PLAN SELECT ninja_id, starlevel, COUNT(*) n FROM cards WHERE uid=? AND server_id=? AND type=1 GROUP BY ninja_id, starlevel').all(1, 1).map((r) => r.detail).join('; ');
+    ck(/COVERING INDEX cards_kind/.test(plan), 'SET COUNT: the card count does not use the index cards_kind: ' + plan);
+    db.prepare('DELETE FROM cards WHERE uid=9977').run();
+  }
   game.propAdd(db, 77, 1, 9994, 1234 - (game.propCounts(db, 77, 1)[9994] || 0));
   const shop = handlers.rl_r_warnew({ db, params: { ...base, Cmd: 225 } });
   ck(shop.includes('<curpower>1234</curpower>'), 'exploit shop balance: ' + shop.slice(0, 120));
