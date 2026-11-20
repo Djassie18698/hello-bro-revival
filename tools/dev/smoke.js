@@ -117,6 +117,16 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
   const after = db.prepare('SELECT level, exp FROM cards WHERE seq=?').get(sword);
   if (mats.length !== 8 || mats.some((m) => m.level !== 3) || !/eatexp="3600"/.test(up) || after.level !== 29 || after.exp !== 800
     || db.prepare('SELECT coin FROM players WHERE uid=77').get().coin !== c0 - 2160) { bad++; console.log('GEAR MATERIAL:', JSON.stringify(mats), up, JSON.stringify(after)); }
+  // 11TAILS, 20 Nov 2026: Uchiwa of Fire (armor 35) Lv 1 + 30 Samurai Attire (71) previewed Lv 23, 13 500 EXP, 8 100 silver.
+  const G = require('../../server/game');
+  const fan = G.giveCard(db, 77, 1, 35, 3), sam = Array.from({ length: 30 }, () => G.giveCard(db, 77, 1, 71, 3));
+  db.prepare('UPDATE players SET coin=coin+100000 WHERE uid=77').run();
+  const c1 = db.prepare('SELECT coin FROM players WHERE uid=77').get().coin;
+  db.prepare('UPDATE players SET level=30 WHERE uid=77').run();
+  const up2 = call('rl_w_strengthen', { Cmd: 2501, SRCBagID: fan, EATCardsBagIDList: sam.join('|') });
+  db.prepare('UPDATE players SET level=? WHERE uid=77').run(me.level);
+  const fanAfter = db.prepare('SELECT level FROM cards WHERE seq=?').get(fan);
+  if (!/eatexp="13500"/.test(up2) || fanAfter.level !== 23 || db.prepare('SELECT coin FROM players WHERE uid=77').get().coin !== c1 - 8100) { bad++; console.log('GEAR MATERIAL 30:', up2, JSON.stringify(fanAfter)); }
 }
 // Limited Super Ninja (limitsuper.js): open, gold pulls through the pray dialog, free pull, refresh, the round's prizes in the Awards chest.
 {
