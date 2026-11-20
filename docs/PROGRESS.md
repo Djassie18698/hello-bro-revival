@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 21 | 12 | 2 | 4 |
+| Discord reports | 21 | 12 | 2 | 5 |
 
 ## Bug list 1
 
@@ -142,6 +142,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🚫 | Luck draw (God Recruit): "spinning does not add energy for Exchange" (lephuc, 19 Nov) | Not a bug. Energy never came from the spin itself: the game's own rule text says you get gold and energy "as compensation for unnecessary cards in return". After a spin the Congrat window has two buttons: keep the card, or Return it for gold back + 20 energy (ours). He kept his card, so energy stayed 0; 16 of the 28 players who spun on ninjaonline have energy |
 | ✅ | The last two fragments of the Gyūki (8-Tails) and Ten-Tails Seals could never be got (11TAILS, 19 Nov) | These two seals have 8 fragments in the game's table, the server only read the first 6: fragments 7 and 8 always showed 0, a won plunder never gave them, fragment packs never held them. Now all 8 count. Also: after a plunder that DID take a fragment (any seal) the victory screen still said "your opponent ran away with it"; it now shows "You get it!" with the fragment. Checked in game. Not live until the public server is updated. |
 | ✅ | Level Up preview said Lv 23, the armor only reached Lv 16 (11TAILS, 20 Nov) | Same cause as Itachi's gear report of 18 Nov: the "(Material)" gear cards from the Weapon / Armor / Trinket Bag (S) are Lv 3 in the game's own table (450 EXP each), the live server still counts them as Lv 1 (250). 30 Samurai Attire on Uchiwa of Fire: preview 13 500 EXP = Lv 23. Already fixed on 18 Nov (checked in game then); this exact case checked on a test save (Lv 23, 8 100 silver). Not live until the public server is updated. |
+| 🚫 | Evolve: the Lv 50 reincarnated Madara and Hashirama are missing from the card list (xvon11, 20 Nov) | Not a bug. The game's own Evolve screen only lists 5-star shinobi that are in no team (Team 1 or Team 2); both his Lv 50 cards are in Team 1 (the Lv 1 copies show because they are not). Take the card out of the team first (Team > change it for another card), evolve, then put the new card back: the screen keeps reincarnation and growth |
 
 ## Built on request (chat)
 
