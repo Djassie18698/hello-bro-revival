@@ -94,7 +94,7 @@
       type = t;
       for (const [name, , ty] of TABS) { const b = n[name]; if (b) { b.frames[1] = ty === t ? tabOn || tabOff : tabOff; b.layout(); } }
       const cards = sorted(HB.data.ofType(t));
-      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: t === 1 ? 'upgrade' : null, inUse: HB.data.inUse(c.seq), onButton: () => ui.tip('Coming soon: level up', 1.2) }));
+      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: 'upgrade', inUse: HB.data.inUse(c.seq), onButton: (k) => HB.screens.upgrade(k.seq) }));
     };
     o.onButton = (sel) => {
       const tab = TABS.find((x) => x[1] === sel);

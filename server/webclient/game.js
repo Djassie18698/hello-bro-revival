@@ -365,7 +365,8 @@
   // after something changed the player's numbers (a fight, a purchase): ask the server again and fill the top bar on screen
   HB.game.refresh = async () => {
     try {
-      const main = await HB.api('rl_r_mainpage', { Cmd: 1301, HornFlag: 1 });
+      // Cmd 1302 = the full page with the card list (1301 leaves the cards out: the card data here went empty after a refresh)
+      const main = await HB.api('rl_r_mainpage', { Cmd: 1302 });
       if (main.code) return;
       HB.game.main = main;
       HB.data.load(main);
