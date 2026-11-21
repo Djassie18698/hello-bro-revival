@@ -12,7 +12,7 @@ async function renderPng(html, out, W, H, check) {
   const page = path.join(dir, 'page.html');
   fs.writeFileSync(page, html);
   const port = 9300 + Math.floor(Math.random() * 500);
-  const ch = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--hide-scrollbars', '--no-first-run',
+  const ch = spawn(CHROME, ['--headless=new', '--mute-audio', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--hide-scrollbars', '--no-first-run',
     '--allow-file-access-from-files', 'about:blank'], { stdio: 'ignore' });
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   try {

@@ -15,7 +15,7 @@ const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Pro
 if (!CHROME) { console.log('no Chrome or Edge found'); process.exit(1); }
 const port = 9300 + Math.floor(Math.random() * 500);
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pshot-'));
-const ch = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--hide-scrollbars', '--no-first-run', 'about:blank'], { stdio: 'ignore' });
+const ch = spawn(CHROME, ['--headless=new', '--mute-audio', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--hide-scrollbars', '--no-first-run', 'about:blank'], { stdio: 'ignore' });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 (async () => {
   let targets = [];
