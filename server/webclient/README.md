@@ -30,7 +30,11 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 | `game.js` | the screens (what the C++ classes did): login (CLoginScene), account window, character creation, home (CMainMenu + CDefaultMainMenu + the country's village) |
 | `train.js` | Training: the chapter pictures (6 a page), one chapter's stage tabs and parts (Finish / GO), `rl_w_pve` Cmd 2 and 3 |
 | `fight.js` | the fight playback (two rows of cards, the one in front in the middle, Skip) and the Victory / Defeat screens with the three prize cards (RS_WinAnim) |
-| `assets/` | made by `tools/build_webclient.js`, not in git |
+| `shop.js` | the Shop (Recruit, Giftpack, Tool) and the windows every screen uses: `HB.dialog` (a layout as a window), `HB.confirm`, `HB.showCards` |
+| `spar.js`, `arena.js`, `tower.js` | Spar, the Arena ladder, Battles (the tower) |
+| `upgrade.js` | level up a card by feeding it cards (Backpack > Upgrade) |
+| `stage.js` | the PC look: on a wide window the game stands framed on the blue moon night with a player panel and a server / full screen panel (`?stage=0` off) |
+| `assets/` | made by `tools/build_webclient.js`, not in git. `assets/hd/` + `assets/hd.json` = every picture at double size, made by `node tools/build_hd.js` (needs re/esrgan: the Real-ESRGAN Windows program; ~5 minutes on the RTX 5080). engine.js draws the HD picture in the place and size of the original (`K()`); `?hd=0` shows the originals |
 
 ## Rules found so far (from the phone and `re/all.txt`)
 
@@ -68,6 +72,10 @@ To list the C++ names all scripts use: parse every script with `Lua.parse` and c
 851 method names on 12 Nov 2026).
 
 ## Not done yet (the big parts)
+
+- HD and the PC stage are in (21 Nov 2026); a true landscape layout for PCs is not: every layout of the game is made for a tall screen.
+- New screens are checked against the original running next to it: `/play/emu/?device=<x>&mute=1&noreport=1` (the emulator version) in the same browser.
+- A helper for new screens: `node tools/dev/ccb-names.js <layout>` lists a layout's named nodes and button actions.
 
 - More of the C++ helpers the scripts call (`CGameObjElement` card icons and frames, `CTradeMgr`, item lists ...), so the Lua
   screens behind the event buttons open; Lua screens draw, but most of their buttons lead to C++ screens not rebuilt yet.

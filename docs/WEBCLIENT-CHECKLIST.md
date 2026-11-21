@@ -10,6 +10,8 @@ Update this file with every round of work. How it is built and the rules found: 
 
 ## 0. Foundations
 
+**21 Nov 2026 (owner: "port it over, make it HD and modern"):** every picture is redrawn at double size (`tools/build_hd.js`, Real-ESRGAN; `?hd=0` shows the originals), on a wide PC window the game stands on a stage with side panels (`stage.js`), and Shop, Spar, card upgrade, Arena and Battles were added. Open points for the look: a real landscape layout, the phone's own card-turn and upgrade animations.
+
 | | Part | Notes |
 |---|---|---|
 | ✅ | Game files for the browser (`tools/build_webclient.js`) | sprite sheets, layouts, fonts, texts, tables, Lua scripts |
@@ -19,7 +21,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Requests like the phone (`net.js`) | same server, same accounts |
 | 🟡 | Player data kept like the phone (CPlayerDataMgr): cards and teams (data.js); items and fragments not yet | section 2 needs it; many Lua screens too |
 | 🟡 | Card / item pictures and frames (CGameObjElement, data.js) | icons, quality frames, stars, element marks |
-| ⬜ | Common windows: confirm (CommonDialogView), buy item (BuyItemDlg), reward box (ShowBoxView), item details | used everywhere |
+| 🟡 | Common windows: confirm (CommonDialogView) and "you got" (ours: the card fades in, the phone turns it over) are in shop.js (HB.dialog, HB.confirm, HB.showCards); buy item (BuyItemDlg), item details not yet | used everywhere |
 | ⬜ | Level-up window (PlayerLevelUpDlg) | |
 | ⬜ | Loading picture (LoadingView), time-out window, system notice window | plain grey cover for now |
 | ⬜ | Sounds and music (26 mp3) | |
@@ -49,11 +51,11 @@ Update this file with every round of work. How it is built and the rules found: 
 | ⬜ | Home: the base scene buttons (Base: ramen, money tree, national treasure, secret shop, border war, shinobi house) | CDefaultSLGMenu, firescene.xml |
 | ⬜ | Home: red number bubbles (events, messages) | |
 | ⬜ | Player info window (tap the top bar) | PlayerInfoDlg, meritRankCell |
-| 🟡 | Bottom bar | Home, Training work |
+| ✅ | Bottom bar | all six buttons open their screens |
 | 🟡 | **Team**: line-up, change ninja, gear slots, ninjutsu slots, seals, chains, Team 2 (changing is coded, not tried yet) | ListMyTeamView, TeamNinjaView |
 | 🟡 | **Backpack**: ninja / weapon / armor / trinket / ninjutsu / seal tabs (shown; no sell, use, fragments yet) | MyBackpackView, gameobjlist/*, BackpackTips |
 | ⬜ | Card details: ninja, gear (+ set), ninjutsu, seal, pet | NinjaDetailView, EquipDetailView, NinjasuDetailView, MarkDetailView, PetDetailView |
-| ⬜ | Upgrade a card (feed cards) | upgrade/CardUpgradeView, UpgradeNinja, MaterialNinjaView, UpgradeProcessView, UpgradeCompleteView |
+| 🟡 | Upgrade a card (feed cards): the card, material grid, Select all 1-2 star, exp and silver from the game's tables (upgrade.js); the phone's process and "complete" animations not yet | upgrade/CardUpgradeView, UpgradeNinja, UpgradeMeteriaInfoCard |
 | ⬜ | Strengthen gear (Growth) | sub_ui/StrengthView |
 | ⬜ | Potential (Train) | sub_ui/Potential* |
 | ⬜ | Reincarnate | sub_ui/ReincarnationView |
@@ -66,12 +68,12 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Victory screen with the three prize cards | NewFightResult_WinView, RS_WinAnim |
 | 🟡 | Defeat screen | built, its five help buttons not yet |
 | ⬜ | Team compare | NewTeamCompare, TeamCompareItemView |
-| ⬜ | **Spar** (fight other players): list, preview, fight | FightListView, FightNinjaView, FightPreView |
-| ⬜ | **Shop**: items, packs, recruit (3 kinds, 10 pulls), VIP shop | StoreItemsView, StoreGoodsView, StorePacksView, StoreNinjaView, ShowBoxView, TurnTenDialogView |
+| ✅ | **Spar** (fight other players): list, preview, fight (spar.js); search not yet | FightListView, FightNinjaView, FightPreView |
+| 🟡 | **Shop**: Recruit (3 scrolls, free timers, once / ten times window), Giftpack, Tool with Buy and Use (shop.js); VIP shop and Top-up not yet | StoreItemsView, StoreGoodsView, StorePacksView, StoreNinjaView, PrayDialogView |
 | ⬜ | Top-up list and confirm (free on our server) | PurchaseListView, PurchaseItemView, PurchaseConfirmDialogView + Lua ui_purchaseLayer |
 | ⬜ | **Plunder** (seal fragments) | PlunderListView, PlunderNinjaView, PlunderPreView |
-| ⬜ | **Arena** (ladder): list, ranks, rewards, cooldown, exchange shop | ArenaViewNew, ArenaCellViewNew, ArenaRank*, ArenaExchangeCellView |
-| ⬜ | **Battles** (tower): floors, boss, ranks, first-pass reward, sweep | TowerView, TowerLevelView, TowerBossView, TowerRank* + Lua ui_towerSweepLayer |
+| 🟡 | **Arena** (ladder): rivals with teams, Challenge, daily place reward, Rank tab, cooldown clear (arena.js); exchange shop, rules and lucky rank not yet | ArenaViewNew, ArenaCellViewNew |
+| 🟡 | **Battles** (tower): floors (ours: plain rows, the phone draws a tower), a floor's seven rounds, fights (tower.js); ranks, first-pass reward, sweep not yet | TowerView, TowerLevelView |
 | ⬜ | **War** (country war): my country, war info, ranks, score shop, officials, auto fight | countrywar/* (14 layouts) |
 | ⬜ | National treasure | countrywar/CountryTreasury, SnatchDialogView |
 | ⬜ | Ramen shop | RamenView + Lua BuyRemenDlg |
