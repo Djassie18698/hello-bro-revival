@@ -54,12 +54,12 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Bottom bar | all six buttons open their screens |
 | 🟡 | **Team**: line-up, change ninja, gear slots, ninjutsu slots, seals, chains, Team 2 (changing is coded, not tried yet) | ListMyTeamView, TeamNinjaView |
 | 🟡 | **Backpack**: ninja / weapon / armor / trinket / ninjutsu / seal tabs (shown; no sell, use, fragments yet) | MyBackpackView, gameobjlist/*, BackpackTips |
-| ⬜ | Card details: ninja, gear (+ set), ninjutsu, seal, pet | NinjaDetailView, EquipDetailView, NinjasuDetailView, MarkDetailView, PetDetailView |
+| 🟡 | Card details (tap a card's picture in the Backpack): shinobi (the game's own page: big card, story, chains, growth and rebirth rows), gear, ninjutsu, seal with its five element rows (details.js); pets, the gear set window, opening it from the Team screen and the Growth / Rebirth / Train buttons not yet | NinjaDetailView + NinjaSubView, EquipDetailView, NinjasuDetailView, MarkDetailView + MarkInfoDetails, PetDetailView |
 | 🟡 | Upgrade a card (feed cards): the card, material grid, Select all 1-2 star, exp and silver from the game's tables (upgrade.js); the phone's process and "complete" animations not yet | upgrade/CardUpgradeView, UpgradeNinja, UpgradeMeteriaInfoCard |
 | ⬜ | Strengthen gear (Growth) | sub_ui/StrengthView |
 | ⬜ | Potential (Train) | sub_ui/Potential* |
 | ⬜ | Reincarnate | sub_ui/ReincarnationView |
-| ⬜ | Seals: list, merge | MarkListView, MarkMergaView |
+| ✅ | Seals: list, merge (start, clock, finish now for gold, take the seal) - part of plunder.js | MarkListView, MarkMergaView |
 | ⬜ | Ninjabook (collection) | GameObjBookList, GameObjBookCard |
 | ✅ | **Training**: chapters, stages, parts | ChapterView, SubChapterListView, SubChapter |
 | ⬜ | Training extras: chapter complete window, boss retry for gold, exp-card timer, sweep | ChapterCompleteView |
@@ -71,7 +71,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | **Spar** (fight other players): list, preview, fight (spar.js); search not yet | FightListView, FightNinjaView, FightPreView |
 | 🟡 | **Shop**: Recruit (3 scrolls, free timers, once / ten times window), Giftpack, Tool with Buy and Use (shop.js); VIP shop and Top-up not yet | StoreItemsView, StoreGoodsView, StorePacksView, StoreNinjaView, PrayDialogView |
 | ⬜ | Top-up list and confirm (free on our server) | PurchaseListView, PurchaseItemView, PurchaseConfirmDialogView + Lua ui_purchaseLayer |
-| ⬜ | **Plunder** (seal fragments) | PlunderListView, PlunderNinjaView, PlunderPreView |
+| ✅ | **Plunder** (seal fragments): the seal list, rivals with the chance word from the game's plunderinfo table, preview, fight (plunder.js) | PlunderListView, PlunderNinjaView, PlunderPreView |
 | 🟡 | **Arena** (ladder): rivals with teams, Challenge, daily place reward, Rank tab, cooldown clear (arena.js); exchange shop, rules and lucky rank not yet | ArenaViewNew, ArenaCellViewNew |
 | 🟡 | **Battles** (tower): floors (ours: plain rows, the phone draws a tower), a floor's seven rounds, fights (tower.js); ranks, first-pass reward, sweep not yet | TowerView, TowerLevelView |
 | ⬜ | **War** (country war): my country, war info, ranks, score shop, officials, auto fight | countrywar/* (14 layouts) |

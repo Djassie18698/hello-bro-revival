@@ -32,6 +32,8 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 | `fight.js` | the fight playback (two rows of cards, the one in front in the middle, Skip) and the Victory / Defeat screens with the three prize cards (RS_WinAnim) |
 | `shop.js` | the Shop (Recruit, Giftpack, Tool) and the windows every screen uses: `HB.dialog` (a layout as a window), `HB.confirm`, `HB.showCards` |
 | `spar.js`, `arena.js`, `tower.js` | Spar, the Arena ladder, Battles (the tower) |
+| `plunder.js` | Plunder: the seal list with fragments and merging, the rivals, the preview, the fight |
+| `details.js` | a card's details window (shinobi, gear, ninjutsu, seal); `&card=<kind 1-6>` opens it for your first card of that kind |
 | `upgrade.js` | level up a card by feeding it cards (Backpack > Upgrade) |
 | `stage.js` | the PC look: on a wide window the game stands framed on the blue moon night with a player panel and a server / full screen panel (`?stage=0` off) |
 | `assets/` | made by `tools/build_webclient.js`, not in git. `assets/hd/` + `assets/hd.json` = every picture at double size, made by `node tools/build_hd.js` (needs re/esrgan: the Real-ESRGAN Windows program; ~5 minutes on the RTX 5080). engine.js draws the HD picture in the place and size of the original (`K()`); `?hd=0` shows the originals |

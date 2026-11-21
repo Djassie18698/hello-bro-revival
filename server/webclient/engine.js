@@ -520,7 +520,7 @@ function makeNode(j, ps, owner, doc) {
       n = d ? makeNode(d.root, ps, owner, d) : new Node();
       if (d) { n.doc = d; if (d.auto >= 0) HB.play(n, d.auto); }
       if (p.position) [n.x, n.y] = pos(p.position, ps);
-      if (p.scale) { n.sx = p.scale[0]; n.sy = p.scale[1]; }
+      if (p.scale) { if (typeof p.scale === 'number') n.sx = n.sy = p.scale; else { n.sx = p.scale[0]; n.sy = p.scale[1]; } } // a scroll view's scale is one number
       if (p.rotation !== undefined) n.rot = p.rotation;
       if (p.visible !== undefined) n.visible = p.visible;
       if (p.tag !== undefined) n.tag = p.tag;
@@ -535,7 +535,7 @@ function makeNode(j, ps, owner, doc) {
   if (j.c === 'CCLayer' || j.c === 'CCLayerColor') { if (!p.anchorPoint) n.ax = n.ay = 0; if (p.ignoreAnchorPointForPosition === undefined) n.ignoreAnchor = true; }
   if (p.ignoreAnchorPointForPosition !== undefined) n.ignoreAnchor = p.ignoreAnchorPointForPosition;
   if (p.position) { [n.x, n.y] = pos(p.position, ps); n._posType = p.position[2]; }
-  if (p.scale) { n.sx = p.scale[0]; n.sy = p.scale[1]; }
+  if (p.scale) { if (typeof p.scale === 'number') n.sx = n.sy = p.scale; else { n.sx = p.scale[0]; n.sy = p.scale[1]; } } // a scroll view's scale is one number
   if (p.rotation !== undefined) n.rot = p.rotation;
   if (p.visible !== undefined) n.visible = p.visible;
   if (p.tag !== undefined) n.tag = p.tag;

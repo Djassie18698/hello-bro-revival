@@ -59,6 +59,7 @@
     } else if (label) label.setText(HB.text('TEXT_LABEL_LISTNINJA0_LISTNINJA') || 'Choose');
     const tapOn = (node, fn) => { node.onTouch = (ev, tx, ty) => { if (ev === 'down') node._d = [tx, ty]; if (ev === 'up' && node._d && Math.hypot(tx - node._d[0], ty - node._d[1]) < 14) fn(card); }; };
     if (btn && opt.button && opt.onButton) tapOn(btn, opt.onButton);
+    if (opt.onRow && n.sprite_ninjaicon) tapOn(n.sprite_ninjaicon, opt.onRow); // the picture opens the card's details
     if (opt.inUse) { const l = new HB.Label('Already in play', 'Helvetica', 18); l.color = [120, 80, 30]; l.ax = 1; l.x = size.w - 14; l.y = 22; cell.add(l); } // text as on the phone
     return cell;
   }
@@ -94,7 +95,7 @@
       type = t;
       for (const [name, , ty] of TABS) { const b = n[name]; if (b) { b.frames[1] = ty === t ? tabOn || tabOff : tabOff; b.layout(); } }
       const cards = sorted(HB.data.ofType(t));
-      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: 'upgrade', inUse: HB.data.inUse(c.seq), onButton: (k) => HB.screens.upgrade(k.seq) }));
+      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: 'upgrade', inUse: HB.data.inUse(c.seq), onButton: (k) => HB.screens.upgrade(k.seq), onRow: (k) => HB.screens.details && HB.screens.details(k) }));
     };
     o.onButton = (sel) => {
       const tab = TABS.find((x) => x[1] === sel);
