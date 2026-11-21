@@ -26,7 +26,7 @@
   const q = new URLSearchParams(location.search);
   const get = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const put = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } };
-  const st = { music: get('hb.music') !== '0', fx: get('hb.fx') !== '0', muted: q.get('mute') === '1', unlocked: false, want: null, playing: null, canChange: true, plays: 0 };
+  const st = { music: get('hb.music') !== '0', fx: get('hb.fx') !== '0', muted: q.get('mute') === '1' || q.get('auto') === '1' /* test runs (auto=1) are always silent: owner, 21 Nov 2026 */, unlocked: false, want: null, playing: null, canChange: true, plays: 0 };
   // the scripts' own two switches (CCUserDefault, luabind.js keeps them in hb.userdefault): the Settings screen reads these
   const syncScripts = () => {
     try { const ud = JSON.parse(get('hb.userdefault') || '{}'); if (ud.switch_sound !== st.music || ud.switch_soundeffect !== st.fx) { ud.switch_sound = st.music; ud.switch_soundeffect = st.fx; put('hb.userdefault', JSON.stringify(ud)); } } catch (e) { /* keep */ }
