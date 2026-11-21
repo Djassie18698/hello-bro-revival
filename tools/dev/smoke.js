@@ -87,6 +87,20 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
     bad++; console.log('NINJUTSU BAG:', v2(13), v2(14), v2(22), v2(7), buy.slice(0, 200), mails.slice(0, 200), claim.slice(0, 120), jut() - j0);
   }
 }
+// Many seal bags = one Awards chest mail (xvon11 wish, 21 Nov 2026): 3 bags -> 1 mail with 3 drops, one Claim gives all 30 cards.
+{
+  const call = (name, extra) => handlers[name]({ db, params: { ...base, ...extra } });
+  db.prepare('UPDATE players SET gold=10000, coin=100000 WHERE uid=77').run();
+  const s0 = db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=5 AND ninja_id=91').get().n;
+  for (let i = 0; i < 3; i++) call('rl_w_shopbuy', { Cmd: 1701, Packageid: 22, Count: 1 });
+  const list = call('rl_x_award_msg', { Cmd: 1 }), msgs = (list.match(/<msg>/g) || []).length, drops = (list.match(/dropid="22"/g) || []).length;
+  const id = (list.match(/<id>(\d+)<\/id>/) || [])[1];
+  const claim = call('rl_x_award_msg', { Cmd: 2, MsgID: id });
+  const s1 = db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=77 AND type=5 AND ninja_id=91').get().n;
+  if (msgs !== 1 || drops !== 3 || !/3 x Shukaku Seal Bag/.test(list) || !/<award/.test(claim) || s1 !== s0 + 30) {
+    bad++; console.log('SEAL BAGS ONE MAIL:', msgs, drops, s1 - s0, list.slice(0, 300));
+  }
+}
 // Gear bags (Zeraora, 18 Nov 2026: the 4☆ Armor Bag closed the game): the app has ONE retobj type for gear, 3 (weapon, armor and
 // trinket; 5 = seal, 4 = ninjutsu), and the card in the reply must be the one saved under that bagid.
 {

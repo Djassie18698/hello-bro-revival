@@ -1158,7 +1158,7 @@ function packBuy(db, pl, packId) {
       if (pl.gold < costG || pl.coin < costS) return { error: 'not enough gold' };
       db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
       const name = String(g[2]);
-      require('./awardcenter').send(db, { uid: pl.uid, server_id: pl.server_id }, name, 'The cards from your ' + name + ': tap Claim.', { drops: [dropId] });
+      require('./awardcenter').sendMerged(db, { uid: pl.uid, server_id: pl.server_id }, name, (n) => n > 1 ? 'The cards from your ' + n + ' x ' + name + ': tap Claim.' : 'The cards from your ' + name + ': tap Claim.', dropId); // several bags = one mail (21 Nov 2026)
       return { costG, costS, mail: true, show: Math.round(g[9]) === 1 }; // show: the app opens its "you got" window for this pack
     }
   }

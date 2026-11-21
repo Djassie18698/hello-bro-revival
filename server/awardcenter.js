@@ -41,6 +41,20 @@ function send(db, to, title, content, { gold = 0, silver = 0, renown = 0, drops 
   for (const p of who) ins.run(p.uid, p.server_id, now(), String(title || 'A gift').slice(0, 40), String(content || title || 'A gift').slice(0, 300), JSON.stringify(items));
   return { sent: who.length };
 }
+// One mail for many bags of one kind (21 Nov 2026, wish of player xvon11 "claiming every Shukaku Seal Bag one by one is tedious";
+// owner: "do what you think is best"): a bag bought while an unclaimed mail of the same bag is waiting adds its drop to that mail
+// instead of a new one (at most MERGE_MAX bags in one mail). Only fewer taps: the same cards, nothing extra.
+const MERGE_MAX = 20;
+function sendMerged(db, to, title, contentFor, dropId) {
+  ensure(db);
+  const m = db.prepare('SELECT * FROM award_mail WHERE uid=? AND server_id=? AND claimed=0 AND ts>? AND title=? ORDER BY id DESC LIMIT 1')
+    .get(to.uid, to.server_id, now() - EXPIRY_DAYS * 86400, String(title).slice(0, 40));
+  const items = m ? JSON.parse(m.items) : null;
+  if (!m || items.length >= MERGE_MAX || items.some((x) => x.type !== 1)) return send(db, to, title, contentFor(1), { drops: [dropId] });
+  items.push({ type: 1, dropid: Number(dropId) });
+  db.prepare('UPDATE award_mail SET items=?, content=?, ts=? WHERE id=?').run(JSON.stringify(items), String(contentFor(items.length)).slice(0, 300), now(), m.id);
+  return { sent: 1, merged: m.id, bags: items.length };
+}
 const open = (db, pl) => { ensure(db); return db.prepare('SELECT * FROM award_mail WHERE uid=? AND server_id=? AND claimed=0 AND ts>? ORDER BY id DESC').all(pl.uid, pl.server_id, now() - EXPIRY_DAYS * 86400); };
 // title and content must never be empty: ui_awardCenterCell.lua does setString(data:find("content")[1]) and an empty element
 // gives nil, which crashed the game as soon as the Award Center opened (6 Nov 2026: a mail sent with an empty Message box).
@@ -66,4 +80,4 @@ function claim(db, pl, id) {
   return { xml: game.mergeAwards(awards.filter(Boolean)) };
 }
 
-module.exports = { send, listXml, claim };
+module.exports = { send, sendMerged, MERGE_MAX, listXml, claim };
