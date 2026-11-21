@@ -335,6 +335,7 @@
     if (sel === 'BtnTeam') return HB.screens.team();
     if (sel === 'BtnBag') return HB.screens.backpack();
     if (sel === 'BtnRound') return HB.screens.training();
+    if (sel === 'BtnStore' && HB.screens.shop) return HB.screens.shop();
     tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
   }
   // the bottom bar's marker sits behind the chosen button
