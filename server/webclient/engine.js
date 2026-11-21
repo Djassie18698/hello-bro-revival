@@ -681,8 +681,11 @@ HB.start = (canvas) => {
   let down = null;
   canvas.addEventListener('pointerdown', (e) => {
     const [x, y] = point(e);
-    if (HB.luaTouchLayers && HB.luaTouchLayers.size && HB.luaTouchBegan && HB.luaTouchBegan(x, y, e)) { down = { lua: true, x, y }; canvas.setPointerCapture(e.pointerId); return; }
     const target = pick(HB.scene, x, y);
+    // a Lua layer that swallows touches comes first, except for a button the script gave a higher touch priority (a window's X over
+    // its own swallowing layer: CCControl's priority is 1, a smaller number wins)
+    const buttonPrio = target instanceof Button ? (target.touchPriority ?? 1) : Infinity;
+    if (HB.luaTouchLayers && HB.luaTouchLayers.size && HB.luaTouchBegan && HB.luaTouchBegan(x, y, e, buttonPrio)) { down = { lua: true, x, y }; canvas.setPointerCapture(e.pointerId); return; }
     const scroll = scrollAt(HB.scene, x, y);
     down = { x, y, sx: x, sy: y, target, scroll, moved: false };
     if (target instanceof Button) { target.press(true); if (target.luaHandlers && HB.buttonEvent) HB.buttonEvent(target, 1); } // CCControlEventTouchDown

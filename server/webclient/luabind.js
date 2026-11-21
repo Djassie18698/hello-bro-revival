@@ -280,8 +280,8 @@
   // Lua touch layers (registerScriptTouchHandler(fn, multi, priority, swallow)): asked before the buttons, lowest priority number
   // first; fn("began", x, y) returning true takes the touch, then it gets "moved" and "ended" (cocos2d-x 2 single-touch handler)
   let touchOwner = null;
-  HB.luaTouchBegan = (x, y) => {
-    const layers = [...HB.luaTouchLayers].filter((n) => n.luaTouch && n.touchOn !== false && n.shown() && inScene(n)).sort((a, b) => a.luaTouch.prio - b.luaTouch.prio);
+  HB.luaTouchBegan = (x, y, ev, buttonPrio = Infinity) => {
+    const layers = [...HB.luaTouchLayers].filter((n) => n.luaTouch && n.touchOn !== false && n.shown() && inScene(n)).filter((n) => !(n.luaTouch.prio > buttonPrio)).sort((a, b) => a.luaTouch.prio - b.luaTouch.prio); // a button with a better priority than the layer gets the tap
     for (const n of layers) {
       const t = n.luaTouch;
       const r = t.multi ? safe(t.fn, B('began'), new LuaTable()) : safe(t.fn, B('began'), x, y);
