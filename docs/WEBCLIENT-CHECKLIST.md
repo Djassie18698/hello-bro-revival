@@ -199,7 +199,7 @@ JavaScript screens (no Chinese text left; before / after pictures in `re/js/befo
 | ✅ | Settings | headings start inside the window, Music / Sound clear of their boxes, the Discord address inside its box, "Settings" |
 | ✅ | Home | the Special button (custom events) stands in the left column under the last event button |
 
-Script screens (the game's own Lua): one Chinese text left of all that `js-screens.js --lua` opens.
+Script screens (the game's own Lua; before pictures in `re/lua-before`, after in `re/js/lua-after`): of all that `js-screens.js --lua` opens, only the old recharge-history event still shows Chinese text.
 
 | | Screen | State |
 |---|---|---|
@@ -214,7 +214,7 @@ Script screens (the game's own Lua): one Chinese text left of all that `js-scree
 | ⬜ | Lottery ticket | title, the two scroll sides and the prize titles are Chinese pictures; "Random Bet" lies on the lever |
 | ⬜ | Home | the 7-day goals button, the rank scroll and the Event bar's lottery icon are Chinese pictures |
 | ⬜ | Growth Fund | the red board's sentence stands in pieces ("Only insert 500 Gold. can get 5 feedback,total 2500 Gold") |
-| ⬜ | No.1 Shinobi list | a glowing name is drawn very small; "Offense Points" touches its numbers |
+| 🟡 | No.1 Shinobi list | a glowing name is its full size again (fit.js took its stacked copies for neighbours); "Offense Points" still touches its numbers |
 | ⬜ | Daily Task | the chests' "30 points" captions are cut by the bar under them |
 | ⬜ | Lucky Wheel, Millionaire | "Reward Pool" under its number; small button words |
 | ⬜ | Secret shop, Inherit, Limited discount, Fight rank, Mora | several captions shrunk to 55-70 % (listed by `js-screens.js --lua`): they need shorter words or a place of their own |
