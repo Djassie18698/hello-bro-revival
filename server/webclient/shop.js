@@ -22,7 +22,7 @@
     const dim = HB.ui.modal(150); dim.z = 600;
     const root = HB.ui.screen(file, owner);
     dim.add(root); HB.scene.add(dim);
-    root.sx = root.sy = 0.85; dim.opacity = 0; HB.tween(root, { sx: 1, sy: 1 }, 0.12); HB.tween(dim, { opacity: 150 }, 0.12);
+    root.sx = root.sy = 0.9; dim.fade = 0; HB.tween(root, { sx: 1, sy: 1 }, 0.14); HB.tween(dim, { fade: 1 }, 0.14);
     owner.close = () => dim.removeSelf();
     return owner;
   };
@@ -53,7 +53,7 @@
       const star = HB.frameByName('com_normal_star');
       if (star) for (let i = 0; i < Math.min(5, inf.quality); i++) { const s = new HB.Sprite(star); s.x = (i - (Math.min(5, inf.quality) - 1) / 2) * 46; s.y = -300; box.add(s); }
       const nm = named(c, -350, 34); box.add(nm);
-      box.sx = box.sy = 0.3; box.opacity = 0; HB.tween(box, { sx: 1, sy: 1, opacity: 255 }, 0.25);
+      box.sx = box.sy = 0.3; box.fade = 0; HB.tween(box, { sx: 1, sy: 1, fade: 1 }, 0.25);
     } else {
       const per = 5, gap = 124, rows = Math.ceil(cards.length / per);
       cards.forEach((c, i) => {
@@ -61,8 +61,8 @@
         const cell = new HB.Node(); cell.x = W / 2 + (col - (Math.min(per, cards.length) - 1) / 2) * gap; cell.y = H / 2 + ((rows - 1) / 2 - r) * 170 + 30;
         icon.x = 0; icon.y = 0; cell.add(icon);
         const nm = named(c, -70, 17); nm.dims = [gap - 6, 0]; nm.setText(nm.text); cell.add(nm);
-        cell.opacity = 0; cell.sx = cell.sy = 0.4; dim.add(cell);
-        HB.tween({}, {}, 0.06 * i, () => HB.tween(cell, { sx: 1, sy: 1, opacity: 255 }, 0.18));
+        cell.fade = 0; cell.sx = cell.sy = 0.4; dim.add(cell);
+        HB.tween({}, {}, 0.06 * i, () => HB.tween(cell, { sx: 1, sy: 1, fade: 1 }, 0.18));
       });
     }
     HB.scene.add(dim);

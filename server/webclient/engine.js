@@ -259,6 +259,7 @@ class Node {
   shown() { for (let n = this; n; n = n.parent) if (!n.visible) return false; return true; }
   visit(ctx, pm, alpha) {
     if (!this.visible) return;
+    if (this.fade !== undefined) alpha *= this.fade; // a whole branch fading in or out (screen changes, windows): ours, cocos has no such thing
     const m = (this._wm = M.mul(pm, this.local()));
     const a = alpha * this.opacity / 255;
     const kids = this.children.length > 1 ? this.children.slice().sort((p, q) => p.z - q.z) : this.children;

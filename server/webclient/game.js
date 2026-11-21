@@ -359,6 +359,7 @@
     const sub = HB.build(file, owner, [FRAME, content.h]);
     sub.x = -content.x + content.ax * content.w + (sub.ignoreAnchor ? 0 : sub.ax * sub.w); sub.y = sub.ignoreAnchor ? 0 : sub.ay * sub.h;
     content.add(sub);
+    sub.fade = 0; HB.tween(sub, { fade: 1 }, 0.16); // screens fade in (ours: the phone cuts)
     HB.game.currentSubType = 0;
     if (barButton) selectBar(barButton);
     fillTopBar(owner, HB.game.main);
