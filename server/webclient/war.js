@@ -230,7 +230,8 @@
       // with Auto-Attack on the phone shows no Attack button, only the line under the clock (photo 0833)
       show(m, 'node_attack_cd', cd > 0); show(m, 'node_cd_clear', cd > 0 && !autoOn); show(m, 'btn_attack', cd <= 0 && !autoOn);
       set(m, 'label_WarInfoViewNew0', 'Attack again in:');
-      if (autoOn && cd > 0 && m.node_attack_cd) m.node_attack_cd.y -= 44; // under the "Auto-Attack is on" line, as on the phone set(m, 'label_review_name', 'Clear'); set(m, 'label_cd_gold', clearCost);
+      if (autoOn && cd > 0 && m.node_attack_cd) m.node_attack_cd.y -= 44; // under the "Auto-Attack is on" line, as on the phone
+      set(m, 'label_review_name', 'Clear'); set(m, 'label_cd_gold', clearCost);
       if (cd > 0 && m.label_fight_cd_time) ticker(m.label_fight_cd_time, cd, (v) => clock(v).slice(3), () => war(1));
       show(m, 'node_auto_attacted', false); show(m, 'label_join_auto_attack', autoOn); show(m, 'node_cancel_container', !autoOn);
       set(m, 'label_join_auto_attack', 'Auto-Attack is on for today'); set(m, 'label_WarInfoView14', 'Let the system attack for you?'); set(m, 'label_WarInfoView15', 'Autoplay');
