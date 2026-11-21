@@ -118,8 +118,20 @@
       GetDownInlayFrame: (size, k) => sf(HB.frameByName(['small', 'middle', 'big'][num(size)] + '_down_inlay_frame' + num(k, 1))),
       SetFrameShadowBack: () => {}, SetFrameShadowFront: () => {}, SetCombatFrameShadowBack: () => {}, SetCombatFrameShadowFront: () => {},
       // a window about one thing / one drop pack: a short tip for now (the phone opens its detail window)
-      ShowCommonItemDetail: (type, id) => { const inf = HB.info(num(type), num(id)); HB.tip(inf.name + (inf.desc ? '\n' + inf.desc : ''), 2.5); },
-      ShowDropByID: (dropId) => { const d = row('dropinfo', num(dropId)); HB.tip(d ? clean(d[2]) || 'Reward' : 'Reward', 2.5); },
+      // a window about one thing: ShowCommonItemDetail(1, 1 shinobi / 2 gear / 3 seal / 4 ninjutsu, id) or (2, 0, item id); the details window for cards, a tip for items
+      ShowCommonItemDetail: (main, sub, id) => {
+        const type = num(main) === 1 ? ({ 1: 1, 2: 2, 3: 5, 4: 6 }[num(sub)] || 1) : 0;
+        if (type && HB.screens.details) { const r = HB.info(type, num(id)).row; return void HB.screens.details({ seq: 0, type: type === 2 && r ? (r[3] || 2) : type, id: num(id), level: 1, attri: 0, tupo: 0 }, { view: true }); }
+        const inf = HB.info(type, num(id)); HB.tip(inf.name + (inf.desc ? '\n' + inf.desc : ''), 2.5);
+      },
+      // what a drop pack holds: the things themselves in the "you got" look (title Contains), or its words for a random pack
+      ShowDropByID: (dropId) => {
+        const d = row('dropinfo', num(dropId));
+        if (!d) return;
+        const got = d[3] ? { type: 1, id: d[3] } : d[4] ? { type: 2, id: d[4] } : d[5] ? { type: 6, id: d[5] } : d[6] ? { type: 5, id: d[6] } : d[7] ? { type: 0, id: d[7] } : null;
+        if (got && HB.showCards && d[12] !== 1) return void HB.showCards([{ ...got, num: d[13] || 1 }], 'Contains');
+        HB.tip(clean(d[2]) || 'Reward', 2.5);
+      },
       ShowFillByID: () => {},
     });
   };

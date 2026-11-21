@@ -41,3 +41,6 @@ tools/ios-game/web/
 tools/ios-panel/Payload/
 tools/ios-panel/*.ipa
 server/webclient/assets/
+
+# custom events of this server (server/customevents.js): each server keeps its own
+custom-events/

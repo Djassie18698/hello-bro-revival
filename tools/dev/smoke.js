@@ -1292,6 +1292,30 @@ for (const pick of [55, 56, 57]) {
     ck(/code="180001"/.test(errcodes.fix(`<root code="5"><message>${j2.error}</message></root>`)), 'rejoin wait does not show "In cd time"');
     guild.quit(db, p2); db.prepare('DELETE FROM group_quit WHERE uid=?').run(p2.uid);
   }
+  { // custom events (customevents.js): a file in the folder is listed, pays once (or once a day), a broken or foreign file is skipped
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hb-custom-'));
+    process.env.HB_CUSTOM_EVENTS = dir;
+    const ck = (ok, msg) => { if (!ok) { bad++; console.log('CUSTOM ', msg); } };
+    const call = (extra) => handlers.rl_x_custom({ db, params: { ...base, ...extra } });
+    const me = () => db.prepare('SELECT * FROM players WHERE uid=77 AND server_id=1').get();
+    ck(/<events><\/events>/.test(call({ Cmd: 1 })), 'an empty folder must list nothing');
+    fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ id: 'smoke-once', title: 'Once <b>', give: { gold: 7, silver: 11, items: { 11: 2 } } }));
+    fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ id: 'smoke-daily', repeat: 'daily', need: { level: 999 }, give: { gold: 1 } }));
+    fs.writeFileSync(path.join(dir, 'c.json'), '{ not json');
+    fs.writeFileSync(path.join(dir, 'd.json'), JSON.stringify({ id: 'smoke-old', to: '2020-01-01', give: { gold: 1 } }));
+    fs.writeFileSync(path.join(dir, 'e.json'), JSON.stringify({ id: 'smoke-bad', give: { items: { 999999: 1 } } }));
+    const list = call({ Cmd: 1 });
+    ck(/id="smoke-once"[^>]*state="0"/.test(list) && /title="Once &lt;b&gt;"/.test(list), 'the event is not listed (or its title not escaped): ' + list.slice(0, 200));
+    ck(/id="smoke-daily"[^>]*state="2"/.test(list), 'a level-999 event must be locked');
+    ck(!/smoke-old|smoke-bad/.test(list), 'an ended event or one with an unknown item must not be listed');
+    const g0 = me().gold, c0 = me().coin, p0 = require('../../server/game').propCounts(db, 77, 1)[11] || 0;
+    const r1 = call({ Cmd: 2, Id: 'smoke-once' }), r2 = call({ Cmd: 2, Id: 'smoke-once' });
+    ck(/code="0"/.test(r1) && me().gold === g0 + 7 && me().coin === c0 + 11 && (require('../../server/game').propCounts(db, 77, 1)[11] || 0) === p0 + 2, 'claiming did not pay 7 gold, 11 silver and 2 pills: ' + r1.slice(0, 160));
+    ck(/code="5"/.test(r2) && me().gold === g0 + 7, 'a second claim must be refused and pay nothing');
+    ck(/code="5"/.test(call({ Cmd: 2, Id: 'smoke-daily' })) && /code="5"/.test(call({ Cmd: 2, Id: 'smoke-old' })) && /code="5"/.test(call({ Cmd: 2, Id: '../a' })), 'a locked, ended or unknown event must be refused');
+    delete process.env.HB_CUSTOM_EVENTS;
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);

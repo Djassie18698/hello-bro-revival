@@ -237,7 +237,7 @@
     content.add(sub);
     // the village behind it (CDefaultSLGMenu::init: sub_ui/<country>CountryDefaultMenu.ccbi into node_slgcontent)
     const slg = o.n.node_slgcontent;
-    if (slg) { const v = HB.build(village, o, [slg.w, slg.h]); v.x = v.ignoreAnchor ? 0 : v.ax * v.w; v.y = v.ignoreAnchor ? 0 : v.ay * v.h; slg.add(v); if (HB.villageWheel) HB.villageWheel(o.n); } // base.js: swipe to turn the wheel of buildings, tap to open one
+    if (slg) { const v = HB.build(village, o, [slg.w, slg.h]); v.x = v.ignoreAnchor ? 0 : v.ax * v.w; v.y = v.ignoreAnchor ? 0 : v.ay * v.h; slg.add(v); if (HB.villageWheel) HB.villageWheel(o.n); } if (HB.customHomeButton) HB.customHomeButton(o.n, sub); // custom.js: our own events, when one runs // base.js: swipe to turn the wheel of buildings, tap to open one
     const icon = HB.frame('home/home_btns.plist', countryName(country) + '_icon'), halo = HB.frame('home/home_btns.plist', countryName(country) + '_halo');
     if (icon && o.n.node_country_icon) o.n.node_country_icon.setFrame(icon);
     if (halo && o.n.node_country_halo) o.n.node_country_halo.setFrame(halo);
@@ -341,7 +341,7 @@
     if (sel === 'BtnStore' && HB.screens.shop) return HB.screens.shop();
     if (sel === 'BtnFight' && HB.screens.spar) return HB.screens.spar();
     // the village's buildings; a locked one says the game's own "level N unlocked" text (functionconfig: 5 Arena, 1 Battles, 2 Plunder)
-    const building = { BtnArena: [5, 'arena'], BtnTower: [1, 'tower'], BtnPlunder: [2, 'plunder'] }[sel];
+    const building = { BtnArena: [5, 'arena'], BtnTower: [1, 'tower'], BtnPlunder: [2, 'plunder'], BtnNationWar: [4, 'war'] }[sel];
     if (building && HB.screens[building[1]]) {
       const fc = tables.functionconfig.rows.find((r) => r[0] === building[0]) || [];
       if (Number((HB.game.user || {}).level || 1) < (fc[3] || 0)) return tip(String(fc[4] || 'Locked').replace(/ +$/, ''), 2);

@@ -1303,6 +1303,15 @@ module.exports = {
     return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>';
   },
 
+  // Custom events (customevents.js; ours): the owner's own events from the folder custom-events. Cmd 1 = the list, Cmd 2 Id = claim.
+  // Only the rewritten game (server/webclient custom.js) asks for it.
+  rl_x_custom: ({ db, params: p }) => {
+    const pl = playerOf(db, p);
+    if (!pl) return '<root code="3"><message>session expired</message></root>';
+    const ce = require('./customevents');
+    if (Number(p.Cmd) === 2) { const r = ce.claim(db, pl, p.Id); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
+    return '<root code="0">' + ce.listXml(db, pl) + '</root>';
+  },
   // Arena extras: Cmd 1 = exchange tab opened, Cmd 2 = exchange reputation (prop 9996) for exchange_award row Exchg,
   // Cmd 3 = daily rank reward.
   rl_x_sport_ext: ({ db, params: p }) => {

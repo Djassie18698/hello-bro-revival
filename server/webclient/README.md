@@ -38,6 +38,8 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 | `luascreens.js` | the frames of the game's own Lua screens: the Event screen (`HB.game.changeToActivity(script)`), the empty sub menu (`HB.game.changeToActivitySubMenu(function, arg)`), `ChangeToSub` to the JavaScript screens, the Home buttons and village buildings that open Lua screens. Test them all: `node tools/dev/lua-screens.js [filter]` (pictures in re/lua/) |
 | `growth.js` | Growth (sage steps), Train (potential), Reincarnate: `&open=growth|potential|rebirth` |
 | `social.js` | News (battle reports, friend messages, system note) and Friends: `&open=news&tab=0|1|2`, `&open=friends` |
+| `custom.js` | **custom events** (ours): the screen and Home button for the owner's own events, small text files in the folder `custom-events` next to the save (`server/customevents.js`, guide `docs/CUSTOM-EVENTS.md`); `&open=custom` |
+| `fit.js` | **text that fits** (ours): twice a second every one-line label of the showing screen shrinks just enough not to run into the next label or off the screen (never below 55 %); `?fit=0` off, `HB.fit.report()` lists what was shrunk |
 | `upgrade.js` | level up a card by feeding it cards (Backpack > Upgrade) |
 | `stage.js` | the PC look: on a wide window the game stands framed on the blue moon night with a player panel and a server / full screen panel (`?stage=0` off) |
 | `assets/` | made by `tools/build_webclient.js`, not in git. `assets/hd/` + `assets/hd.json` = every picture at double size, made by `node tools/build_hd.js` (needs re/esrgan: the Real-ESRGAN Windows program; ~5 minutes on the RTX 5080). engine.js draws the HD picture in the place and size of the original (`K()`); `?hd=0` shows the originals |

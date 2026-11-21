@@ -47,7 +47,7 @@
   HB.screens.details = async function details(card, opt = {}) {
     await HB.data.tables();
     const inf = HB.info(card.type, card.id), st = HB.baseStats(card);
-    const upgrade = (w) => { w.close(); HB.screens.upgrade(card.seq); };
+    const upgrade = (w) => { w.close(); if (card.seq) HB.screens.upgrade(card.seq); }; // seq 0 = a card you are only shown (a reward, a shop item)
     const lvl = Math.max(1, card.level);
 
     if (card.type === 1) {

@@ -73,6 +73,7 @@
         m_defensemax: () => Math.round((st().def || [0, 0])[1]), m_defensemin: () => Math.round((st().def || [0, 0])[0]),
         m_strengthLevel: () => c.starlevel || 0, m_reincarnationLevel: () => c.newlife || 0,
       });
+      obj.__card = c;
       cardObjects.set(c.seq, { card: c, obj });
       return obj;
     }
@@ -124,14 +125,14 @@
     };
     // CModelLayer::AddDialog(node, z): a dialog over everything; taps under it are blocked
     HB.lua.methods(HB.Node, {
-      AddDialog: (layer, node, z) => {
+      AddDialog: (HB.game.addDialog = (layer, node, z) => {
         if (!node) return;
         const dim = new HB.LayerColor(); dim.color = [0, 0, 0]; dim.opacity = 0; dim.w = HB.size[0]; dim.h = HB.size[1]; dim.swallow = true; dim.onTouch = () => {}; dim.ignoreAnchor = true;
         dim.z = num(z); node.__dim = dim;
         layer.add(dim); layer.add(node, num(z)); HB.luaEnter(node);
         const watch = () => { if (!node.parent) { dim.removeSelf(); return; } requestAnimationFrame(watch); };
         requestAnimationFrame(watch);
-      },
+      }),
     });
     const mainMenu = gameObject('CMainMenu', {
       ShowTextTip: (t, sec) => HB.tip(txt(t), num(sec, 2)),
@@ -149,6 +150,12 @@
       SetNinjalistNeedtoReLoad: () => {}, addChild: (n) => { if (n) { HB.scene.add(n); HB.luaEnter(n); } },
       ShowArenaView: () => HB.game.changeToSub(E.E_ARENAVIEW), LogOut: () => location.reload(),
       ShowPurchasList: () => HB.game.changeToSub(E.E_STOREITEMSVIEW), getHornFlag: () => 0,
+      // the "you got" window for a reward the scripts read from an <award> (RLRequest.lua InitAwardData -> FightReward)
+      AddDialog: (node, z) => { HB.game.addDialog(getModelLayer(), node, z); },
+      ShowCommonBox: (reward) => { showReward(reward); },
+      ShowCommonBoxForCallBack: (reward, cb) => { showReward(reward).then(() => { if (cb) HB.luaCall(cb); }); },
+      ShowNinjaDetail: (card) => { const c = card && card.__card; if (c && HB.screens.details) HB.screens.details(c); },
+      getCircleClipNode: () => { const n = new HB.Node(); n.clip = true; return n; }, doPromoter: () => {},
     });
     gfn('GetMainMenu', () => mainMenu);
     // the screens (SUBMENUTYPE): the numbers are ours, only this client reads them
@@ -160,7 +167,7 @@
     ['E_GET_PURCHASE_LIST', 'E_GET_AWARD'].forEach((n, i) => gval(n, 100 + i));
     gval('E_FRAMETYPE_SMALL', 0); gval('E_FRAMETYPE_MIDDLE', 1); gval('E_FRAMETYPE_LARGE', 2);
     ['SOUND_BUTTON', 'SOUND_BEIJINGMAIN', 'SOUND_DUOBAOJINGJI', 'SOUND_STORY', 'SOUND_TIANTI', 'SOUND_ZHENGUOZHAN'].forEach((n, i) => gval(n, i + 1));
-    singleton('CSoundMgr', 'CSoundMgr', { PlayEffect: () => {}, PlayBgSound: () => {}, PlayBgSoundByTypeId: () => {}, StopBgSound: () => {}, StopAllEffect: () => {}, SetEffectOn: () => {}, SetMusicOn: () => {} });
+    singleton('CSoundMgr', 'CSoundMgr', HB.soundMgr ? HB.soundMgr() : { PlayEffect: () => {}, PlayBackgroundSound: () => {}, PlayBgSoundByTypeId: () => {}, StopBackgroundSound: () => {}, StopAllEffect: () => {}, SetSoundEffectEnable: () => {}, SetBackSoundEnable: () => {} }); // sound.js
 
     // ---------------- the game tables by their C++ names: DataMgr.GetDataByID("Struct_Ninjainfo", id).m_ninjaname
     const cols = HB.jsonNow('columns.json') || {};
@@ -202,11 +209,46 @@
     gfn('fightdataSetDefenseVipLevel', () => {}); gfn('InAppInitInstance', () => {}); gfn('InAppPurchase', () => {});
 
     HB.openGameObj(lua); // CGameObjElement: pictures and frames (data.js)
+    // ---------------- rewards as the scripts build them: FightReward (cards, items, fragments + m_silver, m_gold ...), CardNetData, DropProData
+    const TYPE_OF_PIECE = { 1: 1, 2: 2, 3: 6, 4: 5 }; // piece_info m_piece_type -> our card type (shinobi, gear, ninjutsu, seal)
+    const field = (t, k) => { const v = t && t.get ? t.get(B(k)) : undefined; return v === undefined || v === null ? 0 : Number(typeof v === 'string' ? txt(v) : v) || 0; };
+    function newReward() {
+      const cards = [], props = [], chips = [];
+      const o = gameObject('FightReward', {
+        pushCard: (c) => { cards.push(c); }, pushProp: (c) => { props.push(c); }, pushChipCard: (c) => { chips.push(c); },
+        cardCount: () => cards.length, propCount: () => props.length, chipCardCount: () => chips.length,
+        getCard: (i) => cards[num(i)], getProp: (i) => props[num(i)], getChipCard: (i) => chips[num(i)],
+      });
+      o.__reward = { cards, props, chips };
+      return o;
+    }
+    luaClass('FightReward', { new: newReward, create: newReward });
+    luaClass('CardNetData', { new: () => new LuaTable(), create: () => new LuaTable() });
+    luaClass('DropProData', { new: () => new LuaTable(), create: () => new LuaTable() });
+    function showReward(reward) {
+      const r = reward && reward.__reward;
+      if (!r || !HB.showCards) return Promise.resolve();
+      const list = [];
+      for (const c of r.cards) list.push({ type: field(c, 'm_type') || 1, id: field(c, 'm_dataid'), num: field(c, 'm_count') || 1 });
+      for (const c of r.props) list.push({ type: 0, id: field(c, 'm_id'), num: field(c, 'm_count') || 1 });
+      for (const c of r.chips) list.push({ type: TYPE_OF_PIECE[field(c, 'm_type')] || 1, id: field(c, 'm_dataid'), num: field(c, 'm_piecenum') || 1, piece: true });
+      later();
+      const got = list.filter((c) => c.id > 0);
+      if (!got.length) {
+        const peer = reward.__peer, g = (k) => (peer ? field(peer, k) : 0);
+        const bits = [[g('m_silver'), 'silver'], [g('m_gold'), 'gold'], [g('m_exp'), 'exp'], [g('m_soul'), 'souls'], [g('m_merit'), 'merit'], [g('m_bodyvalue'), 'energy']].filter((b) => b[0] > 0).map((b) => b[0] + ' ' + b[1]);
+        if (bits.length) HB.tip('You got ' + bits.join(', '), 2.2);
+        return Promise.resolve();
+      }
+      return HB.showCards(got, 'You got');
+    }
+
     // ---------------- CActivityCommonCardView: a plain node that hands out the nodes of the layout read into it
     luaClass('CActivityCommonCardView', { create: () => { const n = new HB.Node(); n.isLayer = true; n.ignoreAnchor = true; return n; } });
     HB.lua.methods(HB.Node, {
       SetProxy: (n, proxy) => { n.__proxy = proxy; }, AssignCCBMemberVariable: () => {},
       SetIndex: (n, i) => { n.__index = num(i); }, GetIndex: (n) => n.__index || 0,
+      onStepNext: () => {}, onStepNextForLua: () => {}, // the tutorial's hooks on the screen that is showing (the tutorial is off)
       GetNode: (n, name) => (n.__proxy && n.__proxy.owner ? n.__proxy.owner.n[txt(name)] : undefined),
     });
     // ---------------- ItemDataInfo + CGameObjElement:GetItemInfoByDropid: what a drop pack holds, in the scripts' own terms
@@ -240,6 +282,8 @@
       ShowBuyDialogForLua: () => HB.screens.shop && HB.screens.shop(2), UseGiftPackItem: () => {}, UseConsumeItemByID: () => {},
     });
     luaClass('CTradeMgr', { instance: () => trade, sharedInstance: () => trade });
+    // paying with real money (Google Play on the phone): top-ups are free on our servers and go through the Top-up window's own request
+    luaClass('PayHelperForLua', { goldPay: () => HB.tip('Top-ups are free here: use the Top-up window', 2.2), monthCardPay: () => HB.tip('A free top-up of this price starts the Monthly Card (Top-up window)', 2.6) });
 
     // ---------------- not done yet: the rest answers nil and is logged (each name once)
     for (const name of ['CUserGuideManager', 'CFightResultData', 'CProfileData']) {

@@ -1,10 +1,11 @@
 // Opens the game's own Lua screens in the rewritten game (server/webclient) one after another in headless Chrome and reports, per
 // screen, the Lua errors and the C++ names the script asked for that are not there yet; saves a picture of each in re/lua/.
-//   node tools/dev/lua-screens.js [filter] [--device=<guest>]     (dev server on :18081 must run: bash tools/dev/restart.sh)
+//   node tools/dev/lua-screens.js [filter] [--device=<guest>] [--press = also press every button of each screen]     (dev server on :18081 must run: bash tools/dev/restart.sh)
 // A screen = act:<script> (the Event screen runs that script), sub:<function> (the empty sub menu calls that helper function),
 // run:<script> (just runs it), js:<expression>.
 const { spawn } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
+const PRESS = process.argv.includes('--press');
 const args = process.argv.slice(2), filter = args.find((a) => !a.startsWith('--')) || '', device = (args.find((a) => a.startsWith('--device=')) || '--device=hdt1').slice(9);
 const SCREENS = [
   'act:loginPackActivity', 'act:upradePackActivity', 'act:monthCardActivity', 'act:lotteryActivity', 'act:payhistorydrop', 'act:collectCardActivity', 'act:ScratchCardActivity',
@@ -58,9 +59,28 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const uniq = [...new Set(errs)];
     report.push({ s, errors: uniq, missing, file });
     console.log((uniq.length ? 'ERR ' : missing.length ? 'mis ' : 'ok  ') + s + (uniq.length ? '\n      ' + uniq.slice(0, 3).join('\n      ') : '') + (missing.length ? '\n      missing: ' + missing.join(', ') : ''));
+    const home = async () => { await ev('(async () => { try { HB.scene.children.filter((c) => c.z >= 500).forEach((c) => { HB.luaLeave && HB.luaLeave(c); c.removeSelf(); }); HB.loading(false); await HB.game.goHome(); } catch (e) {} })()'); await wait(700); };
+    // --press: every button of the screen, one press each on a freshly opened screen (a press may leave the screen)
+    if (PRESS && !uniq.length) {
+      const LIST = `(() => { const out = []; const walk = (n) => { if (!n.visible) return; if (n instanceof HB.Button && n.enabled !== false) out.push(n); (n.children || []).forEach(walk); }; walk(HB.game.subContent); HB.scene.children.filter((c) => c.z >= 500).forEach(walk); return out; })()`;
+      const names = JSON.parse((await ev(`JSON.stringify(${LIST}.map((b) => b.name || b.selector || (b.titles && b.titles[1]) || '?'))`)) || '[]');
+      const bad = [];
+      for (let i = 0; i < names.length && i < 24; i++) {
+        await home();
+        await ev(`(async () => { try { await ${js}; } catch (e) {} })()`);
+        await wait(1700);
+        errs = [];
+        const b4 = new Set(await missingNow());
+        await ev(`(() => { try { const b = ${LIST}[${i}]; if (b) HB.tapNode(b); } catch (e) { console.error('JS ' + (e && e.stack || e)); } })()`);
+        await wait(1300);
+        const mis = (await missingNow()).filter((m) => !b4.has(m)), er = [...new Set(errs)];
+        if (er.length || mis.length) { bad.push({ button: names[i], errors: er, missing: mis }); console.log('      press ' + names[i] + ': ' + er.slice(0, 2).join(' | ').slice(0, 300) + (mis.length ? ' missing: ' + mis.join(', ') : '')); }
+      }
+      report[report.length - 1].buttons = names; report[report.length - 1].pressFailed = bad;
+      console.log('      ' + names.length + ' buttons, ' + bad.length + ' with a problem');
+    }
     // back to Home, closing what the screen left open over it
-    await ev('(async () => { try { HB.scene.children.filter((c) => c.z >= 500).forEach((c) => { HB.luaLeave && HB.luaLeave(c); c.removeSelf(); }); HB.loading(false); await HB.game.goHome(); } catch (e) {} })()');
-    await wait(700);
+    await home();
   }
   fs.writeFileSync('re/lua/report.json', JSON.stringify(report, null, 1));
   console.log('C++ names asked for and not there: ' + ((await missingNow()).join(', ') || 'none'));

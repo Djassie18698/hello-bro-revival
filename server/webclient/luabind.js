@@ -142,6 +142,7 @@
     retain: () => {}, release: () => {}, autorelease: (n) => n, retainCount: () => 1,
     scheduleUpdateWithPriorityLua: (n, fn) => { n.luaUpdate = fn; scheduled.add(n); },
     unscheduleUpdate: (n) => { n.luaUpdate = null; scheduled.delete(n); },
+    unscheduleAllSelectors: (n) => { n.luaUpdate = null; scheduled.delete(n); },
     scheduleUpdate: () => {},
     registerScriptHandler: (n, fn) => { n.luaNodeEvent = fn; if (n.inScene) call(fn, B('enter')); },
     unregisterScriptHandler: (n) => { n.luaNodeEvent = null; },

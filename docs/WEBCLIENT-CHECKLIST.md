@@ -27,6 +27,8 @@ Update this file with every round of work. How it is built and the rules found: 
 | ⬜ | Sounds and music (26 mp3) | |
 | ⬜ | Top banner (horn messages scrolling) | |
 | ⬜ | Glowing names (our hot update, util/common.lua PurpleGlow) | needs `rl_r_purplename` + CCLabelTTF effects |
+| ✅ | Custom events (ours): the owner's own events from text files, screen + Home button (custom.js, `docs/CUSTOM-EVENTS.md`) | not in the phone game |
+| 🟡 | Text that fits (ours): labels shrink to stay clear of each other and the screen (fit.js); pictures next to text and hand-shortened wording still to do | owner: "all text should match the boxes" |
 | ⬜ | Online for players: game files on the cloud machine, `https://ninjaonlinereborn.com/play/` through Caddy | owner's OK needed |
 | ⬜ | iPhone app shell (like Ninja Panel) around `/play/` | after it is playable |
 | ⬜ | Tried on a real iPhone (Safari, Add to Home Screen) | |
