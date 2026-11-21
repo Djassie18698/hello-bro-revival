@@ -651,7 +651,9 @@ HB.start = (canvas) => {
   const fit = () => {
     const vw = window.innerWidth, vh = window.innerHeight;
     let w = vw, h = vh;
-    if (h / w < 1.5) w = Math.round(h / 1.78); // a computer or tablet held sideways: a phone-shaped game in the middle
+    const box = HB.stageBox && HB.stageBox(vw, vh); // stage.js (the PC look): the room the game gets, [width, height]; 3:4 = the game's own tablet layout
+    if (box) { w = box[0]; h = box[1]; }
+    else if (h / w < 1.5) w = Math.round(h / 1.78); // a computer or tablet held sideways: a phone-shaped game in the middle
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -713,6 +715,20 @@ HB.start = (canvas) => {
   };
   canvas.addEventListener('pointerup', (e) => up(e, false));
   canvas.addEventListener('pointercancel', (e) => up(e, true));
+  // the mouse wheel (ours, for PCs): moves the list under the pointer the way a drag does. Touch screens never send it.
+  // A list that lies under a window does not move (what the pointer is on must not be above the list's own layer).
+  const layerZ = (n) => { while (n.parent && n.parent !== HB.scene) n = n.parent; return n.z || 0; };
+  canvas.addEventListener('wheel', (e) => {
+    if (down) return;
+    const [x, y] = point(e);
+    const s = scrollAt(HB.scene, x, y);
+    if (!s) return;
+    const t = pick(HB.scene, x, y);
+    if (t && layerZ(t) > layerZ(s)) return;
+    e.preventDefault();
+    const d = (e.deltaY || e.deltaX) * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? 400 : 1) * HB.size[0] / (canvas.getBoundingClientRect().width || 1);
+    if (s.dir === 0) s.scrollBy(-d, 0); else s.scrollBy(0, d);
+  }, { passive: false });
 };
 function tap(b) {
   HB.sound && HB.sound('click');

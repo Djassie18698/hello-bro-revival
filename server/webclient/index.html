@@ -8,7 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
 <title>Ninja Online</title>
-<link rel="apple-touch-icon" href="/admin/app-icon.png">
+<meta name="apple-mobile-web-app-title" content="Ninja Online">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
   body { display: flex; justify-content: center; align-items: center; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -48,5 +51,9 @@
 <script src="luascreens.js"></script>
 <script src="custom.js"></script>
 <script src="fit.js"></script>
+<script>
+  // makes the game installable as an app (Chrome / Edge "Install", a phone's "Add to Home Screen"); sw.js keeps no copies of game files
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
 </body>
 </html>

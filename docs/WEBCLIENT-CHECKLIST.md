@@ -10,7 +10,7 @@ Update this file with every round of work. How it is built and the rules found: 
 
 ## 0. Foundations
 
-**21 Nov 2026 (owner: "port it over, make it HD and modern"):** every picture is redrawn at double size (`tools/build_hd.js`, Real-ESRGAN; `?hd=0` shows the originals), on a wide PC window the game stands on a stage with side panels (`stage.js`), and Shop, Spar, card upgrade, Arena and Battles were added. Open points for the look: a real landscape layout, the phone's own card-turn and upgrade animations.
+**21 Nov 2026 (owner: "port it over, make it HD and modern"):** every picture is redrawn at double size (`tools/build_hd.js`, Real-ESRGAN; `?hd=0` shows the originals), on a wide PC window the game stands on a stage with side panels (`stage.js`), and Shop, Spar, card upgrade, Arena and Battles were added. **PC frame (21 Nov 2026, later the same day):** on a wide window the game stands between two wooden columns: left the player and a menu with the game's own buttons for every screen that exists (one click from anywhere, the open one marked), right the server, today's times and events and the strongest players; keys (Esc back, 1-6 bottom bar, F full screen), mouse wheel on lists, full screen, and the page installs as an app (manifest + a service worker that stores nothing). Phones are unchanged. Details: `server/webclient/README.md` (stage.js). Open points for the look: a real landscape layout of the game's own screens (they are all tall layouts: it needs a second arrangement per screen, not done), the phone's own card-turn and upgrade animations.
 
 | | Part | Notes |
 |---|---|---|

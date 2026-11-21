@@ -1,0 +1,97 @@
+/* The PC frame around the game (stage.js). Nothing here applies on a phone: every rule hangs on body.wide, which stage.js only
+   sets on a wide window. Sizes are in em and the frame's em follows the window height, so 1366x768 and 2560x1440 look the same. */
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;900&display=swap');
+
+.pc { display: none; }
+body.wide { background: #120b06; }
+body.wide > canvas { position: relative; z-index: 2; box-shadow: 0 0 0 2px #c98a4b, 0 0 0 5px #2a180b, 0 0 40px rgba(0, 0, 0, .8); }
+
+/* the night behind everything (only seen past the columns on a very wide window) */
+body.wide::before { content: ''; position: fixed; inset: 0; background: #0b1430 url(bg-moon.webp) center 30% / cover; filter: brightness(.55); z-index: 0; }
+
+body.wide .pc { display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; width: var(--col); box-sizing: border-box; padding: 1.2em 1.3em 1em; gap: 1em;
+  font: 700 var(--em)/1.35 Nunito, "Trebuchet MS", Arial, sans-serif; color: #4a2c12; z-index: 1; overflow: hidden;
+  -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  /* the game's own wooden bar pattern, row on row like planks, darkened */
+  background: linear-gradient(rgba(24, 13, 5, .5), rgba(24, 13, 5, .72)), #3a250e url(ui/wood.webp) left top / auto 4.6em repeat; }
+body.wide .pc.l { right: calc(50% + var(--gw) / 2); border-left: 3px solid #1c0f06; }
+body.wide .pc.r { left: calc(50% + var(--gw) / 2); border-right: 3px solid #1c0f06; }
+
+.pc .logo { display: block; flex: 1 1 5em; min-height: 4.5em; max-height: 13em; width: 100%; object-fit: contain; margin: 0 auto; filter: drop-shadow(0 .3em .3em rgba(0, 0, 0, .55)); }
+
+/* a panel: the game's wooden bar as its heading, the game's paper under it */
+.pc .panel { background: #efe3c8; border: 2px solid #c98a4b; outline: 2px solid #2a180b; border-radius: .45em; box-shadow: 0 .35em .8em rgba(0, 0, 0, .5); flex: none; overflow: hidden; }
+.pc .panel > h3 { margin: 0; padding: 0 .7em; height: 2.05em; line-height: 2.05em; font: 1.25em/2.05em "Lilita One", Impact, sans-serif; letter-spacing: .03em; color: #fff3cf; text-shadow: 0 .08em 0 #2a180b, 0 0 .25em #2a180b;
+  background: #5a3c14 url(ui/wood.webp) center / auto 100% repeat-x; border-bottom: 2px solid #2a180b; display: flex; justify-content: space-between; gap: .6em; white-space: nowrap; }
+.pc .panel > h3 small { font: 700 .62em/3.3em Nunito, Arial, sans-serif; color: #f1d9a4; text-shadow: 0 1px 0 #2a180b; overflow: hidden; text-overflow: ellipsis; }
+.pc .body { padding: .6em .8em .7em; }
+.pc .grow { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.pc .grow .body { flex: 1 1 0; min-height: 0; overflow: hidden; }
+
+/* ---- the player */
+.pc .who { display: flex; align-items: center; gap: .5em; }
+.pc .who .name { font: 1.5em "Lilita One", Impact, sans-serif; color: #3a2109; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+.pc .who img { height: 1.7em; flex: none; }
+.pc .who .lv { flex: none; font: 1.05em "Lilita One", Impact, sans-serif; color: #fff3cf; background: #3d6b4a; border: 2px solid #23402c; border-radius: 50%; width: 2.2em; height: 2.2em; line-height: 2.2em; text-align: center; }
+.pc .bar { display: grid; grid-template-columns: 4.2em 1fr; align-items: center; gap: .5em; margin-top: .42em; font-size: .9em; }
+.pc .bar i { display: block; height: 1.25em; border: 2px solid #5c3a1b; border-radius: .3em; background: #2b3a2d; position: relative; overflow: hidden; font-style: normal; }
+.pc .bar i b { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#ff5a4a, #c4160f); }
+.pc .bar.exp i b { background: linear-gradient(#7fd66b, #2f9a35); }
+.pc .bar i span { position: absolute; inset: 0; text-align: center; color: #fff; font: 900 .88em/1.5em Nunito, Arial, sans-serif; text-shadow: 0 1px 1px #000; }
+.pc .nums { display: grid; grid-template-columns: 1fr 1fr; gap: .4em .7em; margin-top: .65em; }
+.pc .nums div { display: flex; align-items: center; gap: .4em; background: #2b3a2d; border: 2px solid #5c3a1b; border-radius: .3em; padding: .1em .5em .1em .2em; color: #fff7dc; font-weight: 900; white-space: nowrap; overflow: hidden; }
+.pc .nums canvas { width: 1.6em; height: 1.6em; flex: none; box-shadow: none; }
+
+/* ---- the menu: the game's own buttons */
+.pc .nav { display: flex; flex-direction: column; }
+.pc .nav .body { padding: .45em .5em .5em; overflow: hidden; }
+.pc .nav h4 { margin: .35em .3em .1em; font: .82em "Lilita One", Impact, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #8a5a2b; border-bottom: 1px solid #d3bd92; }
+.pc .nav h4:first-child { margin-top: 0; }
+.pc .cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.3em, 1fr)); gap: .15em .1em; }
+.pc .cell { position: relative; border: 0; background: none; padding: .15em 0 .1em; margin: 0; cursor: pointer; font: inherit; color: #4a2c12; border-radius: .4em; display: flex; flex-direction: column; align-items: center; }
+.pc .cell canvas { width: 4.9em; height: 4.9em; box-shadow: none; transition: transform .08s; }
+.pc .cell span { position: absolute; left: 0; right: 0; bottom: .1em; text-align: center; font: .95em/1 "Lilita One", Impact, sans-serif; color: #ffd84a; -webkit-text-stroke: .22em #3a1c05; paint-order: stroke fill; white-space: nowrap; }
+.pc .cell kbd { position: absolute; left: .25em; top: .15em; font: 900 .68em/1.45em Nunito, Arial, sans-serif; min-width: 1.45em; text-align: center; color: #fff3cf; background: #5a3c14; border-radius: .25em; }
+.pc .cell:hover canvas { transform: scale(1.08); }
+.pc .cell:active canvas { transform: scale(.96); }
+/* a picture that carries another screen's name (the Special events' pot says "Login"): its lower part is cut off and our name stands there */
+.pc .cell.cap canvas { clip-path: inset(0 0 27% 0); }
+.pc .cell.on { background: #3d6b4a; box-shadow: inset 0 0 0 2px #23402c, inset 0 0 0 3px #a9d28a; color: #fff7dc; }
+.pc .cell.lock canvas { filter: grayscale(1) brightness(.8); }
+.pc .cell.lock span { color: #8c7a61; }
+.pc .nav.busy .cells { opacity: .5; }
+
+/* ---- the live column */
+.pc .line { display: flex; justify-content: space-between; gap: .8em; padding: .22em 0; border-bottom: 1px solid #d9c59c; white-space: nowrap; }
+.pc .line:last-child { border-bottom: 0; }
+.pc .line > :first-child { overflow: hidden; text-overflow: ellipsis; }
+.pc .line b { font-weight: 900; color: #2c1806; flex: none; }
+.pc .line b.now { color: #1f7a28; }
+.pc .dot { display: inline-block; width: .65em; height: .65em; border-radius: 50%; background: #2f9a35; border: 1px solid #1a5c20; margin-right: .45em; }
+.pc .dot.off { background: #c4160f; border-color: #7a0d09; }
+.pc .events { margin: .35em 0 0; padding: 0; list-style: none; columns: 2; column-gap: 1em; font-size: .88em; }
+.pc .events li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: .08em 0; }
+.pc .events li::before { content: '◆'; color: #c98a4b; margin-right: .4em; font-size: .7em; vertical-align: .15em; }
+.pc .grow #pc-ranks { display: flex; flex-direction: column; }
+.pc .rank { flex: 1 1 0; max-height: 3.2em; display: grid; grid-template-columns: 1.7em 1fr auto auto; gap: .6em; align-items: center; padding: .2em 0; border-bottom: 1px solid #d9c59c; white-space: nowrap; }
+.pc .rank:last-child { border-bottom: 0; }
+.pc .rank .n { font: 1em "Lilita One", Impact, sans-serif; color: #8a5a2b; text-align: center; }
+.pc .rank:nth-child(-n+3) .n { color: #fff3cf; background: #b5651d; border-radius: 50%; width: 1.6em; height: 1.6em; line-height: 1.6em; }
+.pc .rank .nm { font-weight: 900; color: #2c1806; overflow: hidden; text-overflow: ellipsis; }
+.pc .rank .nm.glow { -webkit-text-stroke: .16em #2c1806; paint-order: stroke fill; }
+.pc .rank .lv { color: #6d4a22; }
+.pc .rank .atk { font-weight: 900; color: #8f1d10; }
+.pc .me .nm::after { content: ' (you)'; font-weight: 700; color: #6d4a22; }
+
+/* ---- buttons (the game's own green and blue) and the keys */
+.pc .btns { display: grid; grid-template-columns: 1fr 1fr; gap: .45em .5em; flex: none; }
+.pc .btns #pc-full:has(+ [hidden]) { grid-column: 1 / -1; }
+.pc .btn { border-style: solid; border-color: transparent; border-image: url(ui/btn-blue.webp) 30 40 fill / .95em 1.3em stretch; background: none; padding: .1em 0 .25em; cursor: pointer; text-align: center; text-decoration: none;
+  font: 1.1em/2em "Lilita One", Impact, sans-serif; color: #fff; text-shadow: 0 .08em 0 rgba(0, 0, 0, .55); white-space: nowrap; }
+.pc .btn.green { border-image-source: url(ui/btn-green.webp); }
+.pc .btn:hover { filter: brightness(1.1); }
+.pc .btn:active { transform: translateY(1px); }
+.pc .keys { flex: none; margin: 0; text-align: center; font-size: .8em; color: #e2c998; text-shadow: 0 1px 0 #1c0f06; white-space: nowrap; overflow: hidden; }
+.pc .keys kbd { font: 900 1em Nunito, Arial, sans-serif; color: #fff3cf; background: #2a180b; border: 1px solid #c98a4b; border-radius: .25em; padding: 0 .4em; margin: 0 .15em 0 .5em; }
+.pc .keys kbd:first-child { margin-left: 0; }
+.pc [hidden] { display: none !important; }
