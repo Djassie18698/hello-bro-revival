@@ -103,7 +103,7 @@
     const sf = (f) => (f ? new SpriteFrame(f) : undefined);
     const frameKind = (size) => (num(size) === 0 ? 'small' : num(size) === 1 ? 'box' : 'big');
     luaClass('CGameObjElement', {
-      GetNinjaIcon: (size, icon) => sf(HB.iconFrame(1, txt(icon), num(size) === 2)),
+      GetNinjaIcon: (size, icon) => sf(HB.iconFrame(1, txt(icon), num(size) !== 0)), // the phone: size 0 = the small icon_<name>, middle and large = the big picture npc/<name> (the scripts scale it: God Recruit's win card 0.5)
       GetEquipIcon: (size, icon) => sf(HB.iconFrame(2, txt(icon), num(size) !== 0)),
       GetNinjutsuIcon: (size, icon) => sf(HB.iconFrame(6, txt(icon), num(size) !== 0)),
       GetConsumeIcon: (size, icon) => sf(HB.iconFrame(0, txt(icon), num(size) !== 0)),

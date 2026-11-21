@@ -280,17 +280,72 @@
   // Lua touch layers (registerScriptTouchHandler(fn, multi, priority, swallow)): asked before the buttons, lowest priority number
   // first; fn("began", x, y) returning true takes the touch, then it gets "moved" and "ended" (cocos2d-x 2 single-touch handler)
   let touchOwner = null;
-  HB.luaTouchBegan = (x, y, ev, buttonPrio = Infinity) => {
-    const layers = [...HB.luaTouchLayers].filter((n) => n.luaTouch && n.touchOn !== false && n.shown() && inScene(n)).filter((n) => !(n.luaTouch.prio > buttonPrio)).sort((a, b) => a.luaTouch.prio - b.luaTouch.prio); // a button with a better priority than the layer gets the tap
-    for (const n of layers) {
-      const t = n.luaTouch;
-      const r = t.multi ? safe(t.fn, B('began'), new LuaTable()) : safe(t.fn, B('began'), x, y);
-      if (T(first(r))) { touchOwner = n; return true; }
+  // what the engine would give this tap to (engine.js pick): the topmost button or list under the finger
+  function pickTarget(n, x, y) {
+    if (!n.visible) return null;
+    const kids = n.children.slice().sort((p, q) => p.z - q.z);
+    for (let i = kids.length - 1; i >= 0; i--) { const r = pickTarget(kids[i], x, y); if (r) return r; }
+    if ((n instanceof HB.Button && n.enabled) || n.onTouch || n.swallow) { if (!n.hit(x, y)) return null; for (let p = n.parent; p; p = p.parent) if (p.clip && !p.hit(x, y)) return null; return n; }
+    return null;
+  }
+  // Who gets a tap is cocos2d-x's touch dispatcher order, not "what lies on top": the smaller priority number first; at the same
+  // number the one that registered last, and a layer registers before its own children (CCLayer::onEnter), a window opened later
+  // after the first. A script layer and a button take the touch for themselves (swallow), a list (CCTableView) does not: after it
+  // the next one in the order is asked too. So in a window whose layer has kCCMenuHandlerPriority - 1:
+  //  - the X, the arrows and a list that the script gave the same number work (Daily Task and its chest window, Top-up);
+  //  - a button inside a list row never gets the tap when the list has the layer's number: the list's cellTouched does (Top-up's
+  //    Recharge buttons are only pictures; the row's tap is what tops up);
+  //  - with nothing between them, a row's button and the list both get the tap.
+  // Only what the engine would pick (the topmost button or list under the finger), the lists that button sits in and the script
+  // layers take part; when the engine's pick is first anyway, the engine handles the tap as before.
+  HB.luaTouchLayers.add({ luaTouch: null, shown: () => false }); // keeps the engine asking here even with no script layer open
+  const prioOf = (n) => n.touchPriority ?? (n instanceof HB.Button ? 1 : 0);
+  const chain = (n) => { const c = []; for (let p = n; p && p.parent; p = p.parent) c.unshift(p.parent.children.indexOf(p)); return c; };
+  const later = (a, b) => { a = chain(a); b = chain(b); for (let i = 0; i < Math.max(a.length, b.length); i++) { if (b[i] === undefined) return true; if (a[i] === undefined) return false; if (a[i] !== b[i]) return a[i] > b[i]; } return false; };
+  HB.luaTouchBegan = (x, y, ev) => {
+    const target = pickTarget(HB.scene, x, y);
+    const cands = [];
+    if (target) {
+      cands.push({ n: target, prio: prioOf(target), kind: target instanceof HB.Button ? 'button' : target.cells && target.ask ? 'table' : 'touch' });
+      for (let p = target.parent; p; p = p.parent) if (p.cells && p.ask && p.onTouch) cands.push({ n: p, prio: prioOf(p), kind: 'table' });
     }
-    return false;
+    // a window that stands above a script layer's own window (the "You got" window over Top-up) is never caught by that layer
+    const topZ = (n) => { while (n.parent && n.parent !== HB.scene) n = n.parent; return n.z || 0; };
+    const tz = target ? topZ(target) : -Infinity;
+    for (const n of HB.luaTouchLayers) if (n.luaTouch && n.touchOn !== false && n.shown() && inScene(n) && !(topZ(n) < tz)) cands.push({ n, prio: n.luaTouch.prio, kind: 'layer' });
+    cands.sort((a, b) => a.prio - b.prio || (later(a.n, b.n) ? -1 : 1));
+    if (!cands.length || cands[0].n === target) return false;
+    const owners = [];
+    for (const c of cands) {
+      if (c.kind === 'layer') {
+        const t = c.n.luaTouch;
+        const r = t.multi ? safe(t.fn, B('began'), new LuaTable()) : safe(t.fn, B('began'), x, y);
+        if (T(first(r))) { owners.push(c); break; } // every script layer that takes a touch keeps it for itself here (as before)
+      } else if (c.kind === 'button') { c.n.press(true); if (c.n.luaHandlers && HB.buttonEvent) HB.buttonEvent(c.n, 1); owners.push(c); break; }
+      else { c.n.onTouch('down', x, y); owners.push(c); if (c.kind !== 'table') break; }
+    }
+    if (!owners.length) return false;
+    touchOwner = { owners, sx: x, sy: y, x, y, moved: false };
+    return true;
   };
-  HB.luaTouchMoved = (x, y) => { if (touchOwner && touchOwner.luaTouch) safe(touchOwner.luaTouch.fn, B('moved'), x, y); };
-  HB.luaTouchEnded = (x, y, cancel) => { const n = touchOwner; touchOwner = null; if (n && n.luaTouch) safe(n.luaTouch.fn, B(cancel ? 'cancelled' : 'ended'), x, y); };
+  HB.luaTouchMoved = (x, y) => {
+    const o = touchOwner; if (!o) return;
+    if (Math.hypot(x - o.sx, y - o.sy) > 12) o.moved = true;
+    for (const c of o.owners) {
+      if (c.kind === 'layer') { if (c.n.luaTouch) safe(c.n.luaTouch.fn, B('moved'), x, y); }
+      else if (c.kind === 'button') { if (o.moved) c.n.press(false); }
+      else { if (o.moved && c.n.scrollBy) c.n.scrollBy(x - o.x, y - o.y); c.n.onTouch('move', x, y); }
+    }
+    o.x = x; o.y = y;
+  };
+  HB.luaTouchEnded = (x, y, cancel) => {
+    const o = touchOwner; touchOwner = null; if (!o) return;
+    for (const c of o.owners) {
+      if (c.kind === 'layer') { if (c.n.luaTouch) safe(c.n.luaTouch.fn, B(cancel ? 'cancelled' : 'ended'), x, y); }
+      else if (c.kind === 'button') { const was = c.n.pressed; c.n.press(false); if (!cancel && was && c.n.hit(x, y)) HB.tapNode(c.n); }
+      else c.n.onTouch(cancel ? 'cancel' : 'up', x, y);
+    }
+  };
 
   // ---------------------------------------------------------------- actions (CCSequence, CCMoveTo, CCCallFunc ...)
   // an action: { dur, start(node), update(t 0..1), done } ; instant ones have dur 0
@@ -479,7 +534,7 @@
       if (this.loaded) { this.content.x = keepX; this.content.y = keep; this.scrollBy(0, 0); } else this.toTop();
       this.loaded = true;
     }
-    toTop() { const c = this.content; c.x = 0; c.y = this.dir === 0 ? 0 : Math.min(0, this.h - c.h); }
+    toTop() { const c = this.content; c.x = 0; c.y = this.dir === 0 ? 0 : this.h - c.h; } // CCTableView starts at minContainerOffset: a list shorter than its box stands at the top too (one mail in the Award Center)
     cellAt(x, y) { for (const c of this.cells) if (c.hit(x, y)) return c; return null; }
     touch(ev, x, y) {
       if (ev === 'down') { this.downCell = this.cellAt(x, y); this.moved = false; this.start = [x, y]; if (this.downCell) { const t = new Touch(x, y); this.ask('cellTouchBegan', this.downCell, t); this.ask('cellHighlight', this.downCell); } }
@@ -498,9 +553,9 @@
     setDirection: (t, d) => { t.dir = num(d); }, getDirection: (t) => t.dir,
     setVerticalFillOrder: (t, f) => { t.fill = num(f); }, getVerticalFillOrder: (t) => t.fill,
     setViewSize: (t, s) => { s = SZ(s); t.w = s.width; t.h = s.height; }, getViewSize: (t) => new CCSize(t.w, t.h),
-    setContentOffset: (t, p) => { p = P(p); t.content.x = p.x; t.content.y = p.y; },
+    setContentOffset: (t, p, y) => { if (!t.asked && t.reload) t.reload(); p = typeof p === 'number' ? new CCPoint(p, num(y)) : P(p); t.content.x = p.x; t.content.y = p.y; }, // some scripts pass x, y as two numbers (loginPackActivity)
     setContentOffsetInDuration: (t, p, d) => { p = P(p); HB.tween(t.content, { x: p.x, y: p.y }, Math.max(0.01, num(d))); },
-    getContentOffset: (t) => new CCPoint(t.content.x, t.content.y),
+    getContentOffset: (t) => { if (!t.asked && t.reload) t.reload(); return new CCPoint(t.content.x, t.content.y); }, // CCTableView knows its size from the moment it is made: a new list answers "at the top" (keepLoginView reads this before its first reloadData)
     minContainerOffset: (t) => new CCPoint(Math.min(0, t.w - t.content.w), Math.min(0, t.h - t.content.h)),
     maxContainerOffset: (t) => new CCPoint(0, 0),
     getContainer: (t) => t.content, getContentSize: (t) => new CCSize(t.content.w, t.content.h),

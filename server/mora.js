@@ -28,7 +28,9 @@ function infoXml(db, pl) {
   const npcs = NPCS.map((n) => `<npc>${el('id', n.id)}${el('icon', n.icon)}${el('addexp', n.addexp)}${el('gamble_show_text', n.text)}${el('gamble_mustwin', 20)}${awardAttrs(n.award)}</npc>`).join('');
   const awards = PACKS.map((p) => `<award>${el('gamble_id', p.id)}${el('gamble_type', p.type)}${el('gamble_need', p.need)}${el('gamble_drop_show', p.show)}</award>`).join('');
   const me = db.prepare('SELECT nick,country FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
-  const rank = `<rank>${el('rank', 1)}${el('country', me.country)}${el('nick', me.nick)}${el('score', m.hist)}</rank>`;
+  // <rank> is a LIST of rows (moraDialogRankView.lua walks its children, each row read with find("rank") / "country" / "nick" / "score"):
+  // without the <item> around our one row the Exchange window raised a Lua error per field
+  const rank = `<rank><item>${el('rank', 1)}${el('country', me.country)}${el('nick', me.nick)}${el('score', m.hist)}</item></rank>`;
   return myXml(m) + `<info>1</info><npclist>${npcs}</npclist><awardlist>${awards}</awardlist>` + rank;
 }
 function play(db, pl, choice, mustWin) {

@@ -270,8 +270,54 @@
     const elem = G.get(B('CGameObjElement'));
     if (elem && elem.set) {
       elem.set(B('GetItemInfoByDropid'), (self, dropId, t) => { if (t && t.set) itemInfoOf(dropId, t); return Lua.R.EMPTY; });
-      elem.set(B('GetInfoFromDropId'), (self, dropId, t) => { if (t && t.set) itemInfoOf(dropId, t); return Lua.R.EMPTY; });
+      // GetInfoFromDropId also takes a reward (FightReward) in place of a pack number (the wheel's ten-draw list): the reward's own
+      // pack, and when that pack is a random one, the first thing the reward holds
+      elem.set(B('GetInfoFromDropId'), (self, dropId, t) => {
+        if (!t || !t.set) return Lua.R.EMPTY;
+        const r = dropId && dropId.__reward;
+        if (!r) { itemInfoOf(dropId, t); return Lua.R.EMPTY; }
+        itemInfoOf(dropId.__peer ? field(dropId.__peer, 'm_dropid') : 0, t);
+        if (!field(t, 'mainType') || !field(t, 'itemId')) {
+          const set = (k, v) => t.set(B(k), typeof v === 'string' ? B(v) : v);
+          const c = r.cards[0], p = r.props[0], ch = r.chips[0];
+          if (c) { const ty = field(c, 'm_type') || 1, inf = HB.info(ty, field(c, 'm_dataid')); set('mainType', 1); set('subType', ty === 1 ? 1 : ty === 5 ? 3 : ty === 6 ? 4 : 2); set('itemId', field(c, 'm_dataid')); set('quality', inf.quality); set('icon', inf.icon); set('name', inf.name); set('num', field(c, 'm_count') || 1); }
+          else if (p) { const inf = HB.info(0, field(p, 'm_id')); set('mainType', 2); set('itemId', field(p, 'm_id')); set('icon', inf.icon); set('name', inf.name); set('num', field(p, 'm_count') || 1); }
+          else if (ch) { set('mainType', 5); set('itemId', field(ch, 'm_dataid')); set('num', field(ch, 'm_piecenum') || 1); }
+          else { const g = (k) => field(dropId.__peer, k); const m = [[g('m_gold'), 4, 'Gold'], [g('m_silver'), 3, 'Silver'], [g('m_soul'), 6, 'Souls']].find((b) => b[0] > 0); if (m) { set('mainType', m[1]); set('num', m[0]); set('name', m[2]); } }
+        }
+        return Lua.R.EMPTY;
+      });
     }
+    // ---------------- CRouletteTurnResultDialogView: what ten turns of the Lucky Wheel gave (dlg_ui/RouletteTurnDialogView, ten slots)
+    // The scripts fill it (ClearAwardList, PushAward(ItemDataInfo), startRun) and hand it to GetMainMenu():AddDialog.
+    luaClass('CRouletteTurnResultDialogView', { create: () => { const n = new HB.Node(); n.w = HB.size[0]; n.h = HB.size[1]; n.isLayer = true; n.ignoreAnchor = true; n.__awards = []; return n; } });
+    HB.lua.methods(HB.Node, {
+      ClearAwardList: (n) => { n.__awards = []; },
+      PushAward: (n, info) => { if (!n.__awards) n.__awards = []; if (info && info.get) n.__awards.push({ main: field(info, 'mainType'), sub: field(info, 'subType'), id: field(info, 'itemId'), num: field(info, 'num') || 1, icon: txt(info.get(B('icon')) || ''), name: txt(info.get(B('name')) || '') }); },
+      startRun: (n) => {
+        const file = 'dlg_ui/RouletteTurnDialogView';
+        HB.loadCCB(file).then(() => {
+          const o = { onButton: (sel) => { if (sel === 'dialogClose' || sel === 'leftHandler') n.removeSelf(); } };
+          const root = HB.ui.screen(file, o); n.add(root);
+          const m = o.n, list = n.__awards || [];
+          if (m.labelTitle) m.labelTitle.setText('Congratulations');
+          if (m.leftButton) m.leftButton.setTitle('OK');
+          for (let i = 1; i <= 10; i++) {
+            const a = list[i - 1], box = m['sprite_itemicon' + i];
+            ['btn_card' + i, 'sprite_cardframe' + i].forEach((k) => { if (m[k]) m[k].visible = !!a; });
+            if (!a) continue;
+            const type = a.main === 1 ? ({ 1: 1, 2: 2, 3: 5, 4: 6 }[a.sub] || 1) : 0;
+            let pic = null, name = a.name;
+            if (a.main === 1 && a.id) { const inf = HB.info(type, a.id); pic = HB.iconFrame(type, inf.icon); name = inf.name; }
+            else pic = (a.icon && (HB.frameByName(a.icon) || HB.frameByName('big_' + a.icon))) || (a.main === 2 && a.id ? HB.iconFrame(0, HB.info(0, a.id).icon) : null);
+            if (box && pic) { const sp = new HB.Sprite(pic); const k = Math.min(box.w / (pic.sw || 1), box.h / (pic.sh || 1)); sp.sx = sp.sy = k; sp.x = box.w / 2; sp.y = box.h / 2; box.add(sp); }
+            if (m['label_cardname' + i]) m['label_cardname' + i].setText(name || '');
+            if (m['label_count' + i]) { m['label_count' + i].setText('x' + a.num); m['label_count' + i].visible = a.main === 1 && a.num > 1; } // the wheel's own pictures carry their number
+          }
+          root.sx = root.sy = 0.9; HB.tween(root, { sx: 1, sy: 1 }, 0.14);
+        });
+      },
+    });
     // ---------------- CTradeMgr: the items you hold (rl_r_shoplist Cmd 1601 answers the counts; asked once at Home, again after a change)
     HB.game.items = HB.game.items || new Map();
     HB.game.loadItems = async () => { try { const r = await HB.api('rl_r_shoplist', { Cmd: 1601 }); const x = HB.ui.x, m = new Map(); for (const g of x.all(r, 'goods')) m.set(x.n(g, 'propid'), x.n(g, 'bagnum')); if (m.size) HB.game.items = m; HB.game.itemsAt = Date.now(); } catch (e) { /* the counts stay as they were */ } };

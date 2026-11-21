@@ -11,16 +11,21 @@ function st(db, pl) {
   db.prepare('INSERT OR IGNORE INTO slot(uid,server_id) VALUES(?,?)').run(pl.uid, pl.server_id);
   return db.prepare('SELECT * FROM slot WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id);
 }
-const basic = (m, extra = '') => `<basic>${el('score', m.score)}${el('bet_cost', COST * BETS[m.bet])}${el('cost', COST)}${el('times', BETS[m.bet])}${el('remain', 86400)}${extra}</basic>`;
+// the screen shows and takes bet_cost + cost (ui_slotMachineLayer.lua): bet_cost is what the bet adds on top of the spin's own price,
+// so the two together are the COST * multiple a spin really costs here
+const basic = (m, extra = '') => `<basic>${el('score', m.score)}${el('bet_cost', COST * (BETS[m.bet] - 1))}${el('cost', COST)}${el('times', BETS[m.bet])}${el('remain', 86400)}${extra}</basic>`;
 function info(db, pl) {
   const m = st(db, pl);
-  const ninjas = [1, 2, 3, 4, 5].map((i) => `<ninja>${el('icon', 'npc0' + i + '_1')}${el('cash', 100 * i * 5)}</ninja>`).join('');
+  // five faces (ours): the small icons icon_npc02_1 .. icon_npc06_1 (there is no icon_npc01_1; the plain "npc.." name is the big card art)
+  // icon and cash are ATTRIBUTES: the reel and prize rows read cellData.icon / cellData.cash (ui_slotMachineSlotCell.lua); as child
+  // elements every row raised a Lua error and the reels stayed empty
+  const ninjas = [1, 2, 3, 4, 5].map((i) => `<ninja icon="icon_npc0${i + 1}_1" cash="${100 * i * 5}"/>`).join('');
   return basic(m) + `<ninjas>${ninjas}</ninjas>`;
 }
 function bet(db, pl) {
   const m = st(db, pl), b = (m.bet + 1) % BETS.length;
   db.prepare('UPDATE slot SET bet=? WHERE uid=? AND server_id=?').run(b, pl.uid, pl.server_id);
-  return el('times', BETS[b]) + el('bet_cost', COST * BETS[b]);
+  return el('times', BETS[b]) + el('bet_cost', COST * (BETS[b] - 1));
 }
 function spin(db, pl) {
   const m = st(db, pl), mult = BETS[m.bet], cost = COST * mult;
