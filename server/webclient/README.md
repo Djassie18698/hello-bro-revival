@@ -34,6 +34,7 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 | `spar.js`, `arena.js`, `tower.js` | Spar, the Arena ladder, Battles (the tower) |
 | `plunder.js` | Plunder: the seal list with fragments and merging, the rivals, the preview, the fight |
 | `details.js` | a card's details window (shinobi, gear, ninjutsu, seal); `&card=<kind 1-6>` opens it for your first card of that kind |
+| `base.js` | the village wheel on the Home screen (swipe to turn, tap a building; `&wheel=<radians>` turns it for a screenshot), the Ramen stall, the Money tree |
 | `upgrade.js` | level up a card by feeding it cards (Backpack > Upgrade) |
 | `stage.js` | the PC look: on a wide window the game stands framed on the blue moon night with a player panel and a server / full screen panel (`?stage=0` off) |
 | `assets/` | made by `tools/build_webclient.js`, not in git. `assets/hd/` + `assets/hd.json` = every picture at double size, made by `node tools/build_hd.js` (needs re/esrgan: the Real-ESRGAN Windows program; ~5 minutes on the RTX 5080). engine.js draws the HD picture in the place and size of the original (`K()`); `?hd=0` shows the originals |

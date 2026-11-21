@@ -34,8 +34,9 @@
     const m = co.n;
     m.label_name.setText(inf.name); m.label_level.setText(String(card.level));
     if (m.label_UpgradeNinja0) m.label_UpgradeNinja0.setText('Card to upgrade');
-    if (m.label_UpgradeNinja1) m.label_UpgradeNinja1.setText('Gives');
-    if (m.label_UpgradeNinja2) m.label_UpgradeNinja2.setText('Needs');
+    if (m.label_name.w > 112) m.label_name.sx = m.label_name.sy = 112 / m.label_name.w; // long English names: the layout leaves room for four Chinese signs
+    if (m.label_UpgradeNinja1) { m.label_UpgradeNinja1.setText('Gives'); m.label_UpgradeNinja1.sx = m.label_UpgradeNinja1.sy = 0.7; m.label_UpgradeNinja1.x -= 10; }
+    if (m.label_UpgradeNinja2) { m.label_UpgradeNinja2.setText('Needs'); m.label_UpgradeNinja2.sx = m.label_UpgradeNinja2.sy = 0.7; m.label_UpgradeNinja2.x -= 12; }
     for (const k of ['node_inlay_frame', 'node_shadow_back', 'node_shadow_front']) if (m[k]) m[k].visible = false;
     const fr = HB.qualityFrame(card.type === 1 ? 'ninjaSmall' : 'small', inf.quality); if (fr) m.sprite_ninjaicon.setFrame(fr);
     const pic = HB.iconFrame(card.type, inf.icon);

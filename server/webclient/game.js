@@ -236,7 +236,7 @@
     content.add(sub);
     // the village behind it (CDefaultSLGMenu::init: sub_ui/<country>CountryDefaultMenu.ccbi into node_slgcontent)
     const slg = o.n.node_slgcontent;
-    if (slg) { const v = HB.build(village, o, [slg.w, slg.h]); v.x = v.ignoreAnchor ? 0 : v.ax * v.w; v.y = v.ignoreAnchor ? 0 : v.ay * v.h; slg.add(v); }
+    if (slg) { const v = HB.build(village, o, [slg.w, slg.h]); v.x = v.ignoreAnchor ? 0 : v.ax * v.w; v.y = v.ignoreAnchor ? 0 : v.ay * v.h; slg.add(v); if (HB.villageWheel) HB.villageWheel(o.n); } // base.js: swipe to turn the wheel of buildings, tap to open one
     const icon = HB.frame('home/home_btns.plist', countryName(country) + '_icon'), halo = HB.frame('home/home_btns.plist', countryName(country) + '_halo');
     if (icon && o.n.node_country_icon) o.n.node_country_icon.setFrame(icon);
     if (halo && o.n.node_country_halo) o.n.node_country_halo.setFrame(halo);
@@ -298,7 +298,7 @@
       HB.luaGlobal('initMainMenuActivityBtn'); // CDefaultMainMenu::onEnterTransitionDidFinish: the event buttons on the left
       // test switch: &tap=<button name>[,<button name>...] presses home buttons one after another (screenshots)
       if (q.get('card') && HB.screens.details) { await HB.wait(1); const c = HB.data.ofType(Number(q.get('card')))[0]; if (c) HB.screens.details(c); } // test switch: &card=1|2|3|4|5|6 = the details of your first card of that kind
-      if (q.get('open') && HB.screens[q.get('open')]) { await HB.wait(1); HB.screens[q.get('open')](); } // test switch: &open=shop|spar|arena|tower|team|backpack
+      if (q.get('open') && HB.screens[q.get('open')]) { await HB.wait(1); HB.screens[q.get('open')](q.get('open') === 'upgrade' ? (HB.data.ofType(1)[0] || {}).seq : q.get('tab') !== null ? Number(q.get('tab')) : undefined); } // test switch: &open=shop|spar|arena|tower|team|backpack|plunder|ramen|moneytree|upgrade, &tab=<n> = that screen's tab
       if (q.get('tap')) for (const nm of q.get('tap').split(',')) { await HB.wait(1.5); const b = o.n[nm] || (HB.find && HB.find(nm)); if (b) HB.tapNode(b); else console.warn('no button ' + nm); }
     } catch (e) { HB.luaError(e); }
   }

@@ -48,7 +48,7 @@ Update this file with every round of work. How it is built and the rules found: 
 |---|---|---|
 | ✅ | Home: top bar, village, buildings, level locks | MainMenu, DefaultMainMenu, <Country>CountryDefaultMenu |
 | ✅ | Home: team cards row with arrows | MainCardView |
-| ⬜ | Home: the base scene buttons (Base: ramen, money tree, national treasure, secret shop, border war, shinobi house) | CDefaultSLGMenu, firescene.xml |
+| 🟡 | Home: the village is a wheel of six buildings (Base, Cross, Noodle, Border, Shop, money tree): swipe to turn it, tap to open (base.js; how far a swipe turns it is by eye). Noodle and the money tree open; Base, Shop, Cross, Border not yet | CDefaultSLGMenu, <country>CountryDefaultMenu |
 | ⬜ | Home: red number bubbles (events, messages) | |
 | ⬜ | Player info window (tap the top bar) | PlayerInfoDlg, meritRankCell |
 | ✅ | Bottom bar | all six buttons open their screens |
@@ -72,12 +72,12 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | **Shop**: Recruit (3 scrolls, free timers, once / ten times window), Giftpack, Tool with Buy and Use (shop.js); VIP shop and Top-up not yet | StoreItemsView, StoreGoodsView, StorePacksView, StoreNinjaView, PrayDialogView |
 | ⬜ | Top-up list and confirm (free on our server) | PurchaseListView, PurchaseItemView, PurchaseConfirmDialogView + Lua ui_purchaseLayer |
 | ✅ | **Plunder** (seal fragments): the seal list, rivals with the chance word from the game's plunderinfo table, preview, fight (plunder.js) | PlunderListView, PlunderNinjaView, PlunderPreView |
-| 🟡 | **Arena** (ladder): rivals with teams, Challenge, daily place reward, Rank tab, cooldown clear (arena.js); exchange shop, rules and lucky rank not yet | ArenaViewNew, ArenaCellViewNew |
+| 🟡 | **Arena** (ladder): rivals with teams, Challenge, daily place reward, Rank tab, cooldown clear, Exchange tab (reputation shop with its daily / total limits) (arena.js); rules window and lucky rank not yet | ArenaViewNew, ArenaCellViewNew, ArenaExchangeCellView |
 | 🟡 | **Battles** (tower): floors (ours: plain rows, the phone draws a tower), a floor's seven rounds, fights (tower.js); ranks, first-pass reward, sweep not yet | TowerView, TowerLevelView |
 | ⬜ | **War** (country war): my country, war info, ranks, score shop, officials, auto fight | countrywar/* (14 layouts) |
 | ⬜ | National treasure | countrywar/CountryTreasury, SnatchDialogView |
-| ⬜ | Ramen shop | RamenView + Lua BuyRemenDlg |
-| ⬜ | Money tree | MoneyTreeView |
+| ✅ | Ramen shop (the Noodle building): eat to fill energy and grudge (base.js); the steam animation not yet | RamenView |
+| ✅ | Money tree: rules, free and paid shakes, what the tree dropped (base.js); the phone's own shake animation and the list of winners not yet | MoneyTreeView |
 | ⬜ | News / messages: battle reports, system mail, friend messages | social/MessageListView, FightMsgView, SystemMsgView |
 | ⬜ | Friends: list, search, invite, chat | social/Friend* |
 | ⬜ | Event screen frame (the big Event list and its top bar) | activity/ActivityDefaultView, ActivityBarCellView |
