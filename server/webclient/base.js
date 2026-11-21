@@ -44,6 +44,7 @@
       if (!hit) return;
       const [name, screen] = BUILDINGS[hit.k];
       if (screen && HB.screens[screen]) return HB.screens[screen]();
+      if (HB.game.luaBuilding && HB.game.luaBuilding(hit.k)) return; // Base, Shop, Cross, Border: the game's own Lua screens (luascreens.js)
       HB.ui.tip('Coming soon: ' + name, 1.2);
     };
   };

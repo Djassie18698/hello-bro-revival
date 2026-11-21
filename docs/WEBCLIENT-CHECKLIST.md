@@ -56,9 +56,9 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | **Backpack**: ninja / weapon / armor / trinket / ninjutsu / seal tabs (shown; no sell, use, fragments yet) | MyBackpackView, gameobjlist/*, BackpackTips |
 | 🟡 | Card details (tap a card's picture in the Backpack): shinobi (the game's own page: big card, story, chains, growth and rebirth rows), gear, ninjutsu, seal with its five element rows (details.js); pets, the gear set window, opening it from the Team screen and the Growth / Rebirth / Train buttons not yet | NinjaDetailView + NinjaSubView, EquipDetailView, NinjasuDetailView, MarkDetailView + MarkInfoDetails, PetDetailView |
 | 🟡 | Upgrade a card (feed cards): the card, material grid, Select all 1-2 star, exp and silver from the game's tables (upgrade.js); the phone's process and "complete" animations not yet | upgrade/CardUpgradeView, UpgradeNinja, UpgradeMeteriaInfoCard |
-| ⬜ | Strengthen gear (Growth) | sub_ui/StrengthView |
-| ⬜ | Potential (Train) | sub_ui/Potential* |
-| ⬜ | Reincarnate | sub_ui/ReincarnationView |
+| 🟡 | Growth (sage steps of a shinobi): stones, 1-4 at a time, extra stones, chance and silver from the game's table (growth.js); automatic growth and the animations not yet | sub_ui/StrengthView |
+| 🟡 | Train (potential): limits, pill / gold, once / 10 times, the roll and Keep (growth.js); the animations not yet | sub_ui/Potential* |
+| 🟡 | Reincarnate: with a second copy of the card or with pills, what the next rebirth gives (growth.js); the animation not yet | sub_ui/ReincarnationView |
 | ✅ | Seals: list, merge (start, clock, finish now for gold, take the seal) - part of plunder.js | MarkListView, MarkMergaView |
 | ⬜ | Ninjabook (collection) | GameObjBookList, GameObjBookCard |
 | ✅ | **Training**: chapters, stages, parts | ChapterView, SubChapterListView, SubChapter |
@@ -78,14 +78,23 @@ Update this file with every round of work. How it is built and the rules found: 
 | ⬜ | National treasure | countrywar/CountryTreasury, SnatchDialogView |
 | ✅ | Ramen shop (the Noodle building): eat to fill energy and grudge (base.js); the steam animation not yet | RamenView |
 | ✅ | Money tree: rules, free and paid shakes, what the tree dropped (base.js); the phone's own shake animation and the list of winners not yet | MoneyTreeView |
-| ⬜ | News / messages: battle reports, system mail, friend messages | social/MessageListView, FightMsgView, SystemMsgView |
-| ⬜ | Friends: list, search, invite, chat | social/Friend* |
+| 🟡 | News: Battle reports (Ignore, Revenge), Friend messages (Reply), System note (social.js); a message is typed in the browser's own box | social/MessageListView, FightMsgView, FriendMsgView, SystemMsgView |
+| 🟡 | Friends: every player with team numbers, leave a message, search by name (social.js); the phone's invite and chat windows not yet | social/Friend* |
 | ⬜ | Event screen frame (the big Event list and its top bar) | activity/ActivityDefaultView, ActivityBarCellView |
 | ⬜ | Lottery view, roulette turn window (C++ parts of Lua events) | activity/LotteryView, RouletteTurnDialogView |
 | ⬜ | Daily ads (next day / days) | activity/NextDayAd, DaysAd |
 | 🚫 | Tutorial | off for everyone on our servers |
 
 ## 3. Lua screens (the game's own scripts; each needs its helpers to exist)
+
+**21 Nov 2026:** the two frames these screens live in are built (luascreens.js): the Event screen (icon strip + the event's own
+layer) and the empty sub menu the helper functions fill (ShowRouletteView, ShowOrgView, doShowBase ...), plus the Home buttons and
+village buildings that lead to them, and the C++ helpers they asked for (the player's cards as objects, items held, VIP level, what a
+drop pack holds, the Event card view). `node tools/dev/lua-screens.js` opens 57 of them one after another and reports Lua errors and
+missing C++ names, with a picture of each in re/lua/: 49 open without an error. The rest are not client faults: the event is off on
+the test server (level rank, fight rank, collect cards, gold spending, slot machine), a script v28 does not have (lotteryActivity),
+the wheel's last prize has no drop row (same on the phone), Ninja inherit needs a card. 🟡 below = opens and draws like the phone;
+its buttons and what they pay out are NOT all tried yet.
 
 Home buttons and windows:
 
@@ -94,44 +103,44 @@ Home buttons and windows:
 | ✅ | Middle button row | MenuBtnsView |
 | ✅ | Left event buttons | mainActivity, ui_mainActivityBtn |
 | ✅ | Event window (icons) | ui_activityPopupLayer |
-| ⬜ | Daily Task | dailyTask_business, ui_dailyTaskLayer |
-| ⬜ | Save time (EXP card) | saveTime_business |
-| ⬜ | 1st Recharge | firstMoneyAward |
-| ⬜ | Growth fund | growthfund_b |
-| ⬜ | 7-day goals | sevenDay_business, ui_sevenDayView |
+| 🟡 | Daily Task | dailyTask_business, ui_dailyTaskLayer |
+| 🟡 | Save time (EXP card) | saveTime_business |
+| 🟡 | 1st Recharge | firstMoneyAward |
+| 🟡 | Growth fund | growthfund_b |
+| 🟡 | 7-day goals | sevenDay_business, ui_sevenDayView |
 | ⬜ | Receive (stage gift) | ui_stageGiftLayer |
-| ⬜ | Awards (Award Center mail) | ui_awardCenterLayer |
-| ⬜ | Hall of Fame (No.1 Shinobi) | ui_hallOfFameView |
+| 🟡 | Awards (Award Center mail) | ui_awardCenterLayer |
+| 🟡 | Hall of Fame (No.1 Shinobi) | ui_hallOfFameView |
 | ⬜ | Settings | ui_gameSettingLayer |
 | ⬜ | VIP list and rights | VipListView, ui_vipRightInfoView |
-| ⬜ | Top-up window | ui_purchaseLayer |
+| 🟡 | Top-up window | ui_purchaseLayer |
 
 Events (Event window and left column):
 
 | | Event | Script |
 |---|---|---|
-| ⬜ | Login gift | loginPackActivity |
-| ⬜ | Sign-in (login streak) | keepLoginView |
-| ⬜ | Level-up gift | upradePackActivity |
-| ⬜ | Monthly sign | monthSign_business |
-| ⬜ | World Boss | fightBossView (+ 6 windows) |
-| ⬜ | God Recruit | godRecruit_business (5 layers) |
-| ⬜ | Monthly Card | monthCardActivity |
-| ⬜ | Flower Worship | nvshen_business |
-| ⬜ | Diligence gift | diligenceGift_business |
-| ⬜ | Lottery ticket | lotteryTicket_business |
-| ⬜ | Scratch card | ScratchCardActivity |
-| ⬜ | Treasure chests (box open) | boxOpenActivityView |
-| ⬜ | Group purchase | limitedGroupBuy_business |
-| ⬜ | Daily pay, keep pay, rand pay, total recharge, gold spending | dailyPay, keepPay, randPay, accumulateMoney, consumption |
-| ⬜ | Limited discount, daily restriction, hot treasure | limitDiscount, dailyRestriction, hotTreasure |
-| ⬜ | Festival trades | festival_business |
-| ⬜ | Lucky Wheel (roulette) + ranks | ui_rouletteLayer |
-| ⬜ | Millionaire (dice) + ranks | ui_monopolyLayer |
-| ⬜ | Mora | moraView |
-| ⬜ | Slot machine | ui_slotMachineLayer |
-| ⬜ | Super Ninja (limited) + ranks | ui_limitSuperNinjaLayer |
-| ⬜ | Ninja Treasure (sudoku) | ui_ninjaTreasureLayer |
+| 🟡 | Login gift | loginPackActivity |
+| 🟡 | Sign-in (login streak) | keepLoginView |
+| 🟡 | Level-up gift | upradePackActivity |
+| 🟡 | Monthly sign | monthSign_business |
+| 🟡 | World Boss | fightBossView (+ 6 windows) |
+| 🟡 | God Recruit | godRecruit_business (5 layers) |
+| 🟡 | Monthly Card | monthCardActivity |
+| 🟡 | Flower Worship | nvshen_business |
+| 🟡 | Diligence gift | diligenceGift_business |
+| 🟡 | Lottery ticket | lotteryTicket_business |
+| 🟡 | Scratch card | ScratchCardActivity |
+| 🟡 | Treasure chests (box open) | boxOpenActivityView |
+| 🟡 | Group purchase | limitedGroupBuy_business |
+| 🟡 | Daily pay, keep pay, rand pay, total recharge, gold spending | dailyPay, keepPay, randPay, accumulateMoney, consumption |
+| 🟡 | Limited discount, daily restriction, hot treasure | limitDiscount, dailyRestriction, hotTreasure |
+| 🟡 | Festival trades | festival_business |
+| 🟡 | Lucky Wheel (roulette) + ranks | ui_rouletteLayer |
+| 🟡 | Millionaire (dice) + ranks | ui_monopolyLayer |
+| 🟡 | Mora | moraView |
+| 🟡 | Slot machine | ui_slotMachineLayer |
+| 🟡 | Super Ninja (limited) + ranks | ui_limitSuperNinjaLayer |
+| 🟡 | Ninja Treasure (sudoku) | ui_ninjaTreasureLayer |
 | ⬜ | Collect cards | collectCardActivity |
 | ⬜ | Level rank, fight rank | levelRank, fightRank |
 
@@ -139,21 +148,21 @@ Features:
 
 | | Feature | Script |
 |---|---|---|
-| ⬜ | God card synthesis (evolve) | ui_godCardSyntheticLayer |
-| ⬜ | Limit training (Dun) | ui_limitTrainLayer |
-| ⬜ | Soul training / Eight Gates | secret_shop/ui_trainSoulLayer |
-| ⬜ | Secret shop | secret_shop/ui_secretShopLayer |
+| 🟡 | God card synthesis (evolve) | ui_godCardSyntheticLayer |
+| 🟡 | Limit training (Dun) | ui_limitTrainLayer |
+| 🟡 | Soul training / Eight Gates | secret_shop/ui_trainSoulLayer |
+| 🟡 | Secret shop | secret_shop/ui_secretShopLayer |
 | ⬜ | Breakthrough | ui_tupoLayer |
-| ⬜ | Ninja inherit | ui_ninjaInheritLayer |
-| ⬜ | Attribute pills (element change) | ui_attributeDanLayer |
-| ⬜ | Advance gear | ui_advanceEquipLayer |
-| ⬜ | Gear sets, colour sets, level sets | ui_colorSuitView, ui_levelSuitView |
+| 🟡 | Ninja inherit (opens from a card; not tried) | ui_ninjaInheritLayer |
+| 🟡 | Attribute pills (element change) (opens from a card; not tried) | ui_attributeDanLayer |
+| 🟡 | Advance gear | ui_advanceEquipLayer |
+| 🟡 | Gear sets, colour sets, level sets | ui_colorSuitView, ui_levelSuitView |
 | ⬜ | Pets: list, main, train, upgrade, advance, summon | ui_pet* (7 layers) |
 | ⬜ | Ninja Test (exam) | ui_ninjaTestMain |
-| ⬜ | My Base | ui_myBaseLayer |
-| ⬜ | Akatsuki (guild): list, create, hall, donate, shop, map, members, ranks | ui_org* (22 layers) |
-| ⬜ | Border war | ui_borderWar* (14 layers) |
-| ⬜ | Cross-server battle | multi_battle/* (14 layers) |
+| 🟡 | My Base | ui_myBaseLayer |
+| 🟡 | Akatsuki (guild): list, create, hall, donate, shop, map, members, ranks (the list of guilds opens; the rest not tried) | ui_org* (22 layers) |
+| 🟡 | Border war | ui_borderWar* (14 layers) |
+| 🟡 | Cross-server battle | multi_battle/* (14 layers) |
 | ⬜ | Cross roulette / millionaire / super ninja | ui_cross* |
 | ⬜ | Change country | switchCountry |
 | ⬜ | Tower sweep, re-new level, split card | towerSweep, ReNewLevel, SplitCard |

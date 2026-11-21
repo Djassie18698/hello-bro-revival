@@ -425,7 +425,7 @@
   methods(CCBProxy, {
     readCCBFromFile: (p, file) => p.read(file),
     readCCBFromFileBySize: (p, file, size) => p.read(file, size ? SZ(size) : null),
-    getNode: (p, name) => p.owner.n[txt(name)],
+    getNode: (p, name) => p.owner.n[txt(name)], getMemberVariables: (p) => p,
     SetClearPlist: () => {},
     // handleButtonEvent(button, function): the button's tap calls the function (CCBProxy::addHandler + handleEvent)
     handleButtonEvent: (p, btn, fn, ev) => { if (btn && btn.luaGet) (btn.luaHandlers = btn.luaHandlers || []).push({ fn, ev: num(ev, EV.TouchUpInside) }); },
@@ -451,7 +451,10 @@
     constructor(handler, size) { super(); this.handler = handler; this.w = size.width; this.h = size.height; this.dir = 1; this.fill = 0; this.cells = []; this.content.ignoreAnchor = true; this.onTouch = (ev, x, y) => this.touch(ev, x, y); this.swallowOnly = true; }
     ask(fn, a1, a2) { return first(safe(this.handler.fn, B(fn), this, a1, a2)); }
     cellSize(i) { const s = this.ask('cellSize', i); return s instanceof CCSize ? s : s instanceof LuaTable ? SZ(s) : new CCSize(this.w, 40); }
+    // CCTableView fills itself when it is first shown, without reloadData (some screens never call it)
+    visit(ctx, pm, alpha) { if (!this.asked) this.reload(); super.visit(ctx, pm, alpha); }
     reload() {
+      this.asked = true;
       const keep = this.content.y, keepX = this.content.x;
       this.content.removeAll(); this.cells = [];
       const n = num(this.ask('numberOfCells'));

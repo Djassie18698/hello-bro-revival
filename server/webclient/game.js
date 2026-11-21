@@ -44,6 +44,7 @@
     changeToSub: (type) => { const name = Object.keys(HB.game.E || {}).find((k) => HB.game.E[k] === type) || type; tip('Coming soon: ' + String(name).replace(/^E_/, '').toLowerCase(), 1.2); },
     changeToActivity: (name) => tip('Coming soon: ' + name, 1.2),
   };
+  (HB.onGame || []).forEach((f) => f()); // parts loaded after this file that add to HB.game (luascreens.js)
   const errorText = (root) => x.t(root, 'message') || HB.menu(root.code) || 'Error ' + root.code;
   let busy = null;
   HB.loading = (on) => loading(on);
@@ -298,7 +299,7 @@
       HB.luaGlobal('initMainMenuActivityBtn'); // CDefaultMainMenu::onEnterTransitionDidFinish: the event buttons on the left
       // test switch: &tap=<button name>[,<button name>...] presses home buttons one after another (screenshots)
       if (q.get('card') && HB.screens.details) { await HB.wait(1); const c = HB.data.ofType(Number(q.get('card')))[0]; if (c) HB.screens.details(c); } // test switch: &card=1|2|3|4|5|6 = the details of your first card of that kind
-      if (q.get('open') && HB.screens[q.get('open')]) { await HB.wait(1); HB.screens[q.get('open')](q.get('open') === 'upgrade' ? (HB.data.ofType(1)[0] || {}).seq : q.get('tab') !== null ? Number(q.get('tab')) : undefined); } // test switch: &open=shop|spar|arena|tower|team|backpack|plunder|ramen|moneytree|upgrade, &tab=<n> = that screen's tab
+      if (q.get('open') && HB.screens[q.get('open')]) { await HB.wait(1); HB.screens[q.get('open')](['upgrade', 'growth', 'rebirth', 'potential'].includes(q.get('open')) ? (HB.data.ofType(1)[0] || {}).seq : q.get('tab') !== null ? Number(q.get('tab')) : undefined); } // test switch: &open=shop|spar|arena|tower|team|backpack|plunder|ramen|moneytree|upgrade, &tab=<n> = that screen's tab
       if (q.get('tap')) for (const nm of q.get('tap').split(',')) { await HB.wait(1.5); const b = o.n[nm] || (HB.find && HB.find(nm)); if (b) HB.tapNode(b); else console.warn('no button ' + nm); }
     } catch (e) { HB.luaError(e); }
   }
@@ -346,6 +347,7 @@
       if (Number((HB.game.user || {}).level || 1) < (fc[3] || 0)) return tip(String(fc[4] || 'Locked').replace(/ +$/, ''), 2);
       return HB.screens[building[1]]();
     }
+    if (HB.game.luaHomeButton && HB.game.luaHomeButton(sel)) return; // luascreens.js: the buttons that open the game's own Lua screens
     tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
   }
   // the bottom bar's marker sits behind the chosen button

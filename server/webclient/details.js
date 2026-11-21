@@ -52,8 +52,8 @@
 
     if (card.type === 1) {
       const match = await HB.ui.table('ninjamatch');
-      const soon = { BtnUpgrade1: 'Growth', BtnUpgradeRe: 'Reincarnate', BtnUpgradePo: 'Train' };
-      const w = { onButton: (sel) => { if (sel === 'BtnUpgrade') return upgrade(w); if (soon[sel]) return HB.ui.tip('Coming soon: ' + soon[sel], 1.2); w.close(); if (sel === 'BtnChange' && opt.onChange) opt.onChange(card); } };
+      const go = { BtnUpgrade1: 'growth', BtnUpgradeRe: 'rebirth', BtnUpgradePo: 'potential' };
+      const w = { onButton: (sel) => { if (sel === 'BtnUpgrade') return upgrade(w); if (go[sel] && HB.screens[go[sel]]) { w.close(); return HB.screens[go[sel]](card.seq); } w.close(); if (sel === 'BtnChange' && opt.onChange) opt.onChange(card); } };
       await HB.dialog('dlg_ui/NinjaDetailView', w);
       const n = w.n, r = inf.row || [];
       n.label_name.setText(inf.name + (card.tupo > 0 ? '  +' + card.tupo : ''));

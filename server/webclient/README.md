@@ -35,6 +35,9 @@ Test switches: `?auto=1` walks from the login screen to the home screen by itsel
 | `plunder.js` | Plunder: the seal list with fragments and merging, the rivals, the preview, the fight |
 | `details.js` | a card's details window (shinobi, gear, ninjutsu, seal); `&card=<kind 1-6>` opens it for your first card of that kind |
 | `base.js` | the village wheel on the Home screen (swipe to turn, tap a building; `&wheel=<radians>` turns it for a screenshot), the Ramen stall, the Money tree |
+| `luascreens.js` | the frames of the game's own Lua screens: the Event screen (`HB.game.changeToActivity(script)`), the empty sub menu (`HB.game.changeToActivitySubMenu(function, arg)`), `ChangeToSub` to the JavaScript screens, the Home buttons and village buildings that open Lua screens. Test them all: `node tools/dev/lua-screens.js [filter]` (pictures in re/lua/) |
+| `growth.js` | Growth (sage steps), Train (potential), Reincarnate: `&open=growth|potential|rebirth` |
+| `social.js` | News (battle reports, friend messages, system note) and Friends: `&open=news&tab=0|1|2`, `&open=friends` |
 | `upgrade.js` | level up a card by feeding it cards (Backpack > Upgrade) |
 | `stage.js` | the PC look: on a wide window the game stands framed on the blue moon night with a player panel and a server / full screen panel (`?stage=0` off) |
 | `assets/` | made by `tools/build_webclient.js`, not in git. `assets/hd/` + `assets/hd.json` = every picture at double size, made by `node tools/build_hd.js` (needs re/esrgan: the Real-ESRGAN Windows program; ~5 minutes on the RTX 5080). engine.js draws the HD picture in the place and size of the original (`K()`); `?hd=0` shows the originals |

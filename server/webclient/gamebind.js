@@ -46,6 +46,45 @@
     gfn('openHyperlink', (u) => { const url = txt(u); if (/^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener'); });
     gval('is_applestore', false);
 
+    // ---------------- the player's cards as the scripts see them (CGameObject / CPlayerNinja ...): one object per card, kept per seq
+    const two = (n) => String(n).padStart(2, '0');
+    const clock = (s) => two(Math.floor(s / 3600)) + ':' + two(Math.floor(s / 60) % 60) + ':' + two(Math.floor(s % 60));
+    let refreshing = null;
+    const later = () => { if (!refreshing) refreshing = setTimeout(() => { refreshing = null; HB.game.refresh && HB.game.refresh(); }, 400); };
+    const cardObjects = new Map();
+    function cardObject(c) {
+      if (!c) return undefined;
+      let o = cardObjects.get(c.seq);
+      if (o && o.card === c) return o.obj;
+      const inf = () => HB.info(c.type, c.id), st = () => HB.baseStats(c);
+      const chakra = () => { const r = inf().row || [], lv = Math.max(1, c.level) - 1; return c.type === 1 ? [r[23] + r[29] * lv, r[24] + r[30] * lv] : [0, 0]; };
+      const obj = gameObject('CGameObject', {
+        GetGUID: () => c.seq, GetDataID: () => c.id, GetLevel: () => c.level, GetQuality: () => inf().quality, GetName: () => B(inf().name), GetObjType: () => c.type,
+        GetReincarnationLevel: () => c.newlife || 0, GetStrengthLevel: () => c.starlevel || 0, GetCardCamp: () => c.attri || 0, GetTupoLevel: () => c.tupo || 0,
+        GetAttackMin: () => Math.round((st().atk || [0, 0])[0]), GetAttackMax: () => Math.round((st().atk || [0, 0])[1]),
+        GetDefenseMin: () => Math.round((st().def || [0, 0])[0]), GetDefenseMax: () => Math.round((st().def || [0, 0])[1]),
+        GetChakraMin: () => Math.round(chakra()[0] || 0), GetChakraMax: () => Math.round(chakra()[1] || 0),
+        IsUsingInAnyTeam: () => HB.data.inUse(c.seq), GetCardIcon: () => B(inf().icon), GetCardFrame: () => inf().quality,
+        SetLevel: (v) => { c.level = num(v); }, SetReincarnationLevel: (v) => { c.newlife = num(v); }, SetTupoLevel: (v) => { c.tupo = num(v); }, SetCardCamp: (v) => { c.attri = num(v); },
+        GetSkillName: () => B(inf().name), GetSkillDesc: () => B(inf().desc), GetSkillIcon: () => B(inf().icon), GetExp: () => c.exp || 0,
+      }, {
+        m_level: () => c.level, m_quality: () => inf().quality, m_name: () => inf().name, m_ninjaname: () => inf().name, m_ninjaicon: () => inf().icon, m_dataid: () => c.id, m_guid: () => c.seq,
+        m_attackmax: () => Math.round((st().atk || [0, 0])[1]), m_attackmin: () => Math.round((st().atk || [0, 0])[0]),
+        m_defensemax: () => Math.round((st().def || [0, 0])[1]), m_defensemin: () => Math.round((st().def || [0, 0])[0]),
+        m_strengthLevel: () => c.starlevel || 0, m_reincarnationLevel: () => c.newlife || 0,
+      });
+      cardObjects.set(c.seq, { card: c, obj });
+      return obj;
+    }
+    // a C++ vector as the scripts use it: list:size(), list[i] from 0
+    function vector(items) {
+      const size = asLua(() => items.length), at = asLua((self, i) => items[num(i)]);
+      return { luaGet(k) { if (typeof k === 'number') return items[k]; const key = Lua.fromBytes(String(k)); return key === 'size' || key === 'count' ? size : key === 'at' || key === 'objectAtIndex' ? at : undefined; }, luaSet() {} };
+    }
+    ['e_obj_ninja', 'e_obj_weapon', 'e_obj_armors', 'e_obj_decoration', 'e_obj_mark', 'e_obj_ninjutsu'].forEach((n, i) => gval(n, i + 1)); // ours: the server's card types
+    const cardList = (type) => vector(HB.data.ofType(type).map(cardObject));
+    const teamObject = gameObject('CTeamData', { GetSuitInfo: () => -1, /* no set active: the team's sets are not read from the server yet */ GetTeamSize: () => HB.data.team.length });
+
     // ---------------- the player (CPlayerDataMgr::firefly_GetPlayerInfoData: filled from rl_r_mainpage <user>)
     const user = () => HB.game.user || {};
     const playerInfo = gameObject('PlayerInfoData', {}, {
@@ -63,6 +102,15 @@
       SetActivityNewsNum: () => {}, SetActivityNews: () => {}, SetMoraOpen: (v) => { HB.game.moraOpen = v; }, GetMoraOpen: () => HB.game.moraOpen || 0,
       SetNaturoOpened: () => {}, SetNanOpened: () => {}, SetPkPassTime: () => {}, SetLotteryProgress: () => {},
       GetMaxBodyValue: () => HB.game.maxEnergy || 0, GetMaxAttackCount: () => 5, GetNextLevelExp: () => HB.game.needExp || 0,
+      GetVipLevel: () => num(user().viplevel), SetVipLevel: (v) => { if (HB.game.user) HB.game.user.viplevel = num(v); HB.game.refreshTopBar && HB.game.refreshTopBar(); },
+      AddSilver: (v) => { if (HB.game.user) HB.game.user.coin = num(HB.game.user.coin) + num(v); HB.game.refreshTopBar && HB.game.refreshTopBar(); },
+      AddExp: () => later(), AddMerit: () => later(), SetBodyValue: (v) => { if (HB.game.user) HB.game.user.curaction = num(v); HB.game.refreshTopBar && HB.game.refreshTopBar(); },
+      // a reward arrived / a card left: the phone patched its own lists, we read the player again from the server (soon after, once)
+      AddDataFromReward: () => later(), RemoveObjByID: (seq) => { HB.data.cards.delete(num(seq)); later(); }, updatePieceNum: () => later(),
+      GetObjectList: (type) => cardList(num(type)), GetObjectByID: (seq) => cardObject(HB.data.card(num(seq))),
+      GetActiveTeam: () => teamObject, GetTeamByIndex: () => teamObject,
+      GetMeritIcon: () => undefined, // the rank badge's picture name: the layout's own badge stays
+      GetTimeText: (sec) => B(clock(num(sec))), GetTotalPkRestTime: () => 0, GetTotalEnergyRestTime: () => 0, GetPkRestTimeText: () => B('00:00:00'), GetEnergyRestTimeText: () => B('00:00:00'),
     });
 
     // ---------------- the main menu (CMainMenu): tips, loading, dialogs, screens
@@ -92,7 +140,8 @@
       ShowSpecialLoading: () => HB.loading(true), CloseSpecialLoading: () => HB.loading(false),
       GetModelLayer: () => getModelLayer(),
       ChangeToSub: (type) => HB.game.changeToSub(num(type)),
-      ChangeToActivitySubMenu: (name, arg) => HB.game.changeToActivity(txt(name), arg),
+      ChangeToActivitySubMenu: (name, arg) => HB.game.changeToActivitySubMenu(txt(name), arg),
+      GetActivitySubMenuView: () => HB.game.activitySubMenu,
       ChangeToActivity: (name) => HB.game.changeToActivity(txt(name)),
       GetSubContentNode: () => HB.game.subContent,
       GetCurrentSubMenu: () => HB.game.currentSub, GetCurrentSubMenuType: () => HB.game.currentSubType || 0, GetPreSubMenuType: () => HB.game.preSubType || 0,
@@ -142,13 +191,58 @@
     gfn('ClearActivityName', () => { HB.game.activities = []; });
     gfn('PushActivityName', (name, icon) => { HB.game.activities.push({ name: txt(name), icon: txt(icon) }); });
     gfn('RefreshActivityTips', () => {});
-    gfn('GetActivityView', () => HB.game.activityView); gfn('GetActTopBarView', () => HB.game.actTopBar);
+    // the Event screen (CActivityView, luascreens.js): the scripts put their layer into its content node
+    const activityView = gameObject('CActivityView', {
+      GetNodeContent: () => HB.game.activityContent, SetCurrentActIndex: () => {}, onStepNext: () => {}, onStepNextForLua: () => {},
+      GetFromNaruto: () => HB.game.activityFrom === 'naruto', GetFromNan: () => HB.game.activityFrom === 'nan',
+    });
+    const actTopBar = gameObject('CActTopBarView', { Refresh: () => {} });
+    gfn('GetActivityView', () => activityView); gfn('GetActTopBarView', () => actTopBar); gfn('GetActivityItemOffset', () => 0);
     gfn('CallBackFinishTrans', () => {}); gfn('GetLoadScene', () => undefined); gfn('getMyBackpackView', () => HB.game.backpackView);
     gfn('fightdataSetDefenseVipLevel', () => {}); gfn('InAppInitInstance', () => {}); gfn('InAppPurchase', () => {});
 
-    // ---------------- not done yet: the rest answers nil and is logged (each name once)
     HB.openGameObj(lua); // CGameObjElement: pictures and frames (data.js)
-    for (const name of ['CTradeMgr', 'CUserGuideManager', 'CFightResultData', 'CProfileData']) {
+    // ---------------- CActivityCommonCardView: a plain node that hands out the nodes of the layout read into it
+    luaClass('CActivityCommonCardView', { create: () => { const n = new HB.Node(); n.isLayer = true; n.ignoreAnchor = true; return n; } });
+    HB.lua.methods(HB.Node, {
+      SetProxy: (n, proxy) => { n.__proxy = proxy; }, AssignCCBMemberVariable: () => {},
+      SetIndex: (n, i) => { n.__index = num(i); }, GetIndex: (n) => n.__index || 0,
+      GetNode: (n, name) => (n.__proxy && n.__proxy.owner ? n.__proxy.owner.n[txt(name)] : undefined),
+    });
+    // ---------------- ItemDataInfo + CGameObjElement:GetItemInfoByDropid: what a drop pack holds, in the scripts' own terms
+    // mainType 1 card (subType 1 shinobi, 2 gear, 3 seal, 4 ninjutsu), 2 item, 3 silver, 4 gold, 5 fragment, 6 souls (util/common.lua setObjTypeInfo)
+    const itemInfoOf = (dropId, t) => {
+      const d = HB.row('dropinfo', num(dropId));
+      const set = (k, v) => t.set(B(k), typeof v === 'string' ? B(v) : v);
+      set('dropid', num(dropId));
+      if (!d) { set('mainType', 0); set('subType', 0); set('itemId', 0); set('quality', 1); set('num', 0); set('icon', ''); return; }
+      const pick = d[3] ? [1, 1, d[3], 1] : d[4] ? [1, 2, d[4], 2] : d[5] ? [1, 4, d[5], 6] : d[6] ? [1, 3, d[6], 5] : d[7] ? [2, 0, d[7], 0] : d[8] ? [5, 0, d[8], -1] : d[11] ? [3, 0, num(dropId), -1] : d[10] ? [4, 0, num(dropId), -1] : d[9] ? [6, 0, num(dropId), -1] : [0, 0, 0, -1];
+      const inf = pick[3] >= 0 ? HB.info(pick[3], pick[2]) : { quality: 1, icon: '', name: '' };
+      set('mainType', pick[0]); set('subType', pick[1]); set('itemId', pick[2]); set('quality', inf.quality || 1); set('icon', inf.icon || ''); set('name', inf.name || ''); set('num', d[13] || 1);
+    };
+    luaClass('ItemDataInfo', { new: () => new LuaTable(), create: () => new LuaTable() });
+    const elem = G.get(B('CGameObjElement'));
+    if (elem && elem.set) {
+      elem.set(B('GetItemInfoByDropid'), (self, dropId, t) => { if (t && t.set) itemInfoOf(dropId, t); return Lua.R.EMPTY; });
+      elem.set(B('GetInfoFromDropId'), (self, dropId, t) => { if (t && t.set) itemInfoOf(dropId, t); return Lua.R.EMPTY; });
+    }
+    // ---------------- CTradeMgr: the items you hold (rl_r_shoplist Cmd 1601 answers the counts; asked once at Home, again after a change)
+    HB.game.items = HB.game.items || new Map();
+    HB.game.loadItems = async () => { try { const r = await HB.api('rl_r_shoplist', { Cmd: 1601 }); const x = HB.ui.x, m = new Map(); for (const g of x.all(r, 'goods')) m.set(x.n(g, 'propid'), x.n(g, 'bagnum')); if (m.size) HB.game.items = m; HB.game.itemsAt = Date.now(); } catch (e) { /* the counts stay as they were */ } };
+    const consumeObject = (id) => { const r = HB.row('consumeinfo', num(id)); if (!r) return undefined; const t = rowOf('Struct_Consumeinfo', num(id)) || new LuaTable(); t.set(B('m_count'), HB.game.items.get(num(id)) || 0); t.set(B('m_bagnum'), HB.game.items.get(num(id)) || 0); return t; };
+    const trade = gameObject('CTradeMgr', {
+      GetConsumItemCountByID: (id) => HB.game.items.get(num(id)) || 0,
+      SetConsumItemCountByID: (id, n) => { HB.game.items.set(num(id), num(n)); },
+      GetConsumByIDForLua: (id) => consumeObject(id), GetConsum: (id) => consumeObject(id), SetConsum: () => {},
+      GetGiftByIDForLua: () => undefined, GetGift: () => undefined,
+      GetRemenLimitRest: () => num(HB.game.ramenLeft, 0), SetRemenLimitRest: (v) => { HB.game.ramenLeft = num(v); }, GetRemenLimitTotal: () => num(HB.game.ramenTotal, 0), SetRemenLimitTotal: (v) => { HB.game.ramenTotal = num(v); },
+      GetHyourouganLmtRest: () => 0, GetCMD: () => 0,
+      ShowBuyDialogForLua: () => HB.screens.shop && HB.screens.shop(2), UseGiftPackItem: () => {}, UseConsumeItemByID: () => {},
+    });
+    luaClass('CTradeMgr', { instance: () => trade, sharedInstance: () => trade });
+
+    // ---------------- not done yet: the rest answers nil and is logged (each name once)
+    for (const name of ['CUserGuideManager', 'CFightResultData', 'CProfileData']) {
       const obj = gameObject(name, {});
       const t = new LuaTable();
       const mt = new LuaTable();
