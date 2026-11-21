@@ -22,9 +22,9 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | Player data kept like the phone (CPlayerDataMgr): cards and teams (data.js); items and fragments not yet | section 2 needs it; many Lua screens too |
 | 🟡 | Card / item pictures and frames (CGameObjElement, data.js) | icons, quality frames, stars, element marks |
 | 🟡 | Common windows: confirm (CommonDialogView) and "you got" (ours: the card fades in, the phone turns it over) are in shop.js (HB.dialog, HB.confirm, HB.showCards); buy item (BuyItemDlg), item details not yet | used everywhere |
-| ⬜ | Level-up window (PlayerLevelUpDlg) | |
+| ✅ | Level-up window (PlayerLevelUpDlg): pops up when your level went up (old and new level, attack, defence, team size from the playerlevel table; "new team slot" and the every-10-levels gift button), with its sound (extras.js) | its light rays are tried, not checked against the phone |
 | ⬜ | Loading picture (LoadingView), time-out window, system notice window | plain grey cover for now |
-| ⬜ | Sounds and music (26 mp3) | |
+| 🟡 | Sounds and music (sound.js): button tap, music per screen like the game's bgSoundConfig (home, Training, Spar / Plunder, Arena, fight), Victory / Defeat, level-up, "you got", card clash; music and effects switches in Settings, remembered; `?mute=1`; silent until the first tap | checked in headless Chrome (files load, play is called), not yet by ear; the War tab's music waits for the War screen (`HB.sound.screen('war')`), Training's run / coin / exp sounds and the slot machine's own files not yet |
 | ⬜ | Top banner (horn messages scrolling) | |
 | ⬜ | Glowing names (our hot update, util/common.lua PurpleGlow) | needs `rl_r_purplename` + CCLabelTTF effects |
 | ✅ | Custom events (ours): the owner's own events from text files, screen + Home button (custom.js, `docs/CUSTOM-EVENTS.md`) | not in the phone game |
@@ -42,7 +42,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | Region list | taps step through the regions; the phone has a list window (ServerSelector) |
 | ✅ | Create character: country, ninja, name | C++ |
 | ⬜ | Logo / loading scene, update window | not needed in a browser |
-| ⬜ | Bind account (BindAccountView), game settings (GameSetting: music, log out, Discord link) | C++ + Lua ui_gameSettingLayer |
+| 🟡 | Game settings: music, effects, Discord link, invite code box (the game's own script, extras.js `HB.screens.settings`); Bind account (BindAccountView) not yet | C++ + Lua ui_gameSettingLayer |
 
 ## 2. Main menu and the core screens (C++)
 
@@ -52,7 +52,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Home: team cards row with arrows | MainCardView |
 | 🟡 | Home: the village is a wheel of six buildings (Base, Cross, Noodle, Border, Shop, money tree): swipe to turn it, tap to open (base.js; how far a swipe turns it is by eye). Noodle and the money tree open; Base, Shop, Cross, Border not yet | CDefaultSLGMenu, <country>CountryDefaultMenu |
 | ⬜ | Home: red number bubbles (events, messages) | |
-| ⬜ | Player info window (tap the top bar) | PlayerInfoDlg, meritRankCell |
+| ✅ | Player info window (tap the top bar on any screen): level, exp, attack / defence / chakra, gold, silver, W.A., team, VIP, energy and grudge with their clocks, the list of ranks (extras.js) | PlayerInfoDlg, meritRankCell |
 | ✅ | Bottom bar | all six buttons open their screens |
 | 🟡 | **Team**: line-up, change ninja, gear slots, ninjutsu slots, seals, chains, Team 2 (changing is coded, not tried yet) | ListMyTeamView, TeamNinjaView |
 | 🟡 | **Backpack**: ninja / weapon / armor / trinket / ninjutsu / seal tabs (shown; no sell, use, fragments yet) | MyBackpackView, gameobjlist/*, BackpackTips |
@@ -62,7 +62,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | Train (potential): limits, pill / gold, once / 10 times, the roll and Keep (growth.js); the animations not yet | sub_ui/Potential* |
 | 🟡 | Reincarnate: with a second copy of the card or with pills, what the next rebirth gives (growth.js); the animation not yet | sub_ui/ReincarnationView |
 | ✅ | Seals: list, merge (start, clock, finish now for gold, take the seal) - part of plunder.js | MarkListView, MarkMergaView |
-| ⬜ | Ninjabook (collection) | GameObjBookList, GameObjBookCard |
+| ✅ | Ninjabook (collection): Ninja / Gear / Ninjutsu tabs, 4 across like the phone, cards you hold in their quality frame, the rest grey (ours), tap = the card's window (book.js) | GameObjBookList, GameObjBookCard |
 | ✅ | **Training**: chapters, stages, parts | ChapterView, SubChapterListView, SubChapter |
 | ⬜ | Training extras: chapter complete window, boss retry for gold, exp-card timer, sweep | ChapterCompleteView |
 | ✅ | **Fight** playback: cards, rounds, Skip | RoundTeamView, CoreFightCardView |
@@ -113,8 +113,8 @@ Home buttons and windows:
 | ⬜ | Receive (stage gift) | ui_stageGiftLayer |
 | 🟡 | Awards (Award Center mail) | ui_awardCenterLayer |
 | 🟡 | Hall of Fame (No.1 Shinobi) | ui_hallOfFameView |
-| ⬜ | Settings | ui_gameSettingLayer |
-| ⬜ | VIP list and rights | VipListView, ui_vipRightInfoView |
+| ✅ | Settings (switches, Discord button and close tried; the invite code box not) | ui_gameSettingLayer |
+| 🟡 | VIP list (the Shop's VIP tab: your VIP bar, the VIP gift packs; opens and draws, Buy and "VIP benefits" not tried) | VipListView, ui_vipRightInfoView |
 | 🟡 | Top-up window | ui_purchaseLayer |
 
 Events (Event window and left column):
