@@ -24,15 +24,31 @@ const ffmpeg = (src, dst) => new Promise((ok) => { fs.mkdirSync(path.dirname(dst
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hbhd-')), tin = path.join(tmp, 'in'), tout = path.join(tmp, 'out');
   let done = 0, failed = [];
   const t0 = Date.now();
-  for (let i = 0; i < todo.length; i += 40) { // 40 pictures per run of the tool (it loads its model once per run)
-    const batch = todo.slice(i, i + 40);
+  const run = async (todo, per) => {
+  for (let i = 0; i < todo.length; i += per) { // `per` pictures per run of the tool (it loads its model once per run)
+    const batch = todo.slice(i, i + per);
     fs.rmSync(tin, { recursive: true, force: true }); fs.rmSync(tout, { recursive: true, force: true }); fs.mkdirSync(tin); fs.mkdirSync(tout);
     batch.forEach((r, k) => fs.copyFileSync(path.join(A, r), path.join(tin, k + '.png')));
     spawnSync(EXE, ['-i', tin, '-o', tout, '-n', 'realesrgan-x4plus-anime', '-s', '4', '-f', 'png'], { stdio: 'ignore', cwd: path.dirname(EXE) });
     let k = 0;
     const next = async () => { while (k < batch.length) { const j = k++, src = path.join(tout, j + '.png'); if (fs.existsSync(src) && fs.statSync(src).size > 200 && await ffmpeg(src, path.join(HD, batch[j] + '.webp'))) done++; else failed.push(batch[j]); } };
     await Promise.all(Array.from({ length: 8 }, next));
-    console.log(Math.min(i + 40, todo.length) + ' / ' + todo.length + '  (' + Math.round((Date.now() - t0) / 1000) + ' s, ' + failed.length + ' failed)');
+    console.log(Math.min(i + per, todo.length) + ' / ' + todo.length + '  (' + Math.round((Date.now() - t0) / 1000) + ' s, ' + failed.length + ' failed)');
+  }
+  };
+  await run(todo, 40);
+  // The tool sometimes writes an EMPTY picture without saying so (21 Nov 2026: one run of 40 came out blank on the RTX 5080, and the
+  // Team screen lost its card frames). A blank picture is tiny next to its original: those are made again in small runs. One that
+  // stays small with the same size twice really is that plain (a nearly empty sheet) and is kept.
+  const small = () => walk(A).filter((r) => { const h = path.join(HD, r + '.webp'); if (!fs.existsSync(h)) return false; const a = fs.statSync(path.join(A, r)).size, b = fs.statSync(h).size; return b < 700 || b < a * 0.12; });
+  const before = new Map(small().map((r) => [r, fs.statSync(path.join(HD, r + '.webp')).size]));
+  if (before.size) {
+    console.log(before.size + ' suspiciously small HD pictures: making them again');
+    for (const r of before.keys()) fs.renameSync(path.join(HD, r + '.webp'), path.join(HD, r + '.webp.old'));
+    await run([...before.keys()], 6);
+    let fixed = 0;
+    for (const [r, was] of before) { const h = path.join(HD, r + '.webp'); if (!fs.existsSync(h)) fs.renameSync(h + '.old', h); else { if (fs.statSync(h).size !== was) fixed++; fs.rmSync(h + '.old'); } }
+    console.log(fixed + ' of them were blank and are right now; ' + (before.size - fixed) + ' are simply plain pictures');
   }
   fs.rmSync(tmp, { recursive: true, force: true });
   const have = walk(A).filter((r) => fs.existsSync(path.join(HD, r + '.webp')));
