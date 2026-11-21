@@ -297,6 +297,7 @@
       if (HB.luaRun('MenuBtnsView.lua')) HB.luaGlobal('InitMenuBtnsView', menu);
       HB.luaGlobal('initMainMenuActivityBtn'); // CDefaultMainMenu::onEnterTransitionDidFinish: the event buttons on the left
       // test switch: &tap=<button name>[,<button name>...] presses home buttons one after another (screenshots)
+      if (q.get('open') && HB.screens[q.get('open')]) { await HB.wait(1); HB.screens[q.get('open')](); } // test switch: &open=shop|spar|arena|tower|team|backpack
       if (q.get('tap')) for (const nm of q.get('tap').split(',')) { await HB.wait(1.5); const b = o.n[nm] || (HB.find && HB.find(nm)); if (b) HB.tapNode(b); else console.warn('no button ' + nm); }
     } catch (e) { HB.luaError(e); }
   }
