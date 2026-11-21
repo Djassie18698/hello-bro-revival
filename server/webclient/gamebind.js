@@ -336,7 +336,9 @@
     // ================ FIGHTS THE SCRIPTS START ================ end
 
     // ---------------- not done yet: the rest answers nil and is logged (each name once)
-    for (const name of ['CUserGuideManager', 'CProfileData']) {
+    // the tutorial (off for everyone on our servers): its hooks answer "no guide running"
+    singleton('CUserGuideManager', 'CUserGuideManager', { CheckUserGuide: () => false, NextStep: () => {}, CancelUserGuide: () => {} });
+    for (const name of ['CProfileData']) {
       const obj = gameObject(name, {});
       const t = new LuaTable();
       const mt = new LuaTable();

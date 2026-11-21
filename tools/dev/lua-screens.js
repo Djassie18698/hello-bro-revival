@@ -5,7 +5,7 @@
 // run:<script> (just runs it), js:<expression>.
 const { spawn } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
-const PRESS = process.argv.includes('--press');
+const PRESS = process.argv.includes('--press'), TAP = process.argv.includes('--tap');
 const args = process.argv.slice(2), filter = args.find((a) => !a.startsWith('--')) || '', device = (args.find((a) => a.startsWith('--device=')) || '--device=hdt1').slice(9);
 const SCREENS = [
   'act:loginPackActivity', 'act:upradePackActivity', 'act:monthCardActivity', 'act:lotteryActivity', 'act:payhistorydrop', 'act:collectCardActivity', 'act:ScratchCardActivity',
@@ -82,6 +82,35 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       }
       report[report.length - 1].buttons = names; report[report.length - 1].pressFailed = bad;
       console.log('      ' + names.length + ' buttons, ' + bad.length + ' with a problem');
+    }
+    // --tap: real taps (mouse events at the place on the page) on the button-like parts of the first rows of every list of the screen:
+    // list rows get their taps through the table view (cellTouchBegan / cellTouched with the touch point), not through a button
+    if (TAP && !uniq.length) {
+      const SPOTS = `(() => { const out = []; const r = HB.canvas ? HB.canvas.getBoundingClientRect() : document.querySelector('canvas').getBoundingClientRect();
+        const seen = (t) => { for (const cell of (t.cells || []).slice(0, 2)) { const walk = (n) => { if (!n.visible) return;
+          if (n !== cell && n.name && /^(node_btn|sprite_btn|btn_|ctrl_|spr_btn|sprite_get|btn)/i.test(n.name) && n.w > 20 && n.h > 20 && n.shown()) { const m = n.world(); const cx = m[4] + m[0] * n.w / 2, cy = m[5] + m[3] * n.h / 2;
+            if (cx > 0 && cy > 0 && cx < HB.size[0] && cy < HB.size[1]) out.push({ name: n.name, x: r.left + cx / HB.size[0] * r.width, y: r.top + (1 - cy / HB.size[1]) * r.height }); }
+          (n.children || []).forEach(walk); }; walk(cell); } };
+        const find = (n) => { if (!n.visible) return; if (n.cells && n.ask) seen(n); (n.children || []).forEach(find); };
+        find(HB.game.subContent); HB.scene.children.filter((c) => c.z >= 500).forEach(find); return out.slice(0, 8); })()`;
+      const spots = JSON.parse((await ev(`JSON.stringify(${SPOTS})`)) || '[]');
+      const bad = [];
+      for (let i = 0; i < spots.length; i++) {
+        await home();
+        await ev(`(async () => { try { await ${js}; } catch (e) {} })()`);
+        await wait(1900);
+        const now = JSON.parse((await ev(`JSON.stringify(${SPOTS})`)) || '[]')[i];
+        if (!now) continue;
+        errs = [];
+        const b4 = new Set(await missingNow());
+        await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: now.x, y: now.y, button: 'left', clickCount: 1 });
+        await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: now.x, y: now.y, button: 'left', clickCount: 1 });
+        await wait(1500);
+        const mis = (await missingNow()).filter((m) => !b4.has(m)), er = [...new Set(errs)];
+        if (er.length || mis.length) { bad.push({ spot: now.name, errors: er, missing: mis }); console.log('      tap ' + now.name + ': ' + er.slice(0, 2).join(' | ').slice(0, 300) + (mis.length ? ' missing: ' + mis.join(', ') : '')); }
+      }
+      report[report.length - 1].taps = spots.map((x) => x.name); report[report.length - 1].tapFailed = bad;
+      console.log('      ' + spots.length + ' list taps, ' + bad.length + ' with a problem');
     }
     // back to Home, closing what the screen left open over it
     await home();
