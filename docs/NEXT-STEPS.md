@@ -1379,3 +1379,5 @@ Owner: "check all bugs in the discord ... push the update after". Live on ninjao
 
 ### 21 Nov 2026: public server updated to 666dfed
 Owner: "Update the server with all fixes". check.sh passed first. Live: seal fragments 7-8 (11TAILS), card-set counting 5-7x faster (lag, Zeraora), Armor Bag crash (Zeraora), Gear Level Up = preview (Itachi, 11TAILS). Five forum posts answered + tagged Live, waiting list emptied, #updates posted. Zeraora wished for deleting many cards at once sorted by quality: a new feature, passed to the owner (not built).
+
+- 21 Nov 2026 (bug fixer): wish from xvon11 (report 1573494895572811898, #bug-fixer post 1573494994071715862): 2-star seal materials for "All 1-2 cards" and one claim for many Shukaku Seal Bags. Not built; markinfo 91 No Tail Seal (Material) is 3-star in the game's own table. Asked the owner (tag Wish).
