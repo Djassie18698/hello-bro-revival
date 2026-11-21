@@ -289,8 +289,54 @@
     // paying with real money (Google Play on the phone): top-ups are free on our servers and go through the Top-up window's own request
     luaClass('PayHelperForLua', { goldPay: () => HB.tip('Top-ups are free here: use the Top-up window', 2.2), monthCardPay: () => HB.tip('A free top-up of this price starts the Monthly Card (Top-up window)', 2.6) });
 
+    // ================ FIGHTS THE SCRIPTS START (played by fight.js) ================ begin
+    // World Boss (fightBossView.lua), No.1 Shinobi (ui_hallOfFameView.lua) and the Ninja Test (ui_ninjaTestMain.lua) do what the
+    // C++ screens do: CFightResultData:instance():Clear(), InitFightXML(<fight>, data), data:SetFightType(...), InitAwardData(
+    // data:GetRewardData(), <award>), then CRoundFightView:new():init(), GetMainMenu():addChild(view, 5), view:Start().
+    // Here the <fight> (and the <award> the script read) go to HB.fight as XML text; the server has already decided the fight.
+    {
+      const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const toXml = (t) => { // a LuaXML table ([0] = tag, text keys = attributes, 1..n = children) back to XML text
+        if (!(t instanceof LuaTable)) return esc(txt(t));
+        let attrs = '';
+        for (const [k, v] of t.hash) if (typeof k === 'string') attrs += ' ' + txt(k) + '="' + esc(txt(v)) + '"';
+        const tag = txt(t.get(0)) || 'node';
+        return '<' + tag + attrs + '>' + t.arr.map(toXml).join('') + '</' + tag + '>';
+      };
+      const FT_FIGHT = 2, FT_BOSS = 9; // (ours: the scripts only pass them on, the real numbers of the C++ enum are not needed)
+      gval('FT_FIGHT', FT_FIGHT); gval('FT_BOSS', FT_BOSS);
+      const cur = { fight: '', type: 0, reward: null };
+      singleton('CFightResultData', 'CFightResultData', {
+        Clear: () => { cur.fight = ''; cur.type = 0; cur.reward = null; G.set(B('InitFightXML'), readFight); },
+        SetFightType: (t) => { cur.type = num(t); }, GetFightType: () => cur.type,
+        GetRewardData: () => (cur.reward = cur.reward || newReward()),
+        IsWin: () => /<preview[^>]*result="1"/.test(cur.fight),
+        SetFightbossDamageTimes: () => {}, AddExtData: () => {},
+      });
+      // RLRequest.lua has its own InitFightXML, which copies the <fight> into C++ objects piece by piece. Every script calls Clear()
+      // right before it, so Clear() puts this reader in its place: the whole <fight> is kept as it came.
+      const readFight = (node) => { cur.fight = toXml(node); return Lua.R.EMPTY; };
+      class LuaFightView extends HB.Node {}
+      methods(LuaFightView, {
+        init: () => true, SetIsEliteBoss: () => {}, SetFightResultData: () => {},
+        Start: (view) => {
+          const boss = cur.type === FT_BOSS;
+          // a prize the script read from the reply: shown after the fight (the boss fight has no result screen of its own here:
+          // the phone's "damage dealt" window, CRoundResultView, is not built; the script's own tip tells what the hit gave)
+          const r = cur.reward && cur.reward.__reward;
+          const award = r && r.cards.length ? '<award><cardlist>' + r.cards.map((c) => '<card><id>' + num(c.get(B('m_dataid'))) + '</id><type>' + num(c.get(B('m_type'))) + '</type><num>' + (num(c.get(B('m_count'))) || 1) + '</num></card>').join('') + '</cardlist></award>' : '';
+          if (cur.fight && HB.fight) HB.fight.playXml(cur.fight + award, { kind: boss ? 'boss' : 'spar', exp: 0, silver: 0, energy: 0, noResult: boss, lua: true })
+            .catch((e) => console.error(e)).then(() => { view.removeSelf(); if (HB.game.refresh) HB.game.refresh(); });
+          else view.removeSelf();
+        },
+      });
+      const newView = () => new LuaFightView();
+      luaClass('CRoundFightView', { new: newView, create: newView });
+    }
+    // ================ FIGHTS THE SCRIPTS START ================ end
+
     // ---------------- not done yet: the rest answers nil and is logged (each name once)
-    for (const name of ['CUserGuideManager', 'CFightResultData', 'CProfileData']) {
+    for (const name of ['CUserGuideManager', 'CProfileData']) {
       const obj = gameObject(name, {});
       const t = new LuaTable();
       const mt = new LuaTable();
