@@ -74,8 +74,20 @@
     if (!rows.length || !root || !root.parent) return;
     const f = icon(rows[0].icon);
     if (!f) return;
-    const b = new HB.Sprite(f); b.sx = b.sy = Math.min(1, 92 / (f.sw || 92)); b.x = HB.ui.FRAME - 78; b.y = root.h - 985; b.z = 20; // under Awards in the right column (ours)
-    const l = label('Special', 20, [255, 240, 170], 0, true); l.stroke = ['#3a1a05', 3]; l.x = (f.sw || 92) / 2; l.y = -12; b.add(l);
+    const b = new HB.Sprite(f); b.sx = b.sy = Math.min(1, 80 / (f.sw || 80)); b.z = 20;
+    // its place (ours): the left column, under the last event button the game's script put there (it used to stand in the right
+    // column, on top of the Awards / Cross icons). With six or more event buttons there is no room under them above the
+    // village's buildings: then it stands beside the lowest one. The script may add its buttons a moment later, so the place
+    // is worked out again after a second.
+    const place = () => {
+      const col = root.children.filter((c) => c !== b && c.visible && c.children.some((k) => k.name === 'btnNode'));
+      let low = null;
+      for (const c of col) { const y0 = c.y - (c.ignoreAnchor ? 0 : c.ay * c.h), cx = c.x + (c.ignoreAnchor ? c.w / 2 : (0.5 - c.ax) * c.w); if (!low || y0 < low.y0) low = { y0, cx, h: c.h }; }
+      if (!low) { b.x = 55; b.y = root.h - 600; return; }
+      if (col.length >= 6) { b.x = low.cx + 92; b.y = low.y0 + low.h / 2 + 8; } else { b.x = low.cx; b.y = low.y0 - 6 - 40; }
+    };
+    place(); setTimeout(() => { if (b.parent) place(); }, 1200); setTimeout(() => { if (b.parent) place(); }, 3500);
+    const l = label('Special', 20, [255, 240, 170], 0, true); l.stroke = ['#3a1a05', 3]; l.x = (f.sw || 92) / 2; l.y = -10; b.add(l);
     if (rows.some((e) => Number(e.state) === 0)) { const dot = HB.frameByName('com_notify_icon') || HB.frameByName('def_notify'); if (dot) { const d = new HB.Sprite(dot); d.x = (f.sw || 92) - 8; d.y = (f.sh || 92) - 8; b.add(d); } }
     tap(b, () => HB.screens.custom());
     root.add(b);

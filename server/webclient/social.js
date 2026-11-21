@@ -103,7 +103,7 @@
         });
       } else if (tab === 1) {
         face(m, r.fromninja, r.firstninjastar);
-        set(m, 'label_level', r.fromlevel); set(m, 'label_friend_request_type', 'Friend message');
+        set(m, 'label_level', r.fromlevel); if (m.label_friend_request_type) m.label_friend_request_type.size = 18; set(m, 'label_friend_request_type', 'Friend');
         if (m.label_friend_request) { m.label_friend_request.dims = [Math.max(200, (size.w || 600) - 300), 0]; m.label_friend_request.setText(r.text || ''); }
         const read = Number(r.iStatus) === 1;
         if (m.labelMsgDone) { m.labelMsgDone.visible = read; m.labelMsgDone.setText('[read]'); }
@@ -112,8 +112,9 @@
           tap(m.btn_handle_friend_msg, async () => { if (!Number(r.fromuid)) return ui.tip('This message cannot be answered', 1.6); await send('rl_w_msg', { Cmd: 2902, Op: 2, Index: r.ID }, true); if (await writeTo(r.fromuid, r.fromnick)) news(1); });
         }
       } else {
-        set(m, 'label_friend_request_type', 'System message');
-        if (m.label_system_msg) { m.label_system_msg.dims = [Math.max(200, (size.w || 600) - 60), 0]; m.label_system_msg.setText(r.text || ''); }
+        if (m.label_friend_request_type) m.label_friend_request_type.size = 18;
+        set(m, 'label_friend_request_type', 'System'); // the red tag is 100 wide: 'System message' hung out of it on both sides
+        if (m.label_system_msg) { m.label_system_msg.dims = [Math.max(200, (size.w || 670) - 280), 0]; /* up to the Manage button: it ran under it and out of the row */ m.label_system_msg.setText(r.text || ''); }
         if (m.btn_handle_system_msg) m.btn_handle_system_msg.visible = false; if (m.labelMsgDone) m.labelMsgDone.visible = false;
       }
     });
@@ -147,6 +148,7 @@
     list(n.node_tablecontent, n.node_cardcontent, rows, 'social/FriendInfoView', (m, r) => {
       face(m, r.firstninja, r.firstninjastar);
       set(m, 'label_player_name', r.nick); set(m, 'label_level', r.level);
+      if (m.label_level) { m.label_level.color = [255, 255, 255]; m.label_level.stroke = ['#2a1505', 3]; } // it was dark brown on the dark card picture
       set(m, 'label_attack', r.attacklow + '-' + r.attackhigh); set(m, 'label_defense', r.defenselow + '-' + r.defenseHigh); set(m, 'label_chakara', '-');
       tap(m.btn_chat, () => writeTo(r.id, r.nick));
     });

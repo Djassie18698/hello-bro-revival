@@ -88,8 +88,9 @@
     (function next() {
       if (i && !alive(label)) return;
       let t = lines[i % lines.length]; i++;
-      if (t.length > 40) t = t.slice(0, 39) + '…';
+      if (t.length > 56) t = t.slice(0, 55) + '…';
       label.setText(t);
+      label.sx = label.sy = Math.min(1, 640 / (label.w || 1)); // the whole line inside its bar (at the layout's size 40 letters were cut off on both sides)
       if (lines.length > 1) HB.tween({}, {}, 3.5, next);
     })();
   }
@@ -150,6 +151,7 @@
       const ti = x.first(reply, 'timeinfo');
       set(m, 'label_tip_time', hm(x.n(ti, 'begin')) + '-' + hm(x.n(ti, 'end')));
       const foes = info && !info.code ? x.all(child(info, 'oppecountry'), 'oppecountryid').map((e) => land(e.textContent)) : [];
+      set(m, 'label_tip_2', 'War starts every night'); set(m, 'label_tip_3', 'War is declared automatically'); // capitals like the line above them
       set(m, 'label_warinfotip', foes.length ? 'Today we fight ' + foes.join(' and ') : 'No war declared today');
       const mine = (s) => s && (Number(s.uid) === me || (!me && s.nick === myNick));
       let mySeat = 0;
@@ -218,6 +220,14 @@
       set(m, 'label_total_score', u.score || 0); set(m, 'label_total_rank', u.scorerank || 0); set(m, 'label_liftcount', u.restalive || 0);
       set(m, 'label_attack_score', u.killnum || 0); set(m, 'label_attack_rank', u.rank || 0); set(m, 'label_war_merit', u.curpower || 0);
       set(m, 'label_defense_score', u.beattack || 0); set(m, 'label_defense_rank', u.beattackrank || 0); set(m, 'label_ninja_merit', u.beattackmerit || 0);
+      // text that fits: the three rows of numbers. The layout's places are the Chinese ones ("killing number： 0rank： 11" ran into
+      // each other): shorter words with a plain colon, and every number right behind its word
+      { const W = { 0: 'Total points:', 1: 'Rank:', 4: 'Kills:', 5: 'Rank:', 6: 'War exploit:', 7: 'Casualties:', 8: 'Rank:', 9: 'Ninja exploit:' };
+        for (const k in W) set(m, 'label_WarInfoView' + k, W[k]);
+        const after = (word, num) => { const a = m[word], b = m[num]; if (a && b) b.x = a.x - a.ax * a.w + a.w + 10 + b.ax * b.w; };
+        const at = (word, like) => { if (m[word] && m[like]) m[word].x = m[like].x; };
+        at('label_WarInfoView5', 'label_WarInfoView1'); at('label_WarInfoView8', 'label_WarInfoView1'); // the three Rank words in one column
+        for (const [a, b] of [['label_WarInfoView0', 'label_total_score'], ['label_WarInfoView1', 'label_total_rank'], ['label_WarInfoView4', 'label_attack_score'], ['label_WarInfoView5', 'label_attack_rank'], ['label_WarInfoView6', 'label_war_merit'], ['label_WarInfoView7', 'label_defense_score'], ['label_WarInfoView8', 'label_defense_rank'], ['label_WarInfoView9', 'label_ninja_merit']]) after(a, b); }
       // the war is open all day on this server: the clock runs to midnight (CWarInfoView::UpdateRestTime)
       const open = Number(x.a(pv, 'open', 1)) === 1;
       const world = news && !news.code ? x.all(news, 'warmsg').map(obj) : [];
@@ -434,6 +444,9 @@
     set(n, 'label_gold', me.cash ?? me.gold ?? 0); set(n, 'label_silver', me.coin ?? 0);
     const lf = HB.frameByName('com_label_' + cname(mine)); if (lf && n.sprite_country_label) n.sprite_country_label.setFrame(lf);
     flag(n.sprite_country_icon, mine);
+    // the title picture's English words run under the place the layout gives the country's sign ("National treasu"): the sign
+    // goes, smaller, into the plain end of the title's frame
+    if (n.sprite_country_icon) { n.sprite_country_icon.x = 323; n.sprite_country_icon.sx = n.sprite_country_icon.sy = 0.55; }
     for (let k = 1; k <= 4; k++) {
       const w = wins[k - 1];
       for (const [key, val] of [['defeat', w && w.defend], ['snatch', w && w.attack]]) {
@@ -449,6 +462,9 @@
     if (cd > 0 && n.label_cdtimer) ticker(n.label_cdtimer, cd, (v) => clock(v), () => treasure());
     // the long line "You currently have N national treasure(s)! (Cleared after 24 hours)": the number goes into the text (the layout's gap is the Chinese one; "You carry" so it fits the width)
     if (n.label_CountryTreasury3) { n.label_CountryTreasury3.setText('You carry ' + bank + ' national treasure(s)! (Cleared after 24 hours)'); show(n, 'label_my_treasure', false); }
+    // numbers right behind their words (the layout's places are the Chinese ones: "3000silver", "Treasure Amount:      1")
+    if (n.label_CountryTreasury6 && n.label_handin_silver) n.label_CountryTreasury6.x = n.label_handin_silver.x + n.label_handin_silver.w + 8;
+    if (n.label_CountryTreasury4 && n.label_country_treasure) n.label_country_treasure.x = n.label_CountryTreasury4.x + n.label_CountryTreasury4.w + 12;
 
     async function toGuard() {
       if (!(await send('rl_w_tearguard', { Cmd: 13003 }))) return;

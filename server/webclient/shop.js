@@ -100,7 +100,7 @@
     HB.game.showSub('store/StoreItemsView', o, 'btn_mainstore');
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    TABS.forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.layout(); } });
+    TABS.forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } }); // 26: 'Giftpack' filled its tab from edge to edge at 30
     if (n.label_StoreItemsView0) n.label_StoreItemsView0.setText('Top-up');
     if (n.sprite_notify_pray) n.sprite_notify_pray.visible = false;
     o.onButton = (sel) => {
@@ -134,6 +134,7 @@
       const id = Number(r.recruit_id), cost = Number(r.recruit_yuanbao);
       const f = HB.frameByName(SCROLL[id]); if (f) m.sprite_ninjatype.setFrame(f);
       if (m.sprite_notify_cell) m.sprite_notify_cell.visible = false;
+      m.label_remind.size = 20; m.label_remind.x += 14; // clear of the star the scroll's picture ends its 'Star level' line with
       let left = Number(r.free_recruit_time_left) || 0;
       const born = Date.now();
       const free = () => id !== 3 && Number(r.recruit_time) > 0 && left - Math.floor((Date.now() - born) / 1000) <= 0;
@@ -144,7 +145,7 @@
         if (m.sprite_notify_cell) m.sprite_notify_cell.visible = s <= 0 && Number(r.recruit_time) > 0;
       };
       draw(); ticking.push(draw);
-      if (id === 3) { m.sprite_goldicon.visible = false; m.label_newsprice.setText('Use up recruitment orders x 1'); }
+      if (id === 3) { m.sprite_goldicon.visible = false; m.label_newsprice.size = 22; m.label_newsprice.x += 16; m.label_newsprice.setText('Use up recruitment orders x 1'); } // at the layout's 30 it ran over the shinobi's picture
       else { m.label_goldval.setText(String(cost)); m.label_newsprice.visible = false; }
       tap(m.sprite_btn_getit, () => (id === 3 ? pull(id, 1, false) : prayWindow(id, cost, free())));
     }

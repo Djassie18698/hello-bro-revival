@@ -44,6 +44,7 @@
     function row(m, r) {
       const d = pay(Number(r.level));
       m.label_name.setText(r.nick);
+      if (m.label_FightNinjaView0) m.label_FightNinjaView0.setText('Win:');     // a capital like the words around it (W.A. = war achievements, the game's own short form)
       m.label_level.setText(String(r.level));
       m.label_attack.setText(r.attacklow + '-' + r.attackhigh);
       m.label_merit.setText(String(d[7] || 0));

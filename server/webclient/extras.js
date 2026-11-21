@@ -139,6 +139,7 @@
         const cell = HB.build('dlg_ui/meritRankCell', co, [size.w, size.h]);
         cell.ignoreAnchor = true; cell.x = (box.w - size.w) / 2; cell.y = col.h - (i + 1) * size.h; cell.w = size.w; cell.h = size.h;
         const m = co.n;
+        for (const k of ['label_meritname', 'label_needHonor']) if (m[k]) m[k].size = 20; // 20: the longer titles (Junior Chūnin) ran into the number beside them at 24
         set(m, 'label_level', r[1]); set(m, 'label_meritname', r[2]); set(m, 'label_needHonor', r[9]);
         set(m, 'label_attckAdd', '+' + r[3]); set(m, 'label_defenseAdd', '+' + r[5]); set(m, 'label_charkraAdd', '+' + r[7]);
         if (mine && r[1] === mine[1]) for (const k of Object.keys(m)) if (m[k].setText) m[k].color = [200, 60, 20]; // your own rank
@@ -164,6 +165,15 @@
       function ui_gameSettingLayer.init(self)
         init0(self)
         self.node_:setTouchEnabled(false)
+        -- text that fits (ours, web only): the headings are centred on a point made for two Chinese signs, so the English ones
+        -- ran out of the window on the left; they now start where 'Invitation Code' starts. Music / Sound move clear of their boxes.
+        local left = self.text_invite_code and self.text_invite_code:getPositionX() or 78
+        for _, l in ipairs({ self.text_sound_settings, self.text_contact_service, self.text_usercenter }) do
+          if l then l:setAnchorPoint(ccp(0, 0.5)) l:setPosition(ccp(left, l:getPositionY())) end
+        end
+        for _, l in ipairs({ self.text_sound, self.text_sound_effect }) do
+          if l then local x = l:getPositionX() - l:getContentSize().width / 2 + 12 l:setAnchorPoint(ccp(0, 0.5)) l:setPosition(ccp(x, l:getPositionY())) end
+        end
       end
       function ui_gameSettingLayer.initEditBox(self)
         local function editboxEventHandle(eventType)

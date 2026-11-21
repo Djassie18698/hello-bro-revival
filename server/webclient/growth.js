@@ -18,6 +18,11 @@
   const items = (id) => (HB.game.items && HB.game.items.get(id)) || 0;
   const set = (n, k, t) => { if (n[k]) n[k].setText(String(t)); };
   const hide = (n, ...names) => names.forEach((k) => { if (n[k]) n[k].visible = false; });
+  // text that fits (21 Nov 2026): a button of the screen by its action; labels of one line set one after another (the layout
+  // gives each a fixed place made for the Chinese words, so the English ones overlapped or stood far apart)
+  const button = (root, sel) => { let f = null; const walk = (c) => { if (f) return; if (c instanceof HB.Button && c.selector === sel) { f = c; return; } c.children.forEach(walk); }; walk(root); return f; };
+  const title = (root, sel, text) => { const b = button(root, sel); if (b) b.setTitle(text); return b; };
+  const flow = (n, gap, ...names) => { let at = null; for (const k of names) { const l = n[k]; if (!l || !l.visible) continue; if (at !== null && l.text !== '') l.x = at + gap + l.ax * l.w * l.sx; if (l.text !== '' || at === null) at = l.x - l.ax * l.w * l.sx + l.w * l.sx; } };
 
   async function send(cgi, params) {
     const ui = HB.ui;
@@ -54,8 +59,9 @@
     const o = {};
     HB.game.showSub('sub_ui/ReincarnationView', o);
     const n = o.n;
-    const T = { 0: 'Cost:', 1: 'Cost:', 2: 'Materials', 3: '', 4: 'Reincarnation Pill', 5: 'or the same shinobi card', 6: 'Rebirth: stronger base numbers and restrain', 7: 'Rebirth', 8: '', 9: 'Shinobi rebirth', 10: '1. Base numbers +', 11: '2. Restrain from', 12: 'to', 13: '3. Ninjutsu chance +' };
+    const T = { 0: 'Cost:', 1: 'Cost:', 2: 'Materials', 3: 'Uses', 4: 'Reincarnation Pill', 5: 'or the same shinobi card', 6: 'Rebirth: stronger base numbers and restrain', 7: 'Rebirth', 8: '', 9: 'Shinobi rebirth', 10: '1. Base numbers +', 11: '2. Restrain from', 12: 'to', 13: '3. Ninjutsu chance +' };
     for (const k in T) set(n, 'label_ReincarnationView' + k, T[k]);
+    flow(n, 8, 'label_ReincarnationView3', 'label_ReincarnationView4', 'label_ReincarnationView5');
     if (n.btn_start) n.btn_start.setTitle('Reincarnate');
     showCard(n, card);
     hide(n, 'node_inlay_frame_small', 'node_succeed_anim');
@@ -73,6 +79,10 @@
     const pct = (v) => Math.round((v || 0) * 100) + '%';
     set(n, 'label_rlevel', next); set(n, 'label_rlevel_basic_upgrade', pct(row(next)[4]));
     set(n, 'label_restrain_upgrade_from', pct(row(now)[6])); set(n, 'label_restrain_upgrade_to', pct(row(next)[6])); set(n, 'label_skill_trigger_upgrade', pct(row(next)[7]));
+    flow(n, 10, 'label_ReincarnationView10', 'label_rlevel_basic_upgrade');
+    flow(n, 10, 'label_ReincarnationView11', 'label_restrain_upgrade_from', 'label_ReincarnationView12', 'label_restrain_upgrade_to');
+    if (n.label_skill_trigger_upgrade) n.label_skill_trigger_upgrade.visible = true; // the layout hides it; line 3 then ended in a bare '+'
+    flow(n, 10, 'label_ReincarnationView13', 'label_skill_trigger_upgrade');
     mark();
     o.onButton = async (sel) => {
       if (sel === 'clickBack') return HB.game.goHome();
@@ -107,6 +117,7 @@
     const n = o.n;
     showCard(n, card);
     hide(n, 'node_anim_att', 'node_anim_def', 'node_anim_ckr', 'node_anim_att_0', 'node_anim_def_0', 'node_anim_ckr_0');
+    title(HB.game.subContent, 'clickBack', 'Back');
     set(n, 'label_PotentialView0', 'With pills'); set(n, 'label_PotentialView2', 'With gold'); set(n, 'label_PotentialView4', 'Pills:');
     const a = (tag, k) => (info ? Number(x.a(x.first(info, tag), k, 0)) : 0);
     const stat = [['attack', 'att'], ['defense', 'def'], ['chakra', 'ckr']];
@@ -169,6 +180,9 @@
     const n = o.n;
     hide(n, 'node_auto_choose_container', 'node_auto_desc_container', 'button_strength3', 'sprite_cancel_name2', 'sprite_auto_icon', 'result_anim_node', 'bridge_anim_node', 'sprite_stone_fire_wheel', 'sprite_card_fire_wheel', 'node_desc_container');
     const all = o.all || {};
+    title(HB.game.subContent, 'clickBack', 'Back'); title(HB.game.subContent, 'clickSelectMin', 'Min'); title(HB.game.subContent, 'clickSelectMax', 'Max'); // 'minimum' / 'maximum' ran over their six-sided buttons
+    // Auto-Growth is not built: its tick box and its name are taken away rather than left as a box that does nothing
+    { const auto = button(HB.game.subContent, 'clickAuto'); if (auto) { auto.visible = false; for (const s of auto.parent.children) if (s instanceof HB.Sprite && !s.name && Math.abs(s.y - auto.y) < 30 && s.x > auto.x && s.x - auto.x < 160) s.visible = false; } }
     (all.label_StrengthView0 || []).forEach((l, i) => l.setText(i === 0 ? 'Sage' : 'Extra chance'));
     set(n, 'label_StrengthView1', 'step'); set(n, 'sprite_desc_silver_cost', 'Cost:');
     set(n, 'label_StrengthView7', '1. Sage stones raise a shinobi card step by step: every step adds to its numbers.');

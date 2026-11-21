@@ -28,7 +28,7 @@
     HB.game.showSub('sub_ui/GameObjBookList', o);
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    TABS.forEach((x, i) => { const b = n[x.btn]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = x.title; b.layout(); } });
+    TABS.forEach((x, i) => { const b = n[x.btn]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = x.title; b.titleSize = 26; b.layout(); } }); // 26: 'Ninjutsu' filled its tab from edge to edge at 30
     o.onButton = (sel) => { const i = TABS.findIndex((x) => x.sel === sel); if (i >= 0) return ninjabook(i); if (/Back|Close/i.test(sel)) return HB.game.goHome(); };
 
     const mine = new Set(HB.data.ofType(...T.types).map((c) => c.id));

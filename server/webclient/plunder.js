@@ -84,7 +84,7 @@
         if (pic && !count) pic.opacity = 110;
         m['label_chip' + k].setText(String(count));
         const tip = m['sprite_tipgetit' + k];
-        if (tip) { tip.visible = !count; const l = m['label_MarkMergaView' + (k - 1)]; if (l) l.setText('Plunder'); }
+        if (tip) { tip.visible = !count; const l = m['label_MarkMergaView' + (k - 1)]; if (l) { l.size = 20; l.setText('Plunder'); } }
         tap(slot, () => { remember(); rivals(f); });
       }
       // the button under the seal: Merge (all fragments), Get (a finished synthesis); a running one shows its clock and "finish now"

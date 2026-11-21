@@ -27,7 +27,7 @@
     HB.game.showSub('sub_ui/ArenaViewNew', o);
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    [['ctrl_arena', 'Arena'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.layout(); } });
+    [['ctrl_arena', 'Arena'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } });
     const obj = (e) => Object.fromEntries([...e.children].filter((c) => c.nodeName !== 'teammate').map((c) => [c.nodeName, c.textContent]));
     const my = tab === 0 ? obj(x.first(reply, 'my')) : null;
     if (n.layer_exchange) n.layer_exchange.visible = false;
@@ -36,7 +36,7 @@
       if (n.label_ArenaViewNew0) n.label_ArenaViewNew0.setText('Attacks today:');
       n.label_remain_times.setText(my.todayresttime + '/' + my.todayall);
       for (const k of ['sprite_next_viplevel', 'label_add_desc', 'label_next_level_add', 'label_per_day_desc', 'label_max_vip']) if (n[k]) n[k].visible = false;
-      if (n.label_ArenaViewNew1) n.label_ArenaViewNew1.setText('(Attacks also earn reputation)');
+      if (n.label_ArenaViewNew1) { n.label_ArenaViewNew1.size = 22; n.label_ArenaViewNew1.setText('(Attacks also earn reputation)'); } // 22: at the layout's 26 it ran to the frame's edge
     } else if (n.layer_rank) n.layer_rank.visible = false;
     o.onButton = (sel) => {
       if (sel === 'BtnArena') return arena(0);
@@ -54,7 +54,7 @@
       const co = {};
       const cell = HB.build('sub_ui/ArenaCellViewNew', co, [size.w, size.h]);
       cell.ignoreAnchor = true; cell.x = (box.w - size.w) / 2; cell.y = col.h - (i + 1) * size.h; cell.w = size.w; cell.h = size.h;
-      fill(co.n, r);
+      slice(co.n); fill(co.n, r);
       col.add(cell);
     });
     scroll.setContent(col); col.y = scroll.h - col.h;
@@ -63,6 +63,8 @@
     const mine = rows.findIndex((r) => Number(r.host) === 1);
     if (mine > 2) scroll.scrollBy(0, Math.min((mine - 1) * size.h, col.h - scroll.h));
 
+    // the row's frame is a 9-slice whose two fixed sides are wider than its picture (arena_17 is 412 wide, the sides 35 + 380): keep a middle strip to stretch
+    function slice(m) { for (const s of [m.sprite_other, m.sprite_me]) if (s && s.frame && s.insets && s.insets[0] + s.insets[2] > s.frame.w - 6) s.insets = [s.insets[0], s.insets[1], s.frame.w - s.insets[0] - 6, s.insets[3]]; }
     function icon(m, k, ninja) {
       const frame = m['sprite_ninjaicon' + k], holder = m['node_icon' + k];
       if (!frame) return;
@@ -76,7 +78,7 @@
       const me = Number(r.host) === 1;
       m.sprite_me.visible = me; m.sprite_other.visible = !me;
       m.label_name.setText(r.nick); m.label_level.setText(String(r.level)); m.label_rank.setText(String(r.rank));
-      if (m.label_ArenaCellViewNew0) m.label_ArenaCellViewNew0.setText('Place reward:');
+      if (m.label_ArenaCellViewNew0) { const l = m.label_ArenaCellViewNew0; l.size = 20; l.setText('Reward:'); l.y -= 6; } // smaller and lower: the card above it and the coin beside it leave this much room
       m.label_coin_gain.setText(String(r.rewardcoin || 0)); m.label_popularity_gain.setText(String(r.rewardrenown || 0));
       const team = tab === 1 ? r.mates : [Number(r.ninja), ...r.mates];
       for (let k = 1; k <= 4; k++) icon(m, k, team[k - 1]);
@@ -139,7 +141,7 @@
     HB.game.showSub('sub_ui/ArenaViewNew', o);
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    [['ctrl_arena', 'Arena'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === 2 ? tabOn || tabOff : tabOff; b.titles[1] = title; b.layout(); } });
+    [['ctrl_arena', 'Arena'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === 2 ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } });
     if (n.layer_rank) n.layer_rank.visible = false;
     if (n.layer_exchange) n.layer_exchange.visible = true;
     const mine = x.n(reply, 'renown_value');
@@ -163,17 +165,21 @@
         m.label_desc.dims = [330, 0]; { const t = String(inf.desc || ''); m.label_desc.setText(t.length > 62 ? t.slice(0, 60).replace(/\s+\S*$/, '') + '...' : t); }
       } else m.label_desc.setText('');
       m.label_exchange_num.setText(g[3] > 1 ? 'x' + g[3] : '');
-      m.label_name_exchange.setText(String(g[9] || '').replace(/\0+$/, ''));
-      if (m.label_name_exchange.w > 205) m.label_name_exchange.sx = m.label_name_exchange.sy = 205 / m.label_name_exchange.w;
+      { // the table cuts long names short ("Element Change Pil"): the item's own name when it starts the same way
+        const short = String(g[9] || '').replace(/\0+$/, ''), full = what ? String(HB.info(what[0], what[1]).name || '') : '';
+        m.label_name_exchange.setText(full.length > short.length && full.startsWith(short) ? full : short);
+      }
+      if (m.label_name_exchange.w > 228) m.label_name_exchange.sx = m.label_name_exchange.sy = 228 / m.label_name_exchange.w;
       const total = l.total !== -1;
       m.label_total_exchange.visible = total; m.label_today_exchange.visible = !total && l.day !== -1;
-      m.label_total_exchange.setText('(left in total:    )'); m.label_today_exchange.setText('(left today:    )');
-      m.label_exchange_count.visible = total || l.day !== -1; m.label_exchange_count.setText(String(total ? l.total : l.day));
+      // one small label at the right end of the name bar (the layout's pair, words with a hole for the number, did not fit in English)
+      for (const lb of [m.label_total_exchange, m.label_today_exchange]) { lb.size = 18; lb.ax = 1; lb.x = m.label_exchange_count.x + 46; lb.setText(lb === m.label_total_exchange ? 'Left in total: ' + l.total : 'Left today: ' + l.day); }
+      m.label_exchange_count.visible = false;
       if (m.label_ArenaExchangeCellView0) m.label_ArenaExchangeCellView0.setText('');
       m.label_popularity_exchange.setText(String(g[6]));
       const none = (total && l.total <= 0) || (!total && l.day === 0);
       if (none) m.btn_exchange.grey = true;
-      const word = new HB.Label('Exchange', 'Arial-BoldMT', 24, [0, 0], 1, 1); word.color = [255, 255, 255]; word.stroke = ['#2a1505', 3]; word.x = m.btn_exchange.w / 2; word.y = m.btn_exchange.h / 2; m.btn_exchange.add(word);
+      const word = new HB.Label('Exchange', 'Arial-BoldMT', 21, [0, 0], 1, 1); word.color = [255, 255, 255]; word.stroke = ['#2a1505', 3]; word.x = m.btn_exchange.w / 2; word.y = m.btn_exchange.h / 2; m.btn_exchange.add(word);
       tap(m.btn_exchange, async () => {
         if (none) return ui.tip('None of these left', 1.4);
         if (mine < g[6]) return ui.tip('Not enough reputation', 1.6);
