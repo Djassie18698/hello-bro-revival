@@ -337,6 +337,13 @@
     if (sel === 'BtnRound') return HB.screens.training();
     if (sel === 'BtnStore' && HB.screens.shop) return HB.screens.shop();
     if (sel === 'BtnFight' && HB.screens.spar) return HB.screens.spar();
+    // the village's buildings; a locked one says the game's own "level N unlocked" text (functionconfig: 5 Arena, 1 Battles, 2 Plunder)
+    const building = { BtnArena: [5, 'arena'], BtnTower: [1, 'tower'], BtnPlunder: [2, 'plunder'] }[sel];
+    if (building && HB.screens[building[1]]) {
+      const fc = tables.functionconfig.rows.find((r) => r[0] === building[0]) || [];
+      if (Number((HB.game.user || {}).level || 1) < (fc[3] || 0)) return tip(String(fc[4] || 'Locked').replace(/ +$/, ''), 2);
+      return HB.screens[building[1]]();
+    }
     tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
   }
   // the bottom bar's marker sits behind the chosen button
