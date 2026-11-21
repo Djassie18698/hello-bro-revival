@@ -19,12 +19,26 @@ HB.M = M;
 const cache = new Map();
 const once = (key, fn) => { if (!cache.has(key)) cache.set(key, fn()); return cache.get(key); };
 const norm = (p) => String(p || '').replace(/\\/g, '/').replace(/^\/+/, '');
+// HD pictures (tools/build_hd.js): every picture redrawn at double size, assets/hd/<path>.webp, listed in assets/hd.json. A picture
+// loaded from there carries hd = 2; frames, sizes and positions stay in the original picture's pixels everywhere, only the drawing
+// reads the bigger picture (K below). ?hd=0 shows the originals.
+HB.hdSet = null;
+const K = (img) => (img && img.hd) || 1;
+HB.K = K;
+const picture = (img, p) => {
+  const file = norm(p).replace(/\.pvr\.ccz$/i, '.pvr.png').replace(/\.pvr$/i, '.pvr.png');
+  if (HB.hdSet === null) {
+    HB.hdSet = new Set();
+    if (!/[?&]hd=0/.test(location.search)) try { const x = new XMLHttpRequest(); x.open('GET', HB.ASSETS + 'hd.json', false); x.send(); if (x.status === 200) HB.hdSet = new Set(JSON.parse(x.responseText)); } catch (e) { /* no HD pictures here */ }
+  }
+  if (HB.hdSet.has(file)) { img.hd = 2; img.src = HB.ASSETS + 'hd/' + file + '.webp'; } else img.src = HB.ASSETS + file;
+};
 HB.json = (p) => once('j:' + p, () => fetch(HB.ASSETS + norm(p)).then((r) => (r.ok ? r.json() : null)).catch(() => null));
 HB.image = (p) => once('i:' + p, () => new Promise((ok) => {
   const img = new Image();
   img.onload = () => ok(img);
   img.onerror = () => { console.warn('missing picture', p); ok(null); };
-  img.src = HB.ASSETS + norm(p).replace(/\.pvr\.ccz$/i, '.pvr.png').replace(/\.pvr$/i, '.pvr.png');
+  picture(img, p);
 }));
 HB.sheets = {}; // plist path -> { img, frames }
 HB.loadSheet = (plist) => once('s:' + plist, async () => {
@@ -40,7 +54,7 @@ HB.frame = (plist, name, quiet) => {
   if (!plist) { // a plain picture file instead of a sheet
     const img = HB.images[norm(name)];
     if (img && !(img.naturalWidth > 0)) return HB.frameOfImage(name); // still loading: its size follows when it arrives
-    return img ? { img, x: 0, y: 0, w: img.width, h: img.height, rot: 0, ox: 0, oy: 0, sw: img.width, sh: img.height } : null;
+    return img ? { img, x: 0, y: 0, w: img.width / K(img), h: img.height / K(img), rot: 0, ox: 0, oy: 0, sw: img.width / K(img), sh: img.height / K(img) } : null;
   }
   const s = HB.sheets[plist], f = s && s.frames[name];
   if (!f || !s.img) {
@@ -49,7 +63,7 @@ HB.frame = (plist, name, quiet) => {
     if (!quiet && HB.frameIndex !== undefined && HB.frameByName) { if (!HB.frameIndex) HB.frameIndex = HB.jsonNow('frames.json') || {}; const sh = HB.frameIndex[name]; if (sh && sh !== plist) { HB.loadSheetNow(sh); return HB.frame(sh, name, true); } }
     return null;
   }
-  const rot = f[4] && !(s.img.naturalWidth === f[2] && s.img.naturalHeight === f[3]) ? 1 : 0; // "rotated" on a picture that is upright (background_02)
+  const rot = f[4] && !(s.img.naturalWidth / K(s.img) === f[2] && s.img.naturalHeight / K(s.img) === f[3]) ? 1 : 0; // "rotated" on a picture that is upright (background_02)
   return { img: s.img, x: f[0], y: f[1], w: f[2], h: f[3], rot, ox: f[5], oy: f[6], sw: f[7], sh: f[8] };
 };
 HB.images = {};
@@ -125,7 +139,7 @@ const imageNow = (p) => {
   if (cache.has(key)) return cache.get(key);
   const img = new Image();
   img.onerror = () => console.warn('missing picture', p);
-  img.src = HB.ASSETS + norm(p).replace(/\.pvr\.ccz$/i, '.pvr.png').replace(/\.pvr$/i, '.pvr.png');
+  picture(img, p);
   cache.set(key, img);
   return img;
 };
@@ -153,7 +167,7 @@ HB.frameByName = (name) => {
 HB.frameOfImage = (name) => {
   const img = HB.images[norm(name)] || (HB.images[norm(name)] = imageNow(name));
   const f = { img, x: 0, y: 0, rot: 0, ox: 0, oy: 0 };
-  Object.defineProperties(f, { w: { get: () => img.naturalWidth || 0 }, h: { get: () => img.naturalHeight || 0 }, sw: { get: () => img.naturalWidth || 0 }, sh: { get: () => img.naturalHeight || 0 } });
+  Object.defineProperties(f, { w: { get: () => (img.naturalWidth || 0) / K(img) }, h: { get: () => (img.naturalHeight || 0) / K(img) }, sw: { get: () => (img.naturalWidth || 0) / K(img) }, sh: { get: () => (img.naturalHeight || 0) / K(img) } });
   return f;
 };
 HB.loadFntNow = (p) => {
@@ -207,12 +221,13 @@ function tinted(img, sx, sy, sw, sh, rot, col) {
   let c = tintCache.get(key);
   if (c) return c;
   const W = rot ? sh : sw, H = rot ? sw : sh;
-  c = document.createElement('canvas'); c.width = Math.max(1, W); c.height = Math.max(1, H);
+  const k = K(img);
+  c = document.createElement('canvas'); c.width = Math.max(1, W * k); c.height = Math.max(1, H * k); c.hd = k;
   const g = c.getContext('2d');
-  g.drawImage(img, sx, sy, W, H, 0, 0, W, H);
+  g.drawImage(img, sx * k, sy * k, W * k, H * k, 0, 0, W * k, H * k);
   if (col[0] !== 255 || col[1] !== 255 || col[2] !== 255) {
-    g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(0, 0, W, H);
-    g.globalCompositeOperation = 'destination-in'; g.drawImage(img, sx, sy, W, H, 0, 0, W, H);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(0, 0, W * k, H * k);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(img, sx * k, sy * k, W * k, H * k, 0, 0, W * k, H * k);
   }
   if (tintCache.size > 3000) tintCache.clear();
   tintCache.set(key, c);
@@ -260,7 +275,7 @@ class Node {
   // draw a picture region into the box (dx,dy,dw,dh) given with y up (cocos), flipping it upright on the canvas
   static img(ctx, src, sx, sy, sw, sh, dx, dy, dw, dh) {
     if (!src || dw <= 0 || dh <= 0) return;
-    ctx.save(); ctx.translate(dx, dy + dh); ctx.scale(1, -1); ctx.drawImage(src, sx, sy, sw, sh, 0, 0, dw, dh); ctx.restore();
+    ctx.save(); ctx.translate(dx, dy + dh); ctx.scale(1, -1); const k = K(src); ctx.drawImage(src, sx * k, sy * k, sw * k, sh * k, 0, 0, dw, dh); ctx.restore();
   }
 }
 HB.Node = Node;
@@ -303,7 +318,8 @@ class Scale9 extends Node {
     let cw = fw - L - R, ch = fh - T - B; // capInsets centre
     if (L === 0 && T === 0 && R === 0 && B === 0) { L = R = fw / 3; T = B = fh / 3; cw = fw / 3; ch = fh / 3; }
     let up = src;
-    if (f.rot) { up = document.createElement('canvas'); up.width = fw; up.height = fh; const g = up.getContext('2d'); g.translate(0, fh); g.rotate(-Math.PI / 2); g.drawImage(src, 0, 0, fh, fw); f.rot = 0; f.img = up; f.x = f.y = 0; }
+    const k = K(src);
+    if (f.rot) { up = document.createElement('canvas'); up.width = fw * k; up.height = fh * k; up.hd = k; const g = up.getContext('2d'); g.translate(0, fh * k); g.rotate(-Math.PI / 2); g.drawImage(src, 0, 0, fh * k, fw * k); f.rot = 0; f.img = up; f.x = f.y = 0; }
     const W = this.w, H = this.h;
     let l = L, r = R, t = T, b = B;
     if (l + r > W) { const k = W / (l + r); l *= k; r *= k; }
@@ -313,7 +329,7 @@ class Scale9 extends Node {
     ctx.save(); ctx.translate(0, H); ctx.scale(1, -1); // y down
     for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
       if (sws[i] <= 0 || shs[j] <= 0 || dws[i] <= 0 || dhs[j] <= 0) continue;
-      ctx.drawImage(up, sxs[i], sys[j], sws[i], shs[j], dxs[i], dys[j], dws[i] + (i < 2 ? 0.5 : 0), dhs[j] + (j < 2 ? 0.5 : 0));
+      ctx.drawImage(up, sxs[i] * k, sys[j] * k, sws[i] * k, shs[j] * k, dxs[i], dys[j], dws[i] + (i < 2 ? 0.5 : 0), dhs[j] + (j < 2 ? 0.5 : 0));
     }
     ctx.restore();
   }
@@ -399,7 +415,8 @@ class BMLabel extends Node {
       const g = f.chars[c]; if (!g) continue;
       x += f.kern[prev + ',' + c] || 0; prev = c;
       const page = f.pages[g.page];
-      if (page && g.w > 0 && ready(page)) ctx.drawImage(white(this.color) ? page : tinted(page, g.x, g.y, g.w, g.h, 0, this.color), white(this.color) ? g.x : 0, white(this.color) ? g.y : 0, g.w, g.h, x + g.xo, y + g.yo, g.w, g.h);
+      const pk = K(page);
+      if (page && g.w > 0 && ready(page)) ctx.drawImage(white(this.color) ? page : tinted(page, g.x, g.y, g.w, g.h, 0, this.color), (white(this.color) ? g.x : 0) * pk, (white(this.color) ? g.y : 0) * pk, g.w * pk, g.h * pk, x + g.xo, y + g.yo, g.w, g.h);
       x += g.adv;
     }
     ctx.restore();
