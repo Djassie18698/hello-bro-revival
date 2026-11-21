@@ -1,13 +1,26 @@
 // Backpack (CMyBackpackView, backpack/MyBackpackView.ccbi) and the list used to pick a card (CGameObjListView,
 // gameobjlist/GameObjListview.ccbi). Both show rows made from gameobjlist/ListNinja / ListWeapon / ListArmor / ListAcciess /
-// ListNinjutsu / ListMark.ccbi (CGameObjCardView). No request: the cards come with rl_r_mainpage (HB.data).
+// ListNinjutsu / ListMark.ccbi (CGameObjCardView). The cards come with rl_r_mainpage (HB.data).
+// A row like the phone (CGameObjCardView::initClickFuncs): the picture opens the card's details, the button levels it up, a tap on
+// the row itself turns it over to its tip (layer_tips, backpack/BackpackTips.ccbi): where such cards come from (packtips [2]) with
+// "Go shopping" (the Shop on tab packtips [4]) and a second button to Training / Spar / Plunder (packtips [3] = 1 / 2 / 3).
+// v28 has no selling and no soul / element / inherit / split buttons on a row: the app's row code only knows the buttons above
+// (card split, rl_w_split_card, is never opened; refining shinobi into souls is the Secret Shop's own screen).
+// Fragments tab (BackpackNinjaPiece / EquipPiece / NinjutsuPiece / PetPiece.ccbi): the <chipbag> of rl_r_mainpage, one row per
+// piece_info id you hold ([3] kind 1 shinobi / 2 gear / 4 ninjutsu / 5 pet, [4] attack / defence / god card, [5] stars, [6] what it
+// becomes, [7] how many are needed, [8] the drop pack). Merge = rl_w_comm Cmd 10 ChipBagID=<piece id>; the reply's <award> is shown.
+// Red dots (firefly_hasMerge): on a fragment kind, and on the Fragments tab, when something there can be merged.
 'use strict';
 (function () {
   const HB = window.HB;
   HB.screens = HB.screens || {};
   const LAYOUT = { 1: 'ListNinja', 2: 'ListWeapon', 3: 'ListArmor', 4: 'ListAcciess', 5: 'ListMark', 6: 'ListNinjutsu' };
-  const loadLists = () => Promise.all(Object.values(LAYOUT).map((l) => HB.loadCCB('gameobjlist/' + l)));
+  const PIECE = { 1: ['BackpackNinjaPiece', 'ctrl_ninja_piece', 'BtnNinjaPiece', 'sprite_notify_ninja', 'Shinobi'], 2: ['BackpackEquipPiece', 'ctrl_equip_piece', 'BtnEquipPiece', 'sprite_notify_equip', 'Gear'],
+    4: ['BackpackNinjutsuPiece', 'ctrl_ninjutsu_piece', 'BtnninjutsuPiece', 'sprite_notify_ninjutsu', 'Ninjutsu'], 5: ['BackpackPetPiece', 'ctrl_pet_piece', 'BtnpetPiece', 'sprite_notify_pet', 'Pet'] };
+  const loadLists = () => Promise.all([...Object.values(LAYOUT).map((l) => HB.loadCCB('gameobjlist/' + l)), HB.ui.table('packtips'), HB.ui.table('functionconfig')]);
   const ELEMENT = { 1: 'com_text_water_icon', 2: 'com_text_fire_icon', 3: 'com_text_wind_icon', 4: 'com_text_soild_icon', 5: 'com_text_thunder_icon' };
+  const PAGE_TITLE = { 1: 'mypack_cha_gotoexperience', 2: 'mypack_cha_tofight', 3: 'mypack_cha_gotoplunder' };
+  const clean = (s) => String(s ?? '').replace(/\0+$/, '').trim();
   // a card's own numbers from its table row: value at level 1 plus the growth per level
   // (ours for now: the phone also counts growth, rebirth and potential; the team screen shows the server's true numbers)
   function baseStats(card) {
@@ -19,15 +32,25 @@
   }
   HB.baseStats = baseStats;
   const range = (a) => (a ? Math.round(a[0]) + '-' + Math.round(a[1]) : '0');
+  const tapOn = (node, fn) => { if (!node) return; node.onTouch = (ev, tx, ty) => { if (ev === 'down') node._d = [tx, ty]; if (ev === 'up' && node._d && Math.hypot(tx - node._d[0], ty - node._d[1]) < 14) fn(); }; };
+  // a name that is too long for its box gets smaller instead of running over the picture next to it
+  const fitName = (label, max) => { if (label && label.w > max) label.sx = label.sy = Math.max(0.6, max / label.w); };
+  // a picture drawn straight on its frame: over the frame (its middle is not see-through), under the frame's own labels (Lv, +N)
+  const under = (holder, sp) => { const k = holder.children; k.splice(k.indexOf(sp), 1); k.unshift(sp); };
+  // the row turns over between its card (layer_info) and its tip (layer_tips)
+  function flip(cell, n) {
+    cell.swallow = true;
+    tapOn(cell, () => { const tips = !n.layer_tips.visible; n.layer_tips.visible = tips; n.layer_info.visible = !tips; });
+  }
 
-  // one row: opt.button = 'choose' | 'upgrade' | null, opt.onButton(card), opt.onRow(card)
+  // one row: opt.button = 'choose' | 'upgrade' | null, opt.onButton(card), opt.onRow(card), opt.tips = the row turns over to its tip
   function listCell(card, size, opt = {}) {
     const co = {};
     const cell = HB.build('gameobjlist/' + (LAYOUT[card.type] || 'ListNinja'), co, [size.w, size.h]);
     cell.ignoreAnchor = true; cell.w = size.w; cell.h = size.h;
     const n = co.n, inf = HB.info(card.type, card.id);
     if (n.layer_tips) n.layer_tips.visible = false;
-    n.label_name && n.label_name.setText(inf.name);
+    if (n.label_name) { n.label_name.setText(inf.name); if (card.type === 1 && n.sprite_ninjacamp) n.label_name.x = 198; fitName(n.label_name, card.type === 1 ? 136 : 190); } // shinobi: centred between the picture and the element badge
     n.label_level && n.label_level.setText(String(card.level));
     const frame = HB.qualityFrame(card.type === 1 ? 'ninjaSmall' : 'small', inf.quality);
     if (frame && n.sprite_ninjaicon) n.sprite_ninjaicon.setFrame(frame);
@@ -35,8 +58,8 @@
     if (pic && n.sprite_ninjaicon) {
       const holder = n.node_icon || n.sprite_ninjaicon, w = holder.w || n.sprite_ninjaicon.w, h = holder.h || n.sprite_ninjaicon.h;
       const sp = new HB.Sprite(pic); const k = Math.min((w - (n.node_icon ? 0 : 12)) / pic.sw, (h - (n.node_icon ? 0 : 12)) / pic.sh);
-      sp.sx = sp.sy = k; sp.x = w / 2; sp.y = h / 2; if (!n.node_icon) sp.z = -1;
-      holder.add(sp);
+      sp.sx = sp.sy = k; sp.x = w / 2; sp.y = h / 2;
+      holder.add(sp); if (!n.node_icon) under(holder, sp);
     }
     if (n.node_inlay_frame) n.node_inlay_frame.visible = false;
     const star = HB.frameByName('com_normal_star');
@@ -57,20 +80,36 @@
       const f = HB.frameByName('mypack_cha_upgrade');
       if (f && btn) { const t = new HB.Sprite(f); t.x = btn.w / 2; t.y = btn.h / 2; btn.add(t); }
     } else if (label) label.setText(HB.text('TEXT_LABEL_LISTNINJA0_LISTNINJA') || 'Choose');
-    const tapOn = (node, fn) => { node.onTouch = (ev, tx, ty) => { if (ev === 'down') node._d = [tx, ty]; if (ev === 'up' && node._d && Math.hypot(tx - node._d[0], ty - node._d[1]) < 14) fn(card); }; };
-    if (btn && opt.button && opt.onButton) tapOn(btn, opt.onButton);
-    if (opt.onRow && n.sprite_ninjaicon) tapOn(n.sprite_ninjaicon, opt.onRow); // the picture opens the card's details
-    if (opt.inUse) { const l = new HB.Label('Already in play', 'Helvetica', 18); l.color = [120, 80, 30]; l.ax = 1; l.x = size.w - 14; l.y = 22; cell.add(l); } // text as on the phone
+    if (btn && opt.button && opt.onButton) tapOn(btn, () => opt.onButton(card));
+    if (opt.onRow && n.sprite_ninjaicon) tapOn(n.sprite_ninjaicon, () => opt.onRow(card)); // the picture opens the card's details
+    if (opt.inUse && n.layer_info) { const l = new HB.Label('Already in play', 'Helvetica', 18); l.color = [120, 80, 30]; l.ax = 1; l.x = size.w - 14; l.y = 22; n.layer_info.add(l); } // text as on the phone
+    // the tip side: where these cards come from, and the two ways there
+    const tip = opt.tips && n.layer_tips && n.layer_info && HB.row('packtips', { 5: 6, 6: 5 }[card.type] || card.type); // packtips rows: shinobi, weapon, armor, trinket, ninjutsu, seal
+    if (tip) {
+      if (n.label_tiptext) { n.label_tiptext.dims = [size.w - 60, 0]; n.label_tiptext.setText(clean(tip[2])); }
+      const f = HB.frameByName(PAGE_TITLE[tip[3]]); if (f && n.sprite_gotopagetitle) n.sprite_gotopagetitle.setFrame(f);
+      tapOn(n.sprite_gotostore, () => HB.screens.shop && HB.screens.shop(Math.max(0, tip[4] - 1))); // CStoreItemsView::SetTabView(packtips [4])
+      tapOn(n.sprite_gotopage, () => { // CGameObjCardView::GotoPage
+        if (tip[3] === 2) return HB.screens.spar && HB.screens.spar();
+        if (tip[3] === 3) {
+          const fc = HB.row('functionconfig', 2), lv = Number((HB.game.user || {}).level) || 1; // Plunder opens at functionconfig 2's level
+          if (fc && lv < fc[3]) return HB.ui.tip(clean(fc[4]) || 'Plunder opens at level ' + fc[3], 1.8);
+          return HB.screens.plunder && HB.screens.plunder();
+        }
+        return HB.screens.training && HB.screens.training();
+      });
+      flip(cell, n);
+    }
     return cell;
   }
   // a scrolling column of rows inside `box`
-  function fillList(box, cellSize, cards, opt) {
+  function fillList(box, cellSize, cards, opt, make = listCell) {
     box.removeAll();
     const scroll = new HB.ScrollView(); scroll.dir = 1; scroll.w = box.w; scroll.h = box.h;
     const col = new HB.Node(); col.w = box.w; col.h = Math.max(cards.length * cellSize.h, 1);
-    cards.forEach((c, i) => { const cell = listCell(c, cellSize, typeof opt === 'function' ? opt(c) : opt); cell.x = (box.w - cellSize.w) / 2; cell.y = col.h - (i + 1) * cellSize.h; col.add(cell); });
+    cards.forEach((c, i) => { const cell = make(c, cellSize, typeof opt === 'function' ? opt(c) : opt); cell.x = (box.w - cellSize.w) / 2; cell.y = col.h - (i + 1) * cellSize.h; col.add(cell); });
     scroll.setContent(col);
-    col.y = col.h < scroll.h ? scroll.h - col.h : scroll.h - col.h;
+    col.y = scroll.h - col.h;
     box.add(scroll);
     return scroll;
   }
@@ -78,32 +117,127 @@
   const sorted = (cards) => cards.slice().sort((a, b) => HB.info(b.type, b.id).quality - HB.info(a.type, a.id).quality || b.level - a.level || a.seq - b.seq);
   HB.bag = { listCell, fillList, sorted, loadLists };
 
+  // ---------------------------------------------------------------- fragments
+  // the fragments you hold: [{ id, num, row (piece_info), kind, need, ready }]
+  function pieces() {
+    const x = HB.ui.x, bag = HB.game.main && x.first(HB.game.main, 'chipbag');
+    return (bag ? x.all(bag, 'chipitem') : []).map((c) => {
+      const id = Number(x.a(c, 'id', 0)), num = Number(x.a(c, 'num', 0)), row = HB.row('piece_info', id);
+      return row && num > 0 ? { id, num, row, kind: row[3], need: row[7], ready: num >= row[7] } : null;
+    }).filter(Boolean).sort((a, b) => (b.ready - a.ready) || b.row[5] - a.row[5] || a.id - b.id);
+  }
+  HB.bag.pieces = pieces;
+  // what a piece becomes: the card type and id for HB.info, or a pet (petinfo [2] name, [3] picture)
+  function target(p) {
+    const id = p.row[6];
+    if (p.kind === 1) return { type: 1, id };
+    if (p.kind === 2) { const r = HB.row('equipmentinfo', id); return { type: 2 + ((r && r[3]) || 0), id }; }
+    if (p.kind === 4) return { type: 6, id };
+    return { pet: HB.row('petinfo', id), id };
+  }
+  function pieceCell(p, size, opt) {
+    const co = {};
+    const cell = HB.build('backpack/' + PIECE[p.kind][0], co, [size.w, size.h]);
+    cell.ignoreAnchor = true; cell.w = size.w; cell.h = size.h;
+    const n = co.n, t = target(p), inf = t.pet ? { name: clean(t.pet[2]), icon: clean(t.pet[3]), quality: 5 } : HB.info(t.type, t.id);
+    if (n.layer_tips) n.layer_tips.visible = false;
+    if (n.label_name) { n.label_name.setText(clean(p.row[2]) || inf.name); fitName(n.label_name, 165); }
+    const count = n['label_' + PIECE[p.kind][0] + '1']; if (count) count.setText('Fragments:');
+    const lack = n['label_' + PIECE[p.kind][0] + '0']; if (lack) lack.setText('Not enough'); // short enough for its brush stroke
+    const stars = p.row[5] || 0, star = HB.frameByName('com_normal_star');
+    for (let i = 1; i <= 5; i++) { const s = n['sprite_star' + i]; if (!s) continue; s.visible = stars > 0; if (i <= Math.min(5, stars) && star) s.setFrame(star); }
+    const kindOf = t.pet ? 1 : t.type;
+    const frame = HB.qualityFrame(kindOf === 1 ? 'ninjaSmall' : 'small', t.pet ? 5 : inf.quality);
+    if (frame && n.sprite_ninjaicon) n.sprite_ninjaicon.setFrame(frame);
+    const pic = HB.iconFrame(kindOf, inf.icon);
+    if (pic && n.sprite_ninjaicon) {
+      const holder = n.node_ninjaicon || n.sprite_ninjaicon, w = holder.w || n.sprite_ninjaicon.w, h = holder.h || n.sprite_ninjaicon.h, pad = n.node_ninjaicon ? 0 : 12;
+      const sp = new HB.Sprite(pic), k = Math.min((w - pad) / pic.sw, (h - pad) / pic.sh);
+      sp.sx = sp.sy = k; sp.x = w / 2; sp.y = h / 2; holder.add(sp); if (!n.node_ninjaicon) under(holder, sp);
+    }
+    if (n.label_collect) n.label_collect.setText(p.num + '/' + p.need);
+    if (n.node_lack) n.node_lack.visible = !p.ready;
+    if (n.sprite_btn_merge) n.sprite_btn_merge.visible = p.ready;
+    if (n.label_merge) { n.label_merge.visible = p.ready; n.label_merge.setText('Merge'); }
+    for (let i = 1; i <= 3; i++) if (n['sprite_ninja_type' + i]) n['sprite_ninja_type' + i].visible = p.kind === 1 && p.row[4] === i; // attack card / defence card / god card
+    if (p.ready) tapOn(n.sprite_btn_merge, () => opt.onMerge(p, t));
+    if (!t.pet) tapOn(n.sprite_ninjaicon, () => HB.screens.details && HB.screens.details({ seq: 0, type: t.type, id: t.id, level: 1, attri: 0, tupo: 0 }, { view: true }));
+    // the tip side (BackpackTipsPiece): fragments come from the Secret Shop
+    if (n.layer_tips && n.layer_info) {
+      tapOn(n.sprite_gotostore, () => HB.game.changeToActivitySubMenu && HB.game.changeToActivitySubMenu('ShowSecretShopView', 'gSecretShopEntry={prePage="backpack"}')); // CGameObjCardView::GotoMysticalStore
+      flip(cell, n);
+    }
+    return cell;
+  }
+
   // ---------------------------------------------------------------- the Backpack
   const TABS = [['ctrl_ninja', 'BtnNinja', 1], ['ctrl_weapon', 'BtnWeapon', 2], ['ctrl_armors', 'BtnArmors', 3], ['ctrl_shipin', 'BtnAccessori', 4], ['ctrl_ninjutsu', 'Btnninjutsu', 6], ['ctrl_marks', 'BtnMarks', 5]];
+  // backpack(1-6) = the cards of that kind; backpack(11 / 12 / 14 / 15) = Fragments: shinobi / gear / ninjutsu / pet
   HB.screens.backpack = async function backpack(type = 1) {
     const ui = HB.ui;
+    type = Number(type) || 1;
     ui.loading(true);
-    await Promise.all([HB.data.tables(), HB.loadCCB('backpack/MyBackpackView'), loadLists()]);
+    await Promise.all([HB.data.tables(), HB.loadCCB('backpack/MyBackpackView'), loadLists(), ui.table('piece_info'), ui.table('petinfo'), ...Object.values(PIECE).map((p) => HB.loadCCB('backpack/' + p[0]))]);
     ui.loading(false);
     const o = {};
     HB.game.showSub('backpack/MyBackpackView', o, 'btn_mainpackage');
     const n = o.n;
-    n.node_piecebackpack.visible = false;
-    for (const k of ['sprite_notify_backpack', 'sprite_notify_ninja', 'sprite_notify_equip', 'sprite_notify_ninjutsu', 'sprite_notify_pet']) if (n[k]) n[k].visible = false;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
+    let cardType = type >= 1 && type <= 6 ? type : 1, pieceKind = PIECE[type - 10] ? type - 10 : 0;
+    const dots = () => {
+      const ready = new Set(pieces().filter((p) => p.ready).map((p) => p.kind));
+      if (n.sprite_notify_backpack) n.sprite_notify_backpack.visible = ready.size > 0;
+      for (const k of Object.keys(PIECE)) { const d = n[PIECE[k][3]]; if (d) d.visible = ready.has(Number(k)); }
+    };
+    const top = (frag) => {
+      n.node_backpack.visible = !frag; n.node_piecebackpack.visible = frag;
+      for (const [b, on] of [[n.ctrl_backpack, !frag], [n.ctrl_piecebackpack, frag]]) if (b) { b.selected = on; b.layout(); } // the buttons' own lit pictures
+    };
     const show = (t) => {
-      type = t;
+      cardType = t; pieceKind = 0; top(false); dots();
       for (const [name, , ty] of TABS) { const b = n[name]; if (b) { b.frames[1] = ty === t ? tabOn || tabOff : tabOff; b.layout(); } }
       const cards = sorted(HB.data.ofType(t));
-      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: 'upgrade', inUse: HB.data.inUse(c.seq), onButton: (k) => HB.screens.upgrade(k.seq), onRow: (k) => HB.screens.details && HB.screens.details(k) }));
+      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: 'upgrade', tips: true, inUse: HB.data.inUse(c.seq), onButton: (k) => HB.screens.upgrade(k.seq), onRow: (k) => HB.screens.details && HB.screens.details(k) }));
+      note(cards.length ? '' : 'Nothing here yet');
     };
+    const showPieces = (kind) => {
+      pieceKind = kind; top(true); dots();
+      for (const k of Object.keys(PIECE)) { const b = n[PIECE[k][1]]; if (b) { b.frames[1] = Number(k) === kind ? tabOn || tabOff : tabOff; b.setTitle(PIECE[k][4]); } }
+      const list = pieces().filter((p) => p.kind === kind);
+      fillList(n.node_tablecontent, n.node_cardcontent, list, { onMerge: merge }, pieceCell);
+      note(list.length ? '' : 'No ' + PIECE[kind][4].toLowerCase() + ' fragments yet');
+    };
+    let noteLabel = null;
+    function note(text) { // an empty list says so (ours: the phone shows an empty page)
+      if (noteLabel) { noteLabel.removeSelf(); noteLabel = null; }
+      if (!text) return;
+      const box = n.node_tablecontent; noteLabel = new HB.Label(text, 'Arial-BoldMT', 26, [0, 0], 1, 1); noteLabel.color = [120, 80, 30]; noteLabel.x = box.w / 2; noteLabel.y = box.h - 80; box.add(noteLabel);
+    }
+    let busy = false;
+    async function merge(p, t) {
+      if (busy) return; busy = true;
+      ui.loading(true);
+      let r;
+      try { r = await HB.api('rl_w_comm', { Cmd: 10, ChipBagID: p.id }); } catch (e) { r = null; }
+      if (!r || r.code) { ui.loading(false); busy = false; return ui.tip(r ? ui.errorText(r) : 'Cannot reach the server'); }
+      HB.game.lastMergeReply = r; // for checks
+      await HB.game.refresh();
+      ui.loading(false); busy = false;
+      const got = HB.awards ? HB.awards(r) : [];
+      showPieces(pieceKind);
+      if (got.length && HB.showCards) await HB.showCards(got, 'You got');
+      else ui.tip('Merged: ' + (t.pet ? clean(t.pet[2]) : HB.info(t.type, t.id).name), 1.8);
+    }
     o.onButton = (sel) => {
       const tab = TABS.find((x) => x[1] === sel);
       if (tab) return show(tab[2]);
-      if (sel === 'BtnBackPack') return show(type);
-      ui.tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
+      const pk = Object.keys(PIECE).find((k) => PIECE[k][2] === sel);
+      if (pk) return showPieces(Number(pk));
+      if (sel === 'BtnBackPack') return show(cardType);
+      if (sel === 'BtnPieceBackPack') return showPieces(pieceKind || 1);
+      ui.tip('Coming soon: ' + (sel === 'BtnPurchase' ? 'Top-up' : sel.replace(/^Btn/, '')), 1.2);
     };
-    show(type);
+    if (pieceKind) showPieces(pieceKind); else show(cardType);
   };
 
   // ---------------------------------------------------------------- pick one card from a list (the Team screen's "change")

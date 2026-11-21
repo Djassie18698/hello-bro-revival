@@ -1,4 +1,6 @@
-// Card details: the window you get by tapping a card's picture (Backpack rows for now).
+// Card details: the window you get by tapping a card's picture (Backpack rows, the Team screen's cards and slots).
+// From the Team screen: opt.onChange(card) = the Change button, opt.onRemove(card) = Take off, opt.team = the place's numbers as the
+// server counted them (shown instead of the card's own); a ninjutsu in a team slot opens in the gear window, like the phone (skillClick).
 //   shinobi  -> sub_ui/NinjaDetailView.ccbi   (big picture, level bar, attack / defence / chakra, story, stars, its chains)
 //   gear     -> dlg_ui/EquipDetailView.ccbi   (CEquipDetailView)
 //   ninjutsu -> dlg_ui/NinjasuDetailView.ccbi (a scrolling text; ours: picture + name + what it does)
@@ -70,20 +72,22 @@
       n.label_barlevel.setText(String(lvl));
       n.label_attack.setText(range(st.atk)); n.label_defense.setText(range(st.def));
       n.label_charkra.setText(range([r[23] + r[29] * (lvl - 1), r[24] + r[30] * (lvl - 1)]));
+      if (opt.team) { n.label_attack.setText(range(opt.team.atk)); n.label_defense.setText(range(opt.team.def)); n.label_charkra.setText(range(opt.team.chakra)); } // in the team: the server's totals
       if (n.label_tupo_level) { n.label_tupo_level.visible = card.tupo > 0; if (card.tupo > 0) n.label_tupo_level.setText('+' + card.tupo); }
       if (n.label_NinjaSubView0) n.label_NinjaSubView0.setText('Details');
       n.label_desc.dims = [250, 0]; n.label_desc.setText(clean(inf.desc));
       stars(n, inf.quality);
       n.label_skill.setText('Chains'); n.label_skill1.setText('Growth'); n.label_skill2.setText('Rebirth');
       const chains = match.rows.filter((m) => m[3] === card.id).slice(0, 6);
-      for (let i = 1; i <= 6; i++) { const c = chains[i - 1]; n['label_combatname' + i].setText(''); n['label_combat' + i].setText(c ? clean(c[4]) : ''); }
+      for (let i = 1; i <= 6; i++) { const c = chains[i - 1]; n['label_combatname' + i].setText(''); n['label_combat' + i].setText(c ? clean(c[4]) : ''); if (c && opt.chains) n['label_combat' + i].color = opt.chains.includes(c[1]) ? [200, 30, 20] : [120, 110, 95]; } // in the team: the running chains are red (CNinjaDetailView::SetCombin)
       // growth (sage steps 3 / 6 / 9 / 12) and the eight rebirths: the card's own bonus texts from its table row
       const bonus = r.slice(37, 44).map(clean);
       [['label_cuilian1', 'Step 3'], ['label_cuilian2', 'Step 6'], ['label_cuilian3', 'Step 9'], ['label_cuilian4', 'Step 12']].forEach(([k, t], i) => { if (n[k + '_0']) n[k + '_0'].setText(t); if (n[k]) n[k].setText(bonus[i] || '-'); });
       for (let i = 1; i <= 8; i++) { if (n['label_zhuansheng' + i + '_0']) n['label_zhuansheng' + i + '_0'].setText('Rebirth ' + i); if (n['label_zhuansheng' + i]) n['label_zhuansheng' + i].setText(''); }
       return;
     }
-    if (card.type >= 2 && card.type <= 4) {
+    const slotJutsu = card.type === 6 && (opt.onChange || opt.onRemove); // CMyGroupCardView::skillClick1-4 open CEquipDetailView
+    if ((card.type >= 2 && card.type <= 4) || slotJutsu) {
       const w = { onButton: (sel) => { if (sel === 'BtnUpgrade') return upgrade(w); w.close(); if (sel === 'BtnChange' && opt.onChange) opt.onChange(card); if (sel === 'BtnRemove' && opt.onRemove) opt.onRemove(card); } };
       await HB.dialog('dlg_ui/EquipDetailView', w);
       const n = w.n;
@@ -95,8 +99,10 @@
       n.label_attackval.setText(range(st.atk)); n.label_defenseval.setText(range(st.def));
       const r = inf.row || [];
       n.label_charkraval.setText(range([(r[11] || 0) + (r[17] || 0) * (lvl - 1), (r[12] || 0) + (r[18] || 0) * (lvl - 1)]));
+      if (slotJutsu) for (const k of ['label_attackval', 'label_defenseval', 'label_charkraval']) n[k].setText('-'); // a ninjutsu has no numbers of its own
       if (n.label_markdesc) n.label_markdesc.setText('');
       if (n.layer_textdesc) n.label_desc.dims = [n.layer_textdesc.w || 250, 0];
+      if (slotJutsu && clean(inf.desc).length > 200) n.label_desc.size = Math.round(n.label_desc.size * 0.72); // the long ninjutsu texts must stay inside the box
       n.label_desc.setText(clean(inf.desc));
       stars(n, inf.quality);
       if (!opt.onChange) hide(n, 'ctrl_change', 'label_change');
