@@ -47,8 +47,9 @@
   (HB.onGame || []).forEach((f) => f()); // parts loaded after this file that add to HB.game (luascreens.js)
   const errorText = (root) => x.t(root, 'message') || HB.menu(root.code) || 'Error ' + root.code;
   let busy = null;
-  HB.loading = (on) => loading(on);
-  function loading(on) {
+  HB.loading = (on, unseen) => loading(on, unseen);
+  function loading(on, unseen) {
+    if (HB.system && HB.system.loading) return HB.system.loading(on, unseen); // system.js: the game's loading picture (LoadingView)
     if (on && !busy) { busy = modal(60); busy.z = 800; HB.scene.add(busy); }
     if (!on && busy) { busy.removeSelf(); busy = null; }
   }

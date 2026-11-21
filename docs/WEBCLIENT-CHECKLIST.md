@@ -23,10 +23,10 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | Card / item pictures and frames (CGameObjElement, data.js) | icons, quality frames, stars, element marks |
 | 🟡 | Common windows: confirm (CommonDialogView) and "you got" (ours: the card fades in, the phone turns it over) are in shop.js (HB.dialog, HB.confirm, HB.showCards); buy item (BuyItemDlg), item details not yet | used everywhere |
 | ✅ | Level-up window (PlayerLevelUpDlg): pops up when your level went up (old and new level, attack, defence, team size from the playerlevel table; "new team slot" and the every-10-levels gift button), with its sound (extras.js) | its light rays are tried, not checked against the phone |
-| ⬜ | Loading picture (LoadingView), time-out window, system notice window | plain grey cover for now |
+| ✅ | Loading picture (the game's spinner, LoadingView, while a request runs; it comes after 0.3 s so quick answers do not flicker: ours), time-out window (TimeOutDialogView with Reconnect: a request the server does not answer waits for it and is sent again), the notice with the speaker (NormalNotice: the server's bulletin, from level 5, once per browser), the running-ninja loading box of the first load (system.js; `&sys=timeout`, `&sys=notice`, `&sys=loading`) | not built because v28 never shows them (no caller in re/all.txt): the system notice window (sub_ui/SystemNotice), the "no touch" time-out window |
 | 🟡 | Sounds and music (sound.js): button tap, music per screen like the game's bgSoundConfig (home, Training, Spar / Plunder, Arena, fight), Victory / Defeat, level-up, "you got", card clash; music and effects switches in Settings, remembered; `?mute=1`; silent until the first tap | checked in headless Chrome (files load, play is called), not yet by ear; the War tab's music waits for the War screen (`HB.sound.screen('war')`), Training's run / coin / exp sounds and the slot machine's own files not yet |
-| ⬜ | Top banner (horn messages scrolling) | |
-| ⬜ | Glowing names (our hot update, util/common.lua PurpleGlow) | needs `rl_r_purplename` + CCLabelTTF effects |
+| ✅ | Top banner: the horn bar on every screen runs through the game's own sysnotice table like the phone (CMainMenu::NextAnnounceMsg), with the Server Manager's announcement first (ours); the scripts' marquee (ui_borderWarTip.lua, `rl_r_marquee`, MarqueeTipView) runs too and lies on the same bar (system.js) | the two Chinese rows of the table are left out (ours); speed by eye; our server sends no marquee messages, tried with made-up ones |
+| ✅ | Glowing names (our hot update, util/common.lua PurpleGlow): the No.1 Shinobi list glows by its own script, the top bar's name on every screen is handed to the same script (system.js asks `rl_r_purplename` when Home opens) | no engine change was needed; the sparkles are the script's own |
 | ✅ | Custom events (ours): the owner's own events from text files, screen + Home button (custom.js, `docs/CUSTOM-EVENTS.md`) | not in the phone game |
 | 🟡 | Text that fits (ours): labels shrink to stay clear of each other and the screen (fit.js); pictures next to text and hand-shortened wording still to do | owner: "all text should match the boxes" |
 | ⬜ | Online for players: game files on the cloud machine, `https://ninjaonlinereborn.com/play/` through Caddy | owner's OK needed |
@@ -51,7 +51,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Home: top bar, village, buildings, level locks | MainMenu, DefaultMainMenu, <Country>CountryDefaultMenu |
 | ✅ | Home: team cards row with arrows | MainCardView |
 | 🟡 | Home: the village is a wheel of six buildings (Base, Cross, Noodle, Border, Shop, money tree): swipe to turn it, tap to open (base.js; how far a swipe turns it is by eye). Noodle and the money tree open; Base, Shop, Cross, Border not yet | CDefaultSLGMenu, <country>CountryDefaultMenu |
-| ⬜ | Home: red number bubbles (events, messages) | |
+| ✅ | Home: red number bubbles: on Event the count the scripts set (CPlayerDataMgr:SetActivityNewsNum), on News the unread battle reports and friend messages (rl_r_msg 1800 / 1801 / 1802, asked when Home opens) (system.js) | |
 | ✅ | Player info window (tap the top bar on any screen): level, exp, attack / defence / chakra, gold, silver, W.A., team, VIP, energy and grudge with their clocks, the list of ranks (extras.js) | PlayerInfoDlg, meritRankCell |
 | ✅ | Bottom bar | all six buttons open their screens |
 | ✅ | **Team** (team.js): the places with the server's numbers, chains running / all, the "chain misses a partner" strip; tap the shinobi = its window with Change, tap a slot = choose a card or the card's window with Change / Remove (weapon, armor, trinket, seal, four ninjutsu); Team 2 from level 100, Activate with the tick, Detail window, the two set buttons (the game's own Lua windows), the locked next place with Go Train, the set place. Every change was done with real taps on a guest and compared with the server | ListMyTeamView, TeamNinjaView, TeamNinjaSuitView, TeamNinjaTipView. The set windows close on any tap (their own X does not get taps here); the set buttons' coloured pictures (suit.plist) are not found, they show the grey / lit default |
@@ -69,7 +69,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Fight extras: ninjutsu cut-in (the ninja slides through, the ninjutsu's name, its bonus) and the ninjutsu's own effect, "Skill bonus", element restrain ("X beats Y" picture, "Constrain damage"), my pet's badge and its skill (glow, jump, claw), "+N" / "-N" off the cards, the blade and the red flash of a hit, the Lose stamp. By eye, not compared with the phone: the restrain picture's drop-in (its timeline is empty in the game file), where the claw lands (not seen in a picture after the last fix), which card wears the boss mark, the country flags | CoreFightSkillView, RestraintView, ShowEffectView, ShowRayView, PetSkill_ef |
 | ✅ | Victory screen: the three prize cards (the one you tap turns over with its picture, stars and name), and its own part for each kind of fight (Training, Plunder, War, Arena with the old and new place, World Boss, tower with its prize, the plain one); a prize outside Training shows in the "you got" window. Team compare is hidden (not built) | NewFightResult_WinView, RS_WinAnim |
 | ✅ | Defeat screen: the five help buttons open Recruit (Shop), Level-up (card upgrade), Strengthen (the Backpack's gear), Growth, Reincarnate; Team compare is taken away (not built) | NewFightResult_FailView |
-| ⬜ | Team compare | NewTeamCompare, TeamCompareItemView |
+| ✅ | Team compare: the Compare button of the Victory and Defeat screens lays the list into the result (my card left, theirs right, per place: picture, element, level, attack, defence, chakra); the button brings the result back (ours) (system.js; `&sys=compare`) | NewTeamCompare, TeamCompareItemView. The numbers are the cards' own table values at their level (ours: the reply does not carry them). The phone has no compare window on the Friends / Arena / Spar lists (dlg_ui/TeamCompareView is never created in v28) |
 | ✅ | **Spar** (fight other players): list, preview, fight (spar.js); search not yet | FightListView, FightNinjaView, FightPreView |
 | 🟡 | **Shop**: Recruit (3 scrolls, free timers, once / ten times window), Giftpack, Tool with Buy and Use (shop.js); VIP shop and Top-up not yet | StoreItemsView, StoreGoodsView, StorePacksView, StoreNinjaView, PrayDialogView |
 | ⬜ | Top-up list and confirm (free on our server) | PurchaseListView, PurchaseItemView, PurchaseConfirmDialogView + Lua ui_purchaseLayer |
@@ -84,7 +84,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | Friends: every player with team numbers, leave a message, search by name (social.js); the phone's invite and chat windows not yet | social/Friend* |
 | ⬜ | Event screen frame (the big Event list and its top bar) | activity/ActivityDefaultView, ActivityBarCellView |
 | ⬜ | Lottery view, roulette turn window (C++ parts of Lua events) | activity/LotteryView, RouletteTurnDialogView |
-| ⬜ | Daily ads (next day / days) | activity/NextDayAd, DaysAd |
+| ✅ | Daily ads: the next-day line ("Come again tomorrow, and gain 110 gold ...") in the running-ninja loading box, on the first login day only, like the phone (system.js; `&sys=ad` shows it on any day) | activity/NextDayAd. activity/DaysAd is never created in v28 (no caller in re/all.txt): not built |
 | 🚫 | Tutorial | off for everyone on our servers |
 
 ## 3. Lua screens (the game's own scripts; each needs its helpers to exist)
@@ -168,7 +168,7 @@ Features:
 | ⬜ | Cross roulette / millionaire / super ninja | ui_cross* |
 | ⬜ | Change country | switchCountry |
 | ⬜ | Tower sweep, re-new level, split card | towerSweep, ReNewLevel, SplitCard |
-| ⬜ | In-game news list | InGameNoticeListView |
+| 🚫 | In-game news list: v28 never shows it (the script's own showInGameNoticeView has its body commented out, "inner notices closed for now"; CMainMenu::ShowActivityNews runs an empty function) | InGameNoticeListView |
 
 ## 3b. Text polish (21 Nov 2026: "all text should match the boxes")
 
