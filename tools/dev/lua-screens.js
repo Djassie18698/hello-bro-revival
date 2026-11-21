@@ -63,6 +63,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     await wait(700);
   }
   fs.writeFileSync('re/lua/report.json', JSON.stringify(report, null, 1));
+  console.log('C++ names asked for and not there: ' + ((await missingNow()).join(', ') || 'none'));
   console.log(report.filter((r) => !r.errors.length).length + ' of ' + report.length + ' open without an error');
   ws.close(); ch.kill();
   setTimeout(() => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch {} process.exit(0); }, 500);
