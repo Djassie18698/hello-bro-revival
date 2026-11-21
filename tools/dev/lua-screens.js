@@ -18,6 +18,10 @@ const SCREENS = [
   'sub:ShowMultiBattleView', 'sub:ShowHallOfFame', 'sub:ShowSuperNinjaView', 'sub:ShowGrowthFundView', 'sub:ShowAttributeDanView', 'sub:ShowGodCardSyntheticView', 'sub:ShowNinjaTreasureView',
   'sub:ShowNinjaInheritView', 'sub:ShowLimitTrainView', 'sub:ShowOrgListLayer', 'sub:ShowAdvanceEquipView', 'sub:ShowSlotMachine', 'sub:doShowBase',
   'run:business_proxy/dailyTask_business', 'run:business_proxy/saveTime_business', 'run:business_proxy/purchase_business',
+  'sub:ShowOrgMapLayer', 'sub:ShowOrgMainView', 'sub:ShowOrgRankings', 'sub:ShowOrgHall', 'sub:ShowOrgDonate', 'sub:ShowOrgShop', 'sub:ShowCrossRouletteView', 'sub:ShowCrossMonopolyView', 'sub:ShowCrossSuperNinjaView', 'sub:ShowLimitTrainSoulView',
+  "js:HB.game.changeToActivitySubMenu('doShowBase').then(() => HB.luaCall(HB.L.load('local v = createObj(ui_petMainLayer, nil) AddViewToActivitySubMenu(v.node_)')))",
+  "js:HB.game.changeToActivitySubMenu('doShowBase').then(() => HB.luaCall(HB.L.load('local v = createObj(ui_ninjaTestMain, nil) AddViewToActivitySubMenu(v.node_)')))",
+  "js:HB.game.changeToActivitySubMenu('doShowBase').then(() => HB.luaCall(HB.L.load('local v = createObj(ui_tupoLayer, nil) AddViewToActivitySubMenu(v.node_)')))",
   "js:HB.game.luaHomeButton('BtnAwardCenter')", "js:HB.game.luaHomeButton('BtnOrg')", "js:HB.luaCall(HB.L.load('createStageGiftLayer()'))",
 ].filter((s) => s.includes(filter));
 const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find((p) => fs.existsSync(p));

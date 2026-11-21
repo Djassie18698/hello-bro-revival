@@ -188,7 +188,11 @@
       return t;
     };
     const dataMgr = new LuaTable();
-    dataMgr.set(B('GetDataByID'), (struct, id) => [rowOf(struct, id)]);
+    // A drop pack that is not in the table (the Lucky Wheel's "super award" slot, drop 1000000) answers with the pack asked for before it:
+    // the wheel scripts compare its amount without a nil check and work on the phone, so the C++ cannot answer nil there (our guess: it
+    // hands back its last row). Only for Struct_Dropinfo; every other table answers nil for an unknown id.
+    let lastDrop;
+    dataMgr.set(B('GetDataByID'), (struct, id) => { const r = rowOf(struct, id); if (/dropinfo$/i.test(txt(struct))) { if (r) lastDrop = r; return [r || lastDrop]; } return [r]; });
     dataMgr.set(B('GetDataCount'), (struct) => { rowOf(struct, -1); const t = rowsById.get(txt(struct).replace(/^Struct_/, '').toLowerCase()); return [t ? t.size : 0]; });
     G.set(B('DataMgr'), dataMgr);
     HB.dataRow = rowOf;
