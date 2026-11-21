@@ -10,7 +10,7 @@
 // middle of the free part of the button.
 // A label only gives way on the side it grows to (left-aligned text grows right, centred text both ways) and never below 55 % of
 // its size. Labels that wrap (a width was given) are left alone: they already break into lines. Rows of a list that are scrolled
-// out of sight are skipped (they used to push against the labels above the list). `?fit=0` switches the pass off;
+// out of sight are skipped (they used to push against the labels above the list), and so are the copies a glowing name is drawn with. `?fit=0` switches the pass off;
 // `HB.fit.report()` lists what was shrunk on the screen that is showing (for finding texts worth shortening by hand).
 'use strict';
 (function () {
@@ -103,6 +103,7 @@
       limit(it.clip.x1 - it.ax, wr); limit(it.ax - it.clip.x0, wl);
       for (const o of live) {
         if (o === it || o.layer !== it.layer) continue;
+        if (o.n.text === n.text && Math.abs(o.x0 - it.x0) < 8 && Math.abs(o.x1 - it.x1) < 8) continue; // copies of one text on top of each other (a glowing name)
         const over = Math.min(it.y1, o.y1) - Math.max(it.y0, o.y0);
         if (over < Math.min(h, o.y1 - o.y0) * 0.5) continue; // not on the same line
         if (o.x0 > it.ax + 1 && o.x0 < it.x1) limit(o.x0 - GAP - it.ax, wr);       // a label to my right that I run into

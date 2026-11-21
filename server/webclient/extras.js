@@ -171,6 +171,7 @@
         for _, l in ipairs({ self.text_sound_settings, self.text_contact_service, self.text_usercenter }) do
           if l then l:setAnchorPoint(ccp(0, 0.5)) l:setPosition(ccp(left, l:getPositionY())) end
         end
+        if self.text_username then self.text_username:setScale(0.85) end -- the Discord address reached the box's edge
         for _, l in ipairs({ self.text_sound, self.text_sound_effect }) do
           if l then local x = l:getPositionX() - l:getContentSize().width / 2 + 12 l:setAnchorPoint(ccp(0, 0.5)) l:setPosition(ccp(x, l:getPositionY())) end
         end
@@ -221,7 +222,7 @@
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
     SHOP_TABS.forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === 3 ? tabOn || tabOff : tabOff; b.titles[1] = title; b.layout(); } });
-    set(n, 'label_StoreItemsView0', 'Top-up');
+    if (n.label_StoreItemsView0) { const l = n.label_StoreItemsView0; l.size = 24; l.x += 24; l.setText('Top-up'); } // as in shop.js: clear of the 1st Recharge sticker
     if (n.sprite_notify_pray) n.sprite_notify_pray.visible = false;
     o.onButton = (sel) => {
       const i = ['BtnPray', 'BtnGiftPack', 'BtnConsum'].indexOf(sel);

@@ -170,6 +170,57 @@ Features:
 | ⬜ | Tower sweep, re-new level, split card | towerSweep, ReNewLevel, SplitCard |
 | ⬜ | In-game news list | InGameNoticeListView |
 
+## 3b. Text polish (21 Nov 2026: "all text should match the boxes")
+
+How it is done: `server/webclient/fit.js` shrinks what runs into a neighbour (another label, an icon beside it, the screen's edge),
+`server/webclient/texts.js` lays our own texts over the game's tables (buttons found by name, layout labels, the scripts'
+`localizable` texts, small moves per layout) without touching the game's scripts, and each JavaScript screen fixes its own
+labels. Check everything again with `node tools/dev/js-screens.js [--lua] --tag=<name>`: a picture of every screen in
+`re/js/<name>/` plus, per screen, the Chinese texts still showing and what fit.js had to shrink.
+
+JavaScript screens (no Chinese text left; before / after pictures in `re/js/before` and `re/js/after`):
+
+| | Screen | What was fixed |
+|---|---|---|
+| ✅ | Arena | the rows' frames had a hole that showed the background (9-slice with sides wider than its picture); "Reward:" clear of the card and the coin; tab titles; the note under Attacks today; Top-up out from under the 1st Recharge sticker |
+| ✅ | Arena > Exchange | "Left today: 2" / "Left in total: 1" as one small label (was words with a hole and the number beside it, at 55 %); the Exchange button's word |
+| ✅ | Shop | tab titles, "Free recruitment" clear of the star, the recruitment-order line no longer over the shinobi's picture, Top-up clear of the sticker; VIP tab: "VIP1 Honorable gift", "Top up $1 more to become: VIP1", the gift's contents above its price |
+| ✅ | Spar | "Win:" |
+| ✅ | Growth | Back / Min / Max; the Auto-Growth box that did nothing is gone |
+| ✅ | Reincarnate | "Uses Reincarnation Pill or the same shinobi card" as one line; every number right behind its words; line 3 shows its number |
+| ✅ | Level Up (cards) | the name clear of "Lv:" (moved up to the stars), Needs clear of the coin |
+| ✅ | News | the red tag reads "System" / "Friend"; the message wraps before the Manage button |
+| ✅ | Friends | level numbers readable on the card; long attack numbers shrink before the defence icon |
+| ✅ | War | the three rows of numbers (Kills / Rank / War exploit ...), the news line whole inside its bar, capitals in the notes |
+| ✅ | National treasure | the title reads "National treasure" (the country's sign moved to the end of its frame); "3000 silver", "Treasure Amount: 1" |
+| ✅ | Ninjabook | tab titles |
+| ✅ | Plunder | the "Plunder" tags on the fragments |
+| ✅ | Player info | the rank list's titles no longer run into the W.A. numbers |
+| ✅ | Settings | headings start inside the window, Music / Sound clear of their boxes, the Discord address inside its box, "Settings" |
+| ✅ | Home | the Special button (custom events) stands in the left column under the last event button |
+
+Script screens (the game's own Lua): one Chinese text left of all that `js-screens.js --lua` opens.
+
+| | Screen | State |
+|---|---|---|
+| ✅ | every layout the scripts load | buttons the scripts find by name show the game's own English (Return, Evolute, Detail, Open, Recharge, Collect, Tips ...): they were Chinese on Evolve, Change Element, Growth Fund, Eight Gates, Dun, Inherit, Ninja Treasure, Lottery, Level rank, 1st Recharge, Group purchase, Recharge streak, Limited discount, Diligence gift, Save time, Cross-server battle, Akatsuki |
+| ✅ | every button | a title that is too long is set smaller before the button grows over its neighbours |
+| ✅ | 1st Recharge | the two paragraphs and the four prize names no longer run into each other |
+| ✅ | Monthly Card | "$4.99 card" / "$9.99 card" on the ribbons |
+| ✅ | Recharge streak | "Streak: day 1" on the ribbons |
+| ✅ | Ninja Test, My Base, Hot Treasure | "Challenge", "Exam room", "Pets", "Ten hunts" |
+| ✅ | God Recruit | Price / Now / Time left / Energy points (were Chinese) |
+| ⬜ | Total recharge history (payhistorydrop) | gift names are Chinese in the script's own data file (old event, not in the event list) |
+| ⬜ | Lottery ticket | title, the two scroll sides and the prize titles are Chinese pictures; "Random Bet" lies on the lever |
+| ⬜ | Home | the 7-day goals button, the rank scroll and the Event bar's lottery icon are Chinese pictures |
+| ⬜ | Growth Fund | the red board's sentence stands in pieces ("Only insert 500 Gold. can get 5 feedback,total 2500 Gold") |
+| ⬜ | No.1 Shinobi list | a glowing name is drawn very small; "Offense Points" touches its numbers |
+| ⬜ | Daily Task | the chests' "30 points" captions are cut by the bar under them |
+| ⬜ | Lucky Wheel, Millionaire | "Reward Pool" under its number; small button words |
+| ⬜ | Secret shop, Inherit, Limited discount, Fight rank, Mora | several captions shrunk to 55-70 % (listed by `js-screens.js --lua`): they need shorter words or a place of their own |
+| ⬜ | Gold spending | the description runs under the countdown |
+| ⬜ | Akatsuki, Border war | not looked at closely (need a guild / a running war) |
+
 ## 4. Order of work
 
 1. Player data + card pictures (everything else leans on them).

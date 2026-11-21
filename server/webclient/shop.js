@@ -101,7 +101,7 @@
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
     TABS.forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } }); // 26: 'Giftpack' filled its tab from edge to edge at 30
-    if (n.label_StoreItemsView0) n.label_StoreItemsView0.setText('Top-up');
+    if (n.label_StoreItemsView0) { const l = n.label_StoreItemsView0; l.size = 24; l.x += 24; l.setText('Top-up'); } // smaller and to the right: the 1st Recharge sticker lies over the button's left half
     if (n.sprite_notify_pray) n.sprite_notify_pray.visible = false;
     o.onButton = (sel) => {
       if (sel === 'BtnPray') return shop(0);
