@@ -135,8 +135,9 @@
       }),
     });
     const mainMenu = gameObject('CMainMenu', {
-      ShowTextTip: (t, sec) => HB.tip(txt(t), num(sec, 2)),
-      ShowErrorTip: (code, sec) => HB.tip(HB.menu(num(code)) || 'Error ' + num(code), num(sec, 2)),
+      // the scripts pass -1 for "the usual time" almost everywhere: as a real time the tip was gone before it was drawn
+      ShowTextTip: (t, sec) => HB.tip(txt(t), num(sec, 2) > 0 ? num(sec, 2) : 2),
+      ShowErrorTip: (code, sec) => HB.tip(HB.menu(num(code)) || 'Error ' + num(code), num(sec, 2) > 0 ? num(sec, 2) : 2),
       ShowLoadingDlg: () => HB.loading(true), ShowUnvisibleLoadingDlg: () => HB.loading(true, true), CloseLoadding: () => HB.loading(false),
       ShowSpecialLoading: () => HB.loading(true), CloseSpecialLoading: () => HB.loading(false),
       GetModelLayer: () => getModelLayer(),
@@ -314,6 +315,51 @@
             if (m['label_cardname' + i]) m['label_cardname' + i].setText(name || '');
             if (m['label_count' + i]) { m['label_count' + i].setText('x' + a.num); m['label_count' + i].visible = a.main === 1 && a.num > 1; } // the wheel's own pictures carry their number
           }
+          root.sx = root.sy = 0.9; HB.tween(root, { sx: 1, sy: 1 }, 0.14);
+        });
+      },
+    });
+    // ---------------- CCommonPrayDialogView: the recruit window (dlg_ui/PrayDialogView: once / ten times) the scripts open for their own
+    // draws (Limited Super Ninja's gold draw). The script sets the price, the request number and what to call afterwards, then
+    // initView() and GetMainMenu():AddDialog(dlg). A draw is the Shop's premium recruit request (CTradeMgr::BuyPray: rl_w_recruit
+    // Cmd 1900 once / 1901 ten times, Type 1), which the server counts for the event while its screen is open.
+    luaClass('CCommonPrayDialogView', { create: () => { const n = new HB.Node(); n.w = HB.size[0]; n.h = HB.size[1]; n.isLayer = true; n.ignoreAnchor = true; n.__pray = { cost: 0, free: false, cmd: 1900, left: 0 }; return n; } });
+    const pray = (n) => n.__pray || (n.__pray = { cost: 0, free: false, cmd: 1900, left: 0 });
+    HB.lua.methods(HB.Node, {
+      SetPrayFree: (n, v) => { pray(n).free = !!v; }, SetPrayoneCost: (n, v) => { pray(n).cost = num(v); }, SetPrayCmd: (n, v) => { pray(n).cmd = num(v) || 1900; },
+      SetIsCostPray: (n, v) => { pray(n).isCost = num(v); }, SetIsActPray: (n, v) => { pray(n).isAct = num(v); }, SetProtectComing: (n, v) => { pray(n).left = num(v); },
+      SetPrayOneDoneCallbackForScript: (n, fn) => { pray(n).oneDone = fn; }, SetPrayTenDoneCallbackForScript: (n, fn) => { pray(n).tenDone = fn; },
+      SetDoPrayOneCallbackForScript: (n, fn) => { pray(n).doOne = fn; }, SetDoPrayTenCallbackForScript: (n, fn) => { pray(n).doTen = fn; },
+      initView: (n) => {
+        const p = pray(n), file = 'dlg_ui/PrayDialogView', ui = HB.ui;
+        const draw = async (ten) => {
+          const own = ten ? p.doTen : p.doOne;
+          n.removeSelf();
+          if (own) { HB.luaCall(own); return; }
+          ui.loading(true);
+          let r;
+          try { r = await HB.api('rl_w_recruit', { Cmd: ten ? 1901 : p.cmd, Type: 1, Free: p.free && !ten ? 1 : 0 }); } catch (e) { ui.loading(false); ui.tip('Cannot reach the server'); return; }
+          ui.loading(false);
+          if (r.code) { ui.tip(r.getAttribute('message') || ui.errorText(r)); return; }
+          await HB.game.refresh();
+          await HB.showCards(HB.awards(r), ten ? 'You recruited' : 'New shinobi!');
+          const done = ten ? p.tenDone : p.oneDone; if (done) HB.luaCall(done);
+        };
+        HB.loadCCB(file).then(() => {
+          const o = { onButton: (sel) => { if (sel === 'clickPrayOne') draw(false); else if (sel === 'clickPrayTen') draw(true); else n.removeSelf(); } };
+          const root = ui.screen(file, o); n.add(root);
+          const m = o.n;
+          if (m.labelTitle) m.labelTitle.setText('Shinobi recruit');
+          if (m.label_prayone_cost) m.label_prayone_cost.setText(String(p.cost));
+          if (m.label_prayten_cost) m.label_prayten_cost.setText(String(p.cost === 300 ? 2800 : p.cost * 10)); // the server's ten-draw price (game.js TEN_COST)
+          if (m.label_prayone_free) { m.label_prayone_free.setText('Free this time'); m.label_prayone_free.visible = p.free; }
+          if (m.node_prayone_cost_container) m.node_prayone_cost_container.visible = !p.free;
+          if (m.node_cost_gold) m.node_cost_gold.visible = false;
+          for (const k of ['label_PrayDialogView2', 'label_PrayDialogView3', 'label_PrayDialogView4', 'label_PrayDialogView5']) if (m[k] && m.labelTitle && m[k].parent === m.labelTitle.parent) m[k].visible = false;
+          if (m.node_desc1_container) m.node_desc1_container.visible = p.left > 1;
+          if (m.node_desc2_container) m.node_desc2_container.visible = p.left === 1;
+          if (m.node_desc3_container) m.node_desc3_container.visible = false;
+          if (p.left > 1 && m.label_protect_coming) m.label_protect_coming.setText(String(p.left - 1));
           root.sx = root.sy = 0.9; HB.tween(root, { sx: 1, sy: 1 }, 0.14);
         });
       },
