@@ -63,7 +63,7 @@
       const chakra = () => { const r = inf().row || [], lv = Math.max(1, c.level) - 1; return c.type === 1 ? [r[23] + r[29] * lv, r[24] + r[30] * lv] : [0, 0]; };
       const obj = gameObject('CGameObject', {
         GetGUID: () => c.seq, GetDataID: () => c.id, GetLevel: () => c.level, GetQuality: () => inf().quality, GetName: () => B(inf().name), GetObjType: () => c.type,
-        GetReincarnationLevel: () => c.newlife || 0, GetStrengthLevel: () => c.starlevel || 0, GetCardCamp: () => c.attri || 0, GetTupoLevel: () => c.tupo || 0, setTupoAttrAdd: () => {}, // Breakthrough hands the card its new numbers; ours are read again from the server
+        GetReincarnationLevel: () => c.newlife || 0, GetStrengthLevel: () => c.starlevel || 0, GetCardCamp: () => c.attri || 0, GetTupoLevel: () => c.tupo || 0, setTupoAttrAdd: () => {}, InitFromID: () => {}, // Breakthrough hands the card its new numbers; ours are read again from the server
        
         GetAttackMin: () => Math.round((st().atk || [0, 0])[0]), GetAttackMax: () => Math.round((st().atk || [0, 0])[1]),
         GetDefenseMin: () => Math.round((st().def || [0, 0])[0]), GetDefenseMax: () => Math.round((st().def || [0, 0])[1]),
@@ -228,6 +228,10 @@
         cardCount: () => cards.length, propCount: () => props.length, chipCardCount: () => chips.length,
         getCard: (i) => cards[num(i)], getProp: (i) => props[num(i)], getChipCard: (i) => chips[num(i)],
       });
+      // a C++ reward's numbers start at 0 (m_markchip, m_silver, m_gold ...): the scripts compare them with 0 without setting them first
+      const get = o.luaGet; o.luaGet = function (k) { const v = get.call(this, k); return v === undefined && /^m_/.test(Lua.fromBytes(String(k))) ? 0 : v; };
+      // ... and are numbers whatever the script hands in (RLRequest.lua stores the reply's text: m_markchip = "0")
+      const put = o.luaSet; o.luaSet = function (k, v) { if (typeof v === 'string' && /^m_/.test(Lua.fromBytes(String(k))) && /^-?[0-9]+$/.test(txt(v))) v = Number(txt(v)); return put.call(this, k, v); };
       o.__reward = { cards, props, chips };
       return o;
     }
