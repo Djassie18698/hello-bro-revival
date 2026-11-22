@@ -744,6 +744,20 @@
       createWithSpriteFrameName: (name) => { const f = HB.frameByName(txt(name)); if (!f) console.warn('no sprite frame', txt(name)); return newSprite(f); },
       createWithTexture: (t) => newSprite(t && t.path ? HB.frameOfImage(t.path) : null),
     });
+    // CCProgressTimer: a picture shown up to a percentage (a bar that fills from the side its midpoint names; a round one is drawn whole)
+    class ProgressTimer extends HB.Node {
+      constructor(sp) { super(); this.ax = this.ay = 0.5; this.sp = sp; this.w = sp ? sp.w : 0; this.h = sp ? sp.h : 0; this.kind = 0; this.mid = [0.5, 0.5]; this.rate = [1, 0]; this.pct = 0;
+        this.win = this.add(new HB.Node()); this.win.clip = true; this.win.ignoreAnchor = true; if (sp) { sp.ignoreAnchor = true; sp.x = sp.y = 0; this.win.add(sp); } this.lay(); }
+      lay() { const k = this.kind === 1 ? Math.max(0, Math.min(100, this.pct)) / 100 : 1, W = this.w, H = this.h;
+        const w = this.rate[0] ? W * k : W, h = this.rate[1] ? H * k : H, x = (W - w) * this.mid[0], y = (H - h) * this.mid[1];
+        this.win.x = x; this.win.y = y; this.win.w = w; this.win.h = h; if (this.sp) { this.sp.x = -x; this.sp.y = -y; } }
+    }
+    userdata(ProgressTimer);
+    methods(ProgressTimer, {
+      setType: (p, t) => { p.kind = num(t); p.lay(); }, getType: (p) => p.kind, setMidpoint: (p, m) => { m = P(m); p.mid = [m.x, m.y]; p.lay(); }, setBarChangeRate: (p, r) => { r = P(r); p.rate = [r.x, r.y]; p.lay(); },
+      setPercentage: (p, v) => { p.pct = num(v); p.lay(); }, getPercentage: (p) => p.pct, setReverseDirection: () => {}, setReverseProgress: () => {}, getSprite: (p) => p.sp,
+    });
+    luaClass('CCProgressTimer', { create: (sp) => new ProgressTimer(sp instanceof HB.Node ? sp : null) });
     luaClass('CCScale9Sprite', {
       createWithSpriteFrameName: (name, r) => { const s = new HB.Scale9(HB.frameByName(txt(name))); return s; },
       createWithSpriteFrame: (f) => new HB.Scale9(f ? f.frame : null),
