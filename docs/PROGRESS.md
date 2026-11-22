@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 21 | 13 | 2 | 5 |
+| Discord reports | 21 | 14 | 2 | 5 |
 
 ## Bug list 1
 
@@ -144,6 +144,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | Level Up preview said Lv 23, the armor only reached Lv 16 (11TAILS, 20 Nov) | Same cause as Itachi's gear report of 18 Nov: the "(Material)" gear cards from the Weapon / Armor / Trinket Bag (S) are Lv 3 in the game's own table (450 EXP each), the live server still counts them as Lv 1 (250). 30 Samurai Attire on Uchiwa of Fire: preview 13 500 EXP = Lv 23. Already fixed on 18 Nov (checked in game then); this exact case checked on a test save (Lv 23, 8 100 silver). Not live until the public server is updated. |
 | 🚫 | Evolve: the Lv 50 reincarnated Madara and Hashirama are missing from the card list (xvon11, 20 Nov) | Not a bug. The game's own Evolve screen only lists 5-star shinobi that are in no team (Team 1 or Team 2); both his Lv 50 cards are in Team 1 (the Lv 1 copies show because they are not). Take the card out of the team first (Team > change it for another card), evolve, then put the new card back: the screen keeps reincarnation and growth |
 | 🧪 | Wish: Shukaku Seal Bags each came as their own Awards chest mail, so buying many meant claiming many; and seal material cards are 3-star, so "All 1-2 cards" finds none (xvon11, 21 Nov) | Owner: "do what you think is best". Bags of the same kind bought while their mail is still unclaimed now go into that one mail ("The cards from your 3 x Shukaku Seal Bag"), up to 20 bags a mail: one Claim, the same cards. The seal material card stays 3-star like in the game's own table (the "Get all" button in the Awards chest already claims every mail at once). Checked on a test save (smoke "SEAL BAGS ONE MAIL"), not in game yet. Not live until the public server is updated |
+| 🧪 | Events > Login: the "Login 7 day" Claim button stayed grey and did nothing on the 7th day (Koolmanm598, 22 Nov) | The server counted login days as full 24 hours since the character was made, so a player who started in the morning got each new day only the next morning. It now counts calendar days (a new day at midnight, like everything else daily). Checked on his save (day 7 now open), not yet in game; goes live with the next server update |
 
 ## Built on request (chat)
 
