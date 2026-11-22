@@ -37,9 +37,56 @@
       if (n.layer_protect) n.layer_protect.visible = false;
     });
   });
-  // what you got: cards = [{ type, id, num }]; one = its big picture, more = a grid of small ones. Tap anywhere to close.
+  // The phone's own "Rewards" window (CDialogShowBox, animations/ShowBoxView.ccbi, timeline "showbox"): the card in its big frame
+  // with stars and numbers, under it the kind, the name and what it is; one card at a time, a tap shows the next. A recruit first
+  // plays the hand seals and the puff of smoke (animations/jieyin.ccbi, "showanim"). Compared with the phone 22 Nov 2026.
+  const KIND_WORD = { 1: 'Shinobi Card', 2: 'Weapon Card', 3: 'Armor Card', 4: 'Trinket Card', 5: 'Seal', 6: 'Ninjutsu Card' }; // (ours beyond the shinobi's word, which is the layout's)
+  const showBox = HB.showBox = async (cards, opt = {}) => {
+    if (!cards.length) return;
+    const ui = HB.ui, clean = (s) => String(s ?? '').replace(/\0+$/, '').trim();
+    await Promise.all([HB.data.tables(), HB.loadCCB('animations/ShowBoxView'), opt.seals ? HB.loadCCB('animations/jieyin') : null]);
+    const dim = ui.modal(255); dim.z = 650; HB.scene.add(dim);
+    const tapped = (node) => new Promise((ok) => { let open = false; setTimeout(() => { open = true; }, 500); node.onTouch = (ev) => { if (ev === 'up' && open) ok(); return true; }; });
+    try {
+      if (opt.seals) {
+        const so = {}, sv = ui.screen('animations/jieyin', so); sv.z = 651; HB.scene.add(sv);
+        HB.play(sv, 'showanim');
+        await new Promise((ok) => setTimeout(ok, 1900));
+        sv.removeSelf();
+      }
+      for (const c of cards) {
+        const o = {}, view = ui.screen('animations/ShowBoxView', o); view.z = 651;
+        const n = o.n, inf = HB.info(c.type, c.id);
+        const bf = HB.qualityFrame('big', inf.quality); if (bf && n.sprite_ninjaicon) n.sprite_ninjaicon.setFrame(bf);
+        const art = HB.iconFrame(c.type, inf.icon, true);
+        if (art && n.node_icon) { const sp = new HB.Sprite(art); const k = (c.type === 1 ? Math.max : Math.min)(n.node_icon.w / (art.sw || 1), n.node_icon.h / (art.sh || 1)); sp.sx = sp.sy = k; sp.x = n.node_icon.w / 2; sp.y = n.node_icon.h / 2; n.node_icon.clip = c.type === 1; n.node_icon.add(sp); }
+        for (let i = 1; i <= 5; i++) if (n['sprite_star' + i]) n['sprite_star' + i].visible = i <= Math.min(5, inf.quality);
+        const st = HB.cardStats({ type: c.type, id: c.id, level: c.level || 1, starlevel: 0, newlife: 0, tupo: 0, attri: c.attri || 1 }), rng = (a) => a[0] + '-' + a[1];
+        const vals = c.type === 1 ? [st.atk, st.def, st.chakra] : c.type === 2 ? [st.atk] : c.type === 3 ? [st.def] : c.type === 4 ? [st.chakra] : c.type === 6 ? [st.atk] : [];
+        if (n.layer_values) n.layer_values.visible = vals.length > 0;
+        if (vals.length) {
+          n.label_attackval.setText(rng(vals[0]));
+          const one = vals.length === 1;
+          for (const k of ['sprite_defenseicon', 'sprite_charklaicon', 'label_defenseval', 'label_charalaval']) if (n[k]) n[k].visible = !one;
+          if (!one) { n.label_defenseval.setText(rng(vals[1])); n.label_charalaval.setText(rng(vals[2])); }
+          else { const f = HB.frameByName(c.type === 3 ? 'com_defense_icon' : c.type === 4 ? 'com_text_chakra' : ''); if (f && n.sprite_attackicon) n.sprite_attackicon.setFrame(f); }
+        }
+        if (n.label_cardtype && KIND_WORD[c.type]) n.label_cardtype.setText(KIND_WORD[c.type]);
+        if (n.label_cardtype && !KIND_WORD[c.type]) n.label_cardtype.setText('');
+        if (n.label_cardname) n.label_cardname.setText(inf.name + (c.num > 1 ? '*' + c.num : ''));
+        if (n.label_carddesc) { n.label_carddesc.x = 38; n.label_carddesc.dims = [686, 0]; n.label_carddesc.setText(clean(inf.desc)); } // the layout's 89.3 % of the 768-wide page, from the left edge the phone starts it at
+        HB.scene.add(view);
+        HB.play(view, 'showbox');
+        await tapped(dim);
+        view.removeSelf();
+      }
+    } finally { dim.removeSelf(); }
+  };
+  // what you got: cards = [{ type, id, num }]; up to three = the phone's Rewards window one after another, more = a grid of small ones
+  // (ours). Tap anywhere to close.
   const showCards = HB.showCards = (cards, title = 'You got') => new Promise((done) => {
     if (!cards.length) return done();
+    if (cards.length <= 3 && cards.every((c) => c.type >= 1 && c.type <= 6)) return showBox(cards, { seals: /new shinobi/i.test(title) }).then(done, done);
     const ui = HB.ui, W = ui.W(), H = ui.H();
     const dim = ui.modal(235); dim.z = 650;
     const head = new HB.Label(title, 'Arial-BoldMT', 44, [0, 0], 1, 1); head.color = [255, 220, 110]; head.stroke = ['#3a1a05', 4]; head.x = W / 2; head.y = H - 150; dim.add(head);
@@ -102,7 +149,8 @@
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
     TABS.forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } }); // 26: 'Giftpack' filled its tab from edge to edge at 30
     if (n.label_StoreItemsView0) { const l = n.label_StoreItemsView0; l.size = 24; l.x += 24; l.setText('Top-up'); } // smaller and to the right: the 1st Recharge sticker lies over the button's left half
-    if (n.sprite_notify_pray) n.sprite_notify_pray.visible = false;
+    // the Recruit tab's red ball: a free recruit is waiting (the phone shows it on every tab of the Shop)
+    if (n.sprite_notify_pray) n.sprite_notify_pray.visible = x.all(list, 'recruit').some((r) => [1, 2].includes(x.n(r, 'recruit_id')) && x.n(r, 'recruit_time') > 0 && x.n(r, 'free_recruit_time_left') <= 0);
     o.onButton = (sel) => {
       if (sel === 'BtnPray') return shop(0);
       if (sel === 'BtnGiftPack') return shop(1);
@@ -155,7 +203,6 @@
       const gold = Number(p.package_yuanbao), silver = Number(p.package_yinzi);
       m.label_goldval.setText(String(gold || silver));
       if (!gold && silver) { const s = HB.frameByName('com_silver_icon'); if (s) m.sprite_goldicon.setFrame(s); }
-      if (m.label_StorePacksView0) m.label_StorePacksView0.setText('Price:');
       icon(m.sprite_packagetype, 0, p.package_icon);
       tap(m.sprite_btn_buyit, async () => {
         if (!(await confirm('Buy ' + p.package_name + ' for ' + (gold || silver) + (gold ? ' gold?' : ' silver?'), { ok: 'Buy' }))) return;
@@ -175,7 +222,7 @@
       if (m.node_descsize) { m.label_desc.dims = [Math.max(200, m.node_descsize.w), 0]; m.label_desc.setText(m.label_desc.text); }
       if (m.label_notsell) m.label_notsell.visible = !gold && !silver; // the layout's own "not for sale" line for an item you hold that the shop does not sell
       if (!gold && !silver) for (const k of ['label_StoreGoodsView0', 'label_priceval', 'sprite_iconframe', 'sprite_btn_buyit']) if (m[k]) m[k].visible = false;
-      if (m.label_StoreGoodsView0) m.label_StoreGoodsView0.setText('Price:');
+      if (m.sprite_btn_useit) m.sprite_btn_useit.grey = !(Number(g.bagnum) > 0); // nothing to use: the phone greys the button (CItemView::initConsum, greysprite)
       m.label_priceval.setText(String(gold || silver));
       if (!gold && silver) { const s = HB.frameByName('com_silver_icon'); if (s) m.sprite_iconframe.setFrame(s); }
       m.label_havecount.setText(String(g.bagnum || 0));
