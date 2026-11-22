@@ -46,8 +46,9 @@ function ensure(db) {
 // count of that kind is under DAILY; claimed all at once with rl_r_frontiers_war_recv_award Cmd 1.
 const usedToday = (db, pl, kind) => db.prepare('SELECT COUNT(*) n FROM border_award WHERE server_id=? AND uid=? AND day=? AND kind=?').get(pl.server_id, pl.uid, day(), kind).n;
 function addAward(db, pl, kind, country, r, drops = '') {
-  if (kind && usedToday(db, pl, kind) >= DAILY[kind]) return;
+  if (kind && usedToday(db, pl, kind) >= DAILY[kind]) return false;
   db.prepare('INSERT INTO border_award(server_id,uid,day,kind,country,exp,merit,drops) VALUES(?,?,?,?,?,?,?,?)').run(pl.server_id, pl.uid, day(), kind, country, r.exp || 0, r.merit || 0, drops);
+  return true;
 }
 function collect(db, pl) { // stations that ran their full time count once
   ensure(db);
@@ -96,8 +97,11 @@ function score(db, pl) {
 function infoXml(db, pl, c, cmd) {
   ensure(db);
   if (cmd === 3) {
-    const rows = db.prepare('SELECT * FROM border_log WHERE server_id=? AND country=? ORDER BY id DESC LIMIT 30').all(pl.server_id, c);
-    return '<hurt_record>' + rows.map((r) => `<item attack_starttime="${r.ts}" enemy_country="${r.enemy_country}" nick="${esc(r.nick)}" attack_lasttime="${STAY}" attack_type="${r.type}" attack_hurt="${r.hurt}"/>`).join('') + '</hurt_record>';
+    // The window (ui_borderWarBloodDetailLayer) prints attack_starttime as hours:minutes:seconds, so it is the time of day in seconds, and reads
+    // the name from enemy_nick. Only today's hits: the monument is whole again every day.
+    const d0 = new Date(); d0.setHours(0, 0, 0, 0); const midnight = Math.floor(d0.getTime() / 1000);
+    const rows = db.prepare('SELECT * FROM border_log WHERE server_id=? AND country=? AND ts>=? ORDER BY id DESC LIMIT 30').all(pl.server_id, c, midnight);
+    return '<hurt_record>' + rows.map((r) => `<item attack_starttime="${r.ts - midnight}" enemy_country="${r.enemy_country}" enemy_nick="${esc(r.nick)}" nick="${esc(r.nick)}" attack_lasttime="${STAY}" attack_type="${r.type}" attack_hurt="${r.hurt}"/>`).join('') + '</hurt_record>';
   }
   const st = active(db, pl.server_id).filter((s) => s.to_country === c);
   const count = (type) => [0, 1, 2, 3, 4].filter((x) => x !== c).map((x) => `<item id="${x}" num="${st.filter((s) => s.type === type && s.country === x).length}"/>`).join('');
@@ -110,12 +114,14 @@ function myStation(db, pl) {
 }
 function userXml(db, pl) {
   const s = myStation(db, pl), sc = score(db, pl);
-  const end = (t) => (s && s.type === t ? s.start + STAY : 0);
+  // The screen's scripts use the two *_end_time numbers as how long one taunt / wander takes ("Wander 5min can receive", the list rows count up to
+  // it) and count remaining_time UP every second (ui_borderWarLayer updateProvokeTimeLabel, ui_borderWarWanderInfoCell): it is the time stood there so far.
+  const end = () => STAY;
   return '<user_info>' + el('defiance_end_time', end(1)) + el('wander_end_time', end(2)) + el('defiance_exp', REWARD[1].exp) + el('defiance_exploit', REWARD[1].merit) +
     el('wander_ex', REWARD[2].exp) + el('wander_exploit', REWARD[2].merit) + el('cleartimes_lmt', clearsPerDay(db, pl)) + el('cleartimes_left', Math.max(0, clearsPerDay(db, pl) - sc.clears)) +
     el('nextlv_cleartimes_lmt', clearsPerDay(db, pl, 1)) + '</user_info>' +
     '<kill_enemy>' + el('kill_defiance', sc.clears) + el('kill_wander', sc.clears) + '</kill_enemy>' +
-    '<user_status>' + el('status', s ? s.type : 0) + el('to_country', s ? s.to_country : -1) + el('remaining_time', s ? s.start + STAY - now() : 0) + '</user_status>' +
+    '<user_status>' + el('status', s ? s.type : 0) + el('to_country', s ? s.to_country : -1) + el('remaining_time', s ? Math.max(0, now() - s.start) : 0) + '</user_status>' +
     '<clear_info>' + el('last_attack_country', -1) + el('last_clear_enemy_country', -1) + el('last_clear_enemy_uid', '') + '</clear_info>';
 }
 // Station in an enemy country (attackType 1 provoke = gold, 2 wander = silver). Damages the monument right away.
@@ -149,7 +155,7 @@ function attack(db, pl, type, to, sw) {
 // Enemies stationed in country C (Cmd 1 of rl_r_frontiers_war_enemy_info).
 function enemyXml(db, pl, c) {
   const st = active(db, pl.server_id).filter((s) => s.to_country === c);
-  return '<enemy_list>' + st.map((s) => `<item id="${s.uid}" nick="${esc(s.nick)}" country="${s.country}" level="${s.level}" remaining_time="${s.start + STAY - now()}"/>`).join('') + '</enemy_list>';
+  return '<enemy_list>' + st.map((s) => `<item id="${s.uid}" nick="${esc(s.nick)}" country="${s.country}" level="${s.level}" remaining_time="${Math.max(0, now() - s.start)}"/>`).join('') + '</enemy_list>';
 }
 // Defender fights a stationed enemy. Win = the enemy is sent home and the defender scores.
 function clear(db, pl, toUid) {
@@ -162,15 +168,17 @@ function clear(db, pl, toUid) {
   const pw = (uid) => { const t = game.teamStats(db, uid, pl.server_id).total; return t.al + t.ah + t.dl + t.dh; };
   const myPw = pw(pl.uid), theirPw = pw(toUid);
   const win = myPw * (0.8 + Math.random() * 0.4) >= theirPw;
-  const exp = 0, merit = 0; // a clear pays on the daily reward screen
+  // A clear pays on the daily reward screen. <Exp> / <Merit> here only tell the win window what this clear earned (0 / 0 = the window's
+  // "receives no rewards" text, which the script shows once the day's rewarded clears are used up); the fight's own <award> stays empty.
+  let exp = 0, merit = 0;
   if (win) {
     db.prepare('UPDATE border_station SET start=0 WHERE rowid=(SELECT rowid FROM border_station WHERE server_id=? AND uid=? ORDER BY start DESC LIMIT 1)').run(pl.server_id, toUid);
     db.prepare('UPDATE border_score SET def=def+20, clears=clears+1 WHERE server_id=? AND day=? AND uid=?').run(pl.server_id, day(), pl.uid);
-    addAward(db, pl, st.type === 1 ? 3 : 4, st.to_country, CLEAR_REWARD);
+    if (addAward(db, pl, st.type === 1 ? 3 : 4, st.to_country, CLEAR_REWARD)) { exp = CLEAR_REWARD.exp; merit = CLEAR_REWARD.merit; }
     game.bumpTask(db, pl.uid, pl.server_id, 11); // daily task: clear borders
   }
   const fight = game.battleXml(db, pl, 1, 1, { win, enemyIds: game.foeTeam(db, enemy.uid, pl.server_id, 0, enemy.level), ratio: theirPw / Math.max(1, myPw), enemyName: enemy.nick, enemyUid: enemy.uid, enemyLevel: enemy.level, enemyCountry: enemy.country });
-  return { code: 0, xml: `<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime>${el('Exp', exp)}${el('Merit', merit)}</userinfo>` + fight + game.awardFull({ exp }) };
+  return { code: 0, xml: `<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime>${el('Exp', exp)}${el('Merit', merit)}</userinfo>` + fight + game.awardFull({ exp: 0 }) };
 }
 // Reward for the last finished station (Cmd 2 info / recv).
 function lastFinished(db, pl) {

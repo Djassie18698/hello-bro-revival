@@ -153,7 +153,7 @@
       GetCurrentSubMenu: () => HB.game.currentSub, GetCurrentSubMenuType: () => HB.game.currentSubType || 0, GetPreSubMenuType: () => HB.game.preSubType || 0,
       OnShowUserInfo: () => HB.game.refreshTopBar && HB.game.refreshTopBar(),
       SetNinjalistNeedtoReLoad: () => {}, addChild: (n) => { if (n) { HB.scene.add(n); HB.luaEnter(n); } },
-      ShowArenaView: () => HB.game.changeToSub(E.E_ARENAVIEW), LogOut: () => location.reload(),
+      ShowArenaView: (xml) => (xml === undefined || xml === null ? HB.game.changeToSub(E.E_ARENAVIEW) : showFightReply(txt(xml))), LogOut: () => location.reload(),
       ShowPurchasList: () => HB.game.changeToSub(E.E_STOREITEMSVIEW), getHornFlag: () => 0,
       // the "you got" window for a reward the scripts read from an <award> (RLRequest.lua InitAwardData -> FightReward)
       AddDialog: (node, z) => { HB.game.addDialog(getModelLayer(), node, z); },
@@ -418,6 +418,15 @@
     luaClass('PayHelperForLua', { goldPay: () => HB.tip('Top-ups are free here: use the Top-up window', 2.2), monthCardPay: () => HB.tip('A free top-up of this price starts the Monthly Card (Top-up window)', 2.6) });
 
     // ================ FIGHTS THE SCRIPTS START (played by fight.js) ================ begin
+    // GetMainMenu():ShowArenaView(<the whole reply>) (CMainMenu::ShowArenaView(const char*)): the phone reads the reply as a fight
+    // (CFightResultData::InitFromXML: <userinfo>, <fight>, <award> under the root), adds its reward to the player and plays it with
+    // the usual result screen: Border war's Clean, the level ranking's and the cross-server battle's fights.
+    function showFightReply(text) {
+      const doc = new DOMParser().parseFromString(text.slice(Math.max(0, text.indexOf("<RENLONG"))), "text/xml");
+      const root = doc.documentElement;
+      if (!root || !root.getElementsByTagName('fight').length || !HB.fight) return;
+      HB.fight.play(root, { kind: 'spar', exp: 0, silver: 0, energy: 0, lua: true }).catch((e) => console.error(e)).then(() => { if (HB.game.refresh) HB.game.refresh(); });
+    }
     // World Boss (fightBossView.lua), No.1 Shinobi (ui_hallOfFameView.lua) and the Ninja Test (ui_ninjaTestMain.lua) do what the
     // C++ screens do: CFightResultData:instance():Clear(), InitFightXML(<fight>, data), data:SetFightType(...), InitAwardData(
     // data:GetRewardData(), <award>), then CRoundFightView:new():init(), GetMainMenu():addChild(view, 5), view:Start().

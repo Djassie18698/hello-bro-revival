@@ -894,6 +894,15 @@ for (const pick of [55, 56, 57]) {
     // border: wandering costs 2500 silver
     const bx = require('../../server/border').infoXml(db, me(), 2, 1);
     if (!/<wander_coin>2500<\/wander_coin>/.test(bx)) { bad++; console.log('BORDER wander price:', (/<wander_coin>\d+/.exec(bx) || [bx.slice(0, 200)])[0]); }
+    // border: the screen reads the two end times as how long one taunt / wander takes (300 s) and counts the station's time up from 0
+    const bu = require('../../server/border').userXml(db, me());
+    if (!/<defiance_end_time>300<\/defiance_end_time><wander_end_time>300<\/wander_end_time>/.test(bu) || !/<remaining_time>0<\/remaining_time>/.test(bu)) { bad++; console.log('BORDER station times:', bu.slice(0, 200)); }
+    // border: a rewarded clear tells its win window what it earned (0 / 0 makes the window say "receives no rewards")
+    if (!/if \(addAward\(db, pl, st\.type === 1 \? 3 : 4, st\.to_country, CLEAR_REWARD\)\) \{ exp = CLEAR_REWARD\.exp; merit = CLEAR_REWARD\.merit; \}/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'border.js'), 'utf8'))) { bad++; console.log('BORDER clear: the reply no longer carries what the clear earned'); }
+    // border: the damage list's rows carry the time of day in seconds and the name as enemy_nick
+    { const border = require('../../server/border'); border.ensure(db); db.prepare('INSERT INTO border_log(server_id, country, enemy_country, nick, type, ts, hurt) VALUES(1, 2, 1, ?, 2, ?, 5)').run('Wanderer', Math.floor(Date.now() / 1000));
+      const hx = border.infoXml(db, me(), 2, 3), tm = Number((/attack_starttime="(\d+)"/.exec(hx) || [])[1]);
+      if (!(tm >= 0 && tm < 86400) || !/enemy_nick="Wanderer"/.test(hx)) { bad++; console.log('BORDER damage list:', hx.slice(0, 200)); } }
     // change country: price by the target country's population rank (biggest 1500 ... 4th 150)
     const counts = {}; for (const r of db.prepare('SELECT country, COUNT(*) c FROM players WHERE server_id=1 GROUP BY country').all()) counts[r.country] = r.c;
     const order = [1, 2, 3, 4].sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
@@ -1291,6 +1300,14 @@ for (const pick of [55, 56, 57]) {
     ck(!j1.error && /cooling down/.test(j2.error || '') && /cooling down/.test(c2.error || '') && !j3.error, `Akatsuki rejoin wait wrong: ${JSON.stringify([j1, j2, c2, j3])}`);
     ck(/code="180001"/.test(errcodes.fix(`<root code="5"><message>${j2.error}</message></root>`)), 'rejoin wait does not show "In cd time"');
     guild.quit(db, p2); db.prepare('DELETE FROM group_quit WHERE uid=?').run(p2.uid);
+  }
+  { // list shapes two script screens need (found by playing them in the rewritten game, 22 Nov 2026): the Mora rank is a list of
+    // <item> rows, the Slot machine's faces carry icon and cash as attributes (as child elements every row was a Lua error)
+    const me = db.prepare('SELECT * FROM players WHERE uid=77 AND server_id=1').get();
+    const m = require('../../server/mora').infoXml(db, me), sl = require('../../server/slot').info(db, me);
+    if (!/<rank><item>.*<nick>/.test(m)) { bad++; console.log('MORA   the rank list must hold <item> rows: ' + String(m).slice(0, 160)); }
+    const sx = typeof sl === 'string' ? sl : (sl && sl.xml) || JSON.stringify(sl);
+    if (!/<ninja icon="icon_npc0\d_1" cash="\d+"\/>/.test(sx)) { bad++; console.log('SLOT   the faces must carry icon and cash as attributes: ' + String(sx).slice(0, 200)); }
   }
   { // custom events (customevents.js): a file in the folder is listed, pays once (or once a day), a broken or foreign file is skipped
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hb-custom-'));
