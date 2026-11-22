@@ -261,8 +261,8 @@
     {
       const box = n.node_viewgroup, cellSize = n.node_cardview;
       const row = new HB.ScrollView(); row.dir = 0; row.w = box.w; row.h = box.h;
-      const strip = new HB.Node(); strip.w = Math.max(box.w, HB.data.team.length * cellSize.w); strip.h = box.h;
-      HB.data.team.forEach((t, i) => {
+      const strip = new HB.Node(); strip.w = Math.max(box.w, HB.data.used.length * cellSize.w); strip.h = box.h;
+      HB.data.used.forEach((t, i) => { // the line-up in use, like the phone (compared 22 Nov 2026: with Team 2 active the phone shows Team 2 here)
         const card = HB.data.card(t.seq); if (!card) return;
         const co = {};
         const cell = HB.build('sub_ui/MainCardView', co, [cellSize.w, cellSize.h]);
@@ -273,7 +273,7 @@
         if (pic) { const sp = new HB.Sprite(pic); const k = Math.min(m.node_icon.w / pic.sw, m.node_icon.h / pic.sh); sp.sx = sp.sy = k; sp.x = m.node_icon.w / 2; sp.y = m.node_icon.h / 2; m.node_icon.add(sp); }
         m.label_levelvalue.setText(String(card.level));
         m.label_tupo_level.visible = card.tupo > 0; if (card.tupo > 0) m.label_tupo_level.setText('+' + card.tupo);
-        m.node_inlay_frame.visible = false;
+        HB.cardDress(m, card, 'small'); // reborn corners and the glow of a grown card, like the phone
         strip.add(cell);
       });
       row.setContent(strip); strip.x = 0; strip.y = 0;
@@ -298,6 +298,11 @@
       const menu = new HB.CCBProxy(); menu.owner = o; // CDefaultMainMenu as the scripts see it: getNode(name) = the layout's named nodes
       if (HB.luaRun('MenuBtnsView.lua')) HB.luaGlobal('InitMenuBtnsView', menu);
       HB.luaGlobal('initMainMenuActivityBtn'); // CDefaultMainMenu::onEnterTransitionDidFinish: the event buttons on the left
+      // CDefaultMainMenu::SetSevenDayOpened: the 7-day pouch on the right shows only while the login days are not past functionconfig 13's
+      // number (0 in v28, so the phone never shows it: the 7-day goals are reached through Event); compared with the phone 22 Nov 2026
+      if (o.n.btn_sevenDay) { const lim = (tables.functionconfig.rows.find((r) => r[0] === 13) || [])[3] || 0; o.n.btn_sevenDay.visible = ((HB.system && HB.system.loginDays) || 1) <= lim; }
+      if (HB.system && HB.system.bubbles) HB.system.bubbles();
+      HB.game.updateNotify();
       // test switch: &tap=<button name>[,<button name>...] presses home buttons one after another (screenshots)
       if (q.get('card') && HB.screens.details) { await HB.wait(1); const c = HB.data.ofType(Number(q.get('card')))[0]; if (c) HB.screens.details(c); } // test switch: &card=1|2|3|4|5|6 = the details of your first card of that kind
       if (q.get('open') && HB.screens[q.get('open')]) { await HB.wait(1); HB.screens[q.get('open')](['upgrade', 'growth', 'rebirth', 'potential'].includes(q.get('open')) ? (HB.data.ofType(1)[0] || {}).seq : q.get('tab') !== null ? Number(q.get('tab')) : undefined); } // test switch: &open=shop|spar|arena|tower|team|backpack|plunder|ramen|moneytree|upgrade, &tab=<n> = that screen's tab
@@ -357,6 +362,27 @@
     if (m && m.sprite_clickbk && m[name]) m.sprite_clickbk.x = m[name].x;
   }
   // put another screen into MainMenu's content area (CMainMenu::ChangeToSubView): a layout in the 768-wide frame
+  // The bottom bar's two red balls (CMainMenu::updateNotify, a timer on the phone):
+  //   Backpack (sprite_notify_mainpack): shinobi, gear or ninjutsu fragments enough to make a card (showMianPackNotify);
+  //   Shop (sprite_notify_shop): the 300-gold or the 150-gold recruit is free now, or you hold recruitment orders (showShopNotify).
+  // The recruit times come from rl_r_shoplist Cmd 1600 (asked again at most once a minute, and after a visit to the Shop).
+  const notify = { at: 0, shop: false };
+  HB.game.updateNotify = async (fresh) => {
+    const n = HB.game.menu && HB.game.menu.n; if (!n) return;
+    try {
+      const piece = await HB.ui.table('piece_info'), bag = x.first(HB.game.main, 'chipbag');
+      const ready = (bag ? x.all(bag, 'chipitem') : []).some((c) => { const r = piece.rows.find((p) => p[1] === Number(x.a(c, 'id', 0))); return r && [1, 2, 4].includes(r[3]) && Number(x.a(c, 'num', 0)) >= r[7] && r[7] > 0; });
+      if (n.sprite_notify_mainpack) n.sprite_notify_mainpack.visible = ready;
+      if (fresh || Date.now() - notify.at > 60000) {
+        notify.at = Date.now();
+        const list = await HB.api('rl_r_shoplist', { Cmd: 1600 });
+        const free = x.all(list, 'recruit').some((r) => [1, 2].includes(x.n(r, 'recruit_id')) && x.n(r, 'recruit_time') > 0 && x.n(r, 'free_recruit_time_left') <= 0);
+        const orders = x.all(list, 'goods').some((g) => x.n(g, 'propid') === 30 && x.n(g, 'bagnum') > 0);
+        notify.shop = free || orders;
+      }
+      if (n.sprite_notify_shop) n.sprite_notify_shop.visible = notify.shop;
+    } catch (e) { /* the balls stay as they were */ }
+  };
   HB.game.showSub = (file, owner, barButton) => {
     const content = HB.game.subContent;
     const old = content.children.slice(); content.removeAll(); old.forEach((c) => HB.luaLeave && HB.luaLeave(c));
@@ -367,6 +393,7 @@
     sub.fade = 0; HB.tween(sub, { fade: 1 }, 0.16); // screens fade in (ours: the phone cuts)
     HB.game.currentSubType = 0;
     if (barButton) selectBar(barButton);
+    HB.game.updateNotify(file === 'store/StoreItemsView');
     fillTopBar(owner, HB.game.main);
     const n = owner.n, u = x.first(HB.game.main, 'user');
     n.label_maxattack && n.label_maxattack.setText(`${x.n(u, 'attactlow')}-${x.n(u, 'attacthigh')}`);

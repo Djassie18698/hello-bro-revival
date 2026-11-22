@@ -88,7 +88,7 @@
     }
     ['e_obj_ninja', 'e_obj_weapon', 'e_obj_armors', 'e_obj_decoration', 'e_obj_mark', 'e_obj_ninjutsu'].forEach((n, i) => gval(n, i + 1)); // ours: the server's card types
     const cardList = (type) => vector(HB.data.ofType(type).map(cardObject));
-    const teamObject = gameObject('CTeamData', { GetSuitInfo: () => -1, /* no set active: the team's sets are not read from the server yet */ GetTeamSize: () => HB.data.team.length });
+    const teamObject = gameObject('CTeamData', { GetSuitInfo: () => -1, /* no set active: the team's sets are not read from the server yet */ GetTeamSize: () => HB.data.used.length });
 
     // ---------------- the player (CPlayerDataMgr::firefly_GetPlayerInfoData: filled from rl_r_mainpage <user>)
     const user = () => HB.game.user || {};

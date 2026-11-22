@@ -1,6 +1,8 @@
 // Plays the rewritten game (server/webclient) by hand from the command line, in muted headless Chrome: one Chrome stays open
 // (serve) and the other commands talk to it, so a feature can be played step by step and looked at.
 //   node tools/dev/play.js serve <guest> [port]     start Chrome on /play/?auto=1&device=<guest> and keep it (run in the background)
+//     PLAY_ACCOUNT=1 with serve: log in as the emulator's test account instead of a guest (name + password read from tools/dev/emu.account
+//     at run time and put into the page's own storage, the same keys the account window's Log in fills)
 //   node tools/dev/play.js ui [port]                what is on screen: buttons (index, name, title, place) and texts, topmost window first
 //   node tools/dev/play.js tap <index|name> [port]  a real mouse click on that button (name: the first shown button with that name / title)
 //   node tools/dev/play.js click <x> <y> [port]     a real mouse click at a place on the page
@@ -8,6 +10,7 @@
 //   node tools/dev/play.js lua "<lua>" [port]       run Lua in the game
 //   node tools/dev/play.js log [port]               requests sent since the last "log" (endpoint, Cmd, start of the reply), Lua / page errors, missing C++ names
 //   node tools/dev/play.js shot <file> [port]       a picture of the page
+//   node tools/dev/play.js reload [port]            load the page again without the browser's kept copies (after changing code or pictures)
 //   node tools/dev/play.js home [port]              close windows, back to Home
 //   node tools/dev/play.js stop [port]
 // The dev server on :18081 must run (bash tools/dev/restart.sh). PLAY_BASE=http://127.0.0.1:<port> with serve = another server
@@ -70,6 +73,8 @@ if (require.main === module) (async () => {
     await c.send('Emulation.setDeviceMetricsOverride', { width: 760, height: 1350, deviceScaleFactor: 1, mobile: false });
     await c.send('Page.enable'); await c.send('Runtime.enable');
     await c.send('Page.addScriptToEvaluateOnNewDocument', { source: HOOK });
+    if (process.env.PLAY_ACCOUNT) { const [name, pw] = fs.readFileSync(path.join(__dirname, 'emu.account'), 'utf8').split(/\r?\n/).map((l) => l.trim());
+      await c.send('Page.addScriptToEvaluateOnNewDocument', { source: `try { localStorage.setItem('hb.name', ${JSON.stringify(name)}); localStorage.setItem('hb.namepw', ${JSON.stringify(pw)}); } catch (e) {}` }); }
     await c.send('Page.navigate', { url: `${process.env.PLAY_BASE || 'http://127.0.0.1:18081'}/play/?auto=1&device=${device}&stage=0&mute=1&preload=0` });
     console.log('serving ' + device + ' on ' + port);
     c.ws.addEventListener('close', () => { ch.kill(); process.exit(0); });
@@ -77,8 +82,8 @@ if (require.main === module) (async () => {
     ch.on('exit', () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch {} process.exit(0); });
     return;
   }
-  const nargs = { ui: 0, log: 0, home: 0, stop: 0, tap: 1, ev: 1, lua: 1, shot: 1, click: 2 }[cmd];
-  if (nargs === undefined) { console.log('commands: serve ui tap click ev lua log shot home stop'); process.exit(1); }
+  const nargs = { ui: 0, log: 0, home: 0, stop: 0, reload: 0, tap: 1, ev: 1, lua: 1, shot: 1, click: 2 }[cmd];
+  if (nargs === undefined) { console.log('commands: serve ui tap click ev lua log shot home reload stop'); process.exit(1); }
   const port = portOf(nargs);
   const c = await connect(port);
   const printLog = async () => { const l = await c.log(); l.net.forEach((n) => console.log('  > ' + n)); l.err.forEach((e) => console.log('  ERR ' + e)); l.lua.forEach((e) => console.log('  LUA ' + String(e).slice(0, 600))); if (l.missing.length) console.log('  missing: ' + l.missing.join(', ')); };
@@ -92,6 +97,7 @@ if (require.main === module) (async () => {
   else if (cmd === 'log') await printLog();
   else if (cmd === 'shot') { await c.shot(rest[0]); console.log('saved ' + rest[0]); }
   else if (cmd === 'home') await c.home();
+  else if (cmd === 'reload') { await c.send('Network.clearBrowserCache'); await c.send('Page.reload', { ignoreCache: true }); await wait(Number(process.env.PLAY_WAIT) || 14000); }
   else if (cmd === 'stop') { await c.send('Browser.close'); }
   c.close(); process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

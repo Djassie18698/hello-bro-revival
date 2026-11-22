@@ -15,8 +15,8 @@
   const HB = window.HB;
   HB.screens = HB.screens || {};
   const LAYOUT = { 1: 'ListNinja', 2: 'ListWeapon', 3: 'ListArmor', 4: 'ListAcciess', 5: 'ListMark', 6: 'ListNinjutsu' };
-  const PIECE = { 1: ['BackpackNinjaPiece', 'ctrl_ninja_piece', 'BtnNinjaPiece', 'sprite_notify_ninja', 'Shinobi'], 2: ['BackpackEquipPiece', 'ctrl_equip_piece', 'BtnEquipPiece', 'sprite_notify_equip', 'Gear'],
-    4: ['BackpackNinjutsuPiece', 'ctrl_ninjutsu_piece', 'BtnninjutsuPiece', 'sprite_notify_ninjutsu', 'Ninjutsu'], 5: ['BackpackPetPiece', 'ctrl_pet_piece', 'BtnpetPiece', 'sprite_notify_pet', 'Pet'] };
+  const PIECE = { 1: ['BackpackNinjaPiece', 'ctrl_ninja_piece', 'BtnNinjaPiece', 'sprite_notify_ninja', 'Shinobi'], 2: ['BackpackEquipPiece', 'ctrl_equip_piece', 'BtnEquipPiece', 'sprite_notify_equip', 'Equip'],
+    4: ['BackpackNinjutsuPiece', 'ctrl_ninjutsu_piece', 'BtnninjutsuPiece', 'sprite_notify_ninjutsu', 'Ninjutsu'], 5: ['BackpackPetPiece', 'ctrl_pet_piece', 'BtnpetPiece', 'sprite_notify_pet', 'Fragment'] };
   const loadLists = () => Promise.all([...Object.values(LAYOUT).map((l) => HB.loadCCB('gameobjlist/' + l)), HB.ui.table('packtips'), HB.ui.table('functionconfig')]);
   const ELEMENT = { 1: 'com_text_water_icon', 2: 'com_text_fire_icon', 3: 'com_text_wind_icon', 4: 'com_text_soild_icon', 5: 'com_text_thunder_icon' };
   const PAGE_TITLE = { 1: 'mypack_cha_gotoexperience', 2: 'mypack_cha_tofight', 3: 'mypack_cha_gotoplunder' };
@@ -102,6 +102,81 @@
     }
     return cell;
   }
+  // ---------------------------------------------------------------- the Backpack's own rows
+  // CMyBackpackCardView with backpack/Backpack<Kind>.ccbi (compared with the phone 22 Nov 2026; the gameobjlist/List<Kind> rows above
+  // are the "choose a card" lists). A shinobi row: picture with glow and reborn corners, name, element, five stars (gold up to its
+  // stars), attack / defence / chakra as the details window counts them, "Already in play", Level up, and under the numbers the small
+  // buttons Soul (a card not in play whose stars may be refined: normalconfig 81 + stars, god cards always) and WuXing conversion
+  // (Change Element). Gear: its one number, +N of an advanced weapon / armor, the "Suit" ribbon. The list ends with one tip row
+  // (where these cards come from, Go shopping / the page it names).
+  const PACK = { 1: 'BackpackNinja', 2: 'BackpackWeapon', 3: 'BackpackArmor', 4: 'BackpackAcciess', 5: 'BackpackMark', 6: 'BackpackNinjutsu' };
+  const packLists = () => Promise.all([...Object.values(PACK).map((l) => HB.loadCCB('backpack/' + l)), HB.ui.table('packtips'), HB.ui.table('functionconfig')]);
+  function packCell(card, size, opt = {}) {
+    const type = card.tipFor || card.type, co = {};
+    const cell = HB.build('backpack/' + PACK[type], co, [size.w, size.h]);
+    cell.ignoreAnchor = true; cell.w = size.w; cell.h = size.h;
+    const n = co.n;
+    if (card.tipFor) { // the last row: the tip
+      if (n.layer_info) n.layer_info.visible = false;
+      if (n.layer_tips) n.layer_tips.visible = true;
+      const tip = HB.row('packtips', { 5: 6, 6: 5 }[type] || type); // packtips rows: shinobi, weapon, armor, trinket, ninjutsu, seal
+      if (tip) {
+        if (n.label_tiptext) { n.label_tiptext.dims = [size.w - 60, 0]; n.label_tiptext.setText(clean(tip[2])); }
+        const f = HB.frameByName(PAGE_TITLE[tip[3]]); if (f && n.sprite_gotopagetitle) n.sprite_gotopagetitle.setFrame(f);
+        tapOn(n.sprite_gotostore, () => HB.screens.shop && HB.screens.shop(Math.max(0, tip[4] - 1))); // CStoreItemsView::SetTabView(packtips [4])
+        tapOn(n.sprite_gotopage, () => {
+          if (tip[3] === 2) return HB.screens.spar && HB.screens.spar();
+          if (tip[3] === 3) {
+            const fc = HB.row('functionconfig', 2), lv = Number((HB.game.user || {}).level) || 1;
+            if (fc && lv < fc[3]) return HB.ui.tip(clean(fc[4]) || 'Plunder opens at level ' + fc[3], 1.8);
+            return HB.screens.plunder && HB.screens.plunder();
+          }
+          return HB.screens.training && HB.screens.training();
+        });
+      }
+      return cell;
+    }
+    const inf = HB.info(card.type, card.id), used = HB.data.inUse(card.seq);
+    if (n.layer_tips) n.layer_tips.visible = false;
+    if (n.label_name) n.label_name.setText(inf.name);
+    if (n.label_level) n.label_level.setText(String(card.level));
+    const frame = HB.qualityFrame(card.type === 1 ? 'ninjaSmall' : 'small', inf.quality);
+    if (frame && n.sprite_ninjaicon) n.sprite_ninjaicon.setFrame(frame);
+    const pic = HB.iconFrame(card.type, inf.icon);
+    if (pic && n.sprite_ninjaicon) {
+      const holder = n.node_icon || n.sprite_ninjaicon, w = holder.w || n.sprite_ninjaicon.w, h = holder.h || n.sprite_ninjaicon.h;
+      const sp = new HB.Sprite(pic); const k = Math.min((w - (n.node_icon ? 0 : 12)) / pic.sw, (h - (n.node_icon ? 0 : 12)) / pic.sh);
+      sp.sx = sp.sy = k; sp.x = w / 2; sp.y = h / 2;
+      holder.add(sp); if (!n.node_icon) under(holder, sp);
+    }
+    if (card.type === 1) HB.cardDress(n, card, 'small');
+    else if (n.sprite_ninjaicon) HB.suitRibbon(n.sprite_ninjaicon, card);
+    const star = HB.frameByName('com_normal_star');
+    for (let i = 1; i <= 5; i++) if (n['sprite_star' + i] && i <= Math.min(5, inf.quality) && star) n['sprite_star' + i].setFrame(star);
+    const st = HB.cardStats(card), dash = card.type === 2 || card.type === 3 ? '--' : '-', rng = (a) => a[0] + dash + a[1]; // a weapon's and an armor's number has two dashes on the phone ('%d--%d')
+    if (n.label_attack) n.label_attack.setText(rng(st.atk));
+    if (n.label_defense) n.label_defense.setText(rng(st.def));
+    if (n.label_charkra) n.label_charkra.setText(rng(st.chakra));
+    if (n.sprite_ninjacamp) { const f = HB.frameByName(ELEMENT[card.attri] || ELEMENT[1]); if (f) n.sprite_ninjacamp.setFrame(f); }
+    if (n.label_tupo_level) { n.label_tupo_level.visible = card.tupo > 0; if (card.tupo > 0) n.label_tupo_level.setText('+' + card.tupo); }
+    if (n.label_grade) { n.label_grade.visible = card.newlife > 0; if (card.newlife > 0) n.label_grade.setText('+' + card.newlife); }
+    if (n.label_desctype) n.label_desctype.setText(''); // the phone's Backpack shows no text under a seal's name
+    if (n.label_equiped) n.label_equiped.visible = used;
+    // the small buttons
+    const soul = card.type === 1 && !used && (inf.quality >= 6 || ((HB.row('normalconfig', 81 + inf.quality) || [])[3] === 1));
+    if (n.spr_btn_trainsoul) n.spr_btn_trainsoul.visible = soul;
+    const split = card.type === 1 && !used && inf.quality >= 6; // Decompose: a god card that is not in play
+    if (n.spr_btn_split) n.spr_btn_split.visible = split;
+    if (n.spr_btn_change_attr) n.spr_btn_change_attr.visible = true;
+    if (split) tapOn(n.spr_btn_split, () => opt.onSplit && opt.onSplit(card));
+    if (n.spr_btn_inherit_disableit) n.spr_btn_inherit_disableit.visible = false;
+    if (n.sprite_btn_advance) n.sprite_btn_advance.visible = false;
+    if (soul) tapOn(n.spr_btn_trainsoul, () => HB.game.changeToActivitySubMenu('ShowTrainSoulView', 'gTrainSoulEntry={prePage="backpack", bagId=' + card.seq + '}'));
+    tapOn(n.spr_btn_change_attr, () => HB.game.changeToActivitySubMenu('ShowAttributeDanView', card.seq));
+    tapOn(n.sprite_btn_upgrade, () => opt.onButton && opt.onButton(card));
+    if (opt.onRow && n.sprite_ninjaicon) tapOn(n.sprite_ninjaicon, () => opt.onRow(card)); // the picture opens the card's details
+    return cell;
+  }
   // a scrolling column of rows inside `box`
   function fillList(box, cellSize, cards, opt, make = listCell) {
     box.removeAll();
@@ -114,7 +189,7 @@
     return scroll;
   }
   // strongest and rarest first (ours: the phone's exact order is not known yet)
-  const sorted = (cards) => cards.slice().sort((a, b) => HB.info(b.type, b.id).quality - HB.info(a.type, a.id).quality || b.level - a.level || a.seq - b.seq);
+  const sorted = (cards) => HB.sortCards(cards); // the game's own order (CLess)
   HB.bag = { listCell, fillList, sorted, loadLists };
 
   // ---------------------------------------------------------------- fragments
@@ -124,7 +199,12 @@
     return (bag ? x.all(bag, 'chipitem') : []).map((c) => {
       const id = Number(x.a(c, 'id', 0)), num = Number(x.a(c, 'num', 0)), row = HB.row('piece_info', id);
       return row && num > 0 ? { id, num, row, kind: row[3], need: row[7], ready: num >= row[7] } : null;
-    }).filter(Boolean).sort((a, b) => (b.ready - a.ready) || b.row[5] - a.row[5] || a.id - b.id);
+    }).filter(Boolean).sort((a, b) => (b.ready - a.ready) || rankOf(b)[0] - rankOf(a)[0] || rankOf(a)[1] - rankOf(b)[1] || a.id - b.id); // as seen on the phone: god cards first, then by the card's rank number
+  }
+  function rankOf(p) { // [stars of the card the fragments make (god = 6), its rank number]
+    if (p.kind !== 1) return [p.row[5] || 0, 0];
+    const r = HB.row('ninjainfo', p.row[6]) || HB.info(1, p.row[6]).row || [];
+    return [r[11] || p.row[5] || 0, r[5] || 0];
   }
   HB.bag.pieces = pieces;
   // what a piece becomes: the card type and id for HB.info, or a pet (petinfo [2] name, [3] picture)
@@ -137,13 +217,19 @@
   }
   function pieceCell(p, size, opt) {
     const co = {};
-    const cell = HB.build('backpack/' + PIECE[p.kind][0], co, [size.w, size.h]);
+    const cell = HB.build('backpack/' + PIECE[p.tipFor || p.kind][0], co, [size.w, size.h]);
     cell.ignoreAnchor = true; cell.w = size.w; cell.h = size.h;
+    if (p.tipFor) { // the list's last row, like the phone: where fragments come from + the way to the Secret Shop
+      const m = co.n;
+      if (m.layer_info) m.layer_info.visible = false;
+      if (m.layer_tips) m.layer_tips.visible = true;
+      tapOn(m.sprite_gotostore, () => HB.game.changeToActivitySubMenu && HB.game.changeToActivitySubMenu('ShowSecretShopView', 'gSecretShopEntry={prePage="backpack"}')); // CMyBackpackCardView::GotoMysticalStore
+      return cell;
+    }
     const n = co.n, t = target(p), inf = t.pet ? { name: clean(t.pet[2]), icon: clean(t.pet[3]), quality: 5 } : HB.info(t.type, t.id);
     if (n.layer_tips) n.layer_tips.visible = false;
     if (n.label_name) { n.label_name.setText(clean(p.row[2]) || inf.name); fitName(n.label_name, 165); }
-    const count = n['label_' + PIECE[p.kind][0] + '1']; if (count) count.setText('Fragments:');
-    const lack = n['label_' + PIECE[p.kind][0] + '0']; if (lack) lack.setText('Not enough'); // short enough for its brush stroke
+    // "Number of fragments:" and "Not gathered yet" stay the game's own words (fit.js makes them fit)
     const stars = p.row[5] || 0, star = HB.frameByName('com_normal_star');
     for (let i = 1; i <= 5; i++) { const s = n['sprite_star' + i]; if (!s) continue; s.visible = stars > 0; if (i <= Math.min(5, stars) && star) s.setFrame(star); }
     const kindOf = t.pet ? 1 : t.type;
@@ -162,11 +248,6 @@
     for (let i = 1; i <= 3; i++) if (n['sprite_ninja_type' + i]) n['sprite_ninja_type' + i].visible = p.kind === 1 && p.row[4] === i; // attack card / defence card / god card
     if (p.ready) tapOn(n.sprite_btn_merge, () => opt.onMerge(p, t));
     if (!t.pet) tapOn(n.sprite_ninjaicon, () => HB.screens.details && HB.screens.details({ seq: 0, type: t.type, id: t.id, level: 1, attri: 0, tupo: 0 }, { view: true }));
-    // the tip side (BackpackTipsPiece): fragments come from the Secret Shop
-    if (n.layer_tips && n.layer_info) {
-      tapOn(n.sprite_gotostore, () => HB.game.changeToActivitySubMenu && HB.game.changeToActivitySubMenu('ShowSecretShopView', 'gSecretShopEntry={prePage="backpack"}')); // CGameObjCardView::GotoMysticalStore
-      flip(cell, n);
-    }
     return cell;
   }
 
@@ -177,7 +258,7 @@
     const ui = HB.ui;
     type = Number(type) || 1;
     ui.loading(true);
-    await Promise.all([HB.data.tables(), HB.loadCCB('backpack/MyBackpackView'), loadLists(), ui.table('piece_info'), ui.table('petinfo'), ...Object.values(PIECE).map((p) => HB.loadCCB('backpack/' + p[0]))]);
+    await Promise.all([HB.data.tables(), HB.loadCCB('backpack/MyBackpackView'), loadLists(), packLists(), ui.table('piece_info'), ui.table('petinfo'), ...Object.values(PIECE).map((p) => HB.loadCCB('backpack/' + p[0]))]);
     ui.loading(false);
     const o = {};
     HB.game.showSub('backpack/MyBackpackView', o, 'btn_mainpackage');
@@ -196,15 +277,15 @@
     const show = (t) => {
       cardType = t; pieceKind = 0; top(false); dots();
       for (const [name, , ty] of TABS) { const b = n[name]; if (b) { b.frames[1] = ty === t ? tabOn || tabOff : tabOff; b.layout(); } }
-      const cards = sorted(HB.data.ofType(t));
-      fillList(n.node_tablecontent, n.node_cardcontent, cards, (c) => ({ button: 'upgrade', tips: true, inUse: HB.data.inUse(c.seq), onButton: (k) => HB.screens.upgrade(k.seq), onRow: (k) => HB.screens.details && HB.screens.details(k) }));
+      const cards = HB.sortCards(HB.data.ofType(t));
+      fillList(n.node_tablecontent, n.node_cardcontent, [...cards, { tipFor: t }], () => ({ onButton: (k) => HB.screens.upgrade(k.seq), onRow: (k) => HB.screens.details && HB.screens.details(k) }), packCell);
       note(cards.length ? '' : 'Nothing here yet');
     };
     const showPieces = (kind) => {
       pieceKind = kind; top(true); dots();
       for (const k of Object.keys(PIECE)) { const b = n[PIECE[k][1]]; if (b) { b.frames[1] = Number(k) === kind ? tabOn || tabOff : tabOff; b.setTitle(PIECE[k][4]); } }
       const list = pieces().filter((p) => p.kind === kind);
-      fillList(n.node_tablecontent, n.node_cardcontent, list, { onMerge: merge }, pieceCell);
+      fillList(n.node_tablecontent, n.node_cardcontent, [...list, { tipFor: kind }], { onMerge: merge }, pieceCell);
       note(list.length ? '' : 'No ' + PIECE[kind][4].toLowerCase() + ' fragments yet');
     };
     let noteLabel = null;

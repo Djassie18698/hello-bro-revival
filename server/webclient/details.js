@@ -59,31 +59,39 @@
       await HB.dialog('dlg_ui/NinjaDetailView', w);
       const n = w.n, r = inf.row || [];
       n.label_name.setText(inf.name + (card.tupo > 0 ? '  +' + card.tupo : ''));
-      n.ctrl_upgrade.setTitle('Level up'); n.ctrl_upgrade1.setTitle('Growth'); n.ctrl_upgradere.setTitle('Rebirth'); n.ctrl_upgradepo.setTitle('Train');
+      n.ctrl_upgrade.setTitle('Level up'); n.ctrl_upgrade1.setTitle('Growth'); n.ctrl_upgradere.setTitle('Reincarnate'); n.ctrl_upgradepo.setTitle('Train');
       n.ctrl_close2.visible = false;
-      if (opt.onChange) n.ctrl_change.setTitle('Change'); else n.ctrl_change.visible = false;
+      n.ctrl_change.setTitle('Change'); // always there on the phone; from the Backpack it only closes the window (CMyBackpackCardView::onBtnChange)
+      if (opt.view) n.ctrl_change.visible = false;
       // the page inside the window is the game's own (dlg_ui/NinjaSubView): big card, story, chains, growth and rebirth steps
       const bf = HB.qualityFrame('big', inf.quality); if (bf) n.sprite_iconframe.setFrame(bf);
       const art = fit(n.layer_icon, HB.iconFrame(1, inf.icon, true)); if (art) art.z = -1;
-      hide(n, 'node_shadow_back', 'node_shadow_front', 'node_inlay_frame', 'sprite_strength_level_frame', 'sprite_strength_level_icon', 'sprite_expval', 'sprite_dragon_icon',
-        'label_current_attack_plus', 'label_current_defense_plus', 'label_current_chakra_plus');
+      // reborn corners, dragon mark, glow, growth badge, the exp bar with "Max" (CNinjaDetailView::InitUI does the same as every card)
+      if (card.seq) HB.cardDress(n, card, 'big');
+      else hide(n, 'node_shadow_back', 'node_shadow_front', 'node_inlay_frame', 'sprite_strength_level_frame', 'sprite_strength_level_icon', 'sprite_expval', 'sprite_dragon_icon');
       const camp = HB.frameByName({ 1: 'com_text_water_big_icon', 2: 'com_text_fire_big_icon', 3: 'com_text_wind_big_icon', 4: 'com_text_soild_big_icon', 5: 'com_text_thunder_big_icon' }[card.attri]);
       if (camp) n.sprite_ninjacamp.setFrame(camp); else n.sprite_ninjacamp.visible = false;
       n.label_barlevel.setText(String(lvl));
-      n.label_attack.setText(range(st.atk)); n.label_defense.setText(range(st.def));
-      n.label_charkra.setText(range([r[23] + r[29] * (lvl - 1), r[24] + r[30] * (lvl - 1)]));
-      if (opt.team) { n.label_attack.setText(range(opt.team.atk)); n.label_defense.setText(range(opt.team.def)); n.label_charkra.setText(range(opt.team.chakra)); } // in the team: the server's totals
+      // the card's own numbers and, in green, what growth and training add (the phone: '%d-%d' and '+%d')
+      const cs = HB.cardStats(card);
+      n.label_attack.setText(range(cs.base.atk)); n.label_defense.setText(range(cs.base.def)); n.label_charkra.setText(range(cs.base.chakra));
+      [['label_current_attack_plus', 0], ['label_current_defense_plus', 1], ['label_current_chakra_plus', 2]].forEach(([k, i]) => { if (n[k]) { n[k].visible = cs.bonus[i] > 0; n[k].setText('+' + cs.bonus[i]); } });
       if (n.label_tupo_level) { n.label_tupo_level.visible = card.tupo > 0; if (card.tupo > 0) n.label_tupo_level.setText('+' + card.tupo); }
-      if (n.label_NinjaSubView0) n.label_NinjaSubView0.setText('Details');
       n.label_desc.dims = [250, 0]; n.label_desc.setText(clean(inf.desc));
       stars(n, inf.quality);
-      n.label_skill.setText('Chains'); n.label_skill1.setText('Growth'); n.label_skill2.setText('Rebirth');
+      n.label_skill.setText('Chains'); n.label_skill1.setText('Growth'); n.label_skill2.setText('Reincarnation'); // the phone's three headings
       const chains = match.rows.filter((m) => m[3] === card.id).slice(0, 6);
-      for (let i = 1; i <= 6; i++) { const c = chains[i - 1]; n['label_combatname' + i].setText(''); n['label_combat' + i].setText(c ? clean(c[4]) : ''); if (c && opt.chains) n['label_combat' + i].color = opt.chains.includes(c[1]) ? [200, 30, 20] : [120, 110, 95]; } // in the team: the running chains are red (CNinjaDetailView::SetCombin)
+      for (let i = 1; i <= 6; i++) { const c = chains[i - 1]; n['label_combatname' + i].setText(c ? String(i) : ''); n['label_combat' + i].setText(c ? clean(c[4]) : ''); if (c && opt.chains) n['label_combat' + i].color = opt.chains.includes(c[1]) ? [200, 30, 20] : [120, 110, 95]; } // in the team: the running chains are red (CNinjaDetailView::SetCombin)
       // growth (sage steps 3 / 6 / 9 / 12) and the eight rebirths: the card's own bonus texts from its table row
-      const bonus = r.slice(37, 44).map(clean);
-      [['label_cuilian1', 'Step 3'], ['label_cuilian2', 'Step 6'], ['label_cuilian3', 'Step 9'], ['label_cuilian4', 'Step 12']].forEach(([k, t], i) => { if (n[k + '_0']) n[k + '_0'].setText(t); if (n[k]) n[k].setText(bonus[i] || '-'); });
-      for (let i = 1; i <= 8; i++) { if (n['label_zhuansheng' + i + '_0']) n['label_zhuansheng' + i + '_0'].setText('Rebirth ' + i); if (n['label_zhuansheng' + i]) n['label_zhuansheng' + i].setText(''); }
+      // Like the phone: the four growth lines and the first three rebirth lines are the card's own texts (ninjainfo 37-43); rebirths 4-8
+      // keep the words the layout came with. A step the card has reached is red (growth 3 / 6 / 9 / 12, rebirth 1-8).
+      const bonus = r.slice(37, 44).map(clean), RED = [230, 20, 20], DARK = [100, 60, 30];
+      // rebirths 4-8 are counted (CNinjaDetailView::GetZhuanshengAdd): (lowest + highest base value) * 2^(n-1) * 0.05, of the stat the card's
+      // third rebirth line names (Kaguya for New Year: Attack+544, +1088, +2176, +4352, +8704)
+      const word = (/^[A-Za-z ]+/.exec(bonus[6] || 'Attack') || ['Attack'])[0].trim(), at = /def/i.test(word) ? 21 : /cha/i.test(word) ? 23 : 19;
+      const rebirthLine = (i) => word + '+' + Math.trunc(((r[at] || 0) + (r[at + 1] || 0)) * Math.pow(2, i - 1) * 0.05);
+      for (let i = 1; i <= 4; i++) { const on = (card.starlevel || 0) >= i * 3; if (n['label_cuilian' + i]) { n['label_cuilian' + i].setText(bonus[i - 1] || ''); n['label_cuilian' + i].color = on ? RED : DARK; } if (n['label_cuilian' + i + '_0']) n['label_cuilian' + i + '_0'].color = on ? RED : DARK; }
+      for (let i = 1; i <= 8; i++) { const on = (card.newlife || 0) >= i; if (n['label_zhuansheng' + i]) { n['label_zhuansheng' + i].setText(i <= 3 ? bonus[3 + i] || '' : rebirthLine(i)); n['label_zhuansheng' + i].color = on ? RED : DARK; } if (n['label_zhuansheng' + i + '_0']) n['label_zhuansheng' + i + '_0'].color = on ? RED : DARK; }
       return;
     }
     const slotJutsu = card.type === 6 && (opt.onChange || opt.onRemove); // CMyGroupCardView::skillClick1-4 open CEquipDetailView

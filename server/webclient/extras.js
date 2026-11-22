@@ -105,7 +105,7 @@
     set(n, 'label_attack', num(u.attactlow) + '-' + num(u.attacthigh)); set(n, 'label_defense', num(u.defenselow) + '-' + num(u.defensehigh)); set(n, 'label_charkraval', num(u.chakralow) + '-' + num(u.chakrahigh));
     set(n, 'label_honor', num(u.meritscore)); set(n, 'label_merit', num(u.warpower));
     set(n, 'label_silver', num(u.coin)); set(n, 'label_gold', num(u.cash));
-    set(n, 'label_NinjaNum', HB.data.team.length + '/' + (num(u.maxteammember) || row[5] || 1));
+    set(n, 'label_NinjaNum', HB.data.used.length + '/' + (num(u.maxteammember) || row[5] || 1));
     const vf = HB.frame('com_res/Resident_2.plist', ui.VIP_FRAMES()[Math.min(18, num(u.viplevel))]);
     if (vf && n.sprite_viplevel) n.sprite_viplevel.setFrame(vf);
     const mine = medals.rows.find((r) => r[1] === num(u.meritlevel));

@@ -20,7 +20,7 @@
     [5, 'sprite_skill1', [6]], [6, 'sprite_skill2', [6]], [7, 'sprite_skill3', [6]], [8, 'sprite_skill4', [6]]];
   const TEAM2_LEVEL = 100; // normalconfig 211 (the server's game.TEAM2_LEVEL)
   // CMyGroupView::initSuitBtnAnim: the two round buttons wear the colour of the running set (suit_info [3]: stars 4 / 5 / 6, growth 6 / 9 / 12)
-  const SUIT_BTN = { 1: { 4: 'suit_green', 5: 'suit_blue', 6: 'suit_purple' }, 2: { 6: 'suit_sun_green', 9: 'suit_sun_blue', 12: 'suit_sun_purple' } };
+  const SUIT_BTN = { 1: { 3: 'suit_green', 4: 'suit_blue', 5: 'suit_purple', 6: 'suit_orange' }, 2: { 6: 'suit_sun_green', 9: 'suit_sun_blue', 12: 'suit_sun_purple' } };
   const SUIT_CARD = { 4: 'card_green', 5: 'card_blue', 6: 'card_purple' };
   const DETAIL = ['Description of attacking team line-up', // util/localizable.lua ui_active_team_title / ui_active_team_desc
     '1, When the second team line-up has reached level 100, it is activated.\n2, The second team can use all Shinobi, ninjitsus, and equipments. (can combine with the first team)\n3, On the team page, click on "activate team" button, and the line-up will be used. There can only be one line-up active at any given time.\n4, The current team used has a tick symbol given.'];
@@ -28,13 +28,14 @@
   const tap = (node, fn) => { if (!node) return; node.onTouch = (ev, tx, ty) => { if (ev === 'down') node._d = [tx, ty]; if (ev === 'up' && node._d && Math.hypot(tx - node._d[0], ty - node._d[1]) < 14) fn(); }; };
   const keep = { team: -1, y: null }; // where the list stood, so a change does not jump back to the top (the phone keeps its offset too)
 
-  HB.screens.team = async function team(teamId = 0) {
+  HB.screens.team = async function team(teamId) {
     const ui = HB.ui, x = ui.x;
+    if (teamId === undefined || teamId === null) teamId = HB.data.activeTeam; // the phone opens on the line-up in use
     teamId = Number(teamId) === 1 ? 1 : 0;
     ui.loading(true);
-    const [suitT, matchT] = await Promise.all([ui.table('suit_info'), ui.table('ninjamatch'), HB.data.tables(), HB.loadCCB('sub_ui/ListMyTeamView'), HB.loadCCB('sub_ui/TeamNinjaView')]);
+    const [suitT, matchT, skillT] = await Promise.all([ui.table('suit_info'), ui.table('ninjamatch'), ui.table('skill_suit_info'), HB.data.tables(), HB.loadCCB('sub_ui/ListMyTeamView'), HB.loadCCB('sub_ui/TeamNinjaView')]);
     ui.loading(false);
-    const D = HB.data, level = Number((HB.game.user || {}).level) || 1;
+    const D = HB.data, level = Number((HB.game.user || {}).level) || 1, suitRows = skillT.rows;
     if (teamId === 1 && level < TEAM2_LEVEL) { ui.tip('Team 2 opens at level ' + TEAM2_LEVEL, 1.8); teamId = 0; }
     const o = {};
     HB.game.showSub('sub_ui/ListMyTeamView', o, 'btn_maingroup');
@@ -52,7 +53,7 @@
 
     // ---- the bar on top: tabs, the tick on the used team, Activate, Detail, the two set buttons
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    for (const [b, id] of [[n.ctrl_firstTeam, 0], [n.ctrl_secondTeam, 1]]) if (b) { b.frames[1] = id === teamId ? tabOn || tabOff : tabOff; b.labelAnchor = [0.42, 0.5]; b.titleSize = Math.max(b.titleSize, 22); b.setTitle('Team ' + (id + 1)); }
+    for (const [b, id] of [[n.ctrl_firstTeam, 0], [n.ctrl_secondTeam, 1]]) if (b) { b.frames[1] = id === teamId ? tabOn || tabOff : tabOff; b.labelAnchor = [0.42, 0.3]; b.titleSize = Math.max(b.titleSize, 22); b.setTitle('Team ' + (id + 1)); }
     if (n.sprite_gou1) n.sprite_gou1.visible = D.activeTeam !== 1;
     if (n.sprite_gou2) n.sprite_gou2.visible = D.activeTeam === 1;
     if (n.btn_active_team) n.btn_active_team.setTitle('Activate');
@@ -148,6 +149,8 @@
     box.add(scroll);
     HB.screens.team.state = { teamId, places: places.map((p) => p.kind + (p.t ? ':' + p.t.seq : '')), suits: Object.values(suits).map((r) => r[1]) }; // for tests
 
+    // skill_suit_info: [3] kind 1 = four ninjutsu ids, 2 = weapon, armor, trinket, seal ids ([4]..[7])
+    function skillSuit(c) { return suitRows.find((r) => (c.type === 6 ? r[3] === 1 && r.slice(4, 8).includes(c.id) : r[3] === 2 && r[4 + [2, 3, 4, 5].indexOf(c.type)] === c.id)) || null; }
     function fill(m, t) {
       const card = t && D.card(t.seq);
       const pickNinja = async () => {
@@ -183,7 +186,7 @@
       const grow = card.starlevel > 0 && HB.frameByName('cards_level_small_' + card.starlevel);
       m.sprite_strength_level_frame.visible = m.sprite_strength_level_icon.visible = !!grow; if (grow) m.sprite_strength_level_icon.setFrame(grow);
       m.label_tupo_level.visible = card.tupo > 0; if (card.tupo > 0) m.label_tupo_level.setText('+' + card.tupo);
-      m.node_inlay_frame.visible = false; m.sprite_dragon_icon.visible = false;
+      HB.cardDress(m, card, 'middle'); // reborn corners, dragon mark, glow, exp bar / "Max"
       // a chain that only misses its partner in the team (CMyGroupCardView::initReadyCombin): the strip under the card names it
       const ready = ch.ready.map((id) => matchT.rows.find((r) => r[1] === id)).filter(Boolean)[0];
       m.layer_morecom.visible = !!ready;
@@ -196,6 +199,7 @@
         const c = D.card(seqs[i]);
         const tip = m['sprite_tip' + kind], bar = m['sprite_equipbar' + kind], lvl = m['label_equip' + kind], grade = m['label_grade' + kind], holder = m['node_icon' + kind];
         if (grade) grade.visible = false;
+        const old = slot.children.filter((k) => k._suit); old.forEach((k) => k.removeSelf());
         const choose = async () => {
           const pick = await HB.pickCard({ types, exclude: (k) => worn.has(k.seq) });
           if (pick) send({ Cmd: 2300 + kind, Seq: t.slot, NewID: pick.seq });
@@ -206,7 +210,17 @@
           const pic = HB.iconFrame(c.type, ci.icon);
           if (pic && holder) { const sp = new HB.Sprite(pic); const k = Math.min((holder.w - 12) / pic.sw, (holder.h - 12) / pic.sh); sp.sx = sp.sy = k; sp.x = holder.w / 2; sp.y = holder.h / 2; holder.add(sp); }
           if (tip) tip.visible = false;
-          if (lvl) lvl.setText('Lv:' + c.level);
+          if (lvl) lvl.setText('Lv::' + c.level); // two colons, as the phone writes it here
+          if (grade && c.newlife > 0 && (c.type === 2 || c.type === 3)) { grade.visible = true; grade.setText('+' + c.newlife); } // an advanced weapon / armor: +N
+          // a card of a ninjutsu set or a gear set wears the "Suit" ribbon in its colour (CMyGroupCardView::setEquipSuitIconTitle:
+          // ccbResources/equip_suit.plist icon_title_<colour>); with two or more of the set in this place a light runs round it
+          const set = skillSuit(c);
+          if (set) {
+            const rf = HB.frameByName('icon_title_' + (['yellow', 'green', 'blue', 'purple', 'orange'][ci.quality - 2] || 'yellow'));
+            if (rf) { const rb = new HB.Sprite(rf); rb._suit = true; rb.x = rf.sw / 2; rb.y = slot.h - rf.sh / 2; rb.z = 5; slot.add(rb); }
+            const worn = seqs.map((s) => D.card(s)).filter((k) => k && skillSuit(k) === set).length;
+            if (worn >= 2) HB.loadCCB('animations/suit_light_round').then(() => { if (!slot.parent) return; const g = HB.build('animations/suit_light_round', {}, [slot.w, slot.h]); g._suit = true; g.z = 6; g.x = g.ignoreAnchor ? 0 : g.ax * g.w; g.y = g.ignoreAnchor ? 0 : g.ay * g.h; slot.add(g); }).catch(() => {});
+          }
           tap(slot, () => HB.screens.details(c, { onChange: choose, onRemove: () => send({ Cmd: 2300 + kind, Seq: t.slot, NewID: 0 }) }));
         } else {
           if (bar) bar.visible = false;

@@ -343,10 +343,10 @@
   // after that screen is shown again, or after a moment when nothing is shown again (a fight started by a script).
   let pending = null, hooked = false;
   function openHelp(name) {
-    const seq = () => { const t = (HB.data.team || [])[0]; return t ? t.seq : (HB.data.ofType(1)[0] || {}).seq; };
+    const seq = () => { const t = (HB.data.used || [])[0]; return t ? t.seq : (HB.data.ofType(1)[0] || {}).seq; };
     const go = { shop: () => HB.screens.shop && HB.screens.shop(0), upgrade: () => HB.screens.upgrade && HB.screens.upgrade(seq()), growth: () => HB.screens.growth && HB.screens.growth(seq()),
       potential: () => HB.screens.potential && HB.screens.potential(seq()), rebirth: () => HB.screens.rebirth && HB.screens.rebirth(seq()),
-      team: () => HB.screens.team && HB.screens.team(0), gear: () => HB.screens.backpack && HB.screens.backpack(2) }[name];
+      team: () => HB.screens.team && HB.screens.team(), gear: () => HB.screens.backpack && HB.screens.backpack(2) }[name];
     if (!go) return;
     const run = () => { if (pending !== run) return; pending = null; go(); };
     pending = run;

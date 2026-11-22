@@ -67,6 +67,14 @@ function pvrToRgba(pvr) {
   }
   return { w, h, rgba: out };
 }
+// The sheets hold PREMULTIPLIED colours (colour already multiplied by its alpha): the app tells cocos so for every PVR picture
+// (CCDirector::setDefaultValues calls CCTexture2D::PVRImagesHavePremultipliedAlpha(true)) and no pixel in any of the 1 695 sheets is
+// brighter than its alpha (tools/dev/pvr-premult.js). A PNG holds plain colours, so they are divided back here; left as they were,
+// every soft edge and glow came out too dark (the glow of grown cards was nearly invisible; found 22 Nov 2026 next to the phone).
+function straightAlpha(rgba) {
+  for (let i = 0; i < rgba.length; i += 4) { const a = rgba[i + 3]; if (a === 0 || a === 255) continue;
+    rgba[i] = Math.min(255, Math.round(rgba[i] * 255 / a)); rgba[i + 1] = Math.min(255, Math.round(rgba[i + 1] * 255 / a)); rgba[i + 2] = Math.min(255, Math.round(rgba[i + 2] * 255 / a)); }
+}
 function png(w, h, rgba) {
   const raw = Buffer.alloc((w * 4 + 1) * h);
   for (let y = 0; y < h; y++) { raw[y * (w * 4 + 1)] = 0; rgba.copy(raw, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4); }
@@ -253,6 +261,7 @@ function walk(dir, base = SRC) {
         const dst = path.join(OUT, rel.slice(0, -4) + '.png'); // x.pvr.ccz -> x.pvr.png (a plain x.png can sit next to it)
         if (!newer(src, dst)) { stats.skip++; continue; }
         const { w, h, rgba } = pvrToRgba(decryptCcz(Buffer.from(fs.readFileSync(src))));
+        straightAlpha(rgba);
         write(dst, png(w, h, rgba)); stats.png++;
       } else if (low.endsWith('.plist')) {
         const dst = path.join(OUT, rel.slice(0, -6) + '.json');

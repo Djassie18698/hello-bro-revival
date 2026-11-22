@@ -164,8 +164,14 @@
       if (n[frame]) n[frame].visible = count > 0;
       if (n[label]) { n[label].visible = count > 0; if (count > 0) n[label].setText(String(Math.min(99, count))); }
     };
-    put('sprite_activity_frame', 'label_activity_news', SYS.actNews);
-    put('sprite_msg_frame', 'label_msg_news', SYS.msgNews);
+    // Like the phone (compared 22 Nov 2026): CDefaultMainMenu::InitUI hides the layout's four counter nodes for good.
+    //   Event: the layout's red ball sprite_notify_activity shows while ActivityNewsNum > 0 (RefreshActivityTips), no number.
+    //   News: the count sits on the News button of the small row, drawn by the game's own MenuBtnsView.lua SetMessageCount;
+    //   the red ball on that row's 7th button is its SetReincarnationCount (item 11 owned, 80 or more) (CDefaultMainMenu::InitMsgCount).
+    put('sprite_activity_frame', 'label_activity_news', 0);
+    put('sprite_msg_frame', 'label_msg_news', 0);
+    if (n.sprite_notify_activity) n.sprite_notify_activity.visible = SYS.actNews > 0;
+    try { if (HB.L && HB.L.get('SetMessageCount') !== undefined) { HB.luaGlobal('SetMessageCount', String(SYS.msgNews)); const balls = () => HB.luaGlobal('SetReincarnationCount', (HB.game.items && HB.game.items.get(11)) || 0); balls(); if (HB.game.loadItems && !SYS.itemsAsked) { SYS.itemsAsked = true; HB.game.loadItems().then(balls).catch(() => {}); } } } catch (e) { if (HB.luaError) HB.luaError(e); }
   }
   SYS.bubbles = bubbles;
   // the three News lists, like CNoticeDataHelper::requestAllNoticeInfo; unread = iStatus 0 (our reading of GetNewMsgCount)
