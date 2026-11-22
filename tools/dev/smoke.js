@@ -903,6 +903,8 @@ for (const pick of [55, 56, 57]) {
     { const border = require('../../server/border'); border.ensure(db); db.prepare('INSERT INTO border_log(server_id, country, enemy_country, nick, type, ts, hurt) VALUES(1, 2, 1, ?, 2, ?, 5)').run('Wanderer', Math.floor(Date.now() / 1000));
       const hx = border.infoXml(db, me(), 2, 3), tm = Number((/attack_starttime="(\d+)"/.exec(hx) || [])[1]);
       if (!(tm >= 0 && tm < 86400) || !/enemy_nick="Wanderer"/.test(hx)) { bad++; console.log('BORDER damage list:', hx.slice(0, 200)); } }
+    // world boss: only the killing hit is a won fight (the phone's win screen for a boss fight is the "Final kill" picture)
+    if (!/battleXml\(db, pl, 1, 1, \{ win: killed, enemyIds: \[bossNinja\]/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'boss.js'), 'utf8'))) { bad++; console.log('WORLD BOSS: a hit that does not kill the boss must not be a won fight'); }
     // change country: price by the target country's population rank (biggest 1500 ... 4th 150)
     const counts = {}; for (const r of db.prepare('SELECT country, COUNT(*) c FROM players WHERE server_id=1 GROUP BY country').all()) counts[r.country] = r.c;
     const order = [1, 2, 3, 4].sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);

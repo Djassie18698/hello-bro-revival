@@ -455,7 +455,9 @@
       return null;
     }
     // ---- Defeat: nothing won; five ways to get stronger
-    set('label_getexp', '+' + (info.failExp || 0)); set('label_getsilver', '+0'); set('label_getgold', '+0'); set('label_needbdoy', info.energy ? '-' + info.energy : '+0');
+    // a fight a script started hands over the reward it read from the reply (CNewResultFailView::InitUI shows the reward's EXP and silver:
+    // a World Boss hit that did not kill the boss ends here with the silver the hit earned)
+    set('label_getexp', '+' + (info.failExp || (info.lua && info.exp) || 0)); set('label_getsilver', '+' + ((info.lua && info.silver) || 0)); set('label_getgold', '+0'); set('label_needbdoy', info.energy ? '-' + info.energy : '+0');
     if (n.btn_teamcompare) n.btn_teamcompare.removeSelf(); // Team compare: not built yet
     // The five pictures, left to right: Recruit -> the Shop's recruit scrolls (ChangeToSub 8), Level-up -> feed cards to my first
     // shinobi (the phone: the Backpack's shinobi list), Strengthen -> the Backpack's gear list (CMyBackpackView type 1),

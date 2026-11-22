@@ -109,7 +109,9 @@ function fight(db, pl) {
   game.bumpTask(db, pl.uid, pl.server_id, 8); // daily task: join the world boss
   // the fight shows the boss itself (the ninja whose portrait is on the boss screen) as the one enemy card
   const bossNinja = (Array.from(game.ninjas().values()).find((r) => r[3] === look.icon) || [21])[0];
-  const fightXml = game.battleXml(db, pl, 1, 1, { enemyIds: [bossNinja], enemyName: 'World Boss Lv.' + b.level, enemyLevel: 50 + b.level * 5 });
+  // Only the hit that kills the boss is a won fight: the phone's win screen for a boss fight is the "Final kill" picture (CNewResultWinView, world
+  // boss part), every other hit ends on the Defeat screen with the silver it earned (CNewResultFailView).
+  const fightXml = game.battleXml(db, pl, 1, 1, { win: killed, enemyIds: [bossNinja], enemyName: 'World Boss Lv.' + b.level, enemyLevel: 50 + b.level * 5 });
   return { xml: '<userinfo><LastSPUpdatePastTime>0</LastSPUpdatePastTime></userinfo>' + fightXml + game.awardFull({ coin }) +
     '<xiao>' + el('restlife', Math.max(0, hp)) + el('award', score) + el('outputalltime', m.dmg + dmg) + '</xiao>', look };
 }

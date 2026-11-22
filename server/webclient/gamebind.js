@@ -440,8 +440,11 @@
         const tag = txt(t.get(0)) || 'node';
         return '<' + tag + attrs + '>' + t.arr.map(toXml).join('') + '</' + tag + '>';
       };
-      const FT_FIGHT = 2, FT_BOSS = 9; // (ours: the scripts only pass them on, the real numbers of the C++ enum are not needed)
-      gval('FT_FIGHT', FT_FIGHT); gval('FT_BOSS', FT_BOSS);
+      // the C++ enum (tolua constants in libgame.so): FT_GameRound 0, FT_TOWER 1, FT_COUNTRYWAR 2, FT_PLUNDER 3, FT_ARENA 4, FT_DUE 5, FT_FIGHT 6, FT_BOSS 7
+      const FT = { FT_GameRound: 0, FT_TOWER: 1, FT_COUNTRYWAR: 2, FT_PLUNDER: 3, FT_ARENA: 4, FT_DUE: 5, FT_FIGHT: 6, FT_BOSS: 7, FT_COUNT: 12 };
+      for (const k in FT) gval(k, FT[k]);
+      const FT_BOSS = FT.FT_BOSS;
+      const KIND_OF = { 0: 'round', 1: 'tower', 2: 'war', 3: 'plunder', 4: 'arena', 6: 'spar', 7: 'boss' };
       const cur = { fight: '', type: 0, reward: null };
       singleton('CFightResultData', 'CFightResultData', {
         Clear: () => { cur.fight = ''; cur.type = 0; cur.reward = null; G.set(B('InitFightXML'), readFight); },
@@ -458,11 +461,13 @@
         init: () => true, SetIsEliteBoss: () => {}, SetFightResultData: () => {},
         Start: (view) => {
           const boss = cur.type === FT_BOSS;
-          // a prize the script read from the reply: shown after the fight (the boss fight has no result screen of its own here:
-          // the phone's "damage dealt" window, CRoundResultView, is not built; the script's own tip tells what the hit gave)
+          // After the cards the phone shows the usual result screen (CRoundTeamFightView::update: lost = CNewResultFailView, won =
+          // CNewResultWinView for every kind but FT_DUE). A World Boss win shows the win view's world boss part: the reward's EXP
+          // and silver and the fight's "feat" (which no script sets, so 0).
           const r = cur.reward && cur.reward.__reward;
           const award = r && r.cards.length ? '<award><cardlist>' + r.cards.map((c) => '<card><id>' + num(c.get(B('m_dataid'))) + '</id><type>' + num(c.get(B('m_type'))) + '</type><num>' + (num(c.get(B('m_count'))) || 1) + '</num></card>').join('') + '</cardlist></award>' : '';
-          if (cur.fight && HB.fight) HB.fight.playXml(cur.fight + award, { kind: boss ? 'boss' : 'spar', exp: 0, silver: 0, energy: 0, noResult: boss, lua: true })
+          const got = (k) => { const v = cur.reward ? cur.reward.luaGet(B(k)) : 0; return Number(typeof v === "string" ? txt(v) : v) || 0; };
+          if (cur.fight && HB.fight) HB.fight.playXml(cur.fight + award, { kind: KIND_OF[cur.type] || 'spar', exp: got('m_exp'), silver: got('m_silver'), energy: 0, feats: boss ? 0 : undefined, lua: true })
             .catch((e) => console.error(e)).then(() => { view.removeSelf(); if (HB.game.refresh) HB.game.refresh(); });
           else view.removeSelf();
         },
@@ -479,7 +484,11 @@
       const obj = gameObject(name, {});
       const t = new LuaTable();
       const mt = new LuaTable();
-      mt.set('__index', (self, k) => { const key = Lua.fromBytes(String(k)); if (key === 'instance' || key === 'sharedInstance') return [asLua(() => obj)]; return [asLua(() => { missing(name + ':' + key); return undefined; })]; });
+      mt.set('__index', (self, k) => { const key = Lua.fromBytes(String(k)); if (key === 'instance' || key === 'sharedInstance') return [asLua(() => obj)];
+        // CProfileData::GetCountryIcon(country) = 'com_icon_country_' + GetCountryLayoutName(country): 0 Wind, 1 Mine, 2 Water, 3 Fire, 4 Earth, else Fire
+        const land = (c) => ['Wind', 'Mine', 'Water', 'Fire', 'Earth'][Number(typeof c === 'string' ? txt(c) : c)] || 'Fire';
+        if (key === 'GetCountryIcon') return [asLua((cls, c) => B('com_icon_country_' + land(c)))];
+        if (key === 'GetCountryLayoutName') return [asLua((cls, c) => B(land(c)))]; return [asLua(() => { missing(name + ':' + key); return undefined; })]; });
       t.mt = mt;
       G.set(B(name), t);
     }
