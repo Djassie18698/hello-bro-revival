@@ -17,7 +17,7 @@ if not exist "%DIR%" mkdir "%DIR%"
 if not exist "%HERE%app.ico" node "%ROOT%\tools\make_game_icon.js" --ico "%HERE%app.ico" >nul 2>nul
 set ICON=
 if exist "%HERE%app.ico" set ICON=/win32icon:"%HERE%app.ico"
-"%FW%\csc.exe" /nologo /target:winexe /optimize+ /codepage:65001 /out:"%DIR%\Ninja Online.exe" %ICON% /r:System.Windows.Forms.dll /r:System.Core.dll "%HERE%Launcher.cs"
+"%FW%\csc.exe" /nologo /target:winexe /optimize+ /codepage:65001 /out:"%DIR%\Ninja Online.exe" %ICON% /r:System.Windows.Forms.dll /r:System.Core.dll /r:System.Management.dll "%HERE%Launcher.cs"
 if errorlevel 1 (echo BUILD FAILED & exit /b 1)
 rem the game folder: everything of server\webclient except the phone-app-in-a-browser (emu) and notes
 robocopy "%ROOT%\server\webclient" "%DIR%\game" /MIR /XD emu /XF README.md *.map /NFL /NDL /NJH /NJS /NP /R:1 /W:1 >nul

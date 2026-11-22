@@ -59,12 +59,27 @@ static class Launcher
         string url = "http://127.0.0.1:" + port + "/play/?pc=1";
         ProcessStartInfo psi = new ProcessStartInfo(browser, "--app=" + url + " --user-data-dir=\"" + Path.Combine(data, "profile") + "\" --no-first-run --no-default-browser-check --start-maximized --autoplay-policy=no-user-gesture-required --disable-features=Translate,msEdgeSidebarV2 --disable-background-timer-throttling --disable-renderer-backgrounding");
         psi.UseShellExecute = false;
-        try { using (Process p = Process.Start(psi)) { p.WaitForExit(); } } catch (Exception e) { Say("Could not open the game window:\n" + e.Message); return 1; }
-        // with its own profile folder the browser process we started is the game's window: when it ends, so do we
+        try { Process.Start(psi); } catch (Exception e) { Say("Could not open the game window:\n" + e.Message); return 1; }
+        // The process we started is often only a starter that hands over and ends at once (22 Nov 2026: the window then showed
+        // "can't reach this page", because we had already stopped serving). So: keep serving for as long as ANY browser process
+        // runs with our own profile folder, looked up every 2 seconds; two looks in a row without one (after the first 15 s) =
+        // the window is closed.
+        string mark = Path.Combine(data, "profile");
+        Thread.Sleep(15000);
+        int gone = 0;
+        while (gone < 2) { Thread.Sleep(2000); gone = WindowOpen(mark) ? 0 : gone + 1; }
         try { http.Stop(); } catch { }
         return 0;
     }
 
+    static bool WindowOpen(string profile)
+    {
+        try {
+            using (var q = new System.Management.ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE Name='msedge.exe' OR Name='chrome.exe'"))
+                foreach (System.Management.ManagementObject o in q.Get()) { string c = o["CommandLine"] as string; if (c != null && c.IndexOf(profile, StringComparison.OrdinalIgnoreCase) >= 0) return true; }
+            return false;
+        } catch { return true; } // cannot look: better to keep serving
+    }
     static void Say(string text) { try { System.Windows.Forms.MessageBox.Show(text, "Ninja Online"); } catch { } }
     static int FreePort() { TcpListener l = new TcpListener(IPAddress.Loopback, 0); l.Start(); int p = ((IPEndPoint)l.LocalEndpoint).Port; l.Stop(); return p; }
     static string FindBrowser()
