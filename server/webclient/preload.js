@@ -24,8 +24,14 @@
     } catch (e) { /* a sheet that is not there: nothing to do */ }
     done++;
   }
+  // In a browser the files come from the game server, whose flood guard answers 429 after 300 requests in 10 seconds from one
+  // address (server.js): read at full speed, 888 of the first 1188 requests were refused, and layouts and pictures the game then
+  // asked for stayed missing (empty screens). So outside the PC program (?pc=1 reads its own disk) one sheet starts every 300 ms.
+  const paced = q.get('pc') !== '1';
+  let nextAt = 0, timer = 0;
   function pump() {
     while (running < (pc ? 6 : 2) && queue.length) {
+      if (paced) { const now = Date.now(); if (now < nextAt) { if (!timer) timer = setTimeout(() => { timer = 0; pump(); }, nextAt - now + 5); return; } nextAt = now + 300; }
       const sheet = queue.shift(); running++;
       one(sheet).then(() => { running--; idle(pump); });
     }
