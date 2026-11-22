@@ -221,6 +221,10 @@ never saw it).
 | ✅ | Eight Gates soul training (ui_limitTrainSoulLayer) | Normal training, both Multiple buttons, Collect: souls in the save (50 x 4 = 200) |
 | ✅ | Tower Sweep | the game's script (towerSweep_business.lua): rounds picked, Determine, reward window, gold paid. The list reply was wrong (every round stamped "done today", none could be picked: corrected). **v28's tower layout hides the Sweep button** (never shown by the app), so it stays hidden here; run it with `HB.luaRun('business_proxy/towerSweep_business.lua')` |
 | 🚫 | Split card (SplitCard.lua) | v28 never opens it (its only caller is the unused Backpack row CMyBackpackCardView::splitClick) |
+| ✅ | "Buy this first" window (CommonBuyItemDialog) | opens when silver or fight points run out (Advance gear, Change Element, Eight Gates, Border Clean, No.1 Shinobi): Buy and Use change the save, the count follows. It could not open: the item id constants (SMALL_COIN_ITEM_ID ...) and CTradeMgr:UseConsumeItemByID were missing |
+| ✅ | Slot machine > Exchange | the list shows its three packs, Claim pays, the row turns to Claimed (server: the list reply had the wrong shape, every row was a Lua error) |
+
+Last sweeps (22 Nov, after all of the above): `lua-screens.js --press` and `--tap` = 64 of 70 screens open without an error, no C++ name missing, no list tap with a problem. The six are not client faults (event off on the test server: level rank, fight rank, collect cards, gold spending; a script v28 does not have: lotteryActivity; Inherit opened without a card). Presses that still report: Super Ninja's arrows while its event is off, and Back on screens the tester opens without the entry the phone gives them (Advance gear, Pets).
 
 ## 3b. Text polish (21 Nov 2026: "all text should match the boxes")
 
