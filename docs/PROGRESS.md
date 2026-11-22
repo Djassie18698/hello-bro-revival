@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 22 | 15 | 3 | 5 |
+| Discord reports | 22 | 16 | 3 | 5 |
 
 ## Bug list 1
 
@@ -147,6 +147,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Events > Login: the "Login 7 day" Claim button stayed grey and did nothing on the 7th day (Koolmanm598, 22 Nov) | The server counted login days as full 24 hours since the character was made, so a player who started in the morning got each new day only the next morning. It now counts calendar days (a new day at midnight, like everything else daily). Checked on his save (day 7 now open), not yet in game; goes live with the next server update |
 | ✅ | 7-day Goals: Claim grey on Day 1 although its goal is ticked (Koolmanm598, 22 Nov) | Not a bug: like the original game, each day's reward can only be taken on that day or the next; his days 1, 4 and 5 ran out, days 2, 6 and 7 still have goals to finish. On the way: the server's 7-day claim now counts days the same way as the screen (a new day at midnight), so a green Claim is never refused in the morning |
 | 🧪 | Team > Level Up took 6 minutes to load (Zeraora, 22 Nov): the account held 87 000 shinobi cards, nine more players 5 000 - 15 000 (free top-ups: endless 10-pull recruits and card bags), and the app goes through every card | Backpack limit of **5 000 shinobi cards** (the original had one, its number is lost: ours): recruits, card bags, fragment merges and Award Center mail with shinobi cards say "Bagpack is full" when they don't fit; fight and event drops stop giving shinobi cards while full. Owner's clean-up: every spare Lv 1 copy removed from every backpack (one plain copy kept when it is your only card of that shinobi; team cards, god cards, EXP materials and anything levelled kept). Checked on a copy of the save; the "Bagpack is full" tip not yet seen in game |
+| 🧪 | Akatsuki Shop "Five-Star God Shinobi Card" gave a normal 5-star or even a 3-star card (xvon11, 22 Nov) | The server did not know this pack text, so it used the catch-all rule (mostly 3-star). Now it always gives a god card (the classic god cards, equal chances; ours). Checked on a test save |
 
 ## Built on request (chat)
 

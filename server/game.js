@@ -456,6 +456,10 @@ function rollPack(r) {
   if (colour) { const p = recruitPools()[STAR_WORD[colour[1]]]; if (p && p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
   if (/^1 in 10,000|^Higher chance to gain Five-Star Purple Card, with minimum of Four-Star/.test(t)) return { ninja: rollOne(1) };
   if (/^Possibility of Five-Star Card, higher chance of Four-Star Blue Card, with a minimum of Three-Star/.test(t)) return { ninja: rollOne(2) };
+  // "Five-Star God Shinobi Card" (dropinfo 1800, Akatsuki mall 3000 + 1800 gold; xvon11, 22 Nov 2026): a god card (ninjainfo [11] = 6), as the
+  // text says. Before, no rule matched and it fell to the last line (mostly 3-star). Pool (ours): the classic god cards (ids below 2065, the
+  // series of the drop's example card Senju Tsunade (God) 2064), equal chances.
+  if (/God Shinobi Card/.test(t)) { const p = (pools()[6] || []).filter((id) => id < 2065); if (p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
   if (/^Ultimate Shinobi Card$/.test(t)) { const p = recruitPools()[5]; if (p && p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
   // "Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card, 100 Gold" (official Elder pack 220): 20 / 40 / 40 % (ours)
   const all3 = /Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card/.test(t), x3 = Math.random();
