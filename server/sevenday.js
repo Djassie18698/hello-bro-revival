@@ -8,7 +8,9 @@ const el = (n, v) => `<${n}>${v}</${n}>`;
 function ensure(db) {
   db.exec('CREATE TABLE IF NOT EXISTS sevenday (uid INTEGER, server_id INTEGER, day INTEGER, PRIMARY KEY(uid, server_id, day))');
 }
-const loginDays = (pl) => Math.max(1, Math.floor((Date.now() - (pl.created || Date.now())) / 86400000) + 1);
+// The same day count the screen gets (game.actXml loginallnum -> SetTotalLoginDay): calendar days by the server clock (22 Nov 2026;
+// before, 24-hour periods here and calendar days on screen disagreed in the morning: a green Claim the server refused).
+const loginDays = (pl) => game.loginPackDays(pl.created);
 
 // sevendays_quest row: [id, id, type, text, target]. Types the server tracks are checked; the rest count as done.
 function questDone(db, pl, q) {

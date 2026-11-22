@@ -1357,6 +1357,8 @@ for (const pick of [55, 56, 57]) {
     const lpd = require('../../server/game').loginPackDays, at = (d, h) => new Date(2026, 10, d, h, 6).getTime();
     if (!(lpd(at(16, 5), at(22, 1)) === 7 && lpd(at(16, 23), at(17, 0)) === 2 && lpd(at(16, 5), at(16, 23)) === 1 && lpd(at(1, 5), at(28, 5)) === 28 && lpd(at(1, 1), new Date(2026, 11, 25).getTime()) === 30)) { bad++; console.log(
       'LOGIN PACK DAYS: must switch at midnight (and stop at 30)'); }
+    const sd = require('../../server/sevenday').loginDays, c0 = Date.now() - 6 * 86400000;
+    if (sd({ created: c0 }) !== lpd(c0)) { bad++; console.log('SEVEN DAY GOALS: must count the same days as the login packs / the screen'); }
   }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
