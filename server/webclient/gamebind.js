@@ -23,6 +23,9 @@
           if (Object.prototype.hasOwnProperty.call(fieldGetters, key)) { const v = fieldGetters[key](); return typeof v === 'string' ? B(v) : v; }
           if (Object.prototype.hasOwnProperty.call(fns, key)) return fns[key];
           if (this.__peer) { const v = this.__peer.get(k); if (v !== undefined) return v; }
+          // a name that is no C++ method (the scripts' own marks on their rows: "if item.istips then", Breakthrough's card list) is nil,
+          // as on the phone; a missing method answers nil when called and is listed in HB.luaMissing
+          if (!/^[A-Z]|^(get|set|is|has|push|init)[A-Z]|^firefly_/.test(key)) return undefined;
           return asLua(() => { missing(name + ':' + key); return undefined; });
         },
         luaSet(k, v) { (this.__peer || (this.__peer = new LuaTable())).set(k, v); },
@@ -60,7 +63,8 @@
       const chakra = () => { const r = inf().row || [], lv = Math.max(1, c.level) - 1; return c.type === 1 ? [r[23] + r[29] * lv, r[24] + r[30] * lv] : [0, 0]; };
       const obj = gameObject('CGameObject', {
         GetGUID: () => c.seq, GetDataID: () => c.id, GetLevel: () => c.level, GetQuality: () => inf().quality, GetName: () => B(inf().name), GetObjType: () => c.type,
-        GetReincarnationLevel: () => c.newlife || 0, GetStrengthLevel: () => c.starlevel || 0, GetCardCamp: () => c.attri || 0, GetTupoLevel: () => c.tupo || 0,
+        GetReincarnationLevel: () => c.newlife || 0, GetStrengthLevel: () => c.starlevel || 0, GetCardCamp: () => c.attri || 0, GetTupoLevel: () => c.tupo || 0, setTupoAttrAdd: () => {}, // Breakthrough hands the card its new numbers; ours are read again from the server
+       
         GetAttackMin: () => Math.round((st().atk || [0, 0])[0]), GetAttackMax: () => Math.round((st().atk || [0, 0])[1]),
         GetDefenseMin: () => Math.round((st().def || [0, 0])[0]), GetDefenseMax: () => Math.round((st().def || [0, 0])[1]),
         GetChakraMin: () => Math.round(chakra()[0] || 0), GetChakraMax: () => Math.round(chakra()[1] || 0),
@@ -376,7 +380,7 @@
       const r = petRow('petinfo', id) || [];
       const st = { level: num(level), equ: num(equ), star: num(star) };
       const sf = (fr) => (fr ? new lua.SpriteFrame(fr) : undefined);
-      const clean = (v) => String(v || '').replace(/ +$/, '');
+      const clean = (v) => String(v || '').replace(/\0+$/, '');
       return gameObject('CPlayerPet', {
         getId: () => num(id), getLevel: () => st.level, getEqu: () => st.equ, getStar: () => st.star, getQuality: () => r[8] || 1,
         setLevel: (v) => { st.level = num(v); }, setEqu: (v) => { st.equ = num(v); }, setStar: (v) => { st.star = num(v); },
