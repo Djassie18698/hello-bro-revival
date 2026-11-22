@@ -223,6 +223,24 @@ end
       { relabel: { 'demand：': 'Needs:', 'cost：': 'Cost:', 'effect：': 'Effect:' } },
       { swap: { label_expend_1: [/contrucation points/, ' fund'], label_expend_2: [/contrucation points/, ' fund'], label_expend_3: [/contrucation points/, ' fund'], label_expend_4: [/contrucation points/, ' fund'] } },
     ],
+    // Border war. The Taunt / Wander question stood in pieces ("Want to cost   20Gold   to   Taunt  ?", "Taunt 5:0      can
+    // receive:", "Reduced bloodt:      10", "Everyday you can claim 2 rewards)"); the two lists' titles ran words together
+    // ("My CountryWander state") and "times/day" ran off the window; the reward window read "0/2left"
+    BorderWarAttackView: [
+      { say: { label_BorderWarAttackView0: 'Pay', label_BorderWarAttackView2: 'to', label_BorderWarAttackView4: 'gives:', label_BorderWarAttackView5: 'Damage to the monument:', label_BorderWarAttackView6: '(rewarded', label_BorderWarAttackView7: 'times a day)' } },
+      { swap: { attack_goldLabel: [/^(\d+)\s*Gold$/, '$1 gold'], attack_timeLabel: [/^(\d+):0$/, 'for $1 min'] } },
+      { row: ['label_BorderWarAttackView0', 'attack_goldLabel', 'label_BorderWarAttackView2', 'attack_typeLabel_1', 'label_BorderWarAttackView1'], gap: 9, center: true },
+      { row: ['attack_typeLabel_2', 'attack_timeLabel', 'label_BorderWarAttackView4'], gap: 9, center: true },
+      { row: ['label_BorderWarAttackView5', 'attack_bloodLabel'], gap: 8 },
+      { row: ['label_BorderWarAttackView6', 'attack_roundLabel', 'label_BorderWarAttackView7'], gap: 7 },
+    ],
+    BorderWarStateRewardView: [{ swap: { label_1: [/(\d)left$/, '$1 left'], label_2: [/(\d)left$/, '$1 left'], label_3: [/(\d)left$/, '$1 left'], label_4: [/(\d)left$/, '$1 left'] } }],
+    BorderWarWanderInfoView: [{ swap: { wanderInfo_titleLabel: [/\s*Wander state$/, ': wanderers'] } }, { say: { label_add_desc: 'a day' } }, { size: { wanderInfo_titleLabel: 32 } }],
+    BorderWarProvokeInfoView: [{ swap: { provokeInfo_titleLabel: [/\s*Taunting situation$/, ': taunters'] } }, { say: { label_add_desc: 'a day' } }, { size: { provokeInfo_titleLabel: 32 } }],
+    // Lottery ticket: "Random Bet" lay across the narrow lever (the Chinese stood letter under letter), "50Bet in gold"
+    LotteryTicketView: [{ say: { label_rand: 'R\nA\nN\nD\nO\nM' } }, { size: { label_rand: 16 } }, { swap: { label_cost_cash: [/^(\d+)\s*Bet in gold$/, 'Bet $1 gold'] } }],
+    LotteryMyLuckyNumListView: [{ title: { btn_close: '' } }], // the word "Close" lay on the X
+    LotteryWinerList: [{ title: { btn_close: '' } }],
     // Change country: the two sentences were wider than the window and its button
     SwitchCountryDialogView: [
       { say: { label_SwitchCountryDialogView0: 'This country costs:', label_SwitchCountryDialogView2: 'Change' } },

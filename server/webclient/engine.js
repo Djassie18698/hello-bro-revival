@@ -27,6 +27,8 @@ const K = (img) => (img && img.hd) || 1;
 HB.K = K;
 const picture = (img, p) => {
   const file = norm(p).replace(/\.pvr\.ccz$/i, '.pvr.png').replace(/\.pvr$/i, '.pvr.png');
+  const ours = HB.ourPicture && HB.ourPicture(file); // a picture of our own in its place (pictures.js: English versions of pictures with Chinese words)
+  if (ours) { img.hd = 2; img.src = ours; return; }
   if (HB.hdSet === null) {
     HB.hdSet = new Set();
     if (!/[?&]hd=0/.test(location.search)) try { const x = new XMLHttpRequest(); x.open('GET', HB.ASSETS + 'hd.json', false); x.send(); if (x.status === 200) HB.hdSet = new Set(JSON.parse(x.responseText)); } catch (e) { /* no HD pictures here */ }

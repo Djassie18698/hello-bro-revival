@@ -28,6 +28,8 @@
   function collect(root, out, clip, layer) {
     if (!root || !root.visible) return;
     let c = clip;
+    // a big layout hung straight onto another layout (Border war's lists and reward windows are children of its screen): a window, its own layer
+    if (root.ccbDoc && root.parent && root.parent.ccbDoc && root.w >= 400 && root.h >= 400) layer = layer + '>' + root.parent.children.indexOf(root);
     if (root.clip && root._wm) { const b = box(root); if (b) c = { x0: Math.max(clip.x0, b.x0), x1: Math.min(clip.x1, b.x1), y0: Math.max(clip.y0, b.y0), y1: Math.min(clip.y1, b.y1) }; }
     if (isLabel(root) && root.w > 0 && root.text !== '' && !(root.dims && root.dims[0] > 0)) out.push({ n: root, clip: c, layer });
     // a script screen laid over another one in the same place (Akatsuki > Donate > its card list): each is a layer of its own,
