@@ -108,7 +108,7 @@
       limit(it.clip.x1 - it.ax, wr); limit(it.ax - it.clip.x0, wl);
       for (const o of live) {
         if (o === it || o.layer !== it.layer) continue;
-        if (o.n.text === n.text && Math.abs(o.x0 - it.x0) < 8 && Math.abs(o.x1 - it.x1) < 8) continue; // copies of one text on top of each other (a glowing name)
+        if (o.n.text === n.text && Math.abs(o.x0 - it.x0) < 14 && Math.abs(o.x1 - it.x1) < 14) continue; // copies of one text on top of each other (a glowing name)
         const over = Math.min(it.y1, o.y1) - Math.max(it.y0, o.y0);
         if (over < Math.min(h, o.y1 - o.y0) * 0.5) continue; // not on the same line
         if (o.x0 > it.ax + 1 && o.x0 < it.x1) limit(o.x0 - GAP - it.ax, wr);       // a label to my right that I run into

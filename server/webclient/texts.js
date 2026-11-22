@@ -256,6 +256,8 @@ end
     // Daily spending gift: five lines of description lay over the countdown and the amount spent
     DailyPayView: [{ size: { label_act_desc: 17, label_first_gift_info: 22 } }, { say: { label_first_gift_info1: 'Time left:', label_first_gift_info2: 'Spent today:' } }],
     CommonBuyItemDialogForLua: [{ title: { btn_close: '' } }], // the word "Close" lay on the X
+    // No.1 Shinobi list: "Offense Points" / "Defense Points" touched the numbers behind them
+    PlayerStrengthCell: [{ size: { data_type: 21 } }, { move: { data_type: [0, -1] } }],
     // Change country: the two sentences were wider than the window and its button
     SwitchCountryDialogView: [
       { say: { label_SwitchCountryDialogView0: 'This country costs:', label_SwitchCountryDialogView2: 'Change' } },

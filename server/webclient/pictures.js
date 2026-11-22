@@ -4,6 +4,7 @@
 // size like the HD pictures). This table is the ONE place that says which picture is replaced:
 //   a sprite frame's name (a frame of a sheet)        -> our picture, used wherever the engine looks that frame up (HB.frame)
 //   a plain picture's path under assets/              -> our picture, loaded in its place (engine.js picture())
+// and NO_HD below: pictures whose HD copy is wrong.
 // ?pics=0 shows the originals. To add one: draw it (make_webclient_en.js), add a line here.
 'use strict';
 (function () {
@@ -31,9 +32,12 @@
     'ccbResources/activity_icon_2.png': 'activity_icon_2.png', // 30级 -> "Lv.30"
   };
   const DIR = 'ui/en/', V = '?2', off = /[?&]pics=0/.test(location.search); // V: raise it when a picture is drawn again (browsers keep the old one)
+  // HD copies that came out wrong (tools/build_hd.js): the original picture is used instead.
+  //   name_sparkle.png (the twinkle on a glowing name, our hot update): its HD copy is a picture of a seal card
+  const NO_HD = new Set(['ccbResources/name_sparkle.png']);
   HB.ourPictures = off ? {} : OURS;
   // plain pictures: engine.js asks this before it loads a picture file; the answer is loaded instead (double size)
-  HB.ourPicture = (file) => (HB.ourPictures[file] && !HB.ourPictures[file].includes('/') && file.includes('/') ? DIR + HB.ourPictures[file] + V : null);
+  HB.ourPicture = (file) => (NO_HD.has(file) ? { src: HB.ASSETS + file, hd: 1 } : HB.ourPictures[file] && file.includes('/') ? { src: DIR + HB.ourPictures[file] + V, hd: 2 } : null);
   // sprite frames: loaded once at the start; a frame that is asked for before its picture has arrived shows the original
   const ready = {};
   if (!off) for (const name of Object.keys(OURS)) { if (name.includes('/')) continue; const img = new Image(); img.hd = 2; img.onload = () => { ready[name] = img; }; img.src = DIR + OURS[name] + V; }
