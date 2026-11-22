@@ -390,7 +390,8 @@
       const prize = prizeOf(award);
       let after = null; // what is shown once the screen is closed
       if (part === 'round') {
-        set('label_round_getgold', award ? x.n(award, 'cash') : 0); set('label_round_needbdoy', info.energy ? '-' + info.energy : 0);
+        set('label_round_getgold', award ? x.n(award, 'cash') : 0);
+        { const act = award ? x.n(award, 'action') : 0; set('label_round_needbdoy', act > 0 ? '+' + act : act); } // the reply's own number, like the phone (our server sends 0 there)
         // the three cards to draw from: core_combat/RS_WinAnim.ccbi laid into layer_round_selectanim. "normalshow" makes them pulse;
         // "animshow<k>" turns card k over first and then the other two. The prize is already decided by the server (<award>).
         await HB.loadCCB('core_combat/RS_WinAnim');
@@ -399,8 +400,12 @@
         const rs = HB.build('core_combat/RS_WinAnim', ro, [box.w, box.h]);
         rs.x = rs.ignoreAnchor ? 0 : rs.ax * rs.w; rs.y = rs.ignoreAnchor ? 0 : rs.ay * rs.h;
         const draw = ['btn_round__select1', 'btn_round_select2', 'btn_round_select3'].map((k) => n[k]).filter(Boolean);
-        draw.forEach((b) => { b.opacity = 0; }); // the buttons only catch the tap; the cards drawn are RS_WinAnim's
+        // the layout's three buttons are the brown boxes the cards lie in (seen on the phone); Compare and Return come after the draw
         if (n.btn_back) n.btn_back.visible = !prize;
+        const cmpBtn = [n.btn_round_teamcompare, n.sprite_round_teamcompare].filter(Boolean);
+        // (system.js keeps these two always shown: their 'visible' is set as a plain value again here)
+        const showCmp = (on) => cmpBtn.forEach((b) => Object.defineProperty(b, 'visible', { configurable: true, writable: true, enumerable: true, value: on }));
+        if (prize) showCmp(false);
         if (prize) { box.add(rs); HB.play(rs, 'normalshow'); } else { draw.forEach((b) => { b.visible = false; }); hide('label_NewFightResult_WinView0'); }
         let picked = false;
         if (Q.get('pick')) { setTimeout(() => o.onButton('onSelectCard' + Q.get('pick')), 1500); if (Q.get('close')) setTimeout(() => o.close(), 4500); } // test switches
@@ -410,16 +415,32 @@
           if (m && prize && !picked) {
             picked = true;
             const k = Number(m[1]);
+            // The phone turns all three: yours first, then two cards you did not draw. Those two are for show; here they are the stage's
+            // named boss prize (roundinfo [44] / [45]) and a low shinobi (ours: the phone's own pick of the two is not known).
+            const others = otherPrizes(info.row, prize);
             for (const c of [1, 2, 3]) {
               const icon = ro.n['sprite_itemicon' + c], name = ro.n['label_itemname' + c], stars = ro.n['node_award_container' + c], plate = ro.n['node_item_container' + c];
-              if (c !== k) { for (const nd of [icon, plate, stars]) if (nd) nd.removeSelf(); continue; } // the other two only turn over
-              const fr = prize.icon && (HB.frameByName('icon_' + prize.icon) || HB.frameByName('small_' + prize.icon) || HB.frameByName(prize.icon));
-              if (icon) { delete icon.anims; icon.visible = true; if (fr) { icon.setFrame(fr); icon.sx = icon.sy = 84 / Math.max(fr.sw, fr.sh); } else icon.visible = false; }
-              if (name) name.setText(prize.text);
-              // the prize's stars under its picture (a card), the fragment mark (a piece)
-              if (stars) { for (let s = 1; s <= 5; s++) { const sp = ro.n['sprite_item' + c + '_star0' + s]; if (sp) sp.visible = s <= prize.stars; } const pc = ro.n['sprite_piece_' + c]; if (pc) pc.visible = !!prize.piece; }
+              const th = c === k ? prize : others.shift();
+              if (!th) { for (const nd of [icon, plate, stars]) if (nd) nd.removeSelf(); continue; }
+              const fr = th.icon && (HB.frameByName('icon_' + th.icon) || HB.frameByName('small_' + th.icon) || HB.frameByName(th.icon));
+              // the picture stands in the small box of its stars (the layout's sprite_itemicon is that box)
+              if (icon) {
+                if (icon.anims) for (const a of Object.values(icon.anims)) delete a.displayFrame;
+                const boxF = th.stars > 0 ? HB.qualityFrame(HB.frameByName('icon_' + th.icon) ? 'ninjaSmall' : 'small', th.stars) : null;
+                if (boxF && fr) { icon.setFrame(boxF); const p = new HB.Sprite(fr); p.sx = p.sy = (boxF.sw - 12) / Math.max(fr.sw, fr.sh); p.x = boxF.sw / 2; p.y = boxF.sh / 2; p.z = 1; icon.add(p); /* over the box: its middle is not see-through */ icon.sx = icon.sy = 88 / Math.max(boxF.sw, boxF.sh); }
+                else if (fr) { icon.setFrame(fr); icon.sx = icon.sy = 84 / Math.max(fr.sw, fr.sh); }
+                else icon.removeSelf();
+              }
+              if (name) name.setText(th.text);
+              // the stars under the picture (a card), the fragment mark (a piece)
+              if (stars) { for (let s = 1; s <= 5; s++) { const sp = ro.n['sprite_item' + c + '_star0' + s]; if (sp) sp.visible = s <= th.stars; } const pc = ro.n['sprite_piece_' + c]; if (pc) pc.visible = !!th.piece; }
             }
-            HB.play(rs, 'animshow' + k, () => { if (n.btn_back) n.btn_back.visible = true; });
+            // the timeline turns the cards; what lies on them is shown by hand: yours when it has turned, the other two at the end
+            const parts = (c) => [ro.n['sprite_itemicon' + c], ro.n['node_award_container' + c], ro.n['node_item_container' + c]].filter((nd) => nd && nd.parent);
+            for (const c of [1, 2, 3]) for (const nd of parts(c)) { delete nd.anims; nd.visible = false; }
+            const showParts = (c) => { parts(c).forEach((nd) => { nd.visible = true; }); for (let s = 1; s <= 5; s++) { const sp = ro.n['sprite_item' + c + '_star0' + s]; if (sp) { delete sp.anims; sp.opacity = 255; } } };
+            setTimeout(() => showParts(k), 420);
+            HB.play(rs, 'animshow' + k, () => { [1, 2, 3].forEach(showParts); if (n.btn_back) n.btn_back.visible = true; showCmp(true); });
           }
         };
       } else {
@@ -475,6 +496,18 @@
   }
 
   // what the <award> holds, in words and with a picture name when there is one
+  // the two cards of the draw you did not take (for show)
+  function otherPrizes(row, prize) {
+    const out = [], T = HB.ui.tables;
+    if (row && row[44] && HB.info) {
+      const eq = T.equipmentinfo && T.equipmentinfo.rows.find((r) => r[4] === row[44]), nj = !eq && T.ninjainfo && T.ninjainfo.rows.find((r) => r[3] === row[44] && r[19] > 0);
+      const name = eq ? eq[2] : nj ? nj[2] : '';
+      if (name && name !== prize.text) out.push({ text: String(name).replace(/\0+$/, ''), icon: row[44], stars: row[45] || 3, piece: false });
+    }
+    const low = T.ninjainfo ? T.ninjainfo.rows.filter((r) => r[19] > 0 && r[11] >= 1 && r[11] <= 2 && r[0] < 1000) : [];
+    while (out.length < 2 && low.length) { const r = low[Math.floor(Math.random() * low.length)]; const text = String(r[2]).replace(/\0+$/, ''); if (text !== prize.text && !out.some((o) => o.text === text)) out.push({ text, icon: r[3], stars: r[11], piece: false }); }
+    return out;
+  }
   function prizeOf(award) {
     if (!award) return null;
     const x = HB.ui.x, T = HB.ui.tables;

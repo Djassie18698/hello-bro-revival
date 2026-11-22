@@ -83,6 +83,8 @@
       const b = box(n);
       if (!b || !(b.k > 0)) { it.skip = true; continue; } // turned or mirrored text: left alone
       if (b.y1 <= it.clip.y0 + 2 || b.y0 >= it.clip.y1 - 2) { it.skip = true; n._fitK = 1; continue; } // a row scrolled out of sight
+      // a cell of a row that scrolls sideways, cut by the row's edge (Training's stage tabs): cut like on the phone, not made smaller
+      if (b.x0 < it.clip.x0 - 2 || b.x1 > it.clip.x1 + 2) { let p = n.parent, side = false; while (p) { if (p instanceof HB.ScrollView && p.dir === 0) { side = true; break; } p = p.parent; } if (side) { it.skip = true; n._fitK = 1; continue; } }
       Object.assign(it, b);
       it.ax = it.x0 + (it.x1 - it.x0) * n.ax;
     }

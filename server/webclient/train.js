@@ -43,7 +43,11 @@
       shown = pg;
       cont.removeAll();
       const co = {};
-      cont.add(HB.build('sub_ui/ChapterCellView', co, [cont.w, cont.h]));
+      // the phone's page is a table view that cuts its cell: the black frame ends just under the last picture (compared 22 Nov 2026;
+      // the frame picture itself runs 37 points further down)
+      const view = new HB.Node(); view.w = cont.w + 8; view.h = cont.h + 8; view.x = -4; view.y = 4; view.clip = true;
+      const cellNode = HB.build('sub_ui/ChapterCellView', co, [cont.w, cont.h]); cellNode.x += 4; cellNode.y -= 4;
+      view.add(cellNode); cont.add(view);
       for (let i = 1; i <= PER_PAGE; i++) {
         const chap = pg * PER_PAGE + i, box = co.n['chapter_container' + i], pic = co.n['sprite_chapter' + i], label = co.n['label_chapter' + i];
         if (!box) continue;
@@ -111,9 +115,11 @@
       const to = {};
       const cell = HB.build('sub_ui/SubChapterBtnCell', to, [tabSize.w, tabSize.h]);
       cell.ignoreAnchor = true; cell.x = i * tabSize.w; cell.y = 0; cell.w = tabSize.w; cell.h = tabSize.h;
-      const last = rows.filter((r) => r[39] === sid).pop();
-      to.n.label_title.setText(last[40]);
-      to.n.sprite_boss.visible = last[38] === 2; to.n.sprite_elite.visible = last[38] === 1;
+      // CSectionBtnCellView::InitUI (compared with the phone 22 Nov 2026): the name is the stage's first part's (chapter 8 has two
+      // "Kill You" tabs for that reason), the corner mark follows the last part's kind: 2 = the blue skull, 3 = the purple one
+      const mine = rows.filter((r) => r[39] === sid), last = mine[mine.length - 1];
+      to.n.label_title.setText(mine[0][40]);
+      to.n.sprite_boss.visible = last[38] === 3; to.n.sprite_elite.visible = last[38] === 2;
       cell.onTouch = (ev, tx, ty) => {
         if (ev === 'down') cell._down = [tx, ty];
         if (ev === 'up' && cell._down && Math.hypot(tx - cell._down[0], ty - cell._down[1]) < 14) { if (reached.has(sid)) { stage = sid; showStage(); } else ui.tip(NOT_OPEN, 1.2); }
@@ -127,6 +133,9 @@
       for (const [sid, to] of tabOwners) {
         const isCur = sid === stage, open = reached.has(sid);
         to.n.sprite_current_section.visible = isCur;
+        // the chosen tab glitters (animations/RunLevelBtnEffect.ccbi, timeline "action", in node_animlayer)
+        const al = to.n.node_animlayer;
+        if (al) { al.removeAll(); if (isCur) HB.loadCCB('animations/RunLevelBtnEffect').then(() => { if (!al.parent || al.children.length || stage !== sid) return; const g = HB.build('animations/RunLevelBtnEffect', {}, [al.w, al.h]); g.x = g.ignoreAnchor ? 0 : g.ax * g.w; g.y = g.ignoreAnchor ? 0 : g.ay * g.h; al.add(g); HB.play(g, 'action'); }).catch(() => {}); }
         to.n.sprite_passed_section.visible = !isCur && open;
         to.n.sprite_unavailable_section.visible = !open;
       }
@@ -158,9 +167,12 @@
     function fillPart(co, r, st, chapId) {
       const n = co.n, kind = r[38], atPos = r[3] === st.pos, done = r[3] < st.pos;
       n.section_normal_container.visible = kind === 0;
-      n.section_enemy_container.visible = false;
-      n.section_elite_enemy_container.visible = kind === 1;
-      n.section_boss_container.visible = kind === 2;
+      n.section_enemy_container.visible = kind === 1; // CSectionCellView::InitUI: 1 = an enemy, 2 = an elite enemy, 3 = the boss
+      n.section_elite_enemy_container.visible = kind === 2;
+      n.section_boss_container.visible = kind >= 3;
+      // the small energy picture before the number names a sheet the game does not have (ccbResources/experience/experience.plist):
+      // the phone leaves it empty
+      { const e18 = HB.frameByName('experience_18'); for (const k of (n.label_need_energy.parent || { children: [] }).children) if (k instanceof HB.Sprite && !k.name && e18 && k.frame && k.frame.sw === e18.sw && k.frame.x === e18.x && k.frame.y === e18.y) k.visible = false; }
       n.label_section_no.setText(stage + '-' + r[3]);
       n.label_desc.setText(r[37]);
       n.label_title.setText(r[5]);
@@ -177,6 +189,9 @@
       if (hasPrize) {
         const f = HB.frameByName('icon_' + r[44]) || HB.frameByName('small_' + r[44]) || HB.frameByName(r[44]); // a shinobi, a piece of gear, anything else
         if (f) { n.sprite_boss_award.setFrame(f); const k = 86 / Math.max(f.sw, f.sh); n.sprite_boss_award.sx = n.sprite_boss_award.sy = k; }
+        // the prize stands in the small box of its stars, like the phone (a shinobi's box, or a thing's)
+        const bf = HB.qualityFrame(HB.frameByName('icon_' + r[44]) ? 'ninjaSmall' : 'small', r[45] || 1), host = n.sprite_boss_award.parent;
+        if (bf && host && !host._box) { const fr = new HB.Sprite(bf); fr.x = n.sprite_boss_award.x; fr.y = n.sprite_boss_award.y; fr.ax = n.sprite_boss_award.ax; fr.ay = n.sprite_boss_award.ay; fr.sx = fr.sy = 100 / Math.max(bf.sw, bf.sh); host._box = fr; host.children.splice(host.children.indexOf(n.sprite_boss_award), 0, fr); fr.parent = host; }
         ['sprite_star05', 'sprite_star02', 'sprite_star01', 'sprite_star03', 'sprite_star04'].forEach((nm, i) => { if (n[nm]) n[nm].visible = i < r[45]; });
       }
       // the exp-card timer shows only while an exp card runs
@@ -224,7 +239,7 @@
       }
       const before = (HB.game.chap || { cur: chapId }).cur;
       let won = true;
-      if (boss || Q.get('wheel') === '0') won = await HB.fight.play(reply, { kind: 'round', exp: r[23], silver: r[24], energy: r[22], boss: r[38] === 2 });
+      if (boss || Q.get('wheel') === '0') won = await HB.fight.play(reply, { kind: 'round', exp: r[23], silver: r[24], energy: r[22], boss: r[38] === 3, row: r });
       else await wheel(reply, r);
       await HB.game.refresh();
       busy = false;
