@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 22 | 14 | 2 | 5 |
+| Discord reports | 22 | 14 | 3 | 5 |
 
 ## Bug list 1
 
@@ -308,6 +308,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | ✅ | After buying an item in the Shop's Tool tab its count showed the old number (and USE stayed grey) until you logged in again: fixed, the count goes up at once. Gear from shop bags also shows in the Backpack at once |
 | 🚫 | "Limited daily gift" packs: the game's own layout for that screen is missing its price, buy button and item labels, so it crashes whatever the server sends |
 | 🚫 | Card split ("tear a card to fragments"): no button in this game version opens it |
+| ⏳ | Leveling screen (Team) takes ~6 minutes to load (Zeraora) | The account holds 89 000 cards and the game app goes through all of them for that screen. Waiting for the owner: backpack limit like the original, a clean-up, or leave it |
 | 🚫 | Recharge rebate wheel: it only multiplies real-money top-ups, which are free here |
 | 🚫 | The "Loading for you, Master" wait on Training and Team: the server isn't asked anything there, it's the phone loading the screen's pictures |
 | 🚫 | "INTERSTITIAL 'Leaderboard' REQUEST FAILED - NETWORK_FAILURE" after login: the game app's old ad service (Chartboost) can't load an ad. Harmless; removing it needs a new game app (left for a later app update) |
