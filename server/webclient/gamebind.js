@@ -263,7 +263,10 @@
       const set = (k, v) => t.set(B(k), typeof v === 'string' ? B(v) : v);
       set('dropid', num(dropId));
       if (!d) { set('mainType', 0); set('subType', 0); set('itemId', 0); set('quality', 1); set('num', 0); set('icon', ''); return; }
-      const pick = d[3] ? [1, 1, d[3], 1] : d[4] ? [1, 2, d[4], 2] : d[5] ? [1, 4, d[5], 6] : d[6] ? [1, 3, d[6], 5] : d[7] ? [2, 0, d[7], 0] : d[8] ? [5, 0, d[8], -1] : d[11] ? [3, 0, num(dropId), -1] : d[10] ? [4, 0, num(dropId), -1] : d[9] ? [6, 0, num(dropId), -1] : [0, 0, 0, -1];
+      // the phone (CGameObjElement::firefly_GetItemInfoByDropid): cards are 1/1 shinobi, 1/2 gear, 1/4 ninjutsu, 1/3 seal (ids 1-10; above: 1/5);
+      // everything else has subType 5 (item 2/5, fragment 5/5, souls 6/5, silver 3/5, gold 4/5): the Ninja Test's exchange list
+      // takes subType 0 for "no such pack" and showed "Data search failed" for every item row
+      const pick = d[3] ? [1, 1, d[3], 1] : d[4] ? [1, 2, d[4], 2] : d[5] ? [1, 4, d[5], 6] : d[6] ? [1, d[6] > 10 ? 5 : 3, d[6], 5] : d[7] ? [2, 5, d[7], 0] : d[8] ? [5, 5, d[8], -1] : d[9] ? [6, 5, num(dropId), -1] : d[11] ? [3, 5, num(dropId), -1] : d[10] ? [4, 5, num(dropId), -1] : [0, 0, 0, -1];
       const inf = pick[3] >= 0 ? HB.info(pick[3], pick[2]) : { quality: 1, icon: '', name: '' };
       set('mainType', pick[0]); set('subType', pick[1]); set('itemId', pick[2]); set('quality', inf.quality || 1); set('icon', inf.icon || ''); set('name', inf.name || ''); set('num', d[13] || 1);
     };
@@ -364,6 +367,31 @@
         });
       },
     });
+    // ---------------- CPlayerPet: one pet as the pet screens ask about it: CPlayerPet:new(pet id, level, rank, star)
+    // (the phone's class is a petinfo row plus those three numbers; GetPetIcon = the shinobi picture of its icon name, GetPetFrame = the
+    // shinobi frame of its quality, GetSkillDesc(level) = the skill text with (level - base level) * skill per level + skill at base)
+    const petTables = {};
+    const petRow = (table, id) => { if (!petTables[table]) { const m = new Map(); const d = HB.jsonNow('data/' + table + '.json'); if (d) for (const r of d.rows) m.set(r[1], r); petTables[table] = m; } return petTables[table].get(num(id)) || null; };
+    const newPet = (id, level, equ, star) => {
+      const r = petRow('petinfo', id) || [];
+      const st = { level: num(level), equ: num(equ), star: num(star) };
+      const sf = (fr) => (fr ? new lua.SpriteFrame(fr) : undefined);
+      const clean = (v) => String(v || '').replace(/ +$/, '');
+      return gameObject('CPlayerPet', {
+        getId: () => num(id), getLevel: () => st.level, getEqu: () => st.equ, getStar: () => st.star, getQuality: () => r[8] || 1,
+        setLevel: (v) => { st.level = num(v); }, setEqu: (v) => { st.equ = num(v); }, setStar: (v) => { st.star = num(v); },
+        GetName: () => { const e = st.equ > 0 ? petRow('petupgradeequ', st.equ) : null; return B(clean(r[2]) + (e ? clean(e[8]) : '')); },
+        GetDesc: () => B(clean(r[28])), GetSkillName: () => B(clean(r[5])), GetSkillEffName: () => B(clean(r[7])),
+        GetSkillDesc: (lv) => { const l = num(lv) || st.level; return B(clean(r[6]).replace('%d', String((l - (r[17] || 0)) * (r[16] || 0) + (r[12] || 0)))); },
+        GetPetIcon: (size) => sf(HB.iconFrame(1, clean(r[3]), num(size) !== 0)),
+        GetPetFrame: (size) => sf(HB.qualityFrame(num(size) === 0 ? 'ninjaSmall' : num(size) === 1 ? 'middle' : 'big', r[8] || 1)),
+        GetSkillIcon: (size) => sf(HB.iconFrame(6, clean(r[4]), num(size) !== 0)),
+        GetComsumeIconById: (item, size) => sf(HB.iconFrame(0, HB.info(0, num(item)).icon || 'props_122', num(size) !== 0)),
+        GetComsumeNameById: (item) => B(HB.info(0, num(item)).name),
+        IsPetMaxLevel: () => false, IsEquMaxLevel: () => st.equ >= 10, IsStarMaxLevel: () => false,
+      });
+    };
+    luaClass('CPlayerPet', { new: newPet, create: newPet });
     // ---------------- CTradeMgr: the items you hold (rl_r_shoplist Cmd 1601 answers the counts; asked once at Home, again after a change)
     HB.game.items = HB.game.items || new Map();
     HB.game.loadItems = async () => { try { const r = await HB.api('rl_r_shoplist', { Cmd: 1601 }); const x = HB.ui.x, m = new Map(); for (const g of x.all(r, 'goods')) m.set(x.n(g, 'propid'), x.n(g, 'bagnum')); if (m.size) HB.game.items = m; HB.game.itemsAt = Date.now(); } catch (e) { /* the counts stay as they were */ } };

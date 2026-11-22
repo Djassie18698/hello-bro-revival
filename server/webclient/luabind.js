@@ -110,7 +110,9 @@
     getChildrenCount: (n) => n.children.length,
     getParent: (n) => n.parent || undefined,
     setPosition: (n, a, b) => { if (a instanceof CCPoint || a instanceof LuaTable) { const p = P(a); n.x = p.x; n.y = p.y; } else { n.x = num(a); n.y = num(b); } },
-    getPosition: (n) => new CCPoint(n.x, n.y), // tolua returns a point
+    // cocos2d-x 2 answers node:getPosition() with two numbers (tolua takes the (float*, float*) overload for a call without arguments):
+    // "local x, y = node:getPosition()" and ccp(node:getPosition()) in some 40 places of the game's scripts
+    getPosition: (n) => [n.x, n.y],
     getPositionX: (n) => n.x, getPositionY: (n) => n.y,
     setPositionX: (n, x) => { n.x = num(x); }, setPositionY: (n, y) => { n.y = num(y); },
     setAnchorPoint: (n, p) => { p = P(p); n.ax = p.x; n.ay = p.y; },

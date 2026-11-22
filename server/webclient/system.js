@@ -198,9 +198,6 @@
       cls.set(B('instance'), () => [proxy]); cls.set(B('sharedInstance'), () => [proxy]);
     }
     G.set(B('RefreshActivityTips'), asLua(() => { bubbles(); }));
-    // cocos2d-x 2 answers node:getPosition() with two numbers ("local x, y = node:getPosition()" in some 40 places of the game's
-    // scripts, the marquee among them); luabind.js gave one point, so y was nil there and the script stopped
-    HB.lua.methods(HB.Node, { getPosition: (n) => [n.x, n.y] });
   }
 
   // ---------------------------------------------------------------- glowing name in the top bar
