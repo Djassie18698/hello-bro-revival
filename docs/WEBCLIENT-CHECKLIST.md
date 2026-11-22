@@ -72,7 +72,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | ✅ | Team compare: the Compare button of the Victory and Defeat screens lays the list into the result (my card left, theirs right, per place: picture, element, level, attack, defence, chakra); the button brings the result back (ours) (system.js; `&sys=compare`) | NewTeamCompare, TeamCompareItemView. The numbers are the cards' own table values at their level (ours: the reply does not carry them). The phone has no compare window on the Friends / Arena / Spar lists (dlg_ui/TeamCompareView is never created in v28) |
 | ✅ | **Spar** (fight other players): list, preview, fight (spar.js); search not yet | FightListView, FightNinjaView, FightPreView |
 | 🟡 | **Shop**: Recruit (3 scrolls, free timers, once / ten times window), Giftpack, Tool with Buy and Use (shop.js); VIP shop and Top-up not yet | StoreItemsView, StoreGoodsView, StorePacksView, StoreNinjaView, PrayDialogView |
-| ⬜ | Top-up list and confirm (free on our server) | PurchaseListView, PurchaseItemView, PurchaseConfirmDialogView + Lua ui_purchaseLayer |
+| ✅ | Top-up list and confirm (free on our server) | PurchaseListView, PurchaseItemView, PurchaseConfirmDialogView + Lua ui_purchaseLayer |
 | ✅ | **Plunder** (seal fragments): the seal list, rivals with the chance word from the game's plunderinfo table, preview, fight (plunder.js) | PlunderListView, PlunderNinjaView, PlunderPreView |
 | 🟡 | **Arena** (ladder): rivals with teams, Challenge, daily place reward, Rank tab, cooldown clear, Exchange tab (reputation shop with its daily / total limits) (arena.js); rules window and lucky rank not yet | ArenaViewNew, ArenaCellViewNew, ArenaExchangeCellView |
 | 🟡 | **Battles** (tower): floors (ours: plain rows, the phone draws a tower), a floor's seven rounds, fights (tower.js); ranks, first-pass reward, sweep not yet | TowerView, TowerLevelView |
@@ -83,7 +83,7 @@ Update this file with every round of work. How it is built and the rules found: 
 | 🟡 | News: Battle reports (Ignore, Revenge), Friend messages (Reply), System note (social.js); a message is typed in the browser's own box | social/MessageListView, FightMsgView, FriendMsgView, SystemMsgView |
 | 🟡 | Friends: every player with team numbers, leave a message, search by name (social.js); the phone's invite and chat windows not yet | social/Friend* |
 | ⬜ | Event screen frame (the big Event list and its top bar) | activity/ActivityDefaultView, ActivityBarCellView |
-| ⬜ | Lottery view, roulette turn window (C++ parts of Lua events) | activity/LotteryView, RouletteTurnDialogView |
+| 🟡 | Lottery view (not yet), roulette turn window (the ten-draw result window is built, gamebind.js) | activity/LotteryView, RouletteTurnDialogView |
 | ✅ | Daily ads: the next-day line ("Come again tomorrow, and gain 110 gold ...") in the running-ninja loading box, on the first login day only, like the phone (system.js; `&sys=ad` shows it on any day) | activity/NextDayAd. activity/DaysAd is never created in v28 (no caller in re/all.txt): not built |
 | 🚫 | Tutorial | off for everyone on our servers |
 
@@ -105,44 +105,44 @@ Home buttons and windows:
 | ✅ | Middle button row | MenuBtnsView |
 | ✅ | Left event buttons | mainActivity, ui_mainActivityBtn |
 | ✅ | Event window (icons) | ui_activityPopupLayer |
-| 🟡 | Daily Task | dailyTask_business, ui_dailyTaskLayer |
+| ✅ | Daily Task | dailyTask_business, ui_dailyTaskLayer |
 | 🟡 | Save time (EXP card) | saveTime_business |
-| 🟡 | 1st Recharge | firstMoneyAward |
+| ✅ | 1st Recharge | firstMoneyAward |
 | 🟡 | Growth fund | growthfund_b |
-| 🟡 | 7-day goals | sevenDay_business, ui_sevenDayView |
+| ✅ | 7-day goals | sevenDay_business, ui_sevenDayView |
 | ⬜ | Receive (stage gift) | ui_stageGiftLayer |
-| 🟡 | Awards (Award Center mail) | ui_awardCenterLayer |
-| 🟡 | Hall of Fame (No.1 Shinobi) | ui_hallOfFameView |
+| ✅ | Awards (Award Center mail) | ui_awardCenterLayer |
+| ✅ | Hall of Fame (No.1 Shinobi) | ui_hallOfFameView |
 | ✅ | Settings (switches, Discord button and close tried; the invite code box not) | ui_gameSettingLayer |
 | 🟡 | VIP list (the Shop's VIP tab: your VIP bar, the VIP gift packs; opens and draws, Buy and "VIP benefits" not tried) | VipListView, ui_vipRightInfoView |
-| 🟡 | Top-up window | ui_purchaseLayer |
+| ✅ | Top-up window | ui_purchaseLayer |
 
 Events (Event window and left column):
 
 | | Event | Script |
 |---|---|---|
-| 🟡 | Login gift | loginPackActivity |
-| 🟡 | Sign-in (login streak) | keepLoginView |
-| 🟡 | Level-up gift | upradePackActivity |
-| 🟡 | Monthly sign | monthSign_business |
+| ✅ | Login gift | loginPackActivity |
+| ✅ | Sign-in (login streak) | keepLoginView |
+| ✅ | Level-up gift | upradePackActivity |
+| ✅ | Monthly sign | monthSign_business |
 | 🟡 | World Boss | fightBossView (+ 6 windows) |
-| 🟡 | God Recruit | godRecruit_business (5 layers) |
+| ✅ | God Recruit | godRecruit_business (5 layers) |
 | 🟡 | Monthly Card | monthCardActivity |
-| 🟡 | Flower Worship | nvshen_business |
+| ✅ | Flower Worship | nvshen_business |
 | 🟡 | Diligence gift | diligenceGift_business |
 | 🟡 | Lottery ticket | lotteryTicket_business |
-| 🟡 | Scratch card | ScratchCardActivity |
-| 🟡 | Treasure chests (box open) | boxOpenActivityView |
+| ✅ | Scratch card | ScratchCardActivity |
+| ✅ | Treasure chests (box open) | boxOpenActivityView |
 | 🟡 | Group purchase | limitedGroupBuy_business |
 | 🟡 | Daily pay, keep pay, rand pay, total recharge, gold spending | dailyPay, keepPay, randPay, accumulateMoney, consumption |
 | 🟡 | Limited discount, daily restriction, hot treasure | limitDiscount, dailyRestriction, hotTreasure |
 | 🟡 | Festival trades | festival_business |
-| 🟡 | Lucky Wheel (roulette) + ranks | ui_rouletteLayer |
-| 🟡 | Millionaire (dice) + ranks | ui_monopolyLayer |
-| 🟡 | Mora | moraView |
-| 🟡 | Slot machine | ui_slotMachineLayer |
-| 🟡 | Super Ninja (limited) + ranks | ui_limitSuperNinjaLayer |
-| 🟡 | Ninja Treasure (sudoku) | ui_ninjaTreasureLayer |
+| ✅ | Lucky Wheel (roulette) + ranks | ui_rouletteLayer |
+| ✅ | Millionaire (dice) + ranks | ui_monopolyLayer |
+| ✅ | Mora | moraView |
+| ✅ | Slot machine | ui_slotMachineLayer |
+| ✅ | Super Ninja (limited) + ranks | ui_limitSuperNinjaLayer |
+| ✅ | Ninja Treasure (sudoku) | ui_ninjaTreasureLayer |
 | ⬜ | Collect cards | collectCardActivity |
 | ⬜ | Level rank, fight rank | levelRank, fightRank |
 
@@ -150,25 +150,71 @@ Features:
 
 | | Feature | Script |
 |---|---|---|
-| 🟡 | God card synthesis (evolve) | ui_godCardSyntheticLayer |
-| 🟡 | Limit training (Dun) | ui_limitTrainLayer |
-| 🟡 | Soul training / Eight Gates | secret_shop/ui_trainSoulLayer |
-| 🟡 | Secret shop | secret_shop/ui_secretShopLayer |
-| ⬜ | Breakthrough | ui_tupoLayer |
+| ✅ | God card synthesis (evolve) | ui_godCardSyntheticLayer |
+| ✅ | Limit training (Dun) | ui_limitTrainLayer |
+| ✅ | Soul training / Eight Gates | secret_shop/ui_trainSoulLayer |
+| ✅ | Secret shop | secret_shop/ui_secretShopLayer |
+| ✅ | Breakthrough | ui_tupoLayer |
 | 🟡 | Ninja inherit (opens from a card; not tried) | ui_ninjaInheritLayer |
 | 🟡 | Attribute pills (element change) (opens from a card; not tried) | ui_attributeDanLayer |
-| 🟡 | Advance gear | ui_advanceEquipLayer |
+| ✅ | Advance gear | ui_advanceEquipLayer |
 | 🟡 | Gear sets, colour sets, level sets | ui_colorSuitView, ui_levelSuitView |
-| ⬜ | Pets: list, main, train, upgrade, advance, summon | ui_pet* (7 layers) |
-| ⬜ | Ninja Test (exam) | ui_ninjaTestMain |
-| 🟡 | My Base | ui_myBaseLayer |
-| 🟡 | Akatsuki (guild): list, create, hall, donate, shop, map, members, ranks (the list of guilds opens; the rest not tried) | ui_org* (22 layers) |
+| ✅ | Pets: list, main, train, upgrade, advance, summon | ui_pet* (7 layers) |
+| ✅ | Ninja Test (exam) | ui_ninjaTestMain |
+| ✅ | My Base | ui_myBaseLayer |
+| ✅ | Akatsuki (guild): list, create, join, hall, donate, shop, map, members, ranks, leave (played with two guests, section 3a) | ui_org* (22 layers) |
 | 🟡 | Border war | ui_borderWar* (14 layers) |
 | 🟡 | Cross-server battle | multi_battle/* (14 layers) |
 | ⬜ | Cross roulette / millionaire / super ninja | ui_cross* |
 | ⬜ | Change country | switchCountry |
 | ⬜ | Tower sweep, re-new level, split card | towerSweep, ReNewLevel, SplitCard |
 | 🚫 | In-game news list: v28 never shows it (the script's own showInGameNoticeView has its body commented out, "inner notices closed for now"; CMainMenu::ShowActivityNews runs an empty function) | InGameNoticeListView |
+
+## 3a. Played through (22 Nov 2026)
+
+Every row was played with real taps in muted headless Chrome (`node tools/dev/play.js`: one browser stays open, `ui` lists what is on
+screen, `tap` / `click` press it with a real mouse click, `log` shows the requests and Lua errors; `tools/dev/play-save.js <uid>` prints
+the guest's save to compare before and after). ✅ = works to the end and the save changed; 🟡 = partly; ⬜ = not played.
+What was wrong almost everywhere: taps went to "what lies on top" instead of the phone's touch order, so inside a window with its
+own tap-catching layer the X, the arrows, list rows and row buttons did nothing (the tester's `--press` calls the button directly and
+never saw it).
+
+| | Feature | What was played, what is left |
+|---|---|---|
+| ✅ | Login gift | day 1 claimed: "You got" window, items and silver in the save; the list keeps its place after a claim (was jumping to the end) |
+| ✅ | Sign-in (login streak) | day 1 claimed, save changed; the list now starts at the top (it opened at the bottom) |
+| ✅ | Level-up gift | level 10 pack claimed: items, silver and gold in the save |
+| ✅ | Monthly sign | day 1 tapped: 10 000 silver |
+| ✅ | Daily Task | chest window opens from the chest row, Receive reward pays, the X closes (none of the three reacted to a real tap before: touch order). Go buttons of unfinished tasks not tried |
+| ✅ | 7-day goals | day 1 claimed: card + silver |
+| ✅ | 1st Recharge | claimed from the Top-up window after a top-up: three cards |
+| ✅ | Award Center mail | a mail sent from the admin page claimed with Claim; a single mail now stands at the top of the list |
+| ✅ | Top-up window | a row tapped: gold arrives, VIP bar and the top bar badge change, VIP benefits list opens and closes (rows did not react to a real tap before) |
+| ✅ | Lucky Wheel | free turn, ten paid turns (the ten-draw result window is new: CRouletteTurnResultDialogView), rank window opens |
+| ✅ | Millionaire | one throw and ten throws, rank window |
+| ✅ | Mora | rounds, Bound to Win, a rival beaten, chest exchanged for luck. Server fix: the rank list was not a list (a Lua error per field, on phones too) |
+| ✅ | Slot machine | bet, spin, win window. Server fix: the reels and prize rows were empty (wrong reply shape and picture names, on phones too); the shown price is now what a spin costs |
+| ✅ | Ninja Treasure | one Explore: the square is ticked, silver paid |
+| ✅ | Super Ninja | free draw, gold draw once and ten times through the recruit window (new: CCommonPrayDialogView), points and rank follow |
+| ✅ | Scratch card | a whole card scratched, win window, gold in the save |
+| ✅ | Treasure chests | a chest opened for gold: "You got" |
+| ✅ | Flower Worship | flowers after a top-up, 40 given: card and items (event switched on in the dev save for the test) |
+| ✅ | God Recruit | spin, Remain: the god card is in the save; the win card now shows the big picture (event switched on for the test). Exchange and Return not tried |
+| ✅ | My Base | the four buildings open by tapping them; level tips now show (every script tip with time -1 was invisible) |
+| ✅ | Pets | list with pictures, names and skill texts, level up, train, advance, a helper put into the array (new: CPlayerPet, CCProgressTimer). Summon (merging fragments) is the Backpack's Fragments tab, not tried here |
+| ✅ | Ninja Test | crew picked, a whole exam fight played to the Defeat screen and back, Exchange list and one exchange. The server's refusal of a god card in the crew shows no words (code 8000 has no text in the game) |
+| ✅ | Breakthrough | god card picked from the list (cards were drawn as tip rows), one breakthrough: level, fragments and silver in the save. The list shows the attack numbers also for defence and chakra |
+| ✅ | Advance gear | two swords picked, advanced: rebirth 1, material gone, result window |
+| ✅ | Soul Disenchant (ui_trainSoulLayer) | shinobi added, picked by hand, disenchanted: souls in the save, result window (it stopped with an error before) |
+| ✅ | Eight Gates (Dun, ui_limitTrainLayer) | one gate opened: souls and silver paid, attack +15 |
+| ✅ | Secret shop | one exchange for souls: "You got", item in the save. Refresh not tried |
+| ✅ | Evolve | attack + defence card + 100 pills: the god card (the reborn mark GetFrameDragon was missing) |
+| ⬜ | Inherit, Element change | not played: both open from a card, no time left |
+| 🟡 | World Boss | played on a private copy of the dev server with its clock in the boss half hour: the fight plays, damage, rank and reputation follow. No result window after the fight (the phone's damage window CRoundResultView is not built); the reputation prizes and rank reward not tried |
+| ✅ | Hall of Fame | Challenge on another player: fight and Victory screen. Your own row does nothing (same on the phone) |
+| ✅ | Akatsuki | two guests: create (name typed), the other joins from Check > Apply, member list, hall task, donate gold, shop purchase, rankings, Flee. On our server Apply joins at once, so the Approval list stays empty; Setup, level up, deport and duties not tried |
+| 🟡 | Border war | opens, the other countries can be visited; Wander does nothing when tapped (not found why) |
+| ⬜ | Cross-server battle | not played: no time left |
 
 ## 3b. Text polish (21 Nov 2026: "all text should match the boxes")
 
