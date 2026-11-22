@@ -327,12 +327,19 @@ class Scale9 extends Node {
     let l = L, r = R, t = T, b = B;
     if (l + r > W) { const k = W / (l + r); l *= k; r *= k; }
     if (t + b > H) { const k = H / (t + b); t *= k; b *= k; }
-    const sxs = [0, L, L + cw], sws = [L, cw, R], dxs = [0, l, W - r], dws = [l, W - l - r, r];
-    const sys = [0, T, T + ch], shs = [T, ch, B], dys = [0, t, H - b], dhs = [t, H - t - b, b];
+    // The nine pieces must meet exactly. They used to overlap by half a pixel, which drew a faint line through every see-through
+    // bar (the number bars on Team: owner, 22 Nov 2026), and cut at fractions of a picture point, which blurred the joins. Now the
+    // cuts in the picture fall on whole picture points and the joins on the screen on whole screen pixels.
     ctx.save(); ctx.translate(0, H); ctx.scale(1, -1); // y down
+    const m = ctx.getTransform(), flat = Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6 && m.a !== 0 && m.d !== 0;
+    const snapX = (x) => (flat ? (Math.round(m.a * x + m.e) - m.e) / m.a : x), snapY = (y) => (flat ? (Math.round(m.d * y + m.f) - m.f) / m.d : y);
+    const cut = (v) => Math.round(v * k);
+    const sx = [0, cut(L), cut(L + cw), cut(fw)], sy = [0, cut(T), cut(T + ch), cut(fh)];
+    const dx = [snapX(0), snapX(l), snapX(W - r), snapX(W)], dy = [snapY(0), snapY(t), snapY(H - b), snapY(H)];
     for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
-      if (sws[i] <= 0 || shs[j] <= 0 || dws[i] <= 0 || dhs[j] <= 0) continue;
-      ctx.drawImage(up, sxs[i] * k, sys[j] * k, sws[i] * k, shs[j] * k, dxs[i], dys[j], dws[i] + (i < 2 ? 0.5 : 0), dhs[j] + (j < 2 ? 0.5 : 0));
+      const sw = sx[i + 1] - sx[i], sh = sy[j + 1] - sy[j], dw = dx[i + 1] - dx[i], dh = dy[j + 1] - dy[j];
+      if (sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) continue;
+      ctx.drawImage(up, sx[i], sy[j], sw, sh, dx[i], dy[j], dw, dh);
     }
     ctx.restore();
   }
