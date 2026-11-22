@@ -414,11 +414,22 @@
       GetGiftByIDForLua: () => undefined, GetGift: () => undefined,
       GetRemenLimitRest: () => num(HB.game.ramenLeft, 0), SetRemenLimitRest: (v) => { HB.game.ramenLeft = num(v); }, GetRemenLimitTotal: () => num(HB.game.ramenTotal, 0), SetRemenLimitTotal: (v) => { HB.game.ramenTotal = num(v); },
       GetHyourouganLmtRest: () => 0, GetCMD: () => 0,
-      ShowBuyDialogForLua: () => HB.screens.shop && HB.screens.shop(2), UseGiftPackItem: () => {}, UseConsumeItemByID: () => {},
+      ShowBuyDialogForLua: () => HB.screens.shop && HB.screens.shop(2), UseGiftPackItem: () => {},
+      // CTradeMgr::UseConsumeItemByID(reply, item id): takes what the use gave from the reply (<propuse ap sp yinzi left/>: energy,
+      // fights, silver, how many are left) and answers true; the scripts then show "used" and count again
+      UseConsumeItemByID: (reply, id) => { const m = /<propuse[^>]*left="([0-9]+)"/.exec(txt(reply)); if (!m) return false; HB.game.items.set(num(id), Number(m[1])); if (HB.game.refresh) HB.game.refresh(); return true; },
     });
     luaClass('CTradeMgr', { instance: () => trade, sharedInstance: () => trade });
     // paying with real money (Google Play on the phone): top-ups are free on our servers and go through the Top-up window's own request
     luaClass('PayHelperForLua', { goldPay: () => HB.tip('Top-ups are free here: use the Top-up window', 2.2), monthCardPay: () => HB.tip('A free top-up of this price starts the Monthly Card (Top-up window)', 2.6) });
+
+    // item ids the C++ hands the scripts as constants (tolua, libgame.so 0x3e4934...): consumeinfo ids and giftinfo ids. The "buy this
+    // first" window (ShowCommonBuyItemDialog(kConsumableTypeItem, SMALL_COIN_ITEM_ID, BIG_COIN_ITEM_ID, 0)) compares them with 0.
+    { const IDS = { SMALL_COIN_ITEM_ID: 1, BIG_COIN_ITEM_ID: 2, SMALL_ENERGY_ITEM_ID: 3, BIG_ENERGY_ITEM_ID: 4, SMALL_PK_ENERGY_ITEM_ID: 5, BIG_PK_ENERGY_ITEM_ID: 6,
+        SMALL_STONE_ITEM_ID: 7, BIG_STONE_ITEM_ID: 8, REINCARNATION_BALL_ID: 11, POTENTIAL_MEDICINE_ID: 28, CONSUM_PRAY_CARD_ID: 30,
+        SMALL_NINJA_GIFTPACK_ITEM_ID: 1, SMALL_WEAPON_GIFTPACK_ITEM_ID: 3, SMALL_ARMOR_GIFTPACK_ITEM_ID: 4, SMALL_DECORATION_GIFTPACK_ITEM_ID: 5, SMALL_SKILL_GIFTPACK_ITEM_ID: 6,
+        SMALL_STONE_GIFTPACK_ITEM_ID: 19, BIG_STONE_GIFTPACK_ITEM_ID: 20, kConsumableTypeItem: 0, kCosnuambleTypeGiftpack: 1 };
+      for (const k in IDS) if (G.get(B(k)) === undefined) gval(k, IDS[k]); }
 
     // ================ FIGHTS THE SCRIPTS START (played by fight.js) ================ begin
     // GetMainMenu():ShowArenaView(<the whole reply>) (CMainMenu::ShowArenaView(const char*)): the phone reads the reply as a fight
