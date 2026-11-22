@@ -248,7 +248,7 @@
     setHighlighted: (b, on) => { b.pressed = T(on); b.layout(); }, isHighlighted: (b) => !!b.pressed,
     setZoomOnTouchDown: (b, on) => { b.zoom = T(on); }, setLabelAnchorPoint: (b, p) => { p = P(p); b.labelAnchor = [p.x, p.y]; b.layout(); },
     setAdjustBackgroundImage: () => {}, needsLayout: (b) => b.layout(),
-    getTitleLabel: (b) => b.label, getBackgroundSprite: (b) => b.bg,
+    getTitleLabel: (b) => b.label, getBackgroundSprite: (b) => b.bg, getBackgroundSpriteForState: (b) => b.bg, getTitleLabelForState: (b) => b.label,
     setMargins: () => {}, sendActionsForControlEvents: (b, ev) => HB.buttonEvent(b, num(ev)),
   });
   HB.buttonEvent = (b, ev) => {
@@ -507,7 +507,7 @@
   HB.TableViewCell = TableViewCell;
   class LuaTableView extends HB.ScrollView {
     constructor(handler, size) { super(); this.handler = handler; this.w = size.width; this.h = size.height; this.dir = 1; this.fill = 0; this.cells = []; this.content.ignoreAnchor = true; this.onTouch = (ev, x, y) => this.touch(ev, x, y); this.swallowOnly = true; }
-    ask(fn, a1, a2) { return first(safe(this.handler.fn, B(fn), this, a1, a2)); }
+    ask(fn, a1, a2, x, y) { return first(safe(this.handler.fn, B(fn), this, a1, a2, x, y)); } // touch events also carry the touch point (x, y): the Akatsuki list reads it in cellTouched
     cellSize(i) { const s = this.ask('cellSize', i); return s instanceof CCSize ? s : s instanceof LuaTable ? SZ(s) : new CCSize(this.w, 40); }
     // CCTableView fills itself when it is first shown, without reloadData (some screens never call it)
     visit(ctx, pm, alpha) { if (!this.asked) this.reload(); super.visit(ctx, pm, alpha); }
@@ -539,11 +539,11 @@
     toTop() { const c = this.content; c.x = 0; c.y = this.dir === 0 ? 0 : this.h - c.h; } // CCTableView starts at minContainerOffset: a list shorter than its box stands at the top too (one mail in the Award Center)
     cellAt(x, y) { for (const c of this.cells) if (c.hit(x, y)) return c; return null; }
     touch(ev, x, y) {
-      if (ev === 'down') { this.downCell = this.cellAt(x, y); this.moved = false; this.start = [x, y]; if (this.downCell) { const t = new Touch(x, y); this.ask('cellTouchBegan', this.downCell, t); this.ask('cellHighlight', this.downCell); } }
+      if (ev === 'down') { this.downCell = this.cellAt(x, y); this.moved = false; this.start = [x, y]; if (this.downCell) { const t = new Touch(x, y); this.ask('cellTouchBegan', this.downCell, t, x, y); this.ask('cellHighlight', this.downCell); } }
       else if (ev === 'move') { if (this.start && Math.hypot(x - this.start[0], y - this.start[1]) > 12) { if (!this.moved && this.downCell) this.ask('cellUnhighlight', this.downCell); this.moved = true; } }
       else if (ev === 'up' || ev === 'cancel') {
         const c = this.downCell; this.downCell = null;
-        if (c && !this.moved) { this.ask('cellUnhighlight', c); this.ask('cellTouchEnded', c, new Touch(x, y)); if (ev === 'up') this.ask('cellTouched', c); }
+        if (c && !this.moved) { this.ask('cellUnhighlight', c); this.ask('cellTouchEnded', c, new Touch(x, y), x, y); if (ev === 'up') this.ask('cellTouched', c, undefined, x, y); }
         if (this.onScrolled) this.onScrolled();
         safe(this.handler.fn, B('scroll'), this);
       }
@@ -825,7 +825,7 @@
     setText: (e, t) => { e.value = txt(t); e.show(); }, getText: (e) => B(e.value),
     setPlaceHolder: (e, t) => { e.placeholder = txt(t); e.show(); }, setPlaceholderFontColor: () => {}, setFontColor: (e, c) => { e.fontColor = COL(c); e.show(); },
     setFontSize: (e, s) => { e.label.size = num(s); e.show(); }, setFont: () => {}, setMaxLength: (e, n) => { e.maxLen = num(n); },
-    setInputMode: () => {}, setInputFlag: () => {}, setReturnType: () => {}, registerScriptEditBoxHandler: (e, fn) => { e.luaHandler = fn; },
+    setInputMode: () => {}, setInputFlag: () => {}, setReturnType: () => {}, registerScriptEditBoxHandler: (e, fn) => { e.luaHandler = fn; }, unregisterScriptEditBoxHandler: (e) => { e.luaHandler = null; }, // asked when the Create Akatsuki window closes
   });
 
   // ---------------------------------------------------------------- start a Lua state with the game's scripts

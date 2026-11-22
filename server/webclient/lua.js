@@ -869,6 +869,8 @@
     };
     G.set('require', (name) => {
       name = checkStr(name, 1, 'require');
+      // the standard libraries are loaded modules too: require('math') answers the math table (json.lua, used by the Akatsuki apply list)
+      if (loaded.get(name) === undefined && ['string', 'table', 'math', 'os', 'io', 'coroutine', 'package', 'debug'].includes(String(fromBytes(name))) && G.get(name) instanceof LuaTable) loaded.set(name, G.get(name));
       const have = loaded.get(name);
       if (have !== undefined) return [have];
       const pre = pkg.get('preload').get(name);
