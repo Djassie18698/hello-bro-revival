@@ -43,14 +43,17 @@
       const days = Number(e.left) > 0 ? (Number(e.left) === 1 ? 'last day' : e.left + ' days left') : '';
       if (days) { const d = label(days, 20, [200, 60, 40], 0); d.ax = 1; d.x = row.w - 22; d.y = row.h - 34; row.add(d); }
       const text = label(e.text, 22, [70, 45, 10], tw); text.ay = 1; text.x = 150; text.y = row.h - 56; row.add(text);
-      const give = label('You get: ' + e.give, 20, [40, 110, 30], tw); give.ay = 0; give.x = 150; give.y = 16; row.add(give);
+      const give = label((e.cost ? 'For ' + e.cost + ': ' : 'You get: ') + e.give, 20, [40, 110, 30], tw); give.ay = 0; give.x = 150; give.y = 16; row.add(give);
+      const many = Number(e.times) > 1 ? (Number(e.times) - Number(e.taken)) + ' left' : '';
       const state = Number(e.state);
       const bf = HB.frameByName(state === 0 ? 'com_btn_green_01' : 'com_btn_blue_01');
       const btn = new HB.Scale9(bf); btn.ax = 1; btn.ay = 0.5; btn.w = 150; btn.h = 64; btn.x = row.w - 20; btn.y = row.h / 2 - 12; if (state !== 0) btn.grey = true; row.add(btn);
-      const word = label(state === 0 ? 'Claim' : state === 1 ? (e.repeat === 'daily' ? 'Tomorrow' : 'Taken') : 'Locked', 26, [255, 255, 255], 0, true); word.stroke = ['#2a1505', 3]; word.x = 75; word.y = 32; btn.add(word);
+      const word = label(state === 0 ? (e.cost ? 'Buy' : 'Claim') : state === 1 ? (e.repeat === 'daily' ? 'Tomorrow' : (e.cost ? 'Sold out' : 'Taken')) : 'Locked', 26, [255, 255, 255], 0, true); word.stroke = ['#2a1505', 3]; word.x = 75; word.y = 32; btn.add(word);
+      if (many && state === 0) { const m = label(many, 18, [120, 80, 30], 0, true); m.x = row.w - 95; m.y = row.h / 2 - 58; row.add(m); }
       tap(btn, async () => {
         if (state === 1) return ui.tip(e.repeat === 'daily' ? 'Already taken today: come back tomorrow' : 'Already taken', 1.6);
         if (state === 2) return ui.tip('You need ' + (e.need || 'more') + ' for this one', 1.8);
+        if (e.cost && !(await HB.confirm('Pay ' + e.cost + ' for ' + e.give + '?', { ok: 'Buy' }))) return;
         ui.loading(true);
         let r;
         try { r = await HB.api('rl_x_custom', { Cmd: 2, Id: e.id }); } catch (err) { ui.loading(false); return ui.tip('Cannot reach the server'); }

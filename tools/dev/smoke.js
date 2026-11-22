@@ -1313,6 +1313,15 @@ for (const pick of [55, 56, 57]) {
     ck(/code="0"/.test(r1) && me().gold === g0 + 7 && me().coin === c0 + 11 && (require('../../server/game').propCounts(db, 77, 1)[11] || 0) === p0 + 2, 'claiming did not pay 7 gold, 11 silver and 2 pills: ' + r1.slice(0, 160));
     ck(/code="5"/.test(r2) && me().gold === g0 + 7, 'a second claim must be refused and pay nothing');
     ck(/code="5"/.test(call({ Cmd: 2, Id: 'smoke-daily' })) && /code="5"/.test(call({ Cmd: 2, Id: 'smoke-old' })) && /code="5"/.test(call({ Cmd: 2, Id: '../a' })), 'a locked, ended or unknown event must be refused');
+    fs.writeFileSync(path.join(dir, 'f.json'), JSON.stringify({ id: 'smoke-offer', limit: 2, cost: { gold: 5, items: { 11: 1 } }, give: { silver: 100 } }));
+    const g1 = me().gold, s1 = me().coin, p1 = require('../../server/game').propCounts(db, 77, 1)[11] || 0;
+    const o1 = call({ Cmd: 2, Id: 'smoke-offer' }), o2 = call({ Cmd: 2, Id: 'smoke-offer' }), o3 = call({ Cmd: 2, Id: 'smoke-offer' });
+    ck(/code="0"/.test(o1) && /code="0"/.test(o2) && /code="5"/.test(o3) && me().gold === g1 - 10 && me().coin === s1 + 200 && (require('../../server/game').propCounts(db, 77, 1)[11] || 0) === p1 - 2, 'an offer with limit 2 must sell twice for 5 gold + 1 pill each and then refuse: ' + [o1, o2, o3].map((x) => x.slice(0, 40)).join(' | '));
+    db.prepare('UPDATE players SET gold=0 WHERE uid=77 AND server_id=1').run();
+    fs.writeFileSync(path.join(dir, 'g.json'), JSON.stringify({ id: 'smoke-poor', cost: { gold: 5 }, give: { silver: 100 } }));
+    const s2 = me().coin;
+    ck(/code="5"/.test(call({ Cmd: 2, Id: 'smoke-poor' })) && me().coin === s2 && /id="smoke-poor"[^>]*state="0"/.test(call({ Cmd: 1 })), 'an offer you cannot pay must give nothing and stay open');
+    db.prepare('UPDATE players SET gold=? WHERE uid=77 AND server_id=1').run(g1);
     delete process.env.HB_CUSTOM_EVENTS;
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
   }

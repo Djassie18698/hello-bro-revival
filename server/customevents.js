@@ -12,6 +12,8 @@
 //     "repeat": "daily",                       "once" (the default) or "daily"
 //     "need": { "level": 10, "vip": 0 },       optional: who may claim
 //     "give": { "gold": 50, "silver": 10000, "items": { "11": 2 }, "drop": 320 }
+//     "cost": { "gold": 100 },               optional: what it costs (gold, silver, items): then it is an offer / exchange, not a gift
+//     "limit": 3                               optional: how many times (per day when daily); 1 without it
 //   }                                          items = consumeinfo id -> how many; drop = one of the game's drop packs (dropinfo id)
 //
 // Requests: rl_x_custom Cmd 1 = the list (<event id title text icon state left give>; state 0 take it, 1 taken, 2 not for you yet),
@@ -53,29 +55,37 @@ function check(e) {
   if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) throw new Error('"id" must be 1-40 letters, digits, - or _');
   const day = (v, k) => { if (v === undefined || v === null || v === '') return ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) throw new Error('"' + k + '" must look like 2026-11-30'); return String(v); };
   const n = (v) => Math.max(0, Math.floor(Number(v) || 0));
-  const g = e.give || {}, items = {};
-  for (const [k, v] of Object.entries(g.items || {})) { if (!game.table('consumeinfo').rows.some((r) => r[0] === Number(k))) throw new Error('item ' + k + ' does not exist'); if (n(v)) items[Number(k)] = Math.min(9999, n(v)); }
+  const pack = (g, what) => {
+    const items = {};
+    for (const [k, v] of Object.entries((g || {}).items || {})) { if (!game.table('consumeinfo').rows.some((r) => r[0] === Number(k))) throw new Error(what + ' item ' + k + ' does not exist'); if (n(v)) items[Number(k)] = Math.min(9999, n(v)); }
+    return { gold: Math.min(1e6, n((g || {}).gold)), silver: Math.min(1e9, n((g || {}).silver)), items };
+  };
+  const g = e.give || {};
   if (g.drop && !game.table('dropinfo').rows.some((r) => r[0] === Number(g.drop))) throw new Error('drop pack ' + g.drop + ' does not exist');
-  const give = { gold: Math.min(1e6, n(g.gold)), silver: Math.min(1e9, n(g.silver)), items, drop: n(g.drop) };
-  if (!give.gold && !give.silver && !give.drop && !Object.keys(items).length) throw new Error('"give" is empty');
+  const give = { ...pack(g, 'give'), drop: n(g.drop) };
+  if (!give.gold && !give.silver && !give.drop && !Object.keys(give.items).length) throw new Error('"give" is empty');
+  const cost = pack(e.cost, 'cost'); // optional: what the player pays (an offer or an exchange instead of a gift)
   return { id, title: String(e.title || id).slice(0, 60), text: String(e.text || '').slice(0, 400), icon: String(e.icon || '').replace(/[^A-Za-z0-9_./-]/g, '').slice(0, 60),
-    from: day(e.from, 'from'), to: day(e.to, 'to'), repeat: e.repeat === 'daily' ? 'daily' : 'once', need: { level: n((e.need || {}).level), vip: n((e.need || {}).vip) }, give };
+    from: day(e.from, 'from'), to: day(e.to, 'to'), repeat: e.repeat === 'daily' ? 'daily' : 'once', limit: Math.max(1, Math.min(999, n(e.limit) || 1)),
+    need: { level: n((e.need || {}).level), vip: n((e.need || {}).vip) }, give, cost, paid: !!(cost.gold || cost.silver || Object.keys(cost.items).length) };
 }
-function ensure(db) { db.exec('CREATE TABLE IF NOT EXISTS custom_claims (uid INTEGER, server_id INTEGER, id TEXT, day TEXT, PRIMARY KEY(uid, server_id, id, day))'); }
+function ensure(db) {
+  db.exec('CREATE TABLE IF NOT EXISTS custom_claims (uid INTEGER, server_id INTEGER, id TEXT, day TEXT, PRIMARY KEY(uid, server_id, id, day))');
+  try { db.exec('ALTER TABLE custom_claims ADD COLUMN n INTEGER DEFAULT 1'); } catch (err) { /* already there */ }
+}
 const running = (e, d = today()) => (!e.from || d >= e.from) && (!e.to || d <= e.to);
 const claimDay = (e) => (e.repeat === 'daily' ? today() : '');
-function state(db, pl, e) {
-  ensure(db);
-  if (db.prepare('SELECT 1 FROM custom_claims WHERE uid=? AND server_id=? AND id=? AND day=?').get(pl.uid, pl.server_id, e.id, claimDay(e))) return 1;
-  return (pl.level || 1) >= e.need.level && (pl.vip || 0) >= e.need.vip ? 0 : 2;
-}
+const taken = (db, pl, e) => { ensure(db); const r = db.prepare('SELECT n FROM custom_claims WHERE uid=? AND server_id=? AND id=? AND day=?').get(pl.uid, pl.server_id, e.id, claimDay(e)); return r ? r.n || 1 : 0; };
+const allowed = (db, pl, e) => (pl.level || 1) >= e.need.level && (!e.need.vip || require('./vip').level(db, pl.uid, pl.server_id) >= e.need.vip);
+// 0 = can take it, 1 = all taken (for today), 2 = not for you yet
+function state(db, pl, e) { return taken(db, pl, e) >= e.limit ? 1 : allowed(db, pl, e) ? 0 : 2; }
 // what an event gives, in words (for the list)
-function giveText(e) {
+function giveText(e, g = e.give) {
   const bits = [];
-  if (e.give.gold) bits.push(e.give.gold + ' gold');
-  if (e.give.silver) bits.push(e.give.silver + ' silver');
-  for (const [id, n] of Object.entries(e.give.items)) { const r = game.table('consumeinfo').rows.find((x) => x[0] === Number(id)); bits.push(n + ' x ' + String(r ? r[2] : 'item ' + id).replace(/\0+$/, '')); }
-  if (e.give.drop) { const r = game.table('dropinfo').rows.find((x) => x[0] === e.give.drop); bits.push(String(r ? r[2] : 'a gift pack').replace(/\0+$/, '')); }
+  if (g.gold) bits.push(g.gold + ' gold');
+  if (g.silver) bits.push(g.silver + ' silver');
+  for (const [id, n] of Object.entries(g.items)) { const r = game.table('consumeinfo').rows.find((x) => x[0] === Number(id)); bits.push(n + ' x ' + String(r ? r[2] : 'item ' + id).replace(/\0+$/, '')); }
+  if (g.drop) { const r = game.table('dropinfo').rows.find((x) => x[0] === g.drop); bits.push(String(r ? r[2] : 'a gift pack').replace(/\0+$/, '')); }
   return bits.join(', ');
 }
 function listXml(db, pl, dir) {
@@ -83,7 +93,7 @@ function listXml(db, pl, dir) {
   return '<events>' + load(dir).filter((e) => running(e, d)).map((e) => {
     const left = e.to ? Math.max(0, Math.round((Date.parse(e.to + 'T00:00:00Z') - Date.parse(d + 'T00:00:00Z')) / 86400000)) + 1 : -1;
     const need = e.need.level > 1 || e.need.vip ? [e.need.level > 1 ? 'level ' + e.need.level : '', e.need.vip ? 'VIP ' + e.need.vip : ''].filter(Boolean).join(', ') : '';
-    return `<event id="${e.id}" title="${esc(e.title)}" text="${esc(e.text)}" icon="${esc(e.icon)}" state="${state(db, pl, e)}" left="${left}" repeat="${e.repeat}" need="${esc(need)}" give="${esc(giveText(e))}"/>`;
+    return `<event id="${e.id}" title="${esc(e.title)}" text="${esc(e.text)}" icon="${esc(e.icon)}" state="${state(db, pl, e)}" left="${left}" repeat="${e.repeat}" need="${esc(need)}" give="${esc(giveText(e))}" cost="${esc(e.paid ? giveText(e, e.cost) : '')}" times="${e.limit}" taken="${taken(db, pl, e)}"/>`;
   }).join('') + '</events>';
 }
 function claim(db, pl, id, dir) {
@@ -92,8 +102,20 @@ function claim(db, pl, id, dir) {
   const s = state(db, pl, e);
   if (s === 1) return { error: e.repeat === 'daily' ? 'already taken today' : 'already taken' };
   if (s === 2) return { error: 'you need ' + [e.need.level > 1 ? 'level ' + e.need.level : '', e.need.vip ? 'VIP ' + e.need.vip : ''].filter(Boolean).join(' and ') };
-  const ok = db.prepare('INSERT OR IGNORE INTO custom_claims(uid, server_id, id, day) VALUES(?,?,?,?)').run(pl.uid, pl.server_id, e.id, claimDay(e)).changes;
-  if (!ok) return { error: 'already taken' };
+  // an offer: the price is checked and taken first, all of it or nothing
+  if (e.paid) {
+    const have = game.propCounts(db, pl.uid, pl.server_id);
+    if ((pl.gold || 0) < e.cost.gold) return { error: 'not enough gold' };
+    if ((pl.coin || 0) < e.cost.silver) return { error: 'not enough silver' };
+    for (const [prop, n] of Object.entries(e.cost.items)) if ((have[prop] || 0) < n) return { error: 'you do not have what this costs' };
+  }
+  const before = taken(db, pl, e);
+  if (before >= e.limit) return { error: 'already taken' };
+  db.prepare('INSERT INTO custom_claims(uid, server_id, id, day, n) VALUES(?,?,?,?,1) ON CONFLICT(uid, server_id, id, day) DO UPDATE SET n=n+1').run(pl.uid, pl.server_id, e.id, claimDay(e));
+  if (e.paid) {
+    db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(e.cost.gold, e.cost.silver, pl.uid, pl.server_id);
+    for (const [prop, n] of Object.entries(e.cost.items)) game.propAdd(db, pl.uid, pl.server_id, Number(prop), -n);
+  }
   const awards = [];
   if (e.give.drop) { const a = game.grantDrop(db, pl, e.give.drop); if (a) awards.push(a); }
   if (e.give.gold || e.give.silver) db.prepare('UPDATE players SET gold=gold+?, coin=coin+? WHERE uid=? AND server_id=?').run(e.give.gold, e.give.silver, pl.uid, pl.server_id);

@@ -38,8 +38,26 @@ To stop an event: delete its file (or move it out of the folder).
 | `repeat` | `"once"` = each player takes it one time. `"daily"` = once every day. Leave it out for once. |
 | `need` | Optional: `"level": 10` and / or `"vip": 3` = who may take it. Others see it as Locked. |
 | `give` | What they get. `gold`, `silver`, `items` (item number: how many) and `drop` (one of the game's gift packs, by its number). At least one. |
+| `cost` | Optional. What it costs: `gold`, `silver`, `items`, written like `give`. With a cost the event is an **offer**: the button reads Buy and asks first. |
+| `limit` | Optional. How many times each player may take it (per day when `repeat` is daily). 1 if left out. |
 
 Item numbers and gift pack numbers: the wiki lists items; the control panel's item page shows the same numbers.
+
+## An offer instead of a gift
+
+Add a `cost` and the event becomes something players buy or trade for:
+
+```json
+{
+  "id": "pill-deal",
+  "title": "Pill deal",
+  "text": "Three Reincarnation Pills for 100 gold. Twice a day.",
+  "repeat": "daily",
+  "limit": 2,
+  "cost": { "gold": 100 },
+  "give": { "items": { "11": 3 } }
+}
+```
 
 ## If it does not show
 
