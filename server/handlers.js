@@ -1557,7 +1557,9 @@ module.exports = {
       let list = '';
       for (let c = 1; c <= (acc ? towerMaxChap(db, acc.uid, sid) : 1); c++) for (let r = 1; r <= TOWER_ROUNDS; r++) {
         const done = acc && game.getStage(db, acc.uid, sid, 1000 + c) > r;
-        list += `<dup name="${c}-${r}" selectable="${done ? 1 : 0}"/>`;
+        // selectable (ui_towerSweepLayer / Cell): 0 = round not cleared yet (grey), 1 = already swept today (stamped, cannot be chosen), 2 = can be
+        // chosen. Until 22 Nov 2026 a cleared round was sent as 1, so every round was stamped and none could be chosen.
+        list += `<dup name="${c}-${r}" selectable="${done ? 2 : 0}"/>`;
       }
       return `<root code="0"><dup_count><total>${SWEEP_DAILY}</total><remain>${Math.max(0, SWEEP_DAILY - used)}</remain><vip>0</vip></dup_count><dup_list>${list}</dup_list></root>`;
     }

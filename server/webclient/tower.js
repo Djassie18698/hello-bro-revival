@@ -30,7 +30,10 @@
     HB.game.showSub('sub_ui/TowerView', o);
     const n = o.n;
     if (n.btn_sweep) n.btn_sweep.setTitle('Sweep');
-    o.onButton = (sel) => { if (sel === 'BtnBack') return HB.game.goHome(); ui.tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2); };
+    o.onButton = (sel) => { if (sel === 'BtnBack') return HB.game.goHome();
+      // Sweep is the game's own script (CTowerView::onBtnSweep: execLuaScript("business_proxy/towerSweep_business.lua"))
+      if (sel === 'BtnSweep' && HB.L && HB.luaRun) { const go = () => HB.luaRun('business_proxy/towerSweep_business.lua'); return HB.game.loadItems ? HB.game.loadItems().then(go) : go(); }
+      ui.tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2); };
     const box = n.scroll_tower;
     const rowH = 96, list = st.open.slice().reverse();
     const scroll = new HB.ScrollView(); scroll.dir = 1; scroll.w = box.w; scroll.h = box.h - 175; // the layout's box runs on under the top bar

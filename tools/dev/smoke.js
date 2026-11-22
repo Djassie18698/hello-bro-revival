@@ -905,6 +905,11 @@ for (const pick of [55, 56, 57]) {
       if (!(tm >= 0 && tm < 86400) || !/enemy_nick="Wanderer"/.test(hx)) { bad++; console.log('BORDER damage list:', hx.slice(0, 200)); } }
     // world boss: only the killing hit is a won fight (the phone's win screen for a boss fight is the "Final kill" picture)
     if (!/battleXml\(db, pl, 1, 1, \{ win: killed, enemyIds: \[bossNinja\]/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'boss.js'), 'utf8'))) { bad++; console.log('WORLD BOSS: a hit that does not kill the boss must not be a won fight'); }
+    // tower sweep list: a cleared round can be chosen (2), one not cleared cannot (0); 1 would mean "already swept today"
+    { db.prepare('INSERT OR REPLACE INTO progress(uid, server_id, chap, stage) VALUES(77, 1, 1001, 3)').run();
+      const sw = handlers.rl_r_dup({ db, params: { ...base, Cmd: 7002 } });
+      if (!sw.includes('<dup name="1-2" selectable="2"/><dup name="1-3" selectable="0"/>')) { bad++; console.log('TOWER SWEEP list:', sw.slice(0, 300)); }
+      db.prepare('DELETE FROM progress WHERE uid=77 AND server_id=1 AND chap=1001').run(); }
     // change country: price by the target country's population rank (biggest 1500 ... 4th 150)
     const counts = {}; for (const r of db.prepare('SELECT country, COUNT(*) c FROM players WHERE server_id=1 GROUP BY country').all()) counts[r.country] = r.c;
     const order = [1, 2, 3, 4].sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
