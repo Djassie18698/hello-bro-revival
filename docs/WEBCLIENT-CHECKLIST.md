@@ -125,7 +125,7 @@ Events (Event window and left column):
 | ✅ | Sign-in (login streak) | keepLoginView |
 | ✅ | Level-up gift | upradePackActivity |
 | ✅ | Monthly sign | monthSign_business |
-| 🟡 | World Boss | fightBossView (+ 6 windows) |
+| ✅ | World Boss | played on a private server copy with its clock at 14:01 (`sh tools/dev/private-server.sh 14:01`): a hit plays and ends on the phone's result screen (Defeat with the silver earned; the win screen is the "Final kill" picture and only the killing hit gets it: server corrected), heroes ranking with country icons, rank reward claimed, a reputation prize exchanged. v28 has no dice: its place is the Enhance window, which opens, but **the server's Enhance is an empty answer** (pays nothing, adds nothing: never built) |
 | ✅ | God Recruit | godRecruit_business (5 layers) |
 | 🟡 | Monthly Card | monthCardActivity |
 | ✅ | Flower Worship | nvshen_business |
@@ -163,7 +163,7 @@ Features:
 | ✅ | Ninja Test (exam) | ui_ninjaTestMain |
 | ✅ | My Base | ui_myBaseLayer |
 | ✅ | Akatsuki (guild): list, create, join, hall, donate, shop, map, members, ranks, leave (played with two guests, section 3a) | ui_org* (22 layers) |
-| 🟡 | Border war | ui_borderWar* (14 layers) |
+| ✅ | Border war | two guests on a private server copy with its clock in the open hours: Wander and Taunt (the confirm window, silver / gold paid, monument loses HP, the running line), the other guest opens Clean, fights the wanderer (the fight now plays: `ShowArenaView(reply)`), win window, daily reward claimed, rankings, damage list. "Wander does nothing" was the confirm window opening and closing on two taps. Server replies corrected (phones too): stay times count up, a rewarded clean says what it earned, damage list times and names, Home's running-line request |
 | 🟡 | Cross-server battle | multi_battle/* (14 layers) |
 | ⬜ | Cross roulette / millionaire / super ninja | ui_cross* |
 | ⬜ | Change country | switchCountry |
@@ -201,7 +201,7 @@ never saw it).
 | ✅ | Flower Worship | flowers after a top-up, 40 given: card and items (event switched on in the dev save for the test) |
 | ✅ | God Recruit | spin, Remain: the god card is in the save; the win card now shows the big picture (event switched on for the test). Exchange and Return not tried |
 | ✅ | My Base | the four buildings open by tapping them; level tips now show (every script tip with time -1 was invisible) |
-| ✅ | Pets | list with pictures, names and skill texts, level up, train, advance, a helper put into the array (new: CPlayerPet, CCProgressTimer). Summon (merging fragments) is the Backpack's Fragments tab, not tried here |
+| ✅ | Pets | list with pictures, names and skill texts, level up, train, advance, a helper put into the array (new: CPlayerPet, CCProgressTimer). 22 Nov (second round): **Summon** = Backpack > Fragments > Pet > Merge (30 fragments: the pet is in the save), **set as master** = the middle place of the array > select (the old master steps out) |
 | ✅ | Ninja Test | crew picked, a whole exam fight played to the Defeat screen and back, Exchange list and one exchange. The server's refusal of a god card in the crew shows no words (code 8000 has no text in the game) |
 | ✅ | Breakthrough | god card picked from the list (cards were drawn as tip rows), one breakthrough: level, fragments and silver in the save. The list shows the attack numbers also for defence and chakra |
 | ✅ | Advance gear | two swords picked, advanced: rebirth 1, material gone, result window |
@@ -209,18 +209,26 @@ never saw it).
 | ✅ | Eight Gates (Dun, ui_limitTrainLayer) | one gate opened: souls and silver paid, attack +15 |
 | ✅ | Secret shop | one exchange for souls: "You got", item in the save. Refresh not tried |
 | ✅ | Evolve | attack + defence card + 100 pills: the god card (the reborn mark GetFrameDragon was missing) |
-| ⬜ | Inherit, Element change | not played: both open from a card, no time left |
+| ✅ | Element change | opened the phone's way: Shop > Tool > Use on the Element Change Pill (CItemView::onBtnUseIt, item kind 16); card picked from the list, Change: pills and silver paid, the card's element changed in the save. The Tool list now also shows what you hold that the shop does not sell (it hid the pill) |
+| ✅ | Inherit | played with a card outside the team as the source (`ShowNinjaInheritView(card seq)`): destination picked, confirm, level and growth moved, gold paid. **v28 has no way into it**: the only caller is CMyBackpackCardView::ninjaInheritClick, a Backpack row the app never builds (it uses CGameObjCardView), so no button leads there here either |
+| ✅ | Change country | Shop > Tool > Use on the Immigration Card opens the game's own window (switchCountry.lua): price asked per country, change done, card and gold paid, top bar filled again. Wind is offered by the window but our server only knows countries 1-4 and refuses it without words (code 8000) |
 | 🟡 | World Boss | played on a private copy of the dev server with its clock in the boss half hour: the fight plays, damage, rank and reputation follow. No result window after the fight (the phone's damage window CRoundResultView is not built); the reputation prizes and rank reward not tried |
 | ✅ | Hall of Fame | Challenge on another player: fight and Victory screen. Your own row does nothing (same on the phone) |
 | ✅ | Akatsuki | two guests: create (name typed), the other joins from Check > Apply, member list, hall task, donate gold, shop purchase, rankings, Flee. On our server Apply joins at once, so the Approval list stays empty; Setup, level up, deport and duties not tried |
 | 🟡 | Border war | opens, the other countries can be visited; Wander does nothing when tapped (not found why) |
-| ⬜ | Cross-server battle | not played: no time left |
+| ✅ | Cross-server battle | ticket bought in the sign-up days; on a private server copy in the battle hour (`HB_CWAR_PHASE=2`): morale boost, Challenge on a ladder place (fight, Victory, the place is yours, points tick), score ranking, Merit / Betting / Description tabs open. Exchange and the top-10 reward not tried |
+| ✅ | Cross-server wheel, Millionaire, Super Ninja | on our one-world server they are the same events as the normal ones (same requests) and no button leads to them; opened directly: a paid wheel turn, a dice throw and both rank windows work; cross Super Ninja opens (its event was not running) |
+| ✅ | Eight Gates soul training (ui_limitTrainSoulLayer) | Normal training, both Multiple buttons, Collect: souls in the save (50 x 4 = 200) |
+| ✅ | Tower Sweep | the game's script (towerSweep_business.lua): rounds picked, Determine, reward window, gold paid. The list reply was wrong (every round stamped "done today", none could be picked: corrected). **v28's tower layout hides the Sweep button** (never shown by the app), so it stays hidden here; run it with `HB.luaRun('business_proxy/towerSweep_business.lua')` |
+| 🚫 | Split card (SplitCard.lua) | v28 never opens it (its only caller is the unused Backpack row CMyBackpackCardView::splitClick) |
 
 ## 3b. Text polish (21 Nov 2026: "all text should match the boxes")
 
 How it is done: `server/webclient/fit.js` shrinks what runs into a neighbour (another label, an icon beside it, the screen's edge),
 `server/webclient/texts.js` lays our own texts over the game's tables (buttons found by name, layout labels, the scripts'
-`localizable` texts, small moves per layout) without touching the game's scripts, and each JavaScript screen fixes its own
+`localizable` texts, small moves per layout, and since 22 Nov `TIDY`: rules per layout kept true while it is on screen, for texts the
+scripts write after a reply: a sentence's words and numbers next to each other, shorter words, size, wrap, edge; `node tools/dev/play-dump.js`
+lists a screen's labels with their names) without touching the game's scripts, and each JavaScript screen fixes its own
 labels. Check everything again with `node tools/dev/js-screens.js [--lua] --tag=<name>`: a picture of every screen in
 `re/js/<name>/` plus, per screen, the Chinese texts still showing and what fit.js had to shrink.
 
@@ -259,12 +267,14 @@ Script screens (the game's own Lua; before pictures in `re/lua-before`, after in
 | ⬜ | Total recharge history (payhistorydrop) | gift names are Chinese in the script's own data file (old event, not in the event list) |
 | ⬜ | Lottery ticket | title, the two scroll sides and the prize titles are Chinese pictures; "Random Bet" lies on the lever |
 | ⬜ | Home | the 7-day goals button, the rank scroll and the Event bar's lottery icon are Chinese pictures |
-| ⬜ | Growth Fund | the red board's sentence stands in pieces ("Only insert 500 Gold. can get 5 feedback,total 2500 Gold") |
+| ✅ | Growth Fund | the board reads "Pay 500 gold once, get 5 times as much back: 2500 gold" as two centred lines; the VIP line inside the board |
 | 🟡 | No.1 Shinobi list | a glowing name is its full size again (fit.js took its stacked copies for neighbours); "Offense Points" still touches its numbers |
-| ⬜ | Daily Task | the chests' "30 points" captions are cut by the bar under them |
-| ⬜ | Lucky Wheel, Millionaire | "Reward Pool" under its number; small button words |
-| ⬜ | Secret shop, Inherit, Limited discount, Fight rank, Mora | several captions shrunk to 55-70 % (listed by `js-screens.js --lua`): they need shorter words or a place of their own |
-| ⬜ | Gold spending | the description runs under the countdown |
+| ✅ | Daily Task | the chests' points ("30 pts") stand on the chest's foot in white, clear of the bar |
+| ✅ | Lucky Wheel, Millionaire | "Reward Pool: 1010" side by side, "10 turns" / "Turn once" / "Ranking" inside their buttons, both sentences in one piece; Millionaire's greeting inside its banner, "Ten throws" |
+| ✅ | Secret shop, Inherit, Limited discount, Mora | Secret shop: "Souls:", the four lines under Refresh each in one piece; Inherit: the rules inside the scroll, each caption ends at its number's box, "Choose" inside its button; Limited discount: item names on two lines; Mora: "Your lives:" / "Your luck:", "10 Luck level" inside the plates |
+| ✅ | Change country, Change Element list, boss ranking | found while playing: the sentence and button word of Change country, the card list's name and "Choose", "Claim" on the heroes ranking |
+| ⬜ | Fight rank | captions still shrunk (not looked at) |
+| ✅ | Gold spending | "Gold spent:" and "Time left:" clear of the countdown |
 | ⬜ | Akatsuki, Border war | not looked at closely (need a guild / a running war) |
 
 ## 4. Order of work
