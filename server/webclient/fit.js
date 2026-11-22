@@ -30,7 +30,10 @@
     let c = clip;
     if (root.clip && root._wm) { const b = box(root); if (b) c = { x0: Math.max(clip.x0, b.x0), x1: Math.min(clip.x1, b.x1), y0: Math.max(clip.y0, b.y0), y1: Math.min(clip.y1, b.y1) }; }
     if (isLabel(root) && root.w > 0 && root.text !== '' && !(root.dims && root.dims[0] > 0)) out.push({ n: root, clip: c, layer });
-    for (const k of root.children) collect(k, out, c, layer);
+    // a script screen laid over another one in the same place (Akatsuki > Donate > its card list): each is a layer of its own,
+    // the covered screen's labels do not push against the ones on top
+    const stack = HB.game && (root === HB.game.activitySubMenu || root === HB.game.activityContent) && root.children.length > 1;
+    root.children.forEach((k, i) => collect(k, out, c, stack ? layer + ':' + i : layer));
   }
   // pictures standing in the same box as a label (its brothers), icon-sized
   function icons(n, h) {

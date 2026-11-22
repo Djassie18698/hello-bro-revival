@@ -121,6 +121,8 @@ end
   //   { edge: { name: ['right' | 'left', x] } }   the label ends (or starts) at x of its parent, whatever its text
   //   { anchor: { name: [ax, ay] } }              the label's anchor (0 = grows to the right, 0.5 = stays centred, 1 = grows to the left)
   //   { title: { name: 'text' } }                 a button's word
+  //   { relabel: { 'text': 'new text' | ['new text', px] } }   a label WITHOUT a name, found by what it reads (the Akatsuki layouts'
+  //                                               headings have no names): another word and / or letter size
   const TIDY = {
     // Growth Fund: "Only insert | 500 | Gold." and "can get | 5 | feedback,total | 2500 | Gold" stood in pieces on the red board
     growth_fund: [
@@ -202,6 +204,25 @@ end
       { swap: { label_limit_desc: [/^The MINIMUM for 1st prise is (\d+)\.?$/, '1st prize needs at least $1 points'] } },
     ],
     LimitIntegralRankCellForCross: [{ swap: { label_server_id: [/^\[?nil\]?$/, ''] } }, { size: { label_name: 20 } }, { move: { label_name: [-8, 0], label_score: [8, 0] } }],
+    // Slot machine: the word "Check" lay on the Rules picture
+    SlotMachineView: [{ title: { btn_detail: '' } }],
+    // Akatsuki: the headings of its lists were lower-case words that touched each other ("Contri.", "select" against the window's
+    // edge), "vice chieftain" ran into the numbers beside it, the Check buttons of the rankings stood on the screen's edge,
+    // the Upgrade window read "demand: / cost: 4000contrucation points", a button read "Domotion"
+    OrgMainView: [{ relabel: { list: ['Name', 30], level: ['Level', 30], job: ['Job', 30], 'Contri.': ['Points', 30], login: ['Login', 30] } }],
+    OrgMainCell: [{ size: { label_title: 23, label_name: 26 } }],
+    OrgMemOfficeView: [{ relabel: { list: ['Name', 28], level: ['Level', 28], job: ['Job', 28], 'Contri.': ['Points', 28], select: ['Pick', 28] } }, { title: { btn_demotion: 'Demotion' } }],
+    OrgMemOfficeCell: [{ size: { label_office: 22, label_name: 24 } }],
+    OrgMemExpelView: [{ relabel: { list: ['Name', 28], level: ['Level', 28], job: ['Job', 28], 'Contri.': ['Points', 28], expel: ['Expel', 28] } }],
+    OrgMemExpelCell: [{ size: { label_job: 22, label_name: 24 } }],
+    OrgMemCheckView: [{ relabel: { list: ['Name', 28], level: ['Level', 28], select: ['Pick', 28] } }],
+    OrgRankingsView: [{ relabel: { rank: ['Rank', 26], name: ['Name', 28], level: ['Level', 26], leader: ['Leader', 28], number: ['Members', 22], detail: ['Detail', 26] } }],
+    OrgRankingsCell: [{ move: { btn_detail: [-8, 0] } }, { size: { label_org_name: 26, label_org_leader: 26 } }],
+    OrgListView: [{ relabel: { akatsuki: ['Akatsuki', 28], level: ['Level', 28], leader: ['Leader', 28], number: ['Members', 24], detail: ['Detail', 28] } }],
+    OrgUpgradeView: [
+      { relabel: { 'demand：': 'Needs:', 'cost：': 'Cost:', 'effect：': 'Effect:' } },
+      { swap: { label_expend_1: [/contrucation points/, ' fund'], label_expend_2: [/contrucation points/, ' fund'], label_expend_3: [/contrucation points/, ' fund'], label_expend_4: [/contrucation points/, ' fund'] } },
+    ],
     // Change country: the two sentences were wider than the window and its button
     SwitchCountryDialogView: [
       { say: { label_SwitchCountryDialogView0: 'This country costs:', label_SwitchCountryDialogView2: 'Change' } },
@@ -220,6 +241,7 @@ end
       if (r.say) for (const k of Object.keys(r.say)) { const n = find(root, k); if (n && isText(n)) setText(n, r.say[k]); }
       if (r.swap) for (const k of Object.keys(r.swap)) { const n = find(root, k); if (n && isText(n)) { const t = String(n.text).replace(r.swap[k][0], r.swap[k][1]); setText(n, t); } }
       if (r.title) for (const k of Object.keys(r.title)) { const n = find(root, k); if (n instanceof HB.Button && n.titles[1] !== r.title[k]) { for (const st of Object.keys(n.titles)) n.titles[st] = r.title[k]; n.titles[1] = r.title[k]; n.layout(); } }
+      if (r.relabel) { const walk = (n) => { if (n instanceof HB.Label && !n.name && !(n.parent instanceof HB.Button) && Object.prototype.hasOwnProperty.call(r.relabel, n.text)) { const v = r.relabel[n.text], t = Array.isArray(v) ? v[0] : v; if (Array.isArray(v) && v[1]) n.size = v[1]; n.setText(t); } for (const k of n.children) if (!k.ccbDoc) walk(k); }; walk(root); }
       if (r.size) for (const k of Object.keys(r.size)) { const n = find(root, k); if (n instanceof HB.Label && n.size !== r.size[k]) { n.size = r.size[k]; n.setText(n.text); } }
       if (r.wrap) for (const k of Object.keys(r.wrap)) { const n = find(root, k); if (n instanceof HB.Label && !(n.dims && n.dims[0] === r.wrap[k])) { n.dims = [r.wrap[k], 0]; if (r.wrap[k]) n.ha = 1; n.setText(n.text); } }
       if (r.look) for (const k of Object.keys(r.look)) { const n = find(root, k), o = r.look[k]; if (n) { if (o.color && String(n.color) !== String(o.color)) n.color = o.color.slice(); if (o.stroke && String(n.stroke) !== String(o.stroke)) n.stroke = o.stroke.slice(); if (o.z !== undefined && n.z !== o.z) n.z = o.z; } } // the scripts colour their labels again later
