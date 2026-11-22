@@ -514,6 +514,9 @@
     reload() {
       this.asked = true;
       const keep = this.content.y, keepX = this.content.x;
+      // a list standing at its top stays at its top when it is filled again with more rows (a rank list made empty and filled when
+      // the reply comes showed its last rows: the cross-server battle's Merit list)
+      const atTop = this.dir !== 0 && Math.abs(this.content.y - (this.h - this.content.h)) < 1;
       this.content.removeAll(); this.cells = [];
       const n = num(this.ask('numberOfCells'));
       let total = 0;
@@ -533,7 +536,7 @@
         this.content.add(cell); enter(cell);
         this.cells.push(cell);
       }
-      if (this.loaded) { this.content.x = keepX; this.content.y = keep; this.scrollBy(0, 0); } else this.toTop();
+      if (this.loaded && !atTop) { this.content.x = keepX; this.content.y = keep; this.scrollBy(0, 0); } else this.toTop();
       this.loaded = true;
     }
     toTop() { const c = this.content; c.x = 0; c.y = this.dir === 0 ? 0 : this.h - c.h; } // CCTableView starts at minContainerOffset: a list shorter than its box stands at the top too (one mail in the Award Center)
