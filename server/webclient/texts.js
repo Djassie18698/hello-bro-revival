@@ -57,7 +57,9 @@
     ui_hotTreasure_btn2: 'Ten hunts',
     ui_slotExchange_text1: 'Score reached ',                   // "Score reached100" on the slot machine's Exchange list
     vip_gift_text: ' Honorable gift',                          // "VIP1Honorable gift"
-    vip_list_need_gold: 'Top up $%s more',                     // "Recharge %s $ You will become:"
+    vip_list_need_gold: 'Top up $%s more',
+    ui_btn_fight_title: 'Ranking Rules',                       // "Battle Point Ranking Rules and Regulation" made the button wider than the screen
+    ui_lable_my_fight: 'My points:',                           // "My Battle Point"                     // "Recharge %s $ You will become:"
   };
 
   // tips a script shows with Chinese words written into the script itself (not in localizable): the tip's text -> ours
@@ -82,6 +84,12 @@ if tools then
     if t.m ~= 0 then if t.s ~= 0 then return string.format('%d min %d s', t.m, t.s) end return string.format('%d min', t.m) end
     if t.s ~= 0 then return string.format('%d s', t.s) end
     return 'None'
+  end
+  local watchDay = tools.convertTimeElectronicWatchHaveDay
+  function tools.convertTimeElectronicWatchHaveDay(sec, count)  -- "2:2:49:59:" (days:hours:minutes:seconds:) on the rank events
+    local t = tools.convertTimeToTable(sec)
+    if count == 3 and t.d > 0 then return string.format('%dd %02d:%02d:%02d', t.d, t.h, t.m, t.s) end
+    return watchDay(sec, count)
   end
 end
 `;
@@ -176,6 +184,24 @@ end
     NinjaInheritNinjaItem: [{ size: { label_NinjaInheritNinjaItem0: 24, label_name: 19 } }, { move: { label_name: [16, 0] } }],
     // World Boss, Heroes ranking: "claim reputation" was wider than its button
     FightBossRankView: [{ say: { label_FightBossRankView4: 'Claim' } }],
+    // Stage gift (Home > Receive): the note behind the gift's name ran out of the window
+    StageGiftView: [{ size: { label_StageGiftView0: 17 } }, { wrap: { label_StageGiftView0: 290 } }],
+    // Level rank / Fight rank (one layout): "Ranking" and "Challenge" were cut by the board's edges, "Battle Point" and
+    // "My Battle Point" were squeezed, the number stood away from its words
+    LevelRank: [
+      { say: { label_LevelRank0: 'Rank' } }, { size: { label_LevelRank3: 19, label_lv_or_power: 20 } }, { move: { label_LevelRank3: [-6, 0] } },
+      { row: ['label_my_lv_or_power', 'label_level'], gap: 6 },
+    ],
+    // Super Ninja, the cross-server layout: "10 ... Purple Card" stood in two far corners (the words between them were never in
+    // this layout), "Server" touched "Points", a row without a server name read "[nil]"
+    LimitSuperNinjaForCross: [
+      { say: { label_LimitSuperNinjaForCross1: 'draws until a sure 5-star purple card' } }, { size: { label_LimitSuperNinjaForCross1: 20, label_limit_desc: 20 } },
+      { row: ['label_protect', 'label_LimitSuperNinjaForCross1'], gap: 8, center: 343 },
+      { size: { label_LimitSuperNinjaForCross3: 20, label_LimitSuperNinjaForCross4: 20, label_LimitSuperNinjaForCross5: 20, label_LimitSuperNinjaForCross8: 20 } },
+      { move: { label_LimitSuperNinjaForCross5: [8, 0], label_LimitSuperNinjaForCross4: [-8, 0] } },
+      { swap: { label_limit_desc: [/^The MINIMUM for 1st prise is (\d+)\.?$/, '1st prize needs at least $1 points'] } },
+    ],
+    LimitIntegralRankCellForCross: [{ swap: { label_server_id: [/^\[?nil\]?$/, ''] } }, { size: { label_name: 20 } }, { move: { label_name: [-8, 0], label_score: [8, 0] } }],
     // Change country: the two sentences were wider than the window and its button
     SwitchCountryDialogView: [
       { say: { label_SwitchCountryDialogView0: 'This country costs:', label_SwitchCountryDialogView2: 'Change' } },
