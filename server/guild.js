@@ -214,7 +214,8 @@ function adminXml(db, pl) {
 function rankXml(db, pl) {
   const rows = db.prepare('SELECT * FROM groups WHERE server_id=? ORDER BY score DESC, id').all(pl.server_id);
   const mine = myGroup(db, pl.uid, pl.server_id);
-  const list = rows.map((g, i) => `<group rank="${i + 1}" groupname="${esc(g.name)}" level="${g.level}" leadername="${esc(leaderName(db, g))}" curcount="${count(db, g.id)}"/>`).join('');
+  // groupid on every row: the list's Check button asks for that group (without it: sample texts and "Parameter error", on phones too; 22 Nov 2026)
+  const list = rows.map((g, i) => `<group groupid="${g.id}" rank="${i + 1}" groupname="${esc(g.name)}" level="${g.level}" leadername="${esc(leaderName(db, g))}" curcount="${count(db, g.id)}"/>`).join('');
   const me = mine ? `<group groupid="${mine.id}" rank="${rows.findIndex((x) => x.id === mine.id) + 1}" groupname="${esc(mine.name)}" level="${mine.level}" leadername="${esc(leaderName(db, mine))}" curcount="${count(db, mine.id)}"/>` : '<group groupid="0" rank="0" groupname="" level="0" leadername="" curcount="0"/>';
   return `<ranklist>${list}</ranklist><myrank>${me}</myrank>`;
 }
