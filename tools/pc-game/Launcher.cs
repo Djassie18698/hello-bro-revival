@@ -54,9 +54,13 @@ static class Launcher
         ThreadPool.SetMinThreads(16, 16);
 
         if (!window) { Thread.Sleep(Timeout.Infinite); return 0; }
+        string url = "http://127.0.0.1:" + port + "/play/?pc=1";
+        // the game's own window (GameWindow.cs): no browser to be seen. Only if Windows has no WebView2 (an old Windows 10 without
+        // updates) does it fall back to a browser window without an address bar.
+        bool dev = false; foreach (string a in args) if (a == "--dev") dev = true;
+        if (GameWindow.Run(url, Path.Combine(data, "window"), dev)) { try { http.Stop(); } catch { } return 0; }
         string browser = FindBrowser();
         if (browser == null) { Say("Microsoft Edge or Google Chrome is needed to show the game, and neither was found."); return 1; }
-        string url = "http://127.0.0.1:" + port + "/play/?pc=1";
         ProcessStartInfo psi = new ProcessStartInfo(browser, "--app=" + url + " --user-data-dir=\"" + Path.Combine(data, "profile") + "\" --no-first-run --no-default-browser-check --start-maximized --autoplay-policy=no-user-gesture-required --disable-features=Translate,msEdgeSidebarV2 --disable-background-timer-throttling --disable-renderer-backgrounding");
         psi.UseShellExecute = false;
         try { Process.Start(psi); } catch (Exception e) { Say("Could not open the game window:\n" + e.Message); return 1; }
