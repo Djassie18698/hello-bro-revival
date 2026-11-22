@@ -3,8 +3,8 @@ const game = require('./game');
 // a spin costs 100 gold and gives 10 points (ORIGINAL: the game's normalconfig 300/301); the bet multiples are (ours)
 const COST = 100, BETS = [1, 2, 5, 10];
 const PACKS = [
-  { id: 1, score: 100, coin: 20000 }, { id: 2, score: 300, coin: 80000 }, { id: 3, score: 1000, cash: 500 },
-];
+  { id: 1, score: 100, coin: 20000, drop: 503 }, { id: 2, score: 300, coin: 80000, drop: 502 }, { id: 3, score: 1000, cash: 500, drop: 500 },
+]; // drop = the game's own drop row with that content ("20,000 Silver", "80,000 Silver", "500 Gold"): only shown as the pack's picture
 const el = (n, v) => `<${n}>${v}</${n}>`;
 function st(db, pl) {
   db.exec('CREATE TABLE IF NOT EXISTS slot (uid INTEGER, server_id INTEGER, score INTEGER DEFAULT 0, bet INTEGER DEFAULT 0, last INTEGER DEFAULT 0, got TEXT DEFAULT "", PRIMARY KEY(uid,server_id))');
@@ -40,7 +40,10 @@ function spin(db, pl) {
 function listXml(db, pl) {
   const m = st(db, pl);
   const got = new Set(m.got.split(',').filter(Boolean).map(Number));
-  return basic(m) + PACKS.map((p) => `<package>${el('id', p.id)}${el('score', p.score)}${el('status', got.has(p.id) ? 2 : m.score >= p.score ? 1 : 0)}</package>`).join('');
+  // The Exchange list (ui_slotMExchangeLayer / Cell) reads ONE <package> whose children are the rows, each with attributes: id, score,
+  // status (1 = can be claimed, 2 = not enough points yet, 3 = claimed) and drop1..drop4 (a drop id, "0" = empty place). Until 22 Nov 2026 it
+  // got one <package> per pack with child elements: every row was a Lua error and the window stayed empty.
+  return basic(m) + '<package>' + PACKS.map((p) => `<item id="${p.id}" score="${p.score}" status="${got.has(p.id) ? 3 : m.score >= p.score ? 1 : 2}" drop1="${p.drop}" drop2="0" drop3="0" drop4="0" icon1="" icon2="" icon3="" icon4=""/>`).join('') + '</package>';
 }
 function exchange(db, pl, id) {
   const m = st(db, pl), p = PACKS.find((x) => x.id === id);

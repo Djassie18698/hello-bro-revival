@@ -1317,6 +1317,8 @@ for (const pick of [55, 56, 57]) {
     if (!/<rank><item>.*<nick>/.test(m)) { bad++; console.log('MORA   the rank list must hold <item> rows: ' + String(m).slice(0, 160)); }
     const sx = typeof sl === 'string' ? sl : (sl && sl.xml) || JSON.stringify(sl);
     if (!/<ninja icon="icon_npc0\d_1" cash="\d+"\/>/.test(sx)) { bad++; console.log('SLOT   the faces must carry icon and cash as attributes: ' + String(sx).slice(0, 200)); }
+    const lx = require('../../server/slot').listXml(db, me);
+    if (!lx.includes('<package><item id="1" score="100" status="') || !lx.includes('drop1="503" drop2="0"') || !lx.endsWith('</package>')) { bad++; console.log('SLOT   the exchange list must be one <package> of <item> rows with attributes: ' + lx.slice(0, 300)); }
   }
   { // custom events (customevents.js): a file in the folder is listed, pays once (or once a day), a broken or foreign file is skipped
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hb-custom-'));

@@ -55,6 +55,7 @@
     ui_first_money_left: 'Left ',                              // "Left0 min"
     ui_hotTreasure_text2: 'This time free',
     ui_hotTreasure_btn2: 'Ten hunts',
+    ui_slotExchange_text1: 'Score reached ',                   // "Score reached100" on the slot machine's Exchange list
     vip_gift_text: ' Honorable gift',                          // "VIP1Honorable gift"
     vip_list_need_gold: 'Top up $%s more',                     // "Recharge %s $ You will become:"
   };
