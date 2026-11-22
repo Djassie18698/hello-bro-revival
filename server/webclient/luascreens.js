@@ -105,7 +105,7 @@
       BtnPay: () => HB.game.changeToActivity('business_proxy/firstMoneyAward'),
       BtnNaruto: () => HB.game.changeToActivity('loginPackActivity', 'naruto'),
       BtnNan: () => HB.game.changeToActivity('upradePackActivity', 'nan'),
-      BtnBuyFund: () => HB.game.changeToActivitySubMenu('ShowGrowthFundView'),
+      BtnBuyFund: () => HB.game.changeToActivity('business_proxy/growthfund_b'), // CDefaultMainMenu::onBtnBuyFund: the Event screen (the fund's layer asks for its content box)
       BtnRoulette: () => HB.game.changeToActivitySubMenu('ShowRouletteView'),
       BtnMora: () => HB.game.changeToActivitySubMenu('ShowMoraView'),
       BtnAwardCenter: () => { if (helper()) HB.luaGlobal('ShowAwardCenter'); },

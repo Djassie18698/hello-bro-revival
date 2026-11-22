@@ -9,6 +9,10 @@
 //   LUA       the scripts' own texts (script/util/localizable.lua): name -> our text, set once the scripts run
 //   LAYOUT    a layout's name -> function (names, root) run right after it is built: moves or resizes labels that the script
 //             does not touch again (plain cocos calls on our nodes)
+//   TIDY      a layout's name -> rules kept true while that layout is on screen (the scripts write their texts later, after a
+//             reply): words and numbers of one sentence set next to each other, a text said shorter, a smaller or wrapped label,
+//             a label moved. See the table for the rule kinds.
+//   TIPS      tips a script shows with Chinese words of its own
 // HB.texts.report() lists the Chinese texts on the screen that is showing. fit.js still shrinks what is too long.
 'use strict';
 (function () {
@@ -93,6 +97,134 @@ end
     },
   };
 
+  // ---------------------------------------------------------------- TIDY: rules kept true while a layout is on screen
+  // Per layout (the .ccbi's name without folder) a list of rules; names are the layout's member names (tools/dev/play-dump.js lists them):
+  //   { row: [names], gap: 6, center: true | x }   the labels stand next to each other in this order, as one sentence: centred on the
+  //                                               middle of the place the layout gave them (center: true), around x of their parent
+  //                                               (center: number), or from the first label's left edge (no center). Hidden or empty
+  //                                               ones are left out. All must have the same parent.
+  //   { say: { name: 'text' } }                   the label always reads this, whatever the script wrote ('' hides it)
+  //   { swap: { name: [/regex/, 'text'] } }       the script's text with a part said differently
+  //   { size: { name: px } }                      a TTF label's letter size
+  //   { wrap: { name: width } }                   the label breaks its lines at this width, each line centred (0 = one line)
+  //   { look: { name: { color: [r, g, b], stroke: ['#000', 2], z: 20 } } }   colour, outline, drawn over its brothers
+  //   { move: { name: [dx, dy] } }                moved once from where the layout put it
+  //   { edge: { name: ['right' | 'left', x] } }   the label ends (or starts) at x of its parent, whatever its text
+  //   { anchor: { name: [ax, ay] } }              the label's anchor (0 = grows to the right, 0.5 = stays centred, 1 = grows to the left)
+  //   { title: { name: 'text' } }                 a button's word
+  const TIDY = {
+    // Growth Fund: "Only insert | 500 | Gold." and "can get | 5 | feedback,total | 2500 | Gold" stood in pieces on the red board
+    growth_fund: [
+      { say: { label_fund_desc1: 'Pay', label_fund_desc2: 'gold once,', label_fund_desc3: 'get', label_fund_desc4: 'times as much back:', label_fund_desc5: 'gold' } },
+      { row: ['label_fund_desc1', 'label_val_1', 'label_fund_desc2'], gap: 8, center: 115 },
+      { row: ['label_fund_desc3', 'label_val_2', 'label_fund_desc4', 'label_val_3', 'label_fund_desc5'], gap: 8, center: 115 },
+      { size: { label_growth_fund0: 21, label_growth_fund1: 21 } }, // "(Only VIP3 and above buyers may purchase)" ran over the board's edge
+    ],
+    // Daily Task: the chests' "30Points" were cut by the bar under them
+    // (now written on the chest's foot, in white with a dark edge)
+    DailyTaskAwardCell: [{ swap: { label_need_score: [/^(\d+)\s*Points$/, '$1 pts'] } }, { size: { label_need_score: 20 } }, { move: { label_need_score: [0, 20] } },
+      { look: { label_need_score: { color: [255, 255, 255], stroke: ['#4a2400', 2], z: 30 } } }],
+    // Lucky Wheel: "Reward Pool:" lay under its number, the three button words were wider than their buttons, the two
+    // sentences ran into their numbers
+    RouletteView: [
+      { size: { label_gold_pool: 18 } }, { row: ['label_gold_pool', 'label_super_award'], gap: 6, center: 248 },
+      { say: { label_RouletteView0: 'turns', label_RouletteView2: 'Ranking', label_aaa_desc: 'until the wheel ends', label_RouletteView3: 'One turn earns', label_textview: 'points (1st of the day free)' } },
+      { size: { label_RouletteView1: 27, label_RouletteView0: 27, label_left_roll: 27, label_RouletteView3: 22, label_score: 22, label_textview: 22 } },
+      { row: ['label_left_roll', 'label_RouletteView0'], gap: 6, center: 95 },
+      { row: ['aaa', 'label_aaa_desc'], gap: 8, center: 275 },
+      { row: ['label_RouletteView3', 'label_score', 'label_textview'], gap: 7, center: 275 },
+    ],
+    // Millionaire: the greeting was wider than its banner; "Ten Summerset"
+    MonopolyView: [{ say: { label_MonopolyView0: 'New Year Millionaire: prosperity and luck to everyone!' } }, { title: { btn_roll_tentimes: 'Ten throws' } }],
+    CrossMonopolyView: [{ title: { btn_roll_tentimes: 'Ten throws' } }],
+    // Gold spending: the heading ran under the countdown
+    ConsumptionGiftView: [{ swap: { label_unuse1: [/^Cumulative gold：$/, 'Gold spent:'], label_activity_time: [/^Count down：$/, 'Time left:'] } }],
+    // Limited discount: the four item names ran into each other (two lines each now)
+    LimitDiscountView: [
+      { anchor: { label_item_name1: [0.5, 1], label_item_name2: [0.5, 1], label_item_name3: [0.5, 1], label_item_name4: [0.5, 1] } },
+      { size: { label_item_name1: 15, label_item_name2: 15, label_item_name3: 15, label_item_name4: 15 } },
+      { wrap: { label_item_name1: 120, label_item_name2: 120, label_item_name3: 120, label_item_name4: 120 } },
+      { say: { label_LimitDiscountView0: 'Time left:' } }, { title: { btn_get: 'Claim' } },
+    ],
+    // Mora: "Your current luck level:" ran under its coin, the four "10 Luck level" captions were squeezed into their plates,
+    // the word "Check" lay on the Rules picture
+    MoraView: [
+      { say: { label_MoraView2: 'Your luck:', label_MoraView1: 'Your lives:' } },
+      { size: { label_MoraView3: 18, label_MoraView4: 18, label_MoraView5: 18, label_MoraView6: 18, label_fortune_get1: 20, label_fortune_get2: 20, label_fortune_get3: 20, label_fortune_get4: 20 } },
+      { anchor: { label_MoraView5: [0, 1], label_MoraView6: [0, 1] } },
+      { row: ['label_fortune_get1', 'label_MoraView3'], gap: 5, center: true }, { row: ['label_fortune_get2', 'label_MoraView4'], gap: 5, center: true },
+      { row: ['label_fortune_get3', 'label_MoraView5'], gap: 5, center: true }, { row: ['label_fortune_get4', 'label_MoraView6'], gap: 5, center: true },
+      { title: { btn_detail: '' } },
+    ],
+    // Secret shop: the lines under the Refresh button lay over each other and ran off the screen; "Current number of Ninja Souls:"
+    secretShopLayer: [
+      { say: { label_secretShopLayer0: 'Souls:', label_secretShopLayer2: 'Refresh Orders:', label_secretShopLayer3: '', label_secretShopLayer4: 'A refresh: 1 order or', label_secretShopLayer5: '', label_secretShopLayer6: 'Refreshes today:', label_vip_unit: 'a day' } },
+      { row: ['label_secretShopLayer2', 'label_update_token'], gap: 6 },
+      { row: ['label_secretShopLayer6', 'label_today_times'], gap: 6 },
+    ],
+    secretShopItem: [{ wrap: { label_cost_type: 0 } }, { say: { label_cost_type: '' } }],
+    // Inherit: the three rules were wider than the screen; "Growth: 0 Grade", "Reincarnation: 0 Reincarnation" and the two
+    // "Training can increase ..." lines ran into their numbers
+    NinjaInheritReadmeCell: [{ size: { label_text: 18 } }],
+    NinjaInheritView: [
+      { say: { label_NinjaInheritView2: 'Cost', label_NinjaInheritView6: '', label_NinjaInheritView7: 'Reborn:', label_NinjaInheritView8: '', label_NinjaInheritView9: 'Trained ATK:', label_NinjaInheritView10: 'Trained DEF:' } },
+      { edge: { label_NinjaInheritView5: ['right', 308], label_NinjaInheritView7: ['right', 505] } }, // each caption ends at its number's dark box
+    ],
+    // the card lists of Inherit and Change Element: "Choose" was wider than its button, long names started left of their plate
+    AttributeDanNinjaItem: [{ size: { label_AttributeDanNinjaItem0: 24, label_name: 19 } }, { move: { label_name: [16, 0] } }],
+    NinjaInheritNinjaItem: [{ size: { label_NinjaInheritNinjaItem0: 24, label_name: 19 } }, { move: { label_name: [16, 0] } }],
+    // World Boss, Heroes ranking: "claim reputation" was wider than its button
+    FightBossRankView: [{ say: { label_FightBossRankView4: 'Claim' } }],
+    // Change country: the two sentences were wider than the window and its button
+    SwitchCountryDialogView: [
+      { say: { label_SwitchCountryDialogView0: 'This country costs:', label_SwitchCountryDialogView2: 'Change' } },
+      { size: { label_SwitchCountryDialogView0: 26, label_SwitchCountryDialogView1: 15 } }, { wrap: { label_SwitchCountryDialogView1: 600 } },
+    ],
+  };
+  const tidyRoots = new Set();
+  const find = (root, name) => { if (root.tidyNames && root.tidyNames[name] !== undefined) { const c = root.tidyNames[name]; if (c && c.parent) return c; }
+    let hit = null; const walk = (n) => { if (hit) return; if (n.name === name) { hit = n; return; } for (const k of n.children) walk(k); }; walk(root);
+    (root.tidyNames = root.tidyNames || {})[name] = hit; return hit; };
+  const isText = (n) => n instanceof HB.Label || n instanceof HB.BMLabel;
+  const unfit = (n) => { if (n._fitSx !== undefined && n.sx === n._fitSx && n._fitBase) { n.sx = n._fitBase[0]; n.sy = n._fitBase[1]; n._fitSx = undefined; } }; // fit.js's last shrink: measured at full size
+  const setText = (n, t) => { if (String(n.text) !== t) n.setText(t); };
+  function tidy(root, rules) {
+    for (const r of rules) {
+      if (r.say) for (const k of Object.keys(r.say)) { const n = find(root, k); if (n && isText(n)) setText(n, r.say[k]); }
+      if (r.swap) for (const k of Object.keys(r.swap)) { const n = find(root, k); if (n && isText(n)) { const t = String(n.text).replace(r.swap[k][0], r.swap[k][1]); setText(n, t); } }
+      if (r.title) for (const k of Object.keys(r.title)) { const n = find(root, k); if (n instanceof HB.Button && n.titles[1] !== r.title[k]) { for (const st of Object.keys(n.titles)) n.titles[st] = r.title[k]; n.titles[1] = r.title[k]; n.layout(); } }
+      if (r.size) for (const k of Object.keys(r.size)) { const n = find(root, k); if (n instanceof HB.Label && n.size !== r.size[k]) { n.size = r.size[k]; n.setText(n.text); } }
+      if (r.wrap) for (const k of Object.keys(r.wrap)) { const n = find(root, k); if (n instanceof HB.Label && !(n.dims && n.dims[0] === r.wrap[k])) { n.dims = [r.wrap[k], 0]; if (r.wrap[k]) n.ha = 1; n.setText(n.text); } }
+      if (r.look) for (const k of Object.keys(r.look)) { const n = find(root, k), o = r.look[k]; if (n) { if (o.color && String(n.color) !== String(o.color)) n.color = o.color.slice(); if (o.stroke && String(n.stroke) !== String(o.stroke)) n.stroke = o.stroke.slice(); if (o.z !== undefined && n.z !== o.z) n.z = o.z; } } // the scripts colour their labels again later
+      if (r.edge) for (const k of Object.keys(r.edge)) { const n = find(root, k); if (n) { unfit(n); const right = r.edge[k][0] === 'right', x = r.edge[k][1] + (right ? -(1 - n.ax) : n.ax) * n.w * n.sx; if (Math.abs(n.x - x) > 0.5) n.x = x; } }
+      if (r.anchor) for (const k of Object.keys(r.anchor)) { const n = find(root, k); if (n && !n.tidyAnchor) { n.tidyAnchor = true; const [ax, ay] = r.anchor[k]; n.x += (ax - n.ax) * n.w * n.sx; n.y += (ay - n.ay) * n.h * n.sy; n.ax = ax; n.ay = ay; } }
+      if (r.move) for (const k of Object.keys(r.move)) { const n = find(root, k); if (n && !n.tidyMoved) { n.tidyMoved = true; n.x += r.move[k][0]; n.y += r.move[k][1]; } }
+      if (r.row) {
+        const all = r.row.map((k) => find(root, k)).filter(Boolean);
+        if (all.length < 2 || all.some((n) => n.parent !== all[0].parent)) continue;
+        all.forEach(unfit);
+        const wOf = (n) => n.w * n.sx, left = (n) => n.x - n.ax * wOf(n);
+        if (!root.tidyRow) root.tidyRow = new Map();
+        // where the layout put the sentence: from the first label's left edge to the last one's right edge (kept from the first look)
+        let home = root.tidyRow.get(r);
+        if (!home) { home = { x0: Math.min(...all.map(left)), x1: Math.max(...all.map((n) => left(n) + wOf(n))) }; root.tidyRow.set(r, home); }
+        const shown = all.filter((n) => n.visible && String(n.text) !== '' && wOf(n) > 0);
+        if (!shown.length) continue;
+        const gap = r.gap === undefined ? 6 : r.gap, total = shown.reduce((t, n) => t + wOf(n), 0) + gap * (shown.length - 1);
+        let x = r.center === true ? (home.x0 + home.x1) / 2 - total / 2 : typeof r.center === 'number' ? r.center - total / 2 : home.x0;
+        for (const n of shown) { const nx = x + n.ax * wOf(n); if (Math.abs(n.x - nx) > 0.5) n.x = nx; x += wOf(n) + gap; }
+      }
+    }
+  }
+  setInterval(() => {
+    for (const root of [...tidyRoots]) {
+      let top = root; while (top.parent) top = top.parent;
+      if (top !== HB.scene) { if (root.tidySeen) tidyRoots.delete(root); else if ((root.tidyWait = (root.tidyWait || 0) + 1) > 40) tidyRoots.delete(root); continue; } // gone (or never shown)
+      root.tidySeen = true;
+      try { tidy(root, TIDY[root.ccbDoc]); } catch (e) { console.warn('texts.js tidy', root.ccbDoc, e); tidyRoots.delete(root); }
+    }
+  }, 200);
+
   // ---------------------------------------------------------------- the tables
   let byButton = null; // member name -> Map(layout -> text)
   function index() {
@@ -138,8 +270,10 @@ end
     const root = build0.call(this, file, owner, ...rest);
     try {
       const doc = String(file).split('/').pop();
+      root.ccbDoc = doc;
       fixButtons(root, doc);
       if (LAYOUT[doc]) LAYOUT[doc]((owner && owner.n) || {}, root);
+      if (TIDY[doc]) { tidyRoots.add(root); try { tidy(root, TIDY[doc]); } catch (e) { /* done again in a moment */ } }
     } catch (e) { console.warn('texts.js', file, e); }
     return root;
   };
@@ -175,7 +309,7 @@ end
   }, 300);
 
   HB.texts = {
-    UI, LUA, LAYOUT, TIPS,
+    UI, LUA, LAYOUT, TIDY, TIPS,
     // the Chinese texts showing right now: labels and button titles
     report() {
       const out = [];
