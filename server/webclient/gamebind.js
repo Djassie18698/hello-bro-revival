@@ -129,6 +129,9 @@
     };
     // CModelLayer::AddDialog(node, z): a dialog over everything; taps under it are blocked
     HB.lua.methods(HB.Node, {
+      // ISubMenu::InitNormalHeader(): the scripts call it on GetCurrentSubMenu() after they changed gold, silver or the country themselves:
+      // the screen's top bar is filled again
+      InitNormalHeader: () => { if (HB.game.refresh) HB.game.refresh(); },
       AddDialog: (HB.game.addDialog = (layer, node, z) => {
         if (!node) return;
         const dim = new HB.LayerColor(); dim.color = [0, 0, 0]; dim.opacity = 0; dim.w = HB.size[0]; dim.h = HB.size[1]; dim.swallow = true; dim.onTouch = () => {}; dim.ignoreAnchor = true;

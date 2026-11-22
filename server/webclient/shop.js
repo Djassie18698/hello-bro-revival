@@ -111,7 +111,7 @@
     };
     const kids = (tag) => x.all(list, tag).map((e) => Object.fromEntries([...e.children].map((c) => [c.nodeName, c.textContent])));
     const goods = kids('goods'), orders = Number((goods.find((g) => Number(g.propid) === 30) || {}).bagnum || 0);
-    const rows = tab === 0 ? kids('recruit') : tab === 1 ? kids('packages').filter((p) => Number(p.package_show) !== 0) : goods.filter((g) => Number(g.prop_yuanbao) > 0 || Number(g.prop_yinzi) > 0);
+    const rows = tab === 0 ? kids('recruit') : tab === 1 ? kids('packages').filter((p) => Number(p.package_show) !== 0) : goods.filter((g) => Number(g.prop_yuanbao) > 0 || Number(g.prop_yinzi) > 0 || Number(g.bagnum) > 0); // what is sold, and what you hold (the only place with a Use button)
 
     const box = n.node_tablecontent, size = n.node_cardcontent;
     const scroll = new HB.ScrollView(); scroll.dir = 1; scroll.w = box.w; scroll.h = box.h;
@@ -173,7 +173,8 @@
       const inf = HB.info(0, g.propid);
       m.label_desc.setText(inf.desc || '');
       if (m.node_descsize) { m.label_desc.dims = [Math.max(200, m.node_descsize.w), 0]; m.label_desc.setText(m.label_desc.text); }
-      if (m.label_notsell) m.label_notsell.visible = false;
+      if (m.label_notsell) m.label_notsell.visible = !gold && !silver; // the layout's own "not for sale" line for an item you hold that the shop does not sell
+      if (!gold && !silver) for (const k of ['label_StoreGoodsView0', 'label_priceval', 'sprite_iconframe', 'sprite_btn_buyit']) if (m[k]) m[k].visible = false;
       if (m.label_StoreGoodsView0) m.label_StoreGoodsView0.setText('Price:');
       m.label_priceval.setText(String(gold || silver));
       if (!gold && silver) { const s = HB.frameByName('com_silver_icon'); if (s) m.sprite_iconframe.setFrame(s); }
@@ -189,6 +190,18 @@
       });
       tap(m.sprite_btn_useit, async () => {
         if (!(Number(g.bagnum) > 0)) return ui.tip('You have no ' + g.prop_name, 1.5);
+        // Items that open a screen instead of being used up here (CItemView::onBtnUseIt, by consumeinfo function type): 8 Immigration Card =
+        // the game's own Change country window (switchCountry.lua, ShowSwitchCountryDialog(item id, the row)), 14 Refresh Order = the Secret
+        // shop, 16 Element Change Pill = Change Element (ChangeToActivitySubMenu("ShowAttributeDanView")).
+        const fn = Number(g.prop_function);
+        if (HB.L && fn === 8) {
+          if (HB.game.loadItems) await HB.game.loadItems();
+          HB.luaRun('switchCountry.lua');
+          const row = { luaGet: (k) => (HB.lua.S(k) === 'initConsum' ? () => { HB.game.refresh().then(() => shop(2)); return []; } : undefined) };
+          return HB.luaGlobal('ShowSwitchCountryDialog', Number(g.propid), row);
+        }
+        if (HB.L && fn === 14) return HB.game.changeToActivitySubMenu('ShowSecretShopView');
+        if (HB.L && fn === 16) return HB.game.changeToActivitySubMenu('ShowAttributeDanView');
         const r = await send('rl_w_propuse', { Cmd: 1800, Goodsid: g.propid });
         if (!r) return;
         await HB.game.refresh();

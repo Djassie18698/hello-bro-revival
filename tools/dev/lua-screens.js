@@ -44,7 +44,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const ev = async (expression) => { const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); return r.result && r.result.result ? r.result.result.value : undefined; };
   await send('Emulation.setDeviceMetricsOverride', { width: 760, height: 1350, deviceScaleFactor: 1, mobile: false });
   await send('Page.enable'); await send('Runtime.enable');
-  await send('Page.navigate', { url: `http://127.0.0.1:18081/play/?auto=1&device=${device}&stage=0` });
+  await send('Page.navigate', { url: `http://127.0.0.1:18081/play/?auto=1&device=${device}&stage=0&preload=0` });
   await wait(14000);
   fs.mkdirSync('re/lua', { recursive: true });
   const report = [];

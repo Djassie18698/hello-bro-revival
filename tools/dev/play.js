@@ -70,7 +70,7 @@ if (require.main === module) (async () => {
     await c.send('Emulation.setDeviceMetricsOverride', { width: 760, height: 1350, deviceScaleFactor: 1, mobile: false });
     await c.send('Page.enable'); await c.send('Runtime.enable');
     await c.send('Page.addScriptToEvaluateOnNewDocument', { source: HOOK });
-    await c.send('Page.navigate', { url: `${process.env.PLAY_BASE || 'http://127.0.0.1:18081'}/play/?auto=1&device=${device}&stage=0&mute=1` });
+    await c.send('Page.navigate', { url: `${process.env.PLAY_BASE || 'http://127.0.0.1:18081'}/play/?auto=1&device=${device}&stage=0&mute=1&preload=0` });
     console.log('serving ' + device + ' on ' + port);
     c.ws.addEventListener('close', () => { ch.kill(); process.exit(0); });
     process.on('SIGTERM', () => { ch.kill(); process.exit(0) });

@@ -55,6 +55,11 @@
     vip_list_need_gold: 'Top up $%s more',                     // "Recharge %s $ You will become:"
   };
 
+  // tips a script shows with Chinese words written into the script itself (not in localizable): the tip's text -> ours
+  const TIPS = {
+    '转国成功': 'You changed country',                          // switchCountry.lua, after the Immigration Card
+  };
+
   // script functions that build a text from Chinese words: the same function in English (run once, with the texts above)
   const LUA_CODE = `
 if tools then
@@ -160,6 +165,7 @@ end
   let luaDone = null; // the Lua state these were set in (a new login starts a new one)
   const quote = (s) => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
   setInterval(() => {
+    if (HB.tip && !HB.tip.ours) { const tip0 = HB.tip; HB.tip = function (t, ...rest) { return tip0.call(this, TIPS[String(t).trim()] || t, ...rest); }; HB.tip.ours = true; } // HB.tip is made after this file
     if (!HB.L || luaDone === HB.L || !HB.luaCall) return;
     try {
       if (HB.L.get('localizable') == null) return; // the scripts are still starting
@@ -169,7 +175,7 @@ end
   }, 300);
 
   HB.texts = {
-    UI, LUA, LAYOUT,
+    UI, LUA, LAYOUT, TIPS,
     // the Chinese texts showing right now: labels and button titles
     report() {
       const out = [];
