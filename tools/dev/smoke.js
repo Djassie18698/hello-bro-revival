@@ -910,6 +910,8 @@ for (const pick of [55, 56, 57]) {
       const sw = handlers.rl_r_dup({ db, params: { ...base, Cmd: 7002 } });
       if (!sw.includes('<dup name="1-2" selectable="2"/><dup name="1-3" selectable="0"/>')) { bad++; console.log('TOWER SWEEP list:', sw.slice(0, 300)); }
       db.prepare('DELETE FROM progress WHERE uid=77 AND server_id=1 AND chap=1001').run(); }
+    // border: Home's running line asks Cmd 2 and reads the length of <notice> (a Lua error without it)
+    { const nx = require('../../server/border').infoXml(db, me(), 1, 2); if (!nx.startsWith('<notice>') || !nx.endsWith('</notice>')) { bad++; console.log('BORDER notice list:', nx.slice(0, 200)); } }
     // change country: price by the target country's population rank (biggest 1500 ... 4th 150)
     const counts = {}; for (const r of db.prepare('SELECT country, COUNT(*) c FROM players WHERE server_id=1 GROUP BY country').all()) counts[r.country] = r.c;
     const order = [1, 2, 3, 4].sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
@@ -1348,6 +1350,11 @@ for (const pick of [55, 56, 57]) {
     db.prepare('UPDATE players SET gold=? WHERE uid=77 AND server_id=1').run(g1);
     delete process.env.HB_CUSTOM_EVENTS;
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  }
+  { // "Login N day" packs count calendar days (server midnight), not 24-hour periods (Koolmanm598, 22 Nov 2026)
+    const lpd = require('../../server/game').loginPackDays, at = (d, h) => new Date(2026, 10, d, h, 6).getTime();
+    if (!(lpd(at(16, 5), at(22, 1)) === 7 && lpd(at(16, 23), at(17, 0)) === 2 && lpd(at(16, 5), at(16, 23)) === 1 && lpd(at(1, 5), at(28, 5)) === 28 && lpd(at(1, 1), new Date(2026, 11, 25).getTime()) === 30)) { bad++; console.log(
+      'LOGIN PACK DAYS: must switch at midnight (and stop at 30)'); }
   }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);

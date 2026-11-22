@@ -96,6 +96,12 @@ function score(db, pl) {
 // Cmd 1: monument of country C + who is stationed there. Cmd 3: damage history of country C.
 function infoXml(db, pl, c, cmd) {
   ensure(db);
+  if (cmd === 2) {
+    // Home asks this for the running line "[Country] Player X is taunting at [Y]" (ui_borderWarTip.lua reads the length of <notice>: without
+    // the element every visit to Home was a Lua error). Rows: who is standing in another country right now, newest first, at most 5.
+    const rows = active(db, pl.server_id).sort((x, y) => y.start - x.start).slice(0, 5);
+    return '<notice>' + rows.map((r) => `<item my_country="${r.country}" my_nick="${esc(r.nick)}" status="${r.type}" enemy_nick="" enemy_country="${r.to_country}"/>`).join('') + '</notice>';
+  }
   if (cmd === 3) {
     // The window (ui_borderWarBloodDetailLayer) prints attack_starttime as hours:minutes:seconds, so it is the time of day in seconds, and reads
     // the name from enemy_nick. Only today's hits: the monument is whole again every day.
