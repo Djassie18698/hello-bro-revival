@@ -151,7 +151,7 @@
     setTouchEnabled: (n, on) => { n.touchOn = T(on); }, isTouchEnabled: (n) => !!n.touchOn,
     setTouchPriority: (n, p) => { n.touchPriority = num(p); }, getTouchPriority: (n) => n.touchPriority || 0,
     setTouchMode: (n, m) => { n.touchMode = num(m); },
-    registerScriptTouchHandler: (n, fn, multi, prio, swallow) => { n.luaTouch = { fn, multi: T(multi), prio: num(prio), swallow: T(swallow) }; HB.luaTouchLayers.add(n); },
+    registerScriptTouchHandler: (n, fn, multi, prio, swallow) => { n.luaTouch = { fn, multi: T(multi), prio: num(prio), swallow: T(swallow), passOn: swallow !== undefined && swallow !== null && !T(swallow) }; HB.luaTouchLayers.add(n); },
     unregisterScriptTouchHandler: (n) => { n.luaTouch = null; HB.luaTouchLayers.delete(n); },
     setKeypadEnabled: () => {}, registerScriptKeypadHandler: () => {}, setAccelerometerEnabled: () => {},
     setShaderProgram: (n, prog) => { n.grey = !!(prog && prog.grey); }, getShaderProgram: (n) => (n.grey ? GREY : NORMAL),
@@ -322,7 +322,7 @@
       if (c.kind === 'layer') {
         const t = c.n.luaTouch;
         const r = t.multi ? safe(t.fn, B('began'), new LuaTable()) : safe(t.fn, B('began'), x, y);
-        if (T(first(r))) { owners.push(c); break; } // every script layer that takes a touch keeps it for itself here (as before)
+        if (T(first(r))) { owners.push(c); if (!t.passOn) break; } // a script layer that takes a touch keeps it for itself, unless the script said "do not swallow" (false as 4th argument: the festival's two watching layers over its Buy button), then the next in the order is asked too
       } else if (c.kind === 'button') { c.n.press(true); if (c.n.luaHandlers && HB.buttonEvent) HB.buttonEvent(c.n, 1); owners.push(c); break; }
       else { c.n.onTouch('down', x, y); owners.push(c); if (c.kind !== 'table') break; }
     }

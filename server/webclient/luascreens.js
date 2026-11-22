@@ -112,7 +112,8 @@
       BtnOrg: () => { if (helper()) HB.luaGlobal('ShowOrgView'); },
     }[sel];
     if (!act) return false;
-    act();
+    // the items you hold first: these windows ask CTradeMgr at once (Save time's Gain said "no ramen" with ramen in the bag)
+    fresh().then(act, act);
     return true;
   };
   // the village's Lua buildings (base.js)

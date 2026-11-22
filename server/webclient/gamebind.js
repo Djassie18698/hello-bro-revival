@@ -153,7 +153,9 @@
       GetActivitySubMenuView: () => HB.game.activitySubMenu,
       ChangeToActivity: (name) => HB.game.changeToActivity(txt(name)),
       GetSubContentNode: () => HB.game.subContent,
-      GetCurrentSubMenu: () => HB.game.currentSub, GetCurrentSubMenuType: () => HB.game.currentSubType || 0, GetPreSubMenuType: () => HB.game.preSubType || 0,
+      GetCurrentSubMenu: () => { // the screen that is showing; on Home (and after a screen is gone) the one in the content place, so the scripts' InitNormalHeader has something to call (Save time's Gain stopped with an error there)
+        let c = HB.game.currentSub; for (let p = c; p; p = p.parent) if (p === HB.scene) return c;
+        const box = HB.game.subContent; return (box && box.children[box.children.length - 1]) || box || null; }, GetCurrentSubMenuType: () => HB.game.currentSubType || 0, GetPreSubMenuType: () => HB.game.preSubType || 0,
       OnShowUserInfo: () => HB.game.refreshTopBar && HB.game.refreshTopBar(),
       SetNinjalistNeedtoReLoad: () => {}, addChild: (n) => { if (n) { HB.scene.add(n); HB.luaEnter(n); } },
       ShowArenaView: (xml) => (xml === undefined || xml === null ? HB.game.changeToSub(E.E_ARENAVIEW) : showFightReply(txt(xml))), LogOut: () => location.reload(),

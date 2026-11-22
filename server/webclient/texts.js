@@ -54,10 +54,18 @@
     ui_label_petlist_text: 'Pets',                             // "telepathize beasts" ran over the building beside it
     ui_first_money_left: 'Left ',                              // "Left0 min"
     ui_hotTreasure_text2: 'This time free',
-    ui_hotTreasure_btn2: 'Ten hunts',
     ui_slotExchange_text1: 'Score reached ',                   // "Score reached100" on the slot machine's Exchange list
     vip_gift_text: ' Honorable gift',                          // "VIP1Honorable gift"
     vip_list_need_gold: 'Top up $%s more',
+    // festival trades: "go training,batter", "buy prop", "number699/700", "exchange30/30", "time for buying:11.22-12.6"
+    ui_festival_firstItemGetFrom: 'From Training fights',
+    ui_festival_secondItemGetFrom: 'From Spar fights',
+    ui_festival_buyTitle: 'Buy items',
+    ui_festival_beginTimeDesc: 'Event: ',
+    ui_festival_endTimeDesc: 'Trades until: ',
+    ui_festival_exchangeTotalDesc: 'Left: ',
+    ui_festival_buyTimeDesc: 'On sale: ',
+    ui_festival_buyTimesDesc: 'Left: ',
     ui_btn_fight_title: 'Ranking Rules',                       // "Battle Point Ranking Rules and Regulation" made the button wider than the screen
     ui_lable_my_fight: 'My points:',                           // "My Battle Point"                     // "Recharge %s $ You will become:"
   };
@@ -241,6 +249,13 @@ end
     LotteryTicketView: [{ say: { label_rand: 'R\nA\nN\nD\nO\nM' } }, { size: { label_rand: 16 } }, { swap: { label_cost_cash: [/^(\d+)\s*Bet in gold$/, 'Bet $1 gold'] } }],
     LotteryMyLuckyNumListView: [{ title: { btn_close: '' } }], // the word "Close" lay on the X
     LotteryWinerList: [{ title: { btn_close: '' } }],
+    // Hot Treasure: the script writes the ten-hunts word on the ONE-hunt button (its own slip: both buttons read "ten hunt")
+    hotTreasure: [{ title: { btn_once: 'One hunt', btn_ten: 'Ten hunts' } }],
+    // Group purchase: long gift names started left of the screen
+    LimitedGroupBuyItem: [{ size: { label_item_name1: 15, label_item_name2: 15, label_item_name3: 15, label_item_name4: 15 } }, { wrap: { label_item_name1: 118, label_item_name2: 118, label_item_name3: 118, label_item_name4: 118 } }],
+    // Daily spending gift: five lines of description lay over the countdown and the amount spent
+    DailyPayView: [{ size: { label_act_desc: 17, label_first_gift_info: 22 } }, { say: { label_first_gift_info1: 'Time left:', label_first_gift_info2: 'Spent today:' } }],
+    CommonBuyItemDialogForLua: [{ title: { btn_close: '' } }], // the word "Close" lay on the X
     // Change country: the two sentences were wider than the window and its button
     SwitchCountryDialogView: [
       { say: { label_SwitchCountryDialogView0: 'This country costs:', label_SwitchCountryDialogView2: 'Change' } },
