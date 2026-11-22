@@ -2,6 +2,7 @@
 // code 5 there is "Your energy level is full", so every refusal showed that. server.js passes every code-5 reply through here,
 // which picks a code whose game text fits the reason. The <message> stays, for the screens that show it.
 const RULES = [
+  [/bagpack is full/i, 20004],                                 // "Bagpack is full" (game.BAG_MAX)
   [/log in/i, 10003],                                         // "This account doesn't exist" (login lock: old game file)
   [/gold/i, 10006],                                           // "You have insufficient gold!"
   [/silver/i, 10008],                                         // "You have insufficient silver!"

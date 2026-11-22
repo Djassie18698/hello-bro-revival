@@ -1075,6 +1075,24 @@ for (const pick of [55, 56, 57]) {
     const one = boost([1, 2067]), three = boost([1, 1, 1, 2067]);
     if (!game.RULES.leaderOnce || !(one > 0) || three !== one) { bad++; console.log('COPIES STACK: whole-team chain with 1 copy', one, 'with 3 copies', three, 'leaderOnce', game.RULES.leaderOnce); }
   }
+  // Backpack limit (owner, 22 Nov 2026; game.BAG_MAX): a full bag refuses recruits before any gold is taken (code 20004 "Bagpack is full"),
+  // and fight / event drops stop giving shinobi cards. Zeraora's 87 000 cards made the Level Up screen load for 6 minutes.
+  {
+    const game = require('../../server/game'), errcodes = require('../../server/errcodes');
+    db.prepare('UPDATE players SET gold=100000 WHERE uid=77').run();
+    const p = () => db.prepare('SELECT * FROM players WHERE uid=77').get();
+    const had = game.shinobiCount(db, 77, 1), old = process.env.HB_BAG_MAX;
+    process.env.HB_BAG_MAX = String(had + 1);
+    try {
+      const ten = game.pull(db, p(), 1, 10, false), goldAfterTen = p().gold;
+      const one = game.pull(db, p(), 1, 1, false);
+      const before = game.shinobiCount(db, 77, 1); game.grantDrop(db, p(), 368); // drop 368 = one Kimimaro
+      const fixed = errcodes.fix('<root code="5"><message>' + game.BAG_FULL + '</message></root>');
+      if (!ten.error || goldAfterTen !== 100000 || one.error || game.shinobiCount(db, 77, 1) !== before || before !== had + 1 || !/code="20004"/.test(fixed)) {
+        bad++; console.log('BAG LIMIT:', JSON.stringify({ ten: ten.error, goldAfterTen, one: one.error, before, after: game.shinobiCount(db, 77, 1), had, fixed: fixed.slice(0, 40) }));
+      }
+    } finally { if (old === undefined) delete process.env.HB_BAG_MAX; else process.env.HB_BAG_MAX = old; }
+  }
   // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
   // goal stat, may use copies, and the split team math (teamSlots + teamTotals) still gives what teamStats gives
   {

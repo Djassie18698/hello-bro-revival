@@ -66,6 +66,9 @@ function listXml(db, pl) {
 function claim(db, pl, id) {
   const mails = open(db, pl).filter((m) => !id || m.id === Number(id));
   if (!mails.length) return { error: 'nothing to claim' };
+  // shinobi cards in the mail must fit the bag (game.BAG_MAX); the mail stays until they do
+  const need = mails.reduce((s, m) => s + JSON.parse(m.items).reduce((t, x) => t + (x.type === 1 ? game.dropShinobi(x.dropid) : 0), 0), 0);
+  if (need && game.bagRoom(db, pl.uid, pl.server_id) < need) return { error: game.BAG_FULL };
   const awards = [];
   let silver = 0;
   for (const m of mails) {

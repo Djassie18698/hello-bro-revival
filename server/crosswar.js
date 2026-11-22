@@ -208,6 +208,7 @@ function exchange(db, pl, id) {
   const x = EXCHANGE.find((e) => e.id === Number(id));
   if (!x) return { error: 'no such reward' };
   if (bank(db, pl) < x.cost) return { error: 'not enough points' };
+  if ((x.ninja || (x.drop && game.dropShinobi(x.drop))) && game.bagRoom(db, pl.uid, pl.server_id) < 1) return { error: game.BAG_FULL }; // game.BAG_MAX
   db.prepare('UPDATE cwar_bank SET points=points-? WHERE uid=? AND sid=?').run(x.cost, pl.uid, pl.server_id);
   const award = rewardXml(db, pl, x);
   return { xml: el('myscore_left', bank(db, pl)) + award };

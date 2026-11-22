@@ -155,6 +155,7 @@ function pull(db, pl, count, free) {
   const cost = free ? 0 : count === 10 ? game.TEN_COST[1] : game.COST[1];
   const gold = db.prepare('SELECT gold FROM players WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id).gold;
   if (gold < cost) return { error: 'not enough gold' };
+  if (game.bagRoom(db, pl.uid, pl.server_id) < count) return { error: game.BAG_FULL };
   let { pity } = me(db, pl);
   const got = [];
   db.exec('SAVEPOINT superninja');

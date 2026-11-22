@@ -115,6 +115,18 @@ function giveCard(db, uid, sid, ninjaId, type = 1) {
   if (attri) { if (madeElement.size > 2000) madeElement.clear(); madeElement.set(seq, attri); }
   return seq;
 }
+// Backpack limit for shinobi cards (owner, 22 Nov 2026; the number 5 000 is ours). ORIGINAL: the game had a limit (its own tips 20004
+// "Bagpack is full" and 270004), the number lived on the dead server. With free top-ups players bought 10-pull recruits and card bags
+// without end (Zeraora: 87 000 shinobi cards); the app walks every card it holds for the Team > Level Up screen and the login card list
+// (14 MB), which took 6 minutes on a virtual phone. Recruits, card bags, fragment merges and Award Center mail with shinobi cards are
+// refused when they don't fit (errcodes.js -> 20004); other rewards (fights, events) stop giving shinobi cards while the bag is full.
+// HB_BAG_MAX overrides the number. Gear, ninjutsu and seal cards don't count (the screens that were slow walk the shinobi cards).
+const BAG_MAX = () => Number(process.env.HB_BAG_MAX) || 5000;
+const BAG_FULL = 'Bagpack is full: feed or reborn some shinobi cards first';
+function shinobiCount(db, uid, sid) { ensure(db); return db.prepare('SELECT COUNT(*) n FROM cards WHERE uid=? AND server_id=? AND type=1').get(uid, sid).n; }
+function bagRoom(db, uid, sid) { return Math.max(0, BAG_MAX() - shinobiCount(db, uid, sid)); }
+// how many shinobi cards a drop hands out (fixed card or a random card pack whose example is a shinobi)
+function dropShinobi(dropId) { const r = table('dropinfo').rows.find((x) => x[0] === dropId); return r && r[3] > 0 ? (r[13] || 1) : 0; }
 
 function ensureStarterTeam(db, uid, sid, pick) {
   ensure(db);
@@ -369,6 +381,7 @@ function pull(db, pl, type, count, free) {
       ON CONFLICT(uid,server_id,type) DO UPDATE SET day=excluded.day, used=excluded.used`).run(pl.uid, pl.server_id, today(), orderUsedToday(db, pl) + count);
     free = false;
   }
+  if (bagRoom(db, pl.uid, pl.server_id) < count) return { error: BAG_FULL };
   const st = recruitState(db, pl, type);
   if (free && st.left > 0) return { error: 'free recruit not ready yet' };
   const cost = free ? 0 : count === 10 ? (TEN_COST[type] ?? 1400) : (COST[type] ?? 150) * count; // ten-pull prices are the ones the client shows
@@ -513,7 +526,7 @@ function grantDrop(db, pl, dropId) {
   // of always giving the example (Aburame Torune every time, GitHub #4).
   const pack = r[12] === 1 && !(r[7] > 0) && (!(r[3] > 0) || /Star|^Ultimate Shinobi Card$/.test(String(r[2]))) ? rollPack(r) : null;
   const ninja = pack ? pack.ninja : r[3], equip = pack ? pack.equip : (r[3] > 0 ? 0 : r[4]);
-  if (ninja > 0) for (let i = 0; i < n; i++) cards.push({ type: 1, id: ninja, seq: giveCard(db, pl.uid, pl.server_id, ninja) });
+  if (ninja > 0) { const fit = Math.min(n, bagRoom(db, pl.uid, pl.server_id)); for (let i = 0; i < fit; i++) cards.push({ type: 1, id: ninja, seq: giveCard(db, pl.uid, pl.server_id, ninja) }); } // a full bag: no shinobi card (BAG_MAX)
   else if (equip > 0) for (let i = 0; i < n; i++) { const seq = giveEquip(db, pl.uid, pl.server_id, equip); if (seq) cards.push({ type: db.prepare('SELECT type FROM cards WHERE seq=?').get(seq).type, id: equip, seq }); }
   else if (pack && pack.ninjutsu) cards.push({ type: 6, id: pack.ninjutsu, seq: giveCard(db, pl.uid, pl.server_id, pack.ninjutsu, 6) });
   else if (pack && pack.seal) for (let i = 0; i < n; i++) cards.push({ type: 5, id: pack.seal, seq: giveCard(db, pl.uid, pl.server_id, pack.seal, 5) });
@@ -1076,6 +1089,7 @@ function propUse(db, pl, goodsId) {
     const roll = drop[12] !== 1 && drop[3] > 0 ? { ninja: drop[3] }
       : /Shinobi/.test(row[2]) ? { ninja: pick(pools()[star]) } : /Equipment/.test(row[2]) ? { equip: randomEquip(Math.floor(Math.random() * 3), star, star) }
       : { ninjutsu: pick(table('ninjutsuinfo').rows.filter((x) => x[5] === star && x[6] === 1))[0] };
+    if (roll.ninja && bagRoom(db, pl.uid, pl.server_id) < 1) return { error: BAG_FULL };
     propAdd(db, pl.uid, pl.server_id, goodsId, -need);
     let card = null, nseq = 0; // CItemView reads the new card from <propuse> attributes: ninjaid / equipid / skillid + their bag ids
     if (roll.ninja) card = { attr: `ninjaid="${roll.ninja}" ninjabagid="${nseq = giveCard(db, pl.uid, pl.server_id, roll.ninja)}" ninjaattr="${elementOf(db, nseq)}"` };
@@ -1194,8 +1208,9 @@ function packBuy(db, pl, packId) {
     const minStar = /4☆/.test(name) ? 3 : 2;
     give = () => { const id = equipFromText(String(drop[2])) || randomEquip(slot, minStar); return [SLOT_TYPE[slot], id, giveEquip(db, pl.uid, pl.server_id, id)]; }; // the bag's own text (3☆ bag: 2-4 stars, never 5)
   } else return { error: 'this pack is not available on the revival server yet' };
-  db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
   const n = Math.max(1, drop[13] || 1);
+  if (drop[3] && ninjas().has(drop[3]) && bagRoom(db, pl.uid, pl.server_id) < n) return { error: BAG_FULL };
+  db.prepare('UPDATE players SET gold=gold-?, coin=coin-? WHERE uid=? AND server_id=?').run(costG, costS, pl.uid, pl.server_id);
   let first = null; const seqs = [];
   for (let i = 0; i < n; i++) { const r = give(); if (!first) first = r; seqs.push(r[2]); }
   return { costG, costS, type: first[0], ninja: first[1], n, seq: seqs.join('|'), attrs: seqs.map(() => 0).join('|') };
@@ -2212,4 +2227,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { loginPackDays, resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { BAG_MAX, BAG_FULL, bagRoom, shinobiCount, dropShinobi, loginPackDays, resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

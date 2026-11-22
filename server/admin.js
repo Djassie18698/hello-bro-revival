@@ -172,6 +172,7 @@ const setCard = (db, seq, c) => {
 // Give one catalog entry n times (cards at the chosen level / rebirth). Returns how many really arrived.
 function giveOne(db, pl, cat, id, n, opt = {}) {
   const uid = pl.uid, sid = pl.server_id, c = clampCard(cat, opt.level, opt.newlife, opt.growth);
+  if (cat === 'ninja' || cat === 'material') n = Math.min(n, game.bagRoom(db, uid, sid)); // the backpack limit (game.BAG_MAX) holds here too: the item page is open to players
   if (cat === 'ninja') { for (let i = 0; i < n; i++) setCard(db, game.giveCard(db, uid, sid, id), c); return n; }
   if (cat === 'material') { for (let i = 0; i < n; i++) game.giveCard(db, uid, sid, id); return n; } // keeps its own level (Golden Chōji Lv 25)
   if (cat === 'equip') { let k = 0; for (let i = 0; i < n; i++) if (setCard(db, game.giveEquip(db, uid, sid, id), c)) k++; return k; }
