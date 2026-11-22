@@ -116,6 +116,7 @@
       GetArenaNinjaFrame: (q) => sf(HB.qualityFrame('small', num(q, 1))),
       GetTopInlayFrame: (size, k) => sf(HB.frameByName(['small', 'middle', 'big'][num(size)] + '_top_inlay_frame' + num(k, 1))),
       GetDownInlayFrame: (size, k) => sf(HB.frameByName(['small', 'middle', 'big'][num(size)] + '_down_inlay_frame' + num(k, 1))),
+      GetFrameDragon: (size, k) => sf(HB.frameByName(['small', 'middle', 'big'][num(size)] + '_dragon' + num(k))), // the dragon mark of a reborn card (phone: middle_dragon%d / big_dragon%d)
       SetFrameShadowBack: () => {}, SetFrameShadowFront: () => {}, SetCombatFrameShadowBack: () => {}, SetCombatFrameShadowFront: () => {},
       // a window about one thing / one drop pack: a short tip for now (the phone opens its detail window)
       // a window about one thing: ShowCommonItemDetail(1, 1 shinobi / 2 gear / 3 seal / 4 ninjutsu, id) or (2, 0, item id); the details window for cards, a tip for items
