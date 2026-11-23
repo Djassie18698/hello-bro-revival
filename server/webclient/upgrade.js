@@ -71,7 +71,7 @@
     const scroll = new HB.ScrollView(); scroll.dir = 1; scroll.w = box.w; scroll.h = box.h;
     const rows = Math.max(1, Math.ceil(mats.length / per));
     const col = new HB.Node(); col.w = box.w; col.h = rows * size.h;
-    mats.forEach((c, i) => {
+    const place = (c, i) => {
       const mo = {}, ci = HB.info(c.type, c.id);
       const cell = HB.build('upgrade/UpgradeMeteriaInfoCard', mo, [size.w, size.h]);
       cell.ignoreAnchor = true; cell.w = size.w; cell.h = size.h;
@@ -81,11 +81,23 @@
       HB.showStars(mo.n, ['sprite_star01', 'sprite_star02', 'sprite_star03', 'sprite_star04', 'sprite_star05'], Math.min(5, ci.quality));
       const lv = new HB.Label('Lv ' + c.level, 'Arial-BoldMT', 18, [0, 0], 1, 1); lv.color = [255, 255, 255]; lv.stroke = ['#000', 3]; lv.x = size.w / 2 - 8; lv.y = 26; cell.add(lv);
       const mark = new HB.Label('✔', 'Arial-BoldMT', 64, [0, 0], 1, 1); mark.color = [90, 235, 70]; mark.stroke = ['#000', 5];
-      mark.x = size.w / 2 - 8; mark.y = size.h / 2; mark.visible = false; mark.z = 5; cell.add(mark);
+      mark.x = size.w / 2 - 8; mark.y = size.h / 2; mark.visible = chosen.has(c.seq); mark.z = 5; cell.add(mark);
       marks.set(c.seq, mark);
       cell.onTouch = (ev, tx, ty) => { if (ev === 'down') cell._d = [tx, ty]; if (ev === 'up' && cell._d && Math.hypot(tx - cell._d[0], ty - cell._d[1]) < 14) { if (chosen.has(c.seq)) chosen.delete(c.seq); else chosen.add(c.seq); redraw(); } };
       col.add(cell);
-    });
+      return cell;
+    };
+    if (mats.length <= 60) mats.forEach(place);
+    else {
+      // many material cards (ours): only the rows in view exist, like the Backpack's long lists (bag.js fillList)
+      const live = new Map(), draw = col.visit.bind(col);
+      col.visit = (...a) => {
+        const r0 = Math.max(0, Math.floor((col.h + col.y - scroll.h) / size.h) - 2), r1 = Math.min(rows - 1, Math.floor((col.h + col.y) / size.h) + 2);
+        for (const [i, cell] of live) { const r = Math.floor(i / per); if (r < r0 - 2 || r > r1 + 2) { col.remove(cell); live.delete(i); marks.delete(mats[i].seq); } }
+        for (let i = r0 * per; i < Math.min(mats.length, (r1 + 1) * per); i++) if (!live.has(i)) live.set(i, place(mats[i], i));
+        return draw(...a);
+      };
+    }
     scroll.setContent(col); col.y = scroll.h - col.h;
     box.add(scroll);
     if (!mats.length && n.node_anim_tip) n.node_anim_tip.visible = true;

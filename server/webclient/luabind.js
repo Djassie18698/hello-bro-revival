@@ -510,7 +510,27 @@
     ask(fn, a1, a2, x, y) { return first(safe(this.handler.fn, B(fn), this, a1, a2, x, y)); } // touch events also carry the touch point (x, y): the Akatsuki list reads it in cellTouched
     cellSize(i) { const s = this.ask('cellSize', i); return s instanceof CCSize ? s : s instanceof LuaTable ? SZ(s) : new CCSize(this.w, 40); }
     // CCTableView fills itself when it is first shown, without reloadData (some screens never call it)
-    visit(ctx, pm, alpha) { if (!this.asked) this.reload(); super.visit(ctx, pm, alpha); }
+    visit(ctx, pm, alpha) { if (!this.asked) this.reload(); if (this.lazy) this.fillVisible(); super.visit(ctx, pm, alpha); }
+    // A long list (ours, like CCTableView itself: a player with 89 000 cards): only the cells in view and a few around them exist.
+    // reload() measures every cell and keeps where each begins; this builds the ones that scrolled into view and drops the far ones.
+    fillVisible() {
+      const L = this.lazy, c = this.content, n = L.at.length - 1, total = L.at[n], side = this.dir === 0;
+      // the stretch of the list in view, measured from the list's first cell
+      let a = side ? -c.x : this.fill === 0 ? total - (this.h - c.y) : -c.y, b = a + (side ? this.w : this.h);
+      const pad = (side ? this.w : this.h) * 0.6; a -= pad; b += pad;
+      const find = (v) => { let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1; if (L.at[m + 1] <= v) lo = m + 1; else hi = m; } return lo; };
+      const first = Math.max(0, find(a)), last = Math.min(n - 1, find(b));
+      for (const [i, cell] of L.live) if (i < first || i > last) { c.remove(cell); L.live.delete(i); const k = this.cells.indexOf(cell); if (k >= 0) this.cells.splice(k, 1); }
+      for (let i = first; i <= last; i++) {
+        if (L.live.has(i)) continue;
+        const cell = this.ask('cellAtIndex', i, undefined);
+        if (!cell) { L.live.set(i, new HB.Node()); continue; }
+        cell.idx = i; const w = L.sizes[i];
+        if (side) { cell.x = L.at[i]; cell.y = 0; } else { cell.x = 0; cell.y = this.fill === 0 ? total - L.at[i] - w.height : L.at[i]; }
+        cell.w = w.width; cell.h = w.height;
+        c.add(cell); enter(cell); this.cells.push(cell); L.live.set(i, cell);
+      }
+    }
     reload() {
       this.asked = true;
       const keep = this.content.y, keepX = this.content.x;
@@ -524,7 +544,9 @@
       for (let i = 0; i < n; i++) { const s = this.cellSize(i); sizes.push(s); total += this.dir === 0 ? s.width : s.height; }
       if (this.dir === 0) { this.content.w = total; this.content.h = this.h; } else { this.content.w = this.w; this.content.h = total; }
       let at = 0;
-      for (let i = 0; i < n; i++) {
+      this.lazy = null;
+      if (n > 60) { const begins = [0]; for (let i = 0; i < n; i++) begins.push(begins[i] + (this.dir === 0 ? sizes[i].width : sizes[i].height)); this.lazy = { at: begins, sizes, live: new Map() }; }
+      for (let i = 0; i < (this.lazy ? 0 : n); i++) {
         let cell = this.ask('cellAtIndex', i, undefined);
         if (!cell) continue;
         cell.idx = i;
@@ -538,6 +560,7 @@
       }
       if (this.loaded && !atTop) { this.content.x = keepX; this.content.y = keep; this.scrollBy(0, 0); } else this.toTop();
       this.loaded = true;
+      if (this.lazy) this.fillVisible();
     }
     toTop() { const c = this.content; c.x = 0; c.y = this.dir === 0 ? 0 : this.h - c.h; } // CCTableView starts at minContainerOffset: a list shorter than its box stands at the top too (one mail in the Award Center)
     cellAt(x, y) { for (const c of this.cells) if (c.hit(x, y)) return c; return null; }
