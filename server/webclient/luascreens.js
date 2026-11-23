@@ -20,6 +20,7 @@
     const layer = new HB.Node(); layer.w = HB.ui.FRAME; layer.h = content.h; layer.ignoreAnchor = true; layer.isLayer = true;
     layer.x = -content.x + content.ax * content.w;
     content.add(layer); HB.luaEnter && HB.luaEnter(layer);
+    { const bm = game().menu && game().menu.n; if (bm && bm.sprite_clickbk) bm.sprite_clickbk.visible = false; } // none of the six bottom buttons is lit on these screens (phone)
     layer.fade = 0; HB.tween(layer, { fade: 1 }, 0.16);
     return layer;
   }
