@@ -178,11 +178,25 @@
     return cell;
   }
   // a scrolling column of rows inside `box`
+  const LAZY_FROM = 40; // lists longer than this build their rows as they scroll into view
   function fillList(box, cellSize, cards, opt, make = listCell) {
     box.removeAll();
     const scroll = new HB.ScrollView(); scroll.dir = 1; scroll.w = box.w; scroll.h = box.h;
     const col = new HB.Node(); col.w = box.w; col.h = Math.max(cards.length * cellSize.h, 1);
-    cards.forEach((c, i) => { const cell = make(c, cellSize, typeof opt === 'function' ? opt(c) : opt); cell.x = (box.w - cellSize.w) / 2; cell.y = col.h - (i + 1) * cellSize.h; col.add(cell); });
+    const place = (c, i) => { const cell = make(c, cellSize, typeof opt === 'function' ? opt(c) : opt); cell.x = (box.w - cellSize.w) / 2; cell.y = col.h - (i + 1) * cellSize.h; col.add(cell); return cell; };
+    if (cards.length <= LAZY_FROM) cards.forEach(place);
+    else {
+      // A long list (ours; a player with 89 000 cards made the phone app crawl): only the rows on the screen and a few around them
+      // exist. Before each drawing the rows that scrolled into view are built and the ones far away are dropped.
+      const live = new Map(), KEEP = 4;
+      const draw = col.visit.bind(col);
+      col.visit = (...a) => {
+        const first = Math.max(0, Math.floor((col.h + col.y - scroll.h) / cellSize.h) - KEEP), last = Math.min(cards.length - 1, Math.floor((col.h + col.y) / cellSize.h) + KEEP);
+        for (const [i, cell] of live) if (i < first - KEEP || i > last + KEEP) { col.remove(cell); live.delete(i); }
+        for (let i = first; i <= last; i++) if (!live.has(i)) live.set(i, place(cards[i], i));
+        return draw(...a);
+      };
+    }
     scroll.setContent(col);
     col.y = scroll.h - col.h;
     box.add(scroll);

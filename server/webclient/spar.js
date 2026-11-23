@@ -9,12 +9,13 @@
   HB.screens = HB.screens || {};
   const tap = (node, fn) => { node.onTouch = (ev, tx, ty) => { if (ev === 'down') node._d = [tx, ty]; if (ev === 'up' && node._d && Math.hypot(tx - node._d[0], ty - node._d[1]) < 14) fn(); }; };
 
-  HB.screens.spar = async function spar() {
+  // spar(nick): the rivals; with a name, the players whose name holds it (the Search box: rl_r_nickinfo Cmd 5000 Nick, CFightListView::onClickSearch)
+  HB.screens.spar = async function spar(nick) {
     const ui = HB.ui, x = ui.x;
     ui.loading(true);
     let list, duel;
     try {
-      [list, duel] = await Promise.all([HB.api('rl_r_pk', { Cmd: 2700 }), ui.table('duelinfo'), HB.data.tables(), HB.loadCCB('sub_ui/FightListView'), HB.loadCCB('sub_ui/FightNinjaView'), HB.loadCCB('sub_ui/FightPreView')]);
+      [list, duel] = await Promise.all([nick ? HB.api('rl_r_nickinfo', { Cmd: 5000, Nick: nick }) : HB.api('rl_r_pk', { Cmd: 2700 }), ui.table('duelinfo'), HB.data.tables(), HB.loadCCB('sub_ui/FightListView'), HB.loadCCB('sub_ui/FightNinjaView'), HB.loadCCB('sub_ui/FightPreView')]);
     } catch (e) { ui.loading(false); return ui.tip('Cannot reach the server'); }
     ui.loading(false);
     if (list.code) return ui.tip(ui.errorText(list));
@@ -22,8 +23,17 @@
     HB.game.showSub('sub_ui/FightListView', o, 'btn_mainfight');
     const n = o.n;
     if (n.label_FightListView0) n.label_FightListView0.setText('Spar');
-    if (n.btn_more_fights) n.btn_more_fights.setTitle('Refresh opponents');
-    o.onButton = (sel) => { if (sel === 'clickMoreFights') return spar(); ui.tip('Coming soon: ' + (sel === 'searchHandler' ? 'Search' : sel), 1.2); };
+    if (n.btn_more_fights) n.btn_more_fights.setTitle('Refresh Rival'); // the phone's own words
+    // the name box: its grey words like the phone's, a tap asks for the name, Search looks it up
+    let typed = nick || '';
+    const hint = new HB.Label(typed || 'Enter the name:', 'Helvetica', 30, [0, 0], 0, 1), inBox = n.sprite_input;
+    if (inBox) { hint.ax = 0; hint.color = typed ? [60, 40, 20] : [150, 150, 150]; hint.x = 6; hint.y = inBox.h / 2; inBox.add(hint);
+      tap(inBox, () => { const v = window.prompt('Enter the name:', typed); if (v === null) return; typed = v.trim(); hint.setText(typed || 'Enter the name:'); hint.color = typed ? [60, 40, 20] : [150, 150, 150]; }); }
+    o.onButton = (sel) => {
+      if (sel === 'clickMoreFights') return spar();
+      if (sel === 'searchHandler') { if (!typed) return ui.tip('Enter the name:', 1.5); return spar(typed); }
+      ui.tip('Coming soon: ' + sel, 1.2);
+    };
     const duelRows = duel.rows.filter((r) => r[0] === r[2]);
     const pay = (level) => duelRows.find((r) => r[0] === level) || duelRows[duelRows.length - 1] || [];
     const rivals = x.all(list, 'user').map((u) => Object.fromEntries([...u.children].map((c) => [c.nodeName, c.textContent])));
@@ -44,9 +54,8 @@
     function row(m, r) {
       const d = pay(Number(r.level));
       m.label_name.setText(r.nick);
-      if (m.label_FightNinjaView0) m.label_FightNinjaView0.setText('Win:');     // a capital like the words around it (W.A. = war achievements, the game's own short form)
       m.label_level.setText(String(r.level));
-      m.label_attack.setText(r.attacklow + '-' + r.attackhigh);
+      m.label_attack.setText(r.attacklow + '--' + r.attackhigh); // two dashes, as the phone writes it here ('%d--%d')
       m.label_merit.setText(String(d[7] || 0));
       m.label_coin.setText(String(Math.round(Number(r.coin || 0) * (d[3] || 0))));
       if (m.node_merit_container) m.node_merit_container.visible = false;
@@ -54,6 +63,7 @@
       const inf = HB.info(1, r.firstninja);
       const frame = HB.qualityFrame('ninjaSmall', Math.max(inf.quality, Math.min(6, Number(r.firstninjastar) || 1)));
       if (frame) m.sprite_ninjaicon.setFrame(frame);
+      if (Number(r.newlife) > 0) HB.cardDress(m, { newlife: Number(r.newlife), starlevel: 0, level: 0, exp: 0 }, 'small'); // a reborn leader wears its corners
       const pic = HB.iconFrame(1, inf.icon);
       if (pic && m.node_icon) { const sp = new HB.Sprite(pic); const k = Math.min(m.node_icon.w / (pic.sw || 1), m.node_icon.h / (pic.sh || 1)); sp.sx = sp.sy = k; sp.x = m.node_icon.w / 2; sp.y = m.node_icon.h / 2; m.node_icon.add(sp); }
       tap(m.sprite_btn_fight, () => preview(r, d));

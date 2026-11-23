@@ -135,7 +135,8 @@ function status(db, t = now()) {
 
 // Once a minute: pay the Super Ninja hours that ended (their prizes go to the Awards chest even when nobody opens the screen again).
 function startTick(db) {
-  setInterval(() => { try { require('./limitsuper').settle(db); } catch (e) { console.error('rotation tick:', e.message); } }, 60000).unref();
+  setInterval(() => { try { require('./limitsuper').settle(db); } catch (e) { console.error('rotation tick:', e.message); }
+    try { require('./rankevents').tick(db); } catch (e) { console.error('rank race tick:', e.message); } }, 60000).unref();
 }
 
 module.exports = { PLAN, PLAN_IDS, FESTIVALS, SN_HOURS, decide, slot, superNinjaHour, setOn, setIn, reset, status, startTick, festivalOf, slotAt, cfg, midnight };

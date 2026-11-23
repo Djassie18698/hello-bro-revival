@@ -1147,6 +1147,8 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const cmd = Number(p.Cmd);
+    if (cmd === 1) { const x = require('./collectcards').infoXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="5"><message>the event is over</message></root>'; } // Collect cards
+    if (cmd === 2) return '<root code="0">' + require('./rankevents').infoXml(db, pl) + '</root>'; // Level rank + Fight rank (both screens)
     if (cmd === 5) return '<root code="0">' + require('./flower').infoXml(db, pl) + '</root>'; // Flower Worship info
     if (cmd === 6 || cmd === 7) { const x = cmd === 6 ? limitsuper.infoXml(db, pl) : limitsuper.refreshXml(db, pl); return x ? '<root code="0">' + x + '</root>' : '<root code="312000"></root>'; } // Limited Super Ninja
     if (cmd === 16) { // "49$ gift" on the top-up screen: status 0 not reached, 1 received, 2 can claim; amounts in cents.
@@ -1175,6 +1177,8 @@ module.exports = {
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const wc = Number(p.Cmd);
+    if (wc === 1) { const r = require('./collectcards').claim(db, pl, Number(p.Collectid)); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // Collect cards: claim a set
+    if (wc === 2 || wc === 3) { const r = require('./rankevents').claim(db, pl, wc === 3 ? 1 : 2); return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // rank prize: Cmd 3 level, Cmd 2 power
     if (wc === 11) return '<root code="315005"></root>'; // Limited Super Ninja rank prize: rounds run back to back, prizes are mailed (limitsuper.js)
     if (wc === 18) { const r = consumption.claim(db, pl, Number(p.ID)); if (r.code) return `<root code="${r.code}"></root>`; return r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; }
     if (wc === 9) { const r = require('./flower').give(db, pl, Number(p.GirlID)); return r.code ? `<root code="${r.code}"></root>` : r.error ? `<root code="5"><message>${r.error}</message></root>` : '<root code="0">' + r.xml + '</root>'; } // Flower Worship: give roses

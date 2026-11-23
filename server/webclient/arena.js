@@ -27,7 +27,7 @@
     HB.game.showSub('sub_ui/ArenaViewNew', o);
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    [['ctrl_arena', 'Arena'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } });
+    [['ctrl_arena', 'Compete'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === tab ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } });
     const obj = (e) => Object.fromEntries([...e.children].filter((c) => c.nodeName !== 'teammate').map((c) => [c.nodeName, c.textContent]));
     const my = tab === 0 ? obj(x.first(reply, 'my')) : null;
     if (n.layer_exchange) n.layer_exchange.visible = false;
@@ -59,9 +59,7 @@
     });
     scroll.setContent(col); col.y = scroll.h - col.h;
     box.add(scroll);
-    // start at my own row
-    const mine = rows.findIndex((r) => Number(r.host) === 1);
-    if (mine > 2) scroll.scrollBy(0, Math.min((mine - 1) * size.h, col.h - scroll.h));
+    // the list starts at its top, like the phone (it used to jump to your own row)
 
     // the row's frame is a 9-slice whose two fixed sides are wider than its picture (arena_17 is 412 wide, the sides 35 + 380): keep a middle strip to stretch
     function slice(m) { for (const s of [m.sprite_other, m.sprite_me]) if (s && s.frame && s.insets && s.insets[0] + s.insets[2] > s.frame.w - 6) s.insets = [s.insets[0], s.insets[1], s.frame.w - s.insets[0] - 6, s.insets[3]]; }
@@ -70,9 +68,9 @@
       if (!frame) return;
       if (!ninja) { frame.visible = false; return; }
       const inf = HB.info(1, ninja);
-      const f = HB.qualityFrame('ninjaSmall', inf.quality); if (f) frame.setFrame(f);
+      const f = HB.qualityFrame('small', inf.quality); if (f) frame.setFrame(f); // CGameObjElement::GetArenaNinjaFrame: the small square box of its stars (small_box_skill_0N)
       const pic = HB.iconFrame(1, inf.icon);
-      if (pic && holder) { const sp = new HB.Sprite(pic); const s = Math.min(holder.w / (pic.sw || 1), holder.h / (pic.sh || 1)); sp.sx = sp.sy = s; sp.x = holder.w / 2; sp.y = holder.h / 2; holder.add(sp); }
+      if (pic && holder) { const sp = new HB.Sprite(pic); const s = Math.min((holder.w - 10) / (pic.sw || 1), (holder.h - 10) / (pic.sh || 1)); sp.sx = sp.sy = s; sp.x = holder.w / 2; sp.y = holder.h / 2; holder.add(sp); }
     }
     function fill(m, r) {
       const me = Number(r.host) === 1;
@@ -141,7 +139,7 @@
     HB.game.showSub('sub_ui/ArenaViewNew', o);
     const n = o.n;
     const tabOn = HB.frameByName('com_tab_02'), tabOff = HB.frameByName('com_tab_01');
-    [['ctrl_arena', 'Arena'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === 2 ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } });
+    [['ctrl_arena', 'Compete'], ['ctrl_rank', 'Rank'], ['ctrl_exchange', 'Exchange']].forEach(([name, title], i) => { const b = n[name]; if (b) { if (tabOff) b.frames[1] = i === 2 ? tabOn || tabOff : tabOff; b.titles[1] = title; b.titleSize = 26; b.layout(); } });
     if (n.layer_rank) n.layer_rank.visible = false;
     if (n.layer_exchange) n.layer_exchange.visible = true;
     const mine = x.n(reply, 'renown_value');

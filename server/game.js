@@ -990,7 +990,8 @@ function actXml(db, pl) {
     `<activity type="2"><item actid="2">${subs(c.up)}</item></activity><activity type="3"><item actid="3" pos="${require('./caishen').step(db, pl)}"></item></activity><activity type="4">${require('./monthcard').itemXml(db, pl)}</activity>${require('./keeplogin').xml(db, pl)}` +
     // Events switched off in the Server Manager are left out of the list, so their button / Event menu line disappears.
     '<conf><items>' + [...new Map(settings.EVENTS.filter((e) => e.id !== 31 && !e.noconf && settings.eventOn(db, e.id)).map((e) => [e.screen || e.id, { ...e, id: e.screen || e.id }])).values()].map(({ id, pos, type }) => `<item><id>${id}</id><pos>${pos}</pos><status>1</status><onoff>1</onoff><type>${type}</type></item>`).join('') +
-    `<item><id>31</id><pos>10</pos><status>1</status><onoff>0</onoff><type>1</type><timeleft>${!settings.eventOn(db, 31) || db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
+    `<item><id>31</id><pos>10</pos><status>1</status><onoff>0</onoff><type>1</type><timeleft>${!settings.eventOn(db, 31) || db.prepare('SELECT 1 FROM stagegift WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id) ? 0 : 315360000}</timeleft></item>` + (require('./rankevents').open(db) ? '<item><id>9</id><pos>26</pos><status>1</status><onoff>1</onoff><type>2</type></item><item><id>10</id><pos>27</pos><status>1</status><onoff>1</onoff><type>2</type></item>' : '') + // Level rank + Fight rank (rankevents.js: one switch, two lines in the Event list)
+    '</items><xiaoopen>1</xiaoopen><gambletype>1</gambletype></conf>';
 }
 // What the pack screens show comes from the client's own Lua tables (loginPackData / upgradePackData, 1-4 dropinfo ids each):
 // pay exactly those drops, so the dialog and the backpack match the icons on the button.

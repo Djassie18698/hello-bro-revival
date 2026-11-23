@@ -1326,7 +1326,44 @@ for (const pick of [55, 56, 57]) {
     const j3 = guild.join(db, p2, gid);
     ck(!j1.error && /cooling down/.test(j2.error || '') && /cooling down/.test(c2.error || '') && !j3.error, `Akatsuki rejoin wait wrong: ${JSON.stringify([j1, j2, c2, j3])}`);
     ck(/code="180001"/.test(errcodes.fix(`<root code="5"><message>${j2.error}</message></root>`)), 'rejoin wait does not show "In cd time"');
+    ck(typeof guild.rankXml !== 'function' || /<ranklist><group groupid="\d+"/.test(guild.rankXml(db, p2)), 'Akatsuki rankings: every row needs its groupid (the Check button)');
     guild.quit(db, p2); db.prepare('DELETE FROM group_quit WHERE uid=?').run(p2.uid);
+  }
+  { // Level rank + Fight rank and Collect cards (rankevents.js, collectcards.js; owner 22 Nov 2026)
+    const ck = (ok, what) => { if (!ok) { bad++; console.log('RANK / COLLECT:', what); } };
+    const settings = require('../../server/settings'), rk = require('../../server/rankevents'), game = require('../../server/game');
+    const q = { Uid: '88123', Session: 'x', ServerID: '1', GroupID: '2' };
+    handlers.rl_w_login2({ db, params: { ...q, Cmd: 0 } }); handlers.rl_w_reg2({ db, params: { ...q, Cmd: 0, Nick: 'Racer', Card: 55 } });
+    const me = db.prepare("SELECT * FROM players WHERE nick='Racer'").get();
+    const ask = (ep, cmd, x = {}) => handlers[ep]({ db, params: { ...q, Cmd: cmd, ...x } });
+    ck(/<preview type="3"/.test(ask('rl_r_comm', 2)) && !/<id>9<\/id>/.test(game.actXml(db, me)), 'rank race shows while switched off');
+    settings.setEvent(db, 'rankrace', true); settings.setEvent(db, 'collect', true);
+    const info = ask('rl_r_comm', 2);
+    ck(/<preview type="1" resttime="\d+"\/><levelrank my="\d+"><item><rank>1<\/rank><playerid>\d+<\/playerid><name>[^<]+<\/name><country>\d+<\/country><level>\d+<\/level>/.test(info) && /<powerrank my="\d+" mypower="\d+"><item><rank>1<\/rank><playerid>\d+<\/playerid><name>[^<]+<\/name><level>\d+<\/level><country>\d+<\/country><power>\d+<\/power>/.test(info), 'rank race lists have the wrong shape: ' + info.slice(0, 200));
+    ck((info.match(/<award><rank>\d+<\/rank><type>[12]<\/type><icon>props_\d+<\/icon><name>[^<]+<\/name><dropid>\d+<\/dropid><\/award>/g) || []).length === 60, 'rank race needs 30 prize rows per list');
+    ck(/<id>9<\/id>/.test(game.actXml(db, me)) && /<id>10<\/id>/.test(game.actXml(db, me)), 'rank race missing from the Event list');
+    ck(/code="5"/.test(ask('rl_w_comm', 3)), 'rank prize claimed while the race still runs');
+    const at = settings.get(db, 'events_on_at', {}); at.rankrace -= rk.RUN() + 60; settings.set(db, 'events_on_at', at); // the race is over: claim day
+    db.exec("UPDATE players SET level = 1 WHERE nick <> 'Racer'"); db.prepare('UPDATE players SET level = 99 WHERE uid=? AND server_id=?').run(me.uid, me.server_id);
+    rk.tick(db);
+    db.prepare('UPDATE players SET level = 1 WHERE uid=? AND server_id=?').run(me.uid, me.server_id); // a change after the end moves no place
+    ck(/<preview type="2"/.test(ask('rl_r_comm', 2)) && /<levelrank my="1">/.test(ask('rl_r_comm', 2)), 'rank race end result not kept');
+    const c1 = ask('rl_w_comm', 3), c2 = ask('rl_w_comm', 3);
+    ck(/code="0"/.test(c1) && /<award/.test(c1) && /code="5"/.test(c2), 'rank prize: once, for my place: ' + c1.slice(0, 120) + ' / ' + c2.slice(0, 80));
+    at.rankrace -= rk.CLAIM(); settings.set(db, 'events_on_at', at);
+    ck(/<preview type="3"/.test(ask('rl_r_comm', 2)) && !settings.eventOn(db, 'rankrace'), 'rank race does not close after its claim day');
+    // Collect cards
+    const list = ask('rl_r_comm', 1);
+    ck(/<basic><remain>\d+<\/remain><\/basic><collectlist><collect><id>1<\/id><type>1<\/type>/.test(list) && (list.match(/<material>/g) || []).length === 6 && /<drop><item><icon value="icon_/.test(list), 'Collect cards list has the wrong shape: ' + list.slice(0, 200));
+    ck(/code="5"/.test(ask('rl_w_comm', 1, { Collectid: 1 })), 'Collect cards paid without the cards');
+    for (const id of [25, 26, 30, 112, 55, 76]) game.giveCard(db, me.uid, me.server_id, id);
+    const before = db.prepare('SELECT COUNT(*) c FROM cards WHERE uid=? AND server_id=? AND type=1').get(me.uid, me.server_id).c;
+    const t1 = ask('rl_w_comm', 1, { Collectid: 1 }), t2 = ask('rl_w_comm', 1, { Collectid: 1 }), t3 = ask('rl_w_comm', 1, { Collectid: 2 });
+    const after = db.prepare('SELECT COUNT(*) c FROM cards WHERE uid=? AND server_id=? AND type=1').get(me.uid, me.server_id).c;
+    ck(/code="0"/.test(t1) && (t1.match(/<card bagindex="\d+"\/>/g) || []).length === 3 && /code="5"/.test(t2), 'Collect cards trade: takes the three cards, once: ' + t1.slice(0, 160));
+    ck(/code="0"/.test(t3) && /<delcards><\/delcards>/.test(t3) && after === before - 3 + 1 + 1, `Collect cards: the Team Guy set takes nothing (cards ${before} -> ${after})`);
+    settings.setEvent(db, 'collect', false);
+    ck(/code="5"/.test(ask('rl_r_comm', 1)), 'Collect cards open while switched off');
   }
   { // list shapes two script screens need (found by playing them in the rewritten game, 22 Nov 2026): the Mora rank is a list of
     // <item> rows, the Slot machine's faces carry icon and cash as attributes (as child elements every row was a Lua error)
