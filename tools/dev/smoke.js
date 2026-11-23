@@ -1284,7 +1284,7 @@ for (const pick of [55, 56, 57]) {
     // prize card texts give exactly the stars they name ("Five-Star Purple Card" gave 3-star cards before)
     const star = (id) => (game.table('ninjainfo').rows.find((r) => r[0] === id) || [])[11];
     const me = () => db.prepare('SELECT * FROM players WHERE uid=77 AND server_id=1').get();
-    for (const [drop, want] of [[494, [5]], [1499, [5]], [307, [4]], [943, [4, 5]], [1, [4, 5]], [2, [3, 4, 5]], [1800, [6]]]) { // 1800 Five-Star God Shinobi Card = a god card (xvon11, 22 Nov 2026)
+    for (const [drop, want] of [[494, [5]], [1499, [5]], [307, [4]], [943, [4, 5]], [1, [4, 5]], [2, [3, 4, 5]], [1800, [6]], [11, [5]]]) { // 1800 Five-Star God Shinobi Card = a god card (xvon11, 22 Nov 2026); 11 Five-Star Shinobi Card = always 5-star (owner, 23 Nov 2026)
       for (let i = 0; i < 6; i++) {
         const id = Number((/<card><id>(\d+)<\/id><type>1</.exec(game.grantDrop(db, me(), drop) || '') || [])[1]);
         if (!want.includes(star(id))) { ck(false, `drop ${drop} gave card ${id} with ${star(id)} stars, want ${want}`); break; }

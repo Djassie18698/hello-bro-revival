@@ -461,9 +461,11 @@ function rollPack(r) {
   // series of the drop's example card Senju Tsunade (God) 2064), equal chances.
   if (/God Shinobi Card/.test(t)) { const p = (pools()[6] || []).filter((id) => id < 2065); if (p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
   if (/^Ultimate Shinobi Card$/.test(t)) { const p = recruitPools()[5]; if (p && p.length) return { ninja: p[Math.floor(Math.random() * p.length)] }; }
+  // The plain "Five-Star Shinobi Card" (Akatsuki mall 2100 + 900 gold, boss shop ...) is always 5-star, as its name says (owner, 23 Nov 2026;
+  // was 35 % 5-star / 65 % 4-star, ours). The mixed packs that only MAY give Sage of the Six Paths keep 35 / 65 (ours).
   // "Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card, 100 Gold" (official Elder pack 220): 20 / 40 / 40 % (ours)
   const all3 = /Five-Star Shinobi Card, Four-Star Shinobi Card, Three-Star Shinobi Card/.test(t), x3 = Math.random();
-  const star = all3 ? (x3 < 0.2 ? 5 : x3 < 0.6 ? 4 : 3) : /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
+  const star = all3 ? (x3 < 0.2 ? 5 : x3 < 0.6 ? 4 : 3) : /^Five-Star Shinobi Card$/.test(t) ? 5 : /Five-Star Shinobi Card|Sage of the Six/.test(t) ? (Math.random() < 0.35 ? 5 : 4) : /Pack III/.test(t) ? (Math.random() < 0.2 ? 5 : 4) : /Pack II/.test(t) ? (Math.random() < 0.15 ? 4 : 3) : (Math.random() < 0.08 ? 5 : 3);
   // "One, Two-Star ..." and "Three-Star ..." packs are exactly those stars (slot 0-2 = weapon / armor / trinket)
   const low = /One,\s*Two-Star/.test(t), three = /^Three-Star/.test(t);
   const exact = equipFromText(t);
