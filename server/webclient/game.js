@@ -359,7 +359,7 @@
   // the bottom bar's marker sits behind the chosen button
   function selectBar(name) {
     const m = HB.game.menu && HB.game.menu.n;
-    if (m && m.sprite_clickbk && m[name]) m.sprite_clickbk.x = m[name].x;
+    if (m && m.sprite_clickbk && m[name]) { m.sprite_clickbk.x = m[name].x; m.sprite_clickbk.visible = true; }
   }
   // put another screen into MainMenu's content area (CMainMenu::ChangeToSubView): a layout in the 768-wide frame
   // The bottom bar's two red balls (CMainMenu::updateNotify, a timer on the phone):
@@ -393,6 +393,7 @@
     sub.fade = 0; HB.tween(sub, { fade: 1 }, 0.16); // screens fade in (ours: the phone cuts)
     HB.game.currentSubType = 0;
     if (barButton) selectBar(barButton);
+    else { const bm = HB.game.menu && HB.game.menu.n; if (bm && bm.sprite_clickbk) bm.sprite_clickbk.visible = false; } // a screen that is none of the six (Arena, Plunder ...): no button is lit, like the phone
     HB.game.updateNotify(file === 'store/StoreItemsView');
     fillTopBar(owner, HB.game.main);
     const n = owner.n, u = x.first(HB.game.main, 'user');

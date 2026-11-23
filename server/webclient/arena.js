@@ -13,12 +13,14 @@
   const two = (n) => String(n).padStart(2, '0');
   const clock = (s) => two(Math.floor(s / 3600)) + ':' + two(Math.floor(s / 60) % 60) + ':' + two(s % 60);
 
+  let lastMy = null; // my place and reputation from the Compete list: the Rank tab's reply has none, the phone shows what it last knew
   HB.screens.arena = async function arena(tab = 0) {
     const ui = HB.ui, x = ui.x;
     if (tab === 2) return exchange();
     ui.loading(true);
     let reply;
     try {
+      if (tab === 1 && !lastMy) { const first = await HB.api('rl_r_sport', { Cmd: 2800 }); const e = !first.code && x.first(first, 'my'); if (e) lastMy = Object.fromEntries([...e.children].map((c) => [c.nodeName, c.textContent])); }
       [reply] = await Promise.all([HB.api(tab === 1 ? 'rl_r_sportrank' : 'rl_r_sport', { Cmd: 2800 }), HB.data.tables(), HB.loadCCB('sub_ui/ArenaViewNew'), HB.loadCCB('sub_ui/ArenaCellViewNew')]);
     } catch (e) { ui.loading(false); return ui.tip('Cannot reach the server'); }
     ui.loading(false);
@@ -31,18 +33,22 @@
     const obj = (e) => Object.fromEntries([...e.children].filter((c) => c.nodeName !== 'teammate').map((c) => [c.nodeName, c.textContent]));
     const my = tab === 0 ? obj(x.first(reply, 'my')) : null;
     if (n.layer_exchange) n.layer_exchange.visible = false;
+    if (my) lastMy = my;
+    if (n.ctrl_luckyrank) n.ctrl_luckyrank.visible = tab === 1; // only on the Rank tab (a dead button on the phone too: it asks the server nothing)
     if (my) {
       n.label_rank.setText(my.rank); n.label_popularity.setText(my.renown);
       if (n.label_ArenaViewNew0) n.label_ArenaViewNew0.setText('Attacks today:');
       n.label_remain_times.setText(my.todayresttime + '/' + my.todayall);
       for (const k of ['sprite_next_viplevel', 'label_add_desc', 'label_next_level_add', 'label_per_day_desc', 'label_max_vip']) if (n[k]) n[k].visible = false;
       if (n.label_ArenaViewNew1) { n.label_ArenaViewNew1.size = 22; n.label_ArenaViewNew1.setText('(Attacks also earn reputation)'); } // 22: at the layout's 26 it ran to the frame's edge
-    } else if (n.layer_rank) n.layer_rank.visible = false;
+    } else if (lastMy) { n.label_rank.setText(lastMy.rank); n.label_popularity.setText(lastMy.renown); if (n.node_arena) n.node_arena.visible = false; } // Rank tab: my place and reputation stay, the attack counter goes
+    else if (n.layer_rank) n.layer_rank.visible = false;
     o.onButton = (sel) => {
       if (sel === 'BtnArena') return arena(0);
       if (sel === 'BtnRank') return arena(1);
       if (sel === 'BtnExchange') return arena(2);
       if (sel === 'BtnBack') return HB.game.goHome();
+      if (sel === 'BtnLuckyRank') return; // nothing happens on the phone either
       ui.tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2);
     };
     const rows = x.all(reply, tab === 1 ? 'item' : 'user').map((e) => ({ ...obj(e), mates: x.all(x.first(e, 'teammate'), 'mate').map((m) => x.n(m, 'ninja')) }));
@@ -66,7 +72,7 @@
     function icon(m, k, ninja) {
       const frame = m['sprite_ninjaicon' + k], holder = m['node_icon' + k];
       if (!frame) return;
-      if (!ninja) { frame.visible = false; return; }
+      if (!ninja) return; // an empty place keeps the layout's dark frame, like the phone
       const inf = HB.info(1, ninja);
       const f = HB.qualityFrame('small', inf.quality); if (f) frame.setFrame(f); // CGameObjElement::GetArenaNinjaFrame: the small square box of its stars (small_box_skill_0N)
       const pic = HB.iconFrame(1, inf.icon);
@@ -74,14 +80,16 @@
     }
     function fill(m, r) {
       const me = Number(r.host) === 1;
-      m.sprite_me.visible = me; m.sprite_other.visible = !me;
+      m.sprite_me.visible = me && tab === 0; m.sprite_other.visible = !(me && tab === 0);
+      if (tab === 1) { const gf = HB.frameByName('arena_02'); if (gf) m.sprite_other.frame = gf; } // the Rank tab: every row in the gold frame
       m.label_name.setText(r.nick); m.label_level.setText(String(r.level)); m.label_rank.setText(String(r.rank));
       if (m.label_ArenaCellViewNew0) { const l = m.label_ArenaCellViewNew0; l.size = 20; l.setText('Reward:'); l.y -= 6; } // smaller and lower: the card above it and the coin beside it leave this much room
       m.label_coin_gain.setText(String(r.rewardcoin || 0)); m.label_popularity_gain.setText(String(r.rewardrenown || 0));
       const team = tab === 1 ? r.mates : [Number(r.ninja), ...r.mates];
       for (let k = 1; k <= 4; k++) icon(m, k, team[k - 1]);
       m.node_resttime.visible = false; m.node_overtime.visible = false; m.node_already_get.visible = false; m.btn_getreward.visible = false;
-      m.btn_fight.visible = tab === 0 && !me;
+      m.btn_fight.visible = tab === 1 || !me;
+      if (tab === 1) { const tf = HB.frameByName('arena_14'); if (tf) m.btn_fight.setFrame(tf); } // the Rank tab's "Team" button (the phone's does nothing when tapped)
       if (tab === 0 && me) {
         const claimed = Number(my.dayrewardstat) === 1;
         m.node_already_get.visible = claimed; m.btn_getreward.visible = !claimed;
@@ -162,7 +170,7 @@
         if (pic) { const sp = new HB.Sprite(pic); const k = Math.min((m.sprite_ninjaicon.w - 12) / (pic.sw || 1), (m.sprite_ninjaicon.h - 12) / (pic.sh || 1)); sp.sx = sp.sy = k; sp.x = m.sprite_ninjaicon.w / 2; sp.y = m.sprite_ninjaicon.h / 2; sp.z = 1; m.sprite_ninjaicon.add(sp); }
         m.label_desc.dims = [330, 0]; { const t = String(inf.desc || ''); m.label_desc.setText(t.length > 62 ? t.slice(0, 60).replace(/\s+\S*$/, '') + '...' : t); }
       } else m.label_desc.setText('');
-      m.label_exchange_num.setText(g[3] > 1 ? 'x' + g[3] : '');
+      m.label_exchange_num.setText(String(g[3])); m.label_exchange_num.z = 2; // how many you get, over the picture's corner like the phone (it lay under the picture)
       { // the table cuts long names short ("Element Change Pil"): the item's own name when it starts the same way
         const short = String(g[9] || '').replace(/\0+$/, ''), full = what ? String(HB.info(what[0], what[1]).name || '') : '';
         m.label_name_exchange.setText(full.length > short.length && full.startsWith(short) ? full : short);

@@ -57,7 +57,7 @@
       m.label_level.setText(String(r.level));
       m.label_attack.setText(r.attacklow + '--' + r.attackhigh); // two dashes, as the phone writes it here ('%d--%d')
       m.label_merit.setText(String(d[7] || 0));
-      m.label_coin.setText(String(Math.round(Number(r.coin || 0) * (d[3] || 0))));
+      m.label_coin.setText(String(Math.floor(Number(r.coin || 0) * (d[3] || 0)))); // cut, not rounded: the phone shows 1999522 where rounding gave 1999523
       if (m.node_merit_container) m.node_merit_container.visible = false;
       for (const k of ['node_inlay_frame', 'node_shadow_back', 'node_shadow_front']) if (m[k]) m[k].visible = false;
       const inf = HB.info(1, r.firstninja);
@@ -77,10 +77,9 @@
       m.label_myname.setText(me.nick || ''); m.label_enemyname.setText(r.nick);
       m.label_winexp.setText(String(d[5] || 0)); m.label_failexp.setText(String(d[6] || 0));
       m.label_winmerit.setText(String(d[7] || 0)); m.label_failmerit.setText(String(d[8] || 0));
-      m.label_winsilver.setText(String(Math.round(Number(r.coin || 0) * (d[3] || 0))));
-      m.label_failsilver.setText(String(Math.min(1000, Math.round(Number(me.coin || 0) * (d[4] || 0))))); // a loss costs at most 1000 silver (normalconfig 89)
-      if (m.sprite_markicon) m.sprite_markicon.visible = false;
-      m.ctrl_fight.setTitle('Spar'); m.ctrl_qiut.setTitle('Run away');
+      m.label_winsilver.setText(String(Math.floor(Number(r.coin || 0) * (d[3] || 0))));
+      m.label_failsilver.setText('-' + Math.floor(Number(me.coin || 0) * (d[4] || 0))); // as the phone shows it: my silver x the row's share, with a minus (the server takes at most 1000, normalconfig 89)
+      m.ctrl_fight.setTitle('Spar'); m.ctrl_qiut.setTitle('Run Away');
     }
     async function fight(r, d) {
       ui.loading(true);
@@ -89,7 +88,7 @@
       ui.loading(false);
       if (reply.code) return ui.tip(ui.errorText(reply));
       const won = Number(x.a(x.first(x.first(reply, 'fight'), 'preview'), 'result', 0)) === 1;
-      await HB.fight.play(reply, { kind: 'spar', exp: won ? d[5] : d[6], silver: won ? Math.round(Number(r.coin || 0) * (d[3] || 0)) : 0, energy: 0 });
+      await HB.fight.play(reply, { kind: 'spar', exp: won ? d[5] : d[6], silver: won ? Math.floor(Number(r.coin || 0) * (d[3] || 0)) : 0, energy: 0 });
       await HB.game.refresh();
       spar();
     }

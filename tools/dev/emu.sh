@@ -12,6 +12,10 @@ ADB="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"
 cd "$(dirname "$0")/../.." && mkdir -p re
 D="${HB_EMU:-$(cat tools/dev/emu.device 2>/dev/null | tr -d '\r\n ')}"
 [ -n "$D" ] || { echo "No emulator set. Start BlueStacks instance 'Claude', find its adb address (HD-Adb.exe devices) and write it to tools/dev/emu.device"; exit 1; }
+# Our own adb server on port 5038: another program's adb on the usual port (Iriun Webcam, a newer adb) kept stopping BlueStacks' older
+# one, and every stop dropped the emulator ("device not found", 23 Nov 2026). A network emulator is connected again when it is missing.
+export ANDROID_ADB_SERVER_PORT=5038
+case "$D" in *:*) "$ADB" devices 2>/dev/null | grep -q "^$D[[:space:]]*device" || "$ADB" connect "$D" >/dev/null 2>&1 ;; esac
 case "$1" in
   shot) "$ADB" -s $D exec-out screencap -p > re/s.png && echo re/s.png ;;
   tap) "$ADB" -s $D shell input tap "$2" "$3" ;;

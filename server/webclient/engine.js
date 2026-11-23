@@ -268,7 +268,7 @@ class Node {
     const ka = this.cascade ? a : alpha;
     let i = 0;
     for (; i < kids.length && kids[i].z < 0; i++) kids[i].visit(ctx, m, ka);
-    if (this.draw && a > 0) { ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.globalAlpha = a; if (this.blend) ctx.globalCompositeOperation = this.blend; if (this.grey) ctx.filter = 'grayscale(1)'; this.draw(ctx); if (this.grey) ctx.filter = 'none'; if (this.blend) ctx.globalCompositeOperation = 'source-over'; }
+    if (this.draw && a > 0) { ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.globalAlpha = a; if (this.blend) ctx.globalCompositeOperation = this.blend; if (this.grey) ctx.filter = typeof this.grey === 'string' ? this.grey : 'grayscale(1)'; this.draw(ctx); if (this.grey) ctx.filter = 'none'; if (this.blend) ctx.globalCompositeOperation = 'source-over'; }
     if (this.clip) {
       ctx.save(); ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.beginPath(); ctx.rect(0, 0, this.w, this.h); ctx.clip();
       for (; i < kids.length; i++) kids[i].visit(ctx, m, ka);

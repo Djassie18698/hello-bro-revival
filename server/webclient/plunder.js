@@ -78,33 +78,37 @@
       for (let k = 1; k <= 8; k++) {
         const slot = m['sprite_btn' + k], f = frags[k - 1];
         if (!slot) continue;
-        if (!f) { slot.parent.visible = false; continue; }
+        if (!f) { for (const k2 of ['sprite_chip_frame' + k, 'sprite_tipgetit' + k]) if (m[k2]) m[k2].visible = false; continue; } // a seal with fewer pieces: the empty tile stays, like the phone
         const count = have.get(f) || 0, fi = HB.info(5, f);
         const pic = fit(slot, HB.frameByName('small_' + fi.icon) || HB.frameByName(fi.icon), 14);
-        if (pic && !count) pic.opacity = 110;
+        if (pic && !count) pic.grey = 'grayscale(1) contrast(1.15) brightness(1.15)'; // a piece you miss is grey on the phone (no words over it)
         m['label_chip' + k].setText(String(count));
         const tip = m['sprite_tipgetit' + k];
-        if (tip) { tip.visible = !count; const l = m['label_MarkMergaView' + (k - 1)]; if (l) { l.size = 20; l.setText('Plunder'); } }
+        if (tip) tip.visible = false;
         tap(slot, () => { remember(); rivals(f); });
       }
       // the button under the seal: Merge (all fragments), Get (a finished synthesis); a running one shows its clock and "finish now"
       const left = running.has(id) ? running.get(id) : -1;
       const busy = left > 0, ready = left === 0;
       m.label_merge.visible = !ready; m.label_get.visible = ready;
-      for (const k of ['label_countDown', 'label_time', 'btn_finish', 'label_MarkMergaView8']) if (m[k]) m[k].visible = busy;
+      for (const k of ['label_countDown', 'label_time']) if (m[k]) m[k].visible = busy;
+      // the green Synthesis button is always there, like the phone: it makes the seal at once for gold (also one that is still being made)
+      if (m.label_MarkMergaView8) m.label_MarkMergaView8.setText('Synthesis');
+      if (m.btn_finish) tap(m.btn_finish, async () => {
+        if (!busy && !ready && sets < 1) return ui.tip('Collect all ' + frags.length + ' fragments first', 1.8);
+        if (ready) return take(id);
+        if (!(await HB.confirm('Make this seal now for ' + cash + ' gold?', { ok: 'Synthesis' }))) return;
+        remember();
+        if (await send('rl_w_markchip', { Cmd: 2800, MarkID: id, UseCash: 1 })) await take(id);
+      });
       if (busy) {
-        m.label_countDown.setText('Ready in:'); m.label_MarkMergaView8.setText('Finish now');
+        m.label_countDown.setText('Ready in:');
         (function tick() {
           if (!m.label_time.parent || !box.parent || !scroll.parent) return;
           const s = left - Math.floor((Date.now() - born) / 1000);
           if (s <= 0) return plunder(true);
           m.label_time.setText(clock(s)); HB.tween({}, {}, 1, tick);
         })();
-        tap(m.btn_finish, async () => {
-          if (!(await HB.confirm('Finish this seal now for ' + cash + ' gold?', { ok: 'Finish' }))) return;
-          remember();
-          if (await send('rl_w_markchip', { Cmd: 2800, MarkID: id, UseCash: 1 })) await take(id);
-        });
       }
       tap(m.sprite_btn_com, async () => {
         remember();
@@ -133,8 +137,8 @@
       HB.game.showSub('sub_ui/PlunderListView', p);
       const q = p.n, fi = HB.info(5, chip);
       if (q.label_PlunderListView0) q.label_PlunderListView0.setText('Plunder: ' + fi.name);
-      if (q.btnMoreFights) q.btnMoreFights.setTitle('Refresh opponents');
-      if (q.btn_back) q.btn_back.setTitle('Back');
+      if (q.btnMoreFights) q.btnMoreFights.setTitle('Refresh');
+      if (q.btn_back) q.btn_back.setTitle('Return');
       p.onButton = (sel) => { if (sel === 'BtnBack') return plunder(true); if (sel === 'clickMoreFights') return rivals(chip); };
       const rows = x.all(list, 'user').map((u) => Object.fromEntries([...u.children].map((c) => [c.nodeName, c.textContent])));
       const pbox = q.node_tablecontent, psize = q.node_cardcontent;
