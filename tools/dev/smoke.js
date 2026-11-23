@@ -1378,6 +1378,22 @@ for (const pick of [55, 56, 57]) {
     const sd = require('../../server/sevenday').loginDays, c0 = Date.now() - 6 * 86400000;
     if (sd({ created: c0 }) !== lpd(c0)) { bad++; console.log('SEVEN DAY GOALS: must count the same days as the login packs / the screen'); }
   }
+  { // Spar / Plunder / Friends lists: the portrait = the TEAM's first card with its own rarity + rebirths (NoSuy, 23 Nov 2026: a rival
+    // showed Tsunade while his team starts with Sasuke, and every frame looked the same)
+    const g = require('../../server/game'), god = [...g.ninjas().values()].find((r) => r[11] === 6 && r[19] > 0);
+    const viewer = db.prepare('SELECT * FROM players WHERE uid!=77 AND server_id=1 LIMIT 1').get();
+    if (god && viewer) {
+      const seq = g.giveCard(db, 77, 1, god[0]);
+      db.prepare('UPDATE cards SET newlife=2 WHERE seq=?').run(seq);
+      const old = db.prepare('SELECT seq FROM team WHERE uid=77 AND server_id=1 AND slot=0').get();
+      db.prepare('UPDATE team SET seq=? WHERE uid=77 AND server_id=1 AND slot=0').run(seq);
+      const nick = db.prepare('SELECT nick FROM players WHERE uid=77 AND server_id=1').get().nick;
+      const row = (g.friendsXml(db, viewer, nick).match(/<user><id>77<\/id>.*?<\/user>/) || [''])[0];
+      if (!row.includes(`<firstninja>${god[0]}</firstninja>`) || !row.includes('<firstninjastar>6</firstninjastar>') || !row.includes('<newlife>2</newlife>')) { bad++; console.log('RIVAL PORTRAIT: must be the team leader with its rarity and rebirths', row.slice(0, 300)); }
+      if (old) db.prepare('UPDATE team SET seq=? WHERE uid=77 AND server_id=1 AND slot=0').run(old.seq);
+      db.prepare('DELETE FROM cards WHERE seq=?').run(seq);
+    } else { bad++; console.log('RIVAL PORTRAIT: no god card or second player for the check'); }
+  }
   try { db.close(); fs.rmSync(tmp, { force: true }); } catch {}
   console.log(bad ? bad + ' problem(s)' : `all ${Object.keys(handlers).length} handlers OK (${calls} calls)`);
   process.exit(bad ? 1 : 0);

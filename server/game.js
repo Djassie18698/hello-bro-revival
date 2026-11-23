@@ -925,8 +925,17 @@ function rivals(db, pl, count = 8) {
   }
   return out;
 }
+// The card a player's portrait shows in Spar / Plunder / Friends / Arena lists: the FIRST card of his team (team slot 0, the one that leads
+// his fights), with its star rarity (ninjainfo [11]: small_icon_frame_01-06) and rebirths (newlife: the frame's inlay / corners; CFightCardView::InitUI).
+// Until 23 Nov 2026 it was the card with the highest Sage growth of ANY kind, the rebirths came from that card and the star was a fixed 3
+// (5 in Friends / Arena), so portrait and frame did not match the team (NoSuy, Discord report 1574285267513249872).
+function leadCard(db, uid, sid) {
+  const c = db.prepare('SELECT c.ninja_id, c.newlife FROM team t JOIN cards c ON c.seq=t.seq WHERE t.uid=? AND t.server_id=? AND c.type=1 ORDER BY t.slot LIMIT 1').get(uid, sid)
+    || db.prepare('SELECT ninja_id, newlife FROM cards WHERE uid=? AND server_id=? AND type=1 ORDER BY starlevel DESC, seq LIMIT 1').get(uid, sid);
+  return c ? { ninja_id: c.ninja_id, newlife: c.newlife || 0, star: (ninjas().get(c.ninja_id) || [])[11] || 3 } : null;
+}
 function firstNinja(db, p) {
-  const c = db.prepare('SELECT ninja_id FROM cards WHERE uid=? AND server_id=? ORDER BY starlevel DESC, seq LIMIT 1').get(p.uid, p.server_id);
+  const c = leadCard(db, p.uid, p.server_id);
   return c ? c.ninja_id : 5;
 }
 function rivalsXml(db, pl) {
@@ -938,10 +947,10 @@ function rivalsXml(db, pl) {
     // got the bot value too (found 5 Nov 2026: a list row read 32-52 while the fight used that player's real 549 defence).
     const real = db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(r.id, pl.server_id);
     const t = real ? teamStats(db, r.id, pl.server_id).total : null;
-    // the reincarnation count of the card shown (same card as firstNinja picks); was always 0
-    const fc = real ? db.prepare('SELECT newlife FROM cards WHERE uid=? AND server_id=? ORDER BY starlevel DESC, seq LIMIT 1').get(r.id, pl.server_id) : null;
+    // the card shown, its rarity and reincarnation count (leadCard: the team's first card)
+    const fc = real ? leadCard(db, r.id, pl.server_id) : null;
     const o = { id: r.id, level: lv, nick: r.nick, attacklow: t ? t.al : a, attackhigh: t ? t.ah : a + 20, defenselow: t ? t.dl : Math.floor(a / 2), defenseHigh: t ? t.dh : Math.floor(a / 2) + 10,
-      chakralow: t ? t.cl : a, chakrahigh: t ? t.ch : a + 20, firstninja: r.ninja, firstninjastar: r.star || 3, newlife: (fc && fc.newlife) || 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
+      chakralow: t ? t.cl : a, chakrahigh: t ? t.ch : a + 20, firstninja: fc ? fc.ninja_id : r.ninja, firstninjastar: fc ? fc.star : r.star || 3, newlife: (fc && fc.newlife) || 0, country: r.country, coin: r.coin !== undefined ? r.coin : 100 + lv * 20 }; // the preview's silver = coin x duelinfo share, so a real rival shows his real silver (sparFight pays from it)
     return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
   };
   const bench = benchRivals(db).map((r) => '<user>' + Object.entries({ id: r.id, level: r.level, nick: r.nick, attacklow: r.bench, attackhigh: r.bench, defenselow: r.bench, defenseHigh: r.bench,
@@ -1793,7 +1802,7 @@ function friendsXml(db, pl, nick) {
   const f = (r) => {
     const t = teamStats(db, r.uid, r.server_id);
     const o = { id: r.uid, level: r.level, nick: String(r.nick).replace(/[<>&"]/g, ''), attacklow: t.total.al, attackhigh: t.total.ah, defenselow: t.total.dl, defenseHigh: t.total.dh,
-      firstninja: firstNinja(db, r), country: r.country, firstninjastar: 5, newlife: 0 };
+      firstninja: firstNinja(db, r), country: r.country, firstninjastar: (leadCard(db, r.uid, r.server_id) || {}).star || 5, newlife: (leadCard(db, r.uid, r.server_id) || {}).newlife || 0 };
     return '<user>' + Object.entries(o).map(([k, v]) => el(k, v)).join('') + '</user>';
   };
   return '<userlist page="1">' + real.map(f).join('') + '</userlist>';
@@ -1866,7 +1875,7 @@ function arenaInfo(db, uid) {
   const p = db.prepare('SELECT * FROM players WHERE uid=?').get(uid);
   if (!p) return null;
   const t = teamStats(db, p.uid, p.server_id);
-  return { uid, nick: p.nick, level: p.level, ninja: firstNinja(db, p), star: 5, country: p.country, power: (t.total.al + t.total.ah) / 2 / Math.max(1, t.slots.length) };
+  return { uid, nick: p.nick, level: p.level, ninja: firstNinja(db, p), star: (leadCard(db, p.uid, p.server_id) || {}).star || 5, country: p.country, power: (t.total.al + t.total.ah) / 2 / Math.max(1, t.slots.length) };
 }
 // Arena daily rank reward, from the Facebook photos of the original (FINDINGS.md): rank 1 25 000 silver + 5000 reputation, -1000 / -200 a rank
 // to rank 10 (16 000 + 3200), ranks 23-26 15 200 + 3040, ranks 1253-1953 2000 + 400; reputation is always silver / 5. Between rank 10 and
