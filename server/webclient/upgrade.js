@@ -1,5 +1,5 @@
 // Level up a card by feeding it other cards (the Backpack's Upgrade button): CCardUpgradeView (upgrade/CardUpgradeView.ccbi),
-// the card on top (upgrade/UpgradeNinja.ccbi) and a grid of material cards (upgrade/UpgradeMeteriaInfoCard.ccbi) you tick.
+// the card on top (upgrade/UpgradeNinja.ccbi) and a grid of material cards (upgrade/MaterialNinjaView.ccbi, the phone's own tile) you tick.
 // Request: rl_w_strengthen SRCBagID=<card> EATCardsBagIDList=<a|b|c>. The numbers shown are the game's own upgrade tables, the same
 // ones the server uses (game.js strengthen): every eaten card gives [3] exp and costs [4] silver from its own kind's table at its
 // level; the growing card needs [2] exp per level. A card can reach your level x 2 + 10 (never past its table's last level).
@@ -15,7 +15,7 @@
     const card = D.card(seq);
     if (!card) return HB.screens.backpack();
     ui.loading(true);
-    const [tab] = await Promise.all([ui.table(TABLE[card.type]), HB.data.tables(), ...['upgrade/CardUpgradeView', 'upgrade/UpgradeNinja', 'upgrade/UpgradeMeteriaInfoCard'].map((f) => HB.loadCCB(f))]);
+    const [tab] = await Promise.all([ui.table(TABLE[card.type]), HB.data.tables(), ...['upgrade/CardUpgradeView', 'upgrade/UpgradeNinja', 'upgrade/MaterialNinjaView'].map((f) => HB.loadCCB(f))]);
     ui.loading(false);
     const rowAt = (lv) => tab.rows.find((r) => r[1] === Math.max(1, lv)) || [];
     const top = Math.min(Number((HB.game.user || {}).level || 1) * 2 + 10, tab.rows.length);
@@ -49,6 +49,9 @@
     const star = HB.frameByName('com_normal_star');
     for (let i = 1; i <= 5; i++) if (m['sprite_star' + i] && i <= Math.min(5, inf.quality) && star) m['sprite_star' + i].setFrame(star);
     const barFull = m.sprite_expbar ? m.sprite_expbar.w : 0;
+    // a card at its top level: "Max" on the full bar, like the phone
+    let maxTag = null;
+    if (m.sprite_expbar) { maxTag = new HB.Label('Max', 'Helvetica', 26, [0, 0], 1, 1); maxTag.color = [255, 255, 255]; maxTag.x = m.sprite_expbar.x - m.sprite_expbar.ax * barFull + barFull / 2; maxTag.y = m.sprite_expbar.y + (0.5 - m.sprite_expbar.ay) * m.sprite_expbar.h; maxTag.z = m.sprite_expbar.z + 1; maxTag.visible = false; m.sprite_expbar.parent.add(maxTag); }
 
     // the material cards: the same kind, not in a team, not the card itself
     const mats = HB.bag.sorted(D.ofType(card.type).filter((c) => c.seq !== card.seq && !D.inUse(c.seq))).reverse();
@@ -64,6 +67,7 @@
       const a = after(), need = rowAt(a.level)[2] || 0;
       m.label_expval.setText(String(a.exp)); m.label_needsilver.setText(String(a.cost));
       m.label_level.setText(String(a.level)); m.label_level.color = a.level > card.level ? [120, 255, 90] : [255, 255, 255];
+      if (maxTag) maxTag.visible = a.level >= top;
       if (m.sprite_expbar && barFull) m.sprite_expbar.w = Math.max(1, barFull * (a.level >= top || !need ? 1 : Math.min(1, a.cur / need)));
       for (const [s, mark] of marks) mark.visible = chosen.has(s);
     };
@@ -72,16 +76,25 @@
     const rows = Math.max(1, Math.ceil(mats.length / per));
     const col = new HB.Node(); col.w = box.w; col.h = rows * size.h;
     const place = (c, i) => {
+      // the phone's own tile (upgrade/MaterialNinjaView): the picture in its star frame with "Lv:N" on it, the name under it, five
+      // stars down the right side (as many gold as the card has), a tick when chosen
       const mo = {}, ci = HB.info(c.type, c.id);
-      const cell = HB.build('upgrade/UpgradeMeteriaInfoCard', mo, [size.w, size.h]);
+      const cell = HB.build('upgrade/MaterialNinjaView', mo, [size.w, size.h]);
       cell.ignoreAnchor = true; cell.w = size.w; cell.h = size.h;
       cell.x = (box.w - per * size.w) / 2 + (i % per) * size.w; cell.y = col.h - (Math.floor(i / per) + 1) * size.h;
-      const p = HB.iconFrame(c.type, ci.icon);
-      if (p && mo.n.node_icon) { const sp = new HB.Sprite(p); const k = Math.min((mo.n.node_icon.w - 30) / (p.sw || 1), (mo.n.node_icon.h - 30) / (p.sh || 1)); sp.sx = sp.sy = k; sp.x = mo.n.node_icon.w / 2 - 8; sp.y = mo.n.node_icon.h / 2; mo.n.node_icon.add(sp); }
-      HB.showStars(mo.n, ['sprite_star01', 'sprite_star02', 'sprite_star03', 'sprite_star04', 'sprite_star05'], Math.min(5, ci.quality));
-      const lv = new HB.Label('Lv ' + c.level, 'Arial-BoldMT', 18, [0, 0], 1, 1); lv.color = [255, 255, 255]; lv.stroke = ['#000', 3]; lv.x = size.w / 2 - 8; lv.y = 26; cell.add(lv);
-      const mark = new HB.Label('✔', 'Arial-BoldMT', 64, [0, 0], 1, 1); mark.color = [90, 235, 70]; mark.stroke = ['#000', 5];
-      mark.x = size.w / 2 - 8; mark.y = size.h / 2; mark.visible = chosen.has(c.seq); mark.z = 5; cell.add(mark);
+      const t = mo.n, p = HB.iconFrame(c.type, ci.icon);
+      const qf = HB.qualityFrame('small', ci.quality); if (qf && t.sprite_icon) t.sprite_icon.setFrame(qf); // the small square box of its stars (small_box_skill_0N)
+      if (p && t.sprite_icon) { const sp = new HB.Sprite(p); const k = Math.min((t.sprite_icon.w - 10) / (p.sw || 1), (t.sprite_icon.h - 10) / (p.sh || 1)); sp.sx = sp.sy = k; sp.x = t.sprite_icon.w / 2; sp.y = t.sprite_icon.h / 2; t.sprite_icon.add(sp); }
+      { const dark = HB.frameByName('com_nromal_star_bk'); for (let q = 1; q <= 5; q++) { const st = t['sprite_star' + q]; if (st && dark && q > Math.min(5, ci.quality)) { const w0 = st.w; st.setFrame(dark); st.sx = st.sy = w0 / (st.w || w0); } } } // the stars it lacks are dark
+      if (t.label_level) t.label_level.setText('LV:' + c.level);
+      if (t.label_grade) t.label_grade.setText(''); // the phone shows no "+N" on these tiles
+      if (t.label_name) { // the name's first words that fit the little box, like the phone ("Golden", "Akimichi")
+        t.label_name.dims = [0, 0]; const words = String(ci.name || '').split(' '); let txt = words[0] || '';
+        t.label_name.setText(txt);
+        for (let wi = 1; wi < words.length; wi++) { t.label_name.setText(txt + ' ' + words[wi]); if (t.label_name.w > 96) { t.label_name.setText(txt); break; } txt += ' ' + words[wi]; }
+        if (t.label_name.w > 96) t.label_name.sx = t.label_name.sy = 96 / t.label_name.w;
+      }
+      const mark = t.sprite_selectflag || new HB.Node(); mark.visible = chosen.has(c.seq);
       marks.set(c.seq, mark);
       cell.onTouch = (ev, tx, ty) => { if (ev === 'down') cell._d = [tx, ty]; if (ev === 'up' && cell._d && Math.hypot(tx - cell._d[0], ty - cell._d[1]) < 14) { if (chosen.has(c.seq)) chosen.delete(c.seq); else chosen.add(c.seq); redraw(); } };
       col.add(cell);

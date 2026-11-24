@@ -8,7 +8,8 @@
 //   Growth      -> CStrengthView (sub_ui/StrengthView.ccbi), the sage steps: 1-4 sage stones (item 7 or 8) give the chance in
 //                  ninjastrength ([2] step, [3]-[6] chance with 1-4 stones, [9] silver; rows 1-15 Sage Stone I, 16-30 Sage Stone III),
 //                  extra stones add 0.1 / 0.2 % each up to +10 %. rl_w_star ReadyCard StarStoneID StarStoneNum StarStoneExtID
-//                  StarStoneExtNum -> levelSuccess, levelDrop, currentLevel. Auto growth is not built.
+//                  StarStoneExtNum -> levelSuccess, levelDrop, currentLevel. Auto-Growth (the tick box): the phone repeats the same try
+//                  until the card stands at the chosen step, the stones run out or you press Cancel (CStrengthView::StartStrength).
 // The items you hold come from HB.game.items (rl_r_shoplist Cmd 1601).
 'use strict';
 (function () {
@@ -178,11 +179,9 @@
     const o = {};
     HB.game.showSub('sub_ui/StrengthView', o);
     const n = o.n;
-    hide(n, 'node_auto_choose_container', 'node_auto_desc_container', 'button_strength3', 'sprite_cancel_name2', 'sprite_auto_icon', 'result_anim_node', 'bridge_anim_node', 'sprite_stone_fire_wheel', 'sprite_card_fire_wheel', 'node_desc_container');
+    hide(n, 'result_anim_node', 'bridge_anim_node', 'sprite_stone_fire_wheel', 'sprite_card_fire_wheel', 'node_desc_container');
     const all = o.all || {};
     title(HB.game.subContent, 'clickBack', 'Back'); title(HB.game.subContent, 'clickSelectMin', 'Min'); title(HB.game.subContent, 'clickSelectMax', 'Max'); // 'minimum' / 'maximum' ran over their six-sided buttons
-    // Auto-Growth is not built: its tick box and its name are taken away rather than left as a box that does nothing
-    { const auto = button(HB.game.subContent, 'clickAuto'); if (auto) { auto.visible = false; for (const s of auto.parent.children) if (s instanceof HB.Sprite && !s.name && Math.abs(s.y - auto.y) < 30 && s.x > auto.x && s.x - auto.x < 160) s.visible = false; } }
     (all.label_StrengthView0 || []).forEach((l, i) => l.setText(i === 0 ? 'Sage' : 'Extra chance'));
     set(n, 'label_StrengthView1', 'step'); set(n, 'sprite_desc_silver_cost', 'Cost:');
     set(n, 'label_StrengthView7', '1. Sage stones raise a shinobi card step by step: every step adds to its numbers.');
@@ -190,6 +189,15 @@
     set(n, 'label_StrengthView9', '3. A failed try can cost a step, but never below steps 3, 6, 9 and 12 once reached.');
     let stone = st.stone || (items(7) ? 7 : items(8) ? 8 : 7), count = st.count || 1, extra = st.extra || 0, extraStone = st.extraStone || stone;
     const lv = card ? card.starlevel || 0 : 0;
+    // Auto-Growth: ticked = the row "stop at sage step N" with - and +; Growth then tries again and again, the button turns into Cancel
+    let auto = !!st.auto && !!card, to = Math.max(0, Math.min(MAX, st.to != null ? st.to : lv + 1)), running = auto && !!st.running;
+    set(n, 'label_StrengthView4', 'Stop at step'); set(n, 'label_StrengthView5', ''); set(n, 'label_StrengthView6', 'It keeps trying for you.');
+    const show = (k, on) => { if (n[k]) n[k].visible = on; };
+    const drawAuto = () => {
+      show('node_auto_choose_container', auto); show('node_auto_desc_container', !auto); show('sprite_auto_icon', auto);
+      show('button_strength', !running); show('sprite_strength_name', !running); show('button_strength3', running); show('sprite_cancel_name2', running);
+      set(n, 'label_to_level', to);
+    };
     const row = () => table.rows.find((r) => r[2] === lv && (stone === 8 ? r[0] > 15 : r[0] <= 15)) || [];
     const maxExtra = () => Math.max(0, Math.min(items(extraStone) - (extraStone === stone ? count : 0), Math.ceil(Math.min(EXTRA_MAX, 100 - (row()[2 + count] || 0)) / EXTRA[extraStone] - 1e-9)));
     const icon = (holder, id) => { if (!holder) return; const f = HB.iconFrame(0, HB.info(0, id).icon); if (f) { holder.setFrame(f); } };
@@ -204,10 +212,31 @@
       set(n, 'label_cost_silver', card ? row()[9] || 0 : 0);
       for (let i = 1; i <= 4; i++) { const b = n['btn_num' + i]; if (b) b.opacity = i <= count ? 255 : 120; }
     };
-    draw();
-    const again = () => growth(seq, { stone, count, extra, extraStone });
+    draw(); drawAuto();
+    const again = () => growth(seq, { stone, count, extra, extraStone, auto, to, running });
+    const attempt = async () => {
+      const stop = (text) => { ui.tip(text, 2); if (running) { running = false; drawAuto(); } };
+      if (!card) return stop('Choose a shinobi first');
+      if (lv >= MAX) return stop('This shinobi is at the highest step');
+      if (auto && lv >= to) return stop('This shinobi is at sage step ' + lv + ' already');
+      if (items(stone) < count) return stop('Not enough ' + HB.info(0, stone).name + ' (' + items(stone) + ' / ' + count + ')');
+      if (auto && !running) { running = true; drawAuto(); }
+      const r = await send('rl_w_star', { Cmd: 1, ReadyCard: card.seq, StarStoneID: stone, StarStoneNum: count, StarStoneExtID: extra ? extraStone : 0, StarStoneExtNum: extra });
+      if (!r) { if (running) { running = false; drawAuto(); } return; }
+      const won = Number(r.getAttribute('levelSuccess')) === 1, drop = Number(r.getAttribute('levelDrop')) || 0, now = Number(r.getAttribute('currentLevel'));
+      if (HB.game.loadItems) await HB.game.loadItems();
+      await HB.game.refresh();
+      const done = running && now >= to;
+      if (done) running = false;
+      ui.tip(done ? 'Auto-Growth is done: sage step ' + now : won ? 'Success! Sage step ' + now : drop ? 'Failed: back to step ' + now : 'Failed: still step ' + now, running ? 0.8 : 2.2);
+      if (HB.game.subOwner === o) again();
+    };
+    // the next try of a running Auto-Growth, as long as this screen is the one on show
+    if (running) setTimeout(() => { if (HB.game.subOwner === o && running) attempt(); }, 1000);
     o.onButton = async (sel, btn) => {
-      if (sel === 'clickBack') return HB.game.goHome();
+      if (sel === 'clickBack') { running = false; return HB.game.goHome(); }
+      if (sel === 'clickStrengthCancel') { running = false; return drawAuto(); }
+      if (running) return;
       if (sel === 'clickHelp') { if (n.node_desc_container) n.node_desc_container.visible = !n.node_desc_container.visible; return; }
       if (sel === 'clickCardSelect') { const c = await pick(); return growth(c ? c.seq : seq, { stone, count }); }
       if (sel === 'clickSelectStone') { stone = STONES[(STONES.indexOf(stone) + 1) % STONES.length]; return draw(); }
@@ -217,18 +246,10 @@
       if (sel === 'clickSelectMax') { extra = maxExtra(); return draw(); }
       if (sel === 'clickSelectSub') { extra -= 1; return draw(); }
       if (sel === 'clickSelectAdd') { extra += 1; return draw(); }
-      if (sel === 'clickAuto') return ui.tip('Coming soon: automatic growth', 1.4);
-      if (sel !== 'clickStrength') return;
-      if (!card) return ui.tip('Choose a shinobi first', 1.4);
-      if (lv >= MAX) return ui.tip('This shinobi is at the highest step', 1.8);
-      if (items(stone) < count) return ui.tip('Not enough ' + HB.info(0, stone).name + ' (' + items(stone) + ' / ' + count + ')', 2);
-      const r = await send('rl_w_star', { Cmd: 1, ReadyCard: card.seq, StarStoneID: stone, StarStoneNum: count, StarStoneExtID: extra ? extraStone : 0, StarStoneExtNum: extra });
-      if (!r) return;
-      const won = Number(r.getAttribute('levelSuccess')) === 1, drop = Number(r.getAttribute('levelDrop')) || 0, now = Number(r.getAttribute('currentLevel'));
-      if (HB.game.loadItems) await HB.game.loadItems();
-      await HB.game.refresh();
-      ui.tip(won ? 'Success! Sage step ' + now : drop ? 'Failed: back to step ' + now : 'Failed: still step ' + now, 2.2);
-      again();
+      if (sel === 'clickAuto') { if (!card) return ui.tip('Choose a shinobi first', 1.4); auto = !auto; return drawAuto(); }
+      if (sel === 'clickSubNumber') { to = Math.max(0, to - 1); return drawAuto(); }
+      if (sel === 'clickAddNumber') { to = Math.min(MAX, to + 1); return drawAuto(); }
+      if (sel === 'clickStrength') return attempt();
     };
   };
 })();

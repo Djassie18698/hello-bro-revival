@@ -3,7 +3,10 @@
 // Requests: rl_r_dup Cmd 7000 (<duplist maxchap> with a <dup><chapid><process> per open floor; process = the round to fight next,
 // 8 = floor passed), rl_w_dup Cmd 3100 Chap Round (the fight). Enemies, exp, silver and the round's words come from the game's
 // towerfloor table ([2] floor, seven rows a floor in id order = its rounds, [4] the enemy shown, [20] exp, [21] silver, [23] words).
-// The floors are the phone's own map (map.tmx) since 23 Nov 2026; Rank is not built.
+// The floors are the phone's own map (map.tmx) since 23 Nov 2026. Rank (CTowerRankDlg, dlg_ui/TowerRankReward.ccbi) since 24 Nov:
+// rl_r_dup Cmd 7001 -> <player><step_num><rank><award> (award = a bit per claimed row) + <rank_list><item rank uid nick level step_num
+// firstninja firstninjastar newlife>; the Reward tab is the game's tower_reward table ([2] rounds needed, pictures filldropdata [4] [6] [8]),
+// claimed with rl_w_dup Cmd 3101 AwardID.
 'use strict';
 (function () {
   const HB = window.HB;
@@ -33,6 +36,7 @@
     o.onButton = (sel) => { if (sel === 'BtnBack') return HB.game.goHome();
       // Sweep is the game's own script (CTowerView::onBtnSweep: execLuaScript("business_proxy/towerSweep_business.lua"))
       if (sel === 'BtnSweep' && HB.L && HB.luaRun) { const go = () => HB.luaRun('business_proxy/towerSweep_business.lua'); return HB.game.loadItems ? HB.game.loadItems().then(go) : go(); }
+      if (sel === 'BtnRank') return rank(0);
       ui.tip('Coming soon: ' + sel.replace(/^Btn/, ''), 1.2); };
     // The floors are a map you scroll (CTowerView::InitUI): ccbResources/map.tmx = a 680 x 2040 picture, map001.png on top of
     // map002.png, with one 50 x 50 place per floor (its "o_layer_1" objects, measured from the top-left corner; MAP below).
@@ -92,6 +96,88 @@
       const pic = HB.frameByName('small_' + d[3]) || HB.frameByName(d[3]) || HB.frameByName('icon_' + d[3]);
       if (pic && icon) { const sp = new HB.Sprite(pic); const q = Math.min((icon.w - 12) / (pic.sw || 1), (icon.h - 12) / (pic.sh || 1)); sp.sx = sp.sy = q; sp.x = icon.w / 2; sp.y = icon.h / 2; icon.add(sp); }
     }
+  }
+
+  // the Rank window: two tabs, Rank (the top 100 by rounds won: place, first card, level, name, rounds) and Reward (one row per floor)
+  async function rank(tab) {
+    const ui = HB.ui, x = ui.x;
+    ui.loading(true);
+    let reply, rewards, fill;
+    try {
+      [reply, rewards, fill] = await Promise.all([HB.api('rl_r_dup', { Cmd: 7001 }), ui.table('tower_reward'), ui.table('filldropdata'), HB.data.tables(),
+        HB.loadCCB('dlg_ui/TowerRankReward'), HB.loadCCB('dlg_ui/TowerRankCell1'), HB.loadCCB('dlg_ui/TowerRankCell2'), HB.loadSheet('ccbResources/tower_ui.plist')]);
+    } catch (e) { ui.loading(false); return ui.tip('Cannot reach the server'); }
+    ui.loading(false);
+    if (reply.code) return ui.tip(ui.errorText(reply));
+    const me = x.first(reply, 'player'), steps = x.n(me, 'step_num') || 0, place = x.n(me, 'rank') || 0;
+    let mask = x.n(me, 'award') || 0;
+    const w = { onButton: (sel) => { if (sel === 'BtnClose') return w.close(); if (sel === 'BtnRank') return show(0); if (sel === 'BtnReward') return show(1); } };
+    await HB.dialog('dlg_ui/TowerRankReward', w);
+    const m = w.n;
+    m.label_TowerRankReward0.setText('Progress:'); m.label_progress.setText(String(steps)); m.label_rank.setText(place ? String(place) : 'Not ranked');
+    const tabs = [m.ctrl_rank, m.ctrl_reward].map((b) => b && { b, off: b.frames[1], on: b.frames[2] || b.frames[1] });
+    let scroll = null;
+    const list = (count, size, make) => {
+      if (scroll) scroll.removeSelf();
+      const box = m.node_tablecontent;
+      scroll = new HB.ScrollView(); scroll.dir = 1; scroll.w = box.w; scroll.h = box.h;
+      const col = new HB.Node(); col.w = box.w; col.h = Math.max(1, count) * size.h;
+      for (let i = 0; i < count; i++) { const cell = make(i); cell.ignoreAnchor = true; cell.x = (box.w - size.w) / 2; cell.y = col.h - (i + 1) * size.h; cell.w = size.w; cell.h = size.h; col.add(cell); }
+      scroll.setContent(col); box.add(scroll);
+    };
+    const digit = (holder, name) => { const fr = HB.frameByName(name); if (!fr || !holder) return null; const sp = new HB.Sprite(fr); sp.x = holder.w / 2; sp.y = holder.h / 2; holder.add(sp); return sp; };
+    const rows = x.all(x.first(reply, 'rank_list'), 'item');
+    function show(t) {
+      tabs.forEach((k, i) => { if (k) { k.b.frames[1] = i === t ? k.on : k.off; k.b.layout(); } });
+      if (t === 0) return list(rows.length, m.node_cardcontent1, (i) => {
+        const r = rows[i], co = {}, cell = HB.build('dlg_ui/TowerRankCell1', co, [m.node_cardcontent1.w, m.node_cardcontent1.h]), c = co.n, no = Number(x.a(r, 'rank')) || i + 1;
+        const bk = HB.frameByName(i % 2 ? 'tower_rank_12' : 'tower_rank_11'); if (bk && c.sprite_bk) c.sprite_bk.setFrame(bk);
+        // the place: a gold number for the first three, then one or two plain digits (CTowerRankCell)
+        if (no <= 3) digit(c.index_pos, 'tower_rank_gold_number_' + no);
+        else if (no < 10) digit(c.index_pos, 'tower_rank_number_' + no);
+        else if (no < 100) { digit(c.index_pos1, 'tower_rank_number_' + Math.floor(no / 10)); digit(c.index_pos2, 'tower_rank_number_' + no % 10); }
+        else String(no).split('').forEach((d, k) => { const sp = digit(c.index_pos, 'tower_rank_number_' + d); if (sp) { sp.sx = sp.sy = 0.7; sp.x = c.index_pos.w / 2 + (k - 1) * 26; } }); // ours: place 100 has no room for three digits
+        const id = Number(x.a(r, 'firstninja')) || 0, inf = id ? HB.info(1, id) : null;
+        for (const k of ['node_shadow_back', 'node_shadow_front', 'node_inlay_frame']) if (c[k]) c[k].visible = false;
+        if (inf && c.sprite_ninjaicon) {
+          const qf = HB.qualityFrame('ninjaSmall', inf.quality) || HB.qualityFrame('small', inf.quality), pic = HB.iconFrame(1, inf.icon);
+          if (qf) c.sprite_ninjaicon.setFrame(qf);
+          if (pic && c.node_icon) { const sp = new HB.Sprite(pic); const q = Math.min(c.node_icon.w / (pic.sw || 1), c.node_icon.h / (pic.sh || 1)); sp.sx = sp.sy = q; sp.x = c.node_icon.w / 2; sp.y = c.node_icon.h / 2; c.node_icon.add(sp); }
+        }
+        c.label_level.setText(String(x.a(r, 'level') || '')); c.label_name.setText(String(x.a(r, 'nick') || '')); c.label_step.setText(String(x.a(r, 'step_num') || 0));
+        return cell;
+      });
+      list(rewards.rows.length, m.node_cardcontent2, (i) => {
+        const g = rewards.rows[i], co = {}, cell = HB.build('dlg_ui/TowerRankCell2', co, [m.node_cardcontent2.w, m.node_cardcontent2.h]), c = co.n;
+        c.label_TowerRankCell20.setText('reward'); c.label_TowerRankCell20.x += 26; c.label_TowerRankCell20.sx = c.label_TowerRankCell20.sy = 0.78; c.label_item_title.setText(String(g[2]));
+        [g[4], g[6], g[8]].forEach((fid, k) => {
+          const d = fill.rows.find((r) => r[0] === fid), icon = c['sprite_item' + (k + 1)], name = c['label_item_name' + (k + 1)];
+          if (!d) { if (icon) icon.visible = false; if (name) name.visible = false; return; }
+          if (name) { name.setText(clean(d[2])); const room = 150; if (name.w > room) name.sx = name.sy = Math.max(0.5, room / name.w); }
+          const qf = HB.qualityFrame('small', Math.max(1, d[4] || 1)); if (qf && icon) icon.setFrame(qf);
+          const pic = HB.frameByName('small_' + d[3]) || HB.frameByName(d[3]) || HB.frameByName('icon_' + d[3]);
+          if (pic && icon) { const sp = new HB.Sprite(pic); const q = Math.min((icon.w - 12) / (pic.sw || 1), (icon.h - 12) / (pic.sh || 1)); sp.sx = sp.sy = q; sp.x = icon.w / 2; sp.y = icon.h / 2; icon.add(sp); }
+        });
+        const got = () => Math.floor(mask / 2 ** g[0]) % 2 === 1, can = steps >= g[2];
+        const state = () => { const l = c.label_get_title; l.sx = l.sy = 1; l.setText(got() ? 'Claimed' : 'Claim'); if (l.w > 96) l.sx = l.sy = 96 / l.w; c.btn_scale_sprite.grey = got() || !can; };
+        state();
+        tap(c.btn_scale_sprite, async () => {
+          if (got()) return ui.tip('Already claimed', 1.3);
+          if (!can) return ui.tip('Win ' + g[2] + ' rounds first (you have ' + steps + ')', 1.8);
+          ui.loading(true);
+          let r; try { r = await HB.api('rl_w_dup', { Cmd: 3101, AwardID: g[0] }); } catch (e) { ui.loading(false); return ui.tip('Cannot reach the server'); }
+          ui.loading(false);
+          if (r.code) return ui.tip(ui.errorText(r), 2);
+          mask += 2 ** g[0]; state();
+          if (HB.game.loadItems) await HB.game.loadItems();
+          await HB.game.refresh();
+          const cards = HB.awards ? HB.awards(r) : [];
+          if (cards.length && HB.showCards) await HB.showCards(cards, 'You got'); else ui.tip('Claimed', 1.5);
+        });
+        return cell;
+      });
+    }
+    show(tab || 0);
   }
 
   async function floor(chap) {
