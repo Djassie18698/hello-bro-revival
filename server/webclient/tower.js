@@ -131,7 +131,7 @@
       tabs.forEach((k, i) => { if (k) { k.b.frames[1] = i === t ? k.on : k.off; k.b.layout(); } });
       if (t === 0) return list(rows.length, m.node_cardcontent1, (i) => {
         const r = rows[i], co = {}, cell = HB.build('dlg_ui/TowerRankCell1', co, [m.node_cardcontent1.w, m.node_cardcontent1.h]), c = co.n, no = Number(x.a(r, 'rank')) || i + 1;
-        const bk = HB.frameByName(i % 2 ? 'tower_rank_12' : 'tower_rank_11'); if (bk && c.sprite_bk) c.sprite_bk.setFrame(bk);
+        const bk = HB.frameByName('tower_rank_' + (no <= 3 ? 8 + no : 12)); if (bk && c.sprite_bk) c.sprite_bk.setFrame(bk); // purple, blue, green for the first three, orange after (the phone)
         // the place: a gold number for the first three, then one or two plain digits (CTowerRankCell)
         if (no <= 3) digit(c.index_pos, 'tower_rank_gold_number_' + no);
         else if (no < 10) digit(c.index_pos, 'tower_rank_number_' + no);
@@ -159,7 +159,8 @@
           if (pic && icon) { const sp = new HB.Sprite(pic); const q = Math.min((icon.w - 12) / (pic.sw || 1), (icon.h - 12) / (pic.sh || 1)); sp.sx = sp.sy = q; sp.x = icon.w / 2; sp.y = icon.h / 2; icon.add(sp); }
         });
         const got = () => Math.floor(mask / 2 ** g[0]) % 2 === 1, can = steps >= g[2];
-        const state = () => { const l = c.label_get_title; l.sx = l.sy = 1; l.setText(got() ? 'Claimed' : 'Claim'); if (l.w > 96) l.sx = l.sy = 96 / l.w; c.btn_scale_sprite.grey = got() || !can; };
+        const plain = c.btn_scale_sprite.frame, stamp = HB.frameByName('com_reward_gain');
+        const state = () => { c.label_get_title.setText('Claim'); c.label_get_title.visible = !got() || !stamp; c.btn_scale_sprite.setFrame(got() && stamp ? stamp : plain); c.btn_scale_sprite.grey = !got() && !can; }; // CTowerRewardCell::setRewardIndex: claimed = the stamp com_reward_gain, not reached yet = the button in grey
         state();
         tap(c.btn_scale_sprite, async () => {
           if (got()) return ui.tip('Already claimed', 1.3);

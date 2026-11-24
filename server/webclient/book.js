@@ -5,7 +5,7 @@
 // No request: the phone reads the three tables and asks CPlayerDataMgr whether you hold the card (GetObjByDataID); a card you
 // hold shows in its quality frame, the others in the plain frame. Tap = the card's own window (CGameCardNinja on the phone,
 // our details window here).
-// Ours: a card you do not hold is drawn grey (the phone's exact look of a missing card was not read from the C++), and the
+// A card you do not hold is washed out in yellow like on the phone (matched by eye on 24 Nov 2026, not read from the C++). Ours: the
 // line "Collected a / b" under the tabs.
 'use strict';
 (function () {
@@ -41,7 +41,7 @@
     rows.forEach((r, i) => {
       const ids = T.ids(r), held = ids.find((id) => mine.has(id)), id = held || ids[0];
       if (held) have++;
-      const type = T.types[0], inf = HB.info(type, id);
+      const type = T.types[0], inf = HB.info(type, id), MISSING = 'sepia(1) saturate(3.5) hue-rotate(8deg) brightness(0.78) opacity(0.5)', MISSING_FRAME = 'grayscale(1) sepia(1) saturate(5) hue-rotate(12deg) brightness(1.08) opacity(0.8)'; // a card you never held: washed out in yellow, like the phone (compared 24 Nov 2026)
       const co = {};
       const cell = HB.build('sub_ui/GameObjBookCard', co, [size.w, size.h]);
       cell.ignoreAnchor = true; cell.x = (i % cols) * size.w + (box.w - cols * size.w) / 2; cell.y = grid.h - (Math.floor(i / cols) + 1) * size.h; cell.w = size.w; cell.h = size.h;
@@ -54,9 +54,9 @@
         const pic = HB.iconFrame(type, clean(r[2])) || HB.iconFrame(type, inf.icon);
         if (!pic || !holder) return;
         const sp = new HB.Sprite(pic); const k = Math.min((holder.w - 16) / (pic.sw || 1), (holder.h - 16) / (pic.sh || 1));
-        sp.sx = sp.sy = k; sp.x = holder.w / 2; sp.y = holder.h / 2; sp.z = 1; sp.grey = !held; holder.add(sp);
+        sp.sx = sp.sy = k; sp.x = holder.w / 2; sp.y = holder.h / 2; sp.z = 1; sp.grey = held ? false : MISSING; holder.add(sp);
       };
-      if (holder) holder.grey = !held;
+      if (holder) holder.grey = held ? false : MISSING_FRAME;
       if (m.label_framename) m.label_framename.setText(inf.name); // hidden in the layout, like on the phone
       cell.onTouch = (ev, tx, ty) => {
         if (ev === 'down') cell._d = [tx, ty];

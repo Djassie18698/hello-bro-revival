@@ -84,14 +84,20 @@
       if (tab === 0) {
         face(m, r.fromninja, r.firstninjastar);
         set(m, 'label_level', r.fromlevel); set(m, 'label_player_name', r.fromnick);
-        const plunder = Number(r.subtype) === 1, lost = Number(r.result) === 1; // result = how it went for the attacker
+        // result: 0 = the other player won (you lost), 1 = "has been defeated by you" (server/notices.js; until 24 Nov 2026 this was read
+        // the wrong way round and every report said the opposite of the phone)
+        const plunder = Number(r.subtype) === 1, lost = Number(r.result) === 0;
         set(m, 'label_fight_type', plunder ? 'Plunder' : 'Spar');
         set(m, 'label_pk_msg', plunder ? (lost ? 'plundered you and won' + (Number(r.iTakeRes) ? ': a seal fragment is gone' : '') : 'tried to plunder you and lost') : (lost ? 'sparred with you and won' : 'sparred with you and lost'));
-        set(m, 'label_win', lost ? 'You lost' : 'You won'); if (m.label_win) m.label_win.color = lost ? [220, 60, 40] : [60, 160, 40];
+        set(m, 'label_win', lost ? 'You lost' : 'You win');
+        // the box behind those words (CFightMsgCellView: the yellow com_bk_frame_24 for a win, the red com_bk_frame_26 for a loss, in node_frame_container)
+        { const box = m.node_frame_container, fr = HB.frameByName(lost ? 'com_bk_frame_26' : 'com_bk_frame_24'); if (box && fr) { const bg = new HB.Scale9(fr); bg.ax = bg.ay = 0; bg.w = box.w; bg.h = box.h; box.add(bg); } }
         const coin = Number(r.iCoin) || 0;
-        set(m, 'label_coin', (coin > 0 ? '+' : '') + coin); if (m.sprite_silver_icon) m.sprite_silver_icon.visible = coin !== 0; if (m.label_coin) m.label_coin.visible = coin !== 0;
+        // a spar shows its silver with a sign ("+%d" won, "-%d" lost), also when it is 0; a plunder shows none
+        set(m, 'label_coin', (lost ? '-' : '+') + Math.abs(coin)); if (m.sprite_silver_icon) m.sprite_silver_icon.visible = !plunder; if (m.label_coin) m.label_coin.visible = !plunder;
         set(m, 'label_ignore_tip', 'Ignore'); set(m, 'label_FightMsgView0', 'Revenge');
-        if (m.btn_addfriend) m.btn_addfriend.visible = false;
+        // the green + writes that player a message (CFightMsgCellView::addFriend opens the invite window: rl_w_friend ToUid Msg)
+        if (m.btn_addfriend) tap(m.btn_addfriend, () => writeTo(r.fromuid, r.fromnick));
         tap(m.btn_ignore, async () => { if (await send('rl_w_msg', { Cmd: 2901, Op: 1, Index: r.ID })) news(0); });
         tap(m.btn_revenge, async () => {
           if (!(await HB.confirm('Spar with ' + r.fromnick + ' to take revenge?', { ok: 'Revenge' }))) return;

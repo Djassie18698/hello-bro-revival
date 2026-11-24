@@ -45,6 +45,8 @@
     if (art && n.layer_icon) { n.layer_icon.clip = true; const sp = new HB.Sprite(art); const k = Math.max(n.layer_icon.w / art.sw, n.layer_icon.h / art.sh); sp.sx = sp.sy = k; sp.x = n.layer_icon.w / 2; sp.y = n.layer_icon.h / 2; n.layer_icon.add(sp); }
     set(n, 'label_ninja_level', card.level);
     HB.showStars(n, STARS, Math.min(5, inf.quality));
+    if (n.sprite_ninjaexp) n.sprite_ninjaexp.visible = true;
+    HB.cardDress(n, card, 'middle'); // reborn corners, dragon mark, the glow of a grown card, the exp bar / "Max" (the phone shows them here too)
   }
   const pick = (exclude) => HB.pickCard({ types: [1], exclude });
   const ready = async (...layouts) => { await Promise.all([HB.data.tables(), HB.game.loadItems ? HB.game.loadItems() : null, ...layouts.map((l) => HB.loadCCB(l))]); };
@@ -73,7 +75,8 @@
     const mark = () => { if (n.sprite_card_selected) n.sprite_card_selected.visible = !!card && pay === 'card'; if (n.sprite_ball_selected) n.sprite_ball_selected.visible = !!card && pay === 'pill'; };
     set(n, 'label_card_cost', card ? 1 : 0); set(n, 'label_meterial_count', copies.length);
     set(n, 'label_ball_cost', need); set(n, 'label_ball_count', items(11));
-    if (n.sprite_icon && card) { const ic = HB.cardIcon(1, card.id); if (ic.pic) ic.pic.z = 1; ic.sx = ic.sy = Math.min(n.sprite_icon.w / (ic.w || 1), n.sprite_icon.h / (ic.h || 1)); ic.x = n.sprite_icon.w / 2; ic.y = n.sprite_icon.h / 2; n.sprite_icon.add(ic); }
+    // no spare copy: the slot keeps its "Select" card, like the phone
+    if (n.sprite_icon && card && copies.length) { const ic = HB.cardIcon(1, card.id); if (ic.pic) ic.pic.z = 1; ic.sx = ic.sy = Math.min(n.sprite_icon.w / (ic.w || 1), n.sprite_icon.h / (ic.h || 1)); ic.x = n.sprite_icon.w / 2; ic.y = n.sprite_icon.h / 2; n.sprite_icon.add(ic); }
     // what this rebirth gives
     if (n.label_ninja_title) n.label_ninja_title.visible = !!card; if (n.label_noninja_title) n.label_noninja_title.visible = !card;
     const row = (k) => (card ? prop.rows.find((r) => r[2] === inf.quality && Math.round(r[3]) === k) : null) || [];
@@ -125,10 +128,11 @@
     for (const [tag, k] of stat) {
       set(n, 'label_' + tag, a(tag, 'add_' + k) + '/' + a(tag, 'limit_' + k));
       const d = rolled ? rolled[k] : null;
-      if (n['label_' + tag + '_add']) { n['label_' + tag + '_add'].visible = d !== null; if (d !== null) n['label_' + tag + '_add'].setText((d >= 0 ? '+' : '') + d); }
+      if (n['label_' + tag + '_add']) n['label_' + tag + '_add'].setText(d === null ? '0' : (d >= 0 ? '+' : '') + d); // a plain 0 before the first roll, like the phone
       if (n['sprite_' + tag + '_status']) n['sprite_' + tag + '_status'].visible = d !== null && d !== 0;
       if (d !== null && d < 0 && n['sprite_' + tag + '_status']) n['sprite_' + tag + '_status'].flipY = true;
     }
+    { const pill = HB.iconFrame(0, HB.info(0, 28).icon, true); if (pill) for (const k of ['sprite_icon1', 'sprite_icon2']) if (n[k]) n[k].setFrame(pill); } // the Super Ninja Pill's own big picture (the layout draws it at a quarter; its stand-in is a money bag)
     const costs = info ? x.all(info, 'cost').map((c) => ({ id: Number(x.a(c, 'cost_id')), name: x.a(c, 'name'), pills: Number(x.a(c, 'need_miyao')), gold: Number(x.a(c, 'need_golden')) })) : [];
     let gold = HB.game.potGold || false, ten = HB.game.potTen || false;
     const cost = () => costs[(ten ? 2 : 0) + (gold ? 1 : 0)] || { id: 1, pills: 0, gold: 0, name: '' };
@@ -179,7 +183,11 @@
     const o = {};
     HB.game.showSub('sub_ui/StrengthView', o);
     const n = o.n;
-    hide(n, 'result_anim_node', 'bridge_anim_node', 'sprite_stone_fire_wheel', 'sprite_card_fire_wheel', 'node_desc_container');
+    hide(n, 'result_anim_node', 'bridge_anim_node');
+    // with a card chosen the scroll on top holds the "Growth bonus" panel and both rings burn (the phone); without one, the three rules
+    for (const k of ['sprite_stone_fire_wheel', 'sprite_card_fire_wheel']) { const w = n[k]; if (!w) continue; w.visible = !!card; if (card) (function spin() { if (!w.parent || HB.game.subOwner !== o) return; HB.tween(w, { rot: w.rot + 360 }, 6, spin); })(); }
+    if (n.node_desc_container) n.node_desc_container.visible = !card;
+    if (n.node_upgrade_container) n.node_upgrade_container.visible = !!card;
     const all = o.all || {};
     title(HB.game.subContent, 'clickBack', 'Back'); title(HB.game.subContent, 'clickSelectMin', 'Min'); title(HB.game.subContent, 'clickSelectMax', 'Max'); // 'minimum' / 'maximum' ran over their six-sided buttons
     (all.label_StrengthView0 || []).forEach((l, i) => l.setText(i === 0 ? 'Sage' : 'Extra chance'));
@@ -207,12 +215,23 @@
       icon(n.sprite_stone_icon, stone); icon(n.sprite_stone_icon_select, extraStone);
       set(n, 'label_stone_count', items(stone)); set(n, 'label_stone_count_select', extra);
       set(n, 'label_card_level', lv);
+      { const l = n.label_card_level, sage = (all.label_StrengthView0 || [])[0]; if (l && sage && sage.parent === l.parent) { if (sage._x0 === undefined) sage._x0 = sage.x; sage.x = Math.min(sage._x0, l.x - l.w / 2 - 6 - (1 - sage.ax) * sage.w); } } // room for two digits (the text fitter drew "12" small; the phone writes it full size)
       const base = card ? row()[2 + count] || 0 : 0, add = Math.min(EXTRA_MAX, Math.round(extra * EXTRA[extraStone] * 10) / 10);
       set(n, 'label_strength_ratio', base + '%'); set(n, 'label_strength_ratio_extra', add ? '+' + add + '%' : ''); set(n, 'label_percent', add + '%');
       set(n, 'label_cost_silver', card ? row()[9] || 0 : 0);
       for (let i = 1; i <= 4; i++) { const b = n['btn_num' + i]; if (b) b.opacity = i <= count ? 255 : 120; }
     };
     draw(); drawAuto();
+    if (card) { // Growth bonus: the card's own numbers, what this step adds and what the next step would add (ninjastrengthconfig [2])
+      const pct = (l) => Math.round((((HB.ui.tables || {}).ninjastrengthconfig || { rows: [] }).rows.find((r) => r[1] === l) || [])[2] * 100) || 0;
+      const now = HB.cardStats(card), next = HB.cardStats({ ...card, starlevel: Math.min(MAX, lv + 1) });
+      [['attack', 'atk', 0], ['defense', 'def', 1], ['chakra', 'chakra', 2]].forEach(([tag, k, i]) => {
+        const base = now.base[k][0] + '-' + now.base[k][1];
+        set(n, 'label_current_' + tag, base); set(n, 'label_current_' + tag + '_plus', '+' + now.bonus[i]);
+        set(n, 'label_after_' + tag, base); set(n, 'label_after_' + tag + '_plus', '+' + next.bonus[i]);
+      });
+      set(n, 'label_current_plus_per', '+' + pct(lv) + '%'); set(n, 'label_after_plus_per', '+' + pct(Math.min(MAX, lv + 1)) + '%');
+    }
     const again = () => growth(seq, { stone, count, extra, extraStone, auto, to, running });
     const attempt = async () => {
       const stop = (text) => { ui.tip(text, 2); if (running) { running = false; drawAuto(); } };
@@ -237,7 +256,7 @@
       if (sel === 'clickBack') { running = false; return HB.game.goHome(); }
       if (sel === 'clickStrengthCancel') { running = false; return drawAuto(); }
       if (running) return;
-      if (sel === 'clickHelp') { if (n.node_desc_container) n.node_desc_container.visible = !n.node_desc_container.visible; return; }
+      if (sel === 'clickHelp') { if (n.node_desc_container) { const on = !n.node_desc_container.visible || !card; n.node_desc_container.visible = on; if (n.node_upgrade_container) n.node_upgrade_container.visible = !on; } return; }
       if (sel === 'clickCardSelect') { const c = await pick(); return growth(c ? c.seq : seq, { stone, count }); }
       if (sel === 'clickSelectStone') { stone = STONES[(STONES.indexOf(stone) + 1) % STONES.length]; return draw(); }
       if (sel === 'clickSelectStoneExtra') { extraStone = STONES[(STONES.indexOf(extraStone) + 1) % STONES.length]; extra = 0; return draw(); }
