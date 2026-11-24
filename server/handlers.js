@@ -1251,18 +1251,25 @@ module.exports = {
     return '<root code="0"></root>';
   },
 
-  // Invitation code (settings): the code is the game ID of the friend who invited you (another player on this server); it pays 500
-  // gold (ours), once per player. Before 2 Nov 2026 any new word paid 500 gold again and again.
+  // Invitation code (Settings, "Claim Award"; the game shows the reply's <award>): first a gift code the owner made in the control panel
+  // (giftcode.js, once per player); else the game ID of the friend who
+  // invited you (another player on this server): 500 gold (ours), once per player. Before 2 Nov 2026 any new word paid 500 gold again and
+  // again. Refusals use the game's own tips: 280004 does not exist, 280001 already used, 280002 too frequent.
   rl_w_invitecode: ({ db, params: p }) => {
     const acc = accountBySession(db, p);
     const pl = acc && db.prepare('SELECT * FROM players WHERE uid=? AND server_id=?').get(acc.uid, Number(p.ServerID || 1));
     if (!pl) return '<root code="3"><message>session expired</message></root>';
     const code = String(p.Code || '').trim();
-    if (!code) return '<root code="5"><message>empty code</message></root>';
+    if (!code) return '<root code="280004"><message>empty code</message></root>';
+    const gift = require('./giftcode');
+    if (/[A-Za-z]/.test(code) || gift.list(db).some((g) => g.code === code.toUpperCase())) {
+      const r = gift.redeem(db, pl, code);
+      return r.ok ? '<root code="0">' + r.xml + '</root>' : `<root code="${r.code}"></root>`;
+    }
     db.exec('CREATE TABLE IF NOT EXISTS invites (uid INTEGER, server_id INTEGER, code TEXT, PRIMARY KEY(uid,server_id,code))');
-    if (db.prepare('SELECT 1 FROM invites WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id)) return '<root code="5"><message>you already used an invitation code</message></root>';
+    if (db.prepare('SELECT 1 FROM invites WHERE uid=? AND server_id=?').get(pl.uid, pl.server_id)) return '<root code="280001"><message>you already used an invitation code</message></root>';
     const friend = /^\d+$/.test(code) && Number(code) !== pl.uid && db.prepare('SELECT 1 FROM players WHERE uid=? AND server_id=?').get(Number(code), pl.server_id);
-    if (!friend) return '<root code="5"><message>enter the game ID of the friend who invited you</message></root>';
+    if (!friend) return '<root code="280004"><message>enter the game ID of the friend who invited you</message></root>';
     db.prepare('INSERT INTO invites VALUES(?,?,?)').run(pl.uid, pl.server_id, code);
     db.prepare('UPDATE players SET gold=gold+500 WHERE uid=? AND server_id=?').run(pl.uid, pl.server_id);
     return '<root code="0">' + game.awardFull({ cash: 500 }) + '</root>';

@@ -665,7 +665,7 @@ function benchmark(db, pl, targets, runs = 300) {
 
 // ADMIN_OPEN=1: players may use the item pages (/admin) without the password (owner, 3 Nov 2026: players add resources themselves on
 // the public server "for now"; later only their own account). The control panel (/, /manager) and wiping a player stay the owner's.
-const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin/api/login', '/admin/track', '/admin/api/track', '/admin/api/trackuids']);
+const OWNER_ONLY = new Set(['/admin/api/reset', '/admin/api/purplename', '/admin/api/login', '/admin/track', '/admin/api/track', '/admin/api/trackuids', '/admin/api/giftcodes']);
 const openToPlayers = (u) => process.env.ADMIN_OPEN === '1' && !OWNER_ONLY.has(u.pathname);
 
 const MOD_OK = new Set(['/admin/api/login']); // owner-only things a mod may use too
@@ -761,6 +761,12 @@ module.exports = async function admin(req, res, u, db, readBody) {
       if (!to) return json(res, { ok: false, error: 'no such player' });
       const r = require('./awardcenter').send(db, to, b.title, b.content, { gold: Number(b.gold) || 0, silver: Number(b.silver) || 0, renown: Number(b.renown) || 0 });
       return json(res, r.error ? { ok: false, error: r.error } : { ok: true, sent: r.sent });
+    }
+    // Gift codes (giftcode.js, owner only): op list / add / del; players type a code in Settings > Invitation Code
+    if (u.pathname === '/admin/api/giftcodes') {
+      const gc = require('./giftcode');
+      const r = b.op === 'add' ? gc.add(db, b) : b.op === 'del' ? gc.remove(db, b.code) : { ok: true };
+      return json(res, r.error ? { ok: false, error: r.error } : { ok: true, added: r.code, codes: gc.list(db) });
     }
     if (u.pathname === '/admin/api/trackuids') return json(res, { ok: true, tracked: require('./tracker').setUids(db, String(b.uids || '').split(/[ ,]+/)) }); // owner only
     const pl = findPlayer(db, b.uid);

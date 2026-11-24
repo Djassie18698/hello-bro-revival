@@ -55,5 +55,8 @@ Yes, two ways. Both play on the same server as Android, and you can log in with 
 • **In the browser:** open **https://ninjaonlinereborn.com/play/emu/** in Safari. Tap Share > **Add to Home Screen** to get it as an app icon.
 • **As an iPhone app:** download **NinjaOnline.ipa** from https://github.com/Djassie18698/hello-bro-revival/releases/tag/ios-game and install it from a Windows PC with **Sideloadly** (free, needs iTunes and your Apple ID). Steps: https://github.com/Djassie18698/hello-bro-revival/blob/main/tools/ios-game/README.md. With a free Apple ID you press Start in Sideloadly again every 7 days; your login stays.
 
+## 10b. Where do I type a gift code?
+Now and then we share a gift code (in #updates or #announcement). In the game, tap the **gear icon** on Home (Settings), type the code under **Invitation Code** and tap **Claim Award**. Each code works once per player; the gold and silver arrive at once. Letters can be typed big or small.
+
 ## 11. Something is broken
 Post it in <#1569836981016592484> with a screenshot and what you did. Fixes are announced in <#1565697769874919515>.

@@ -259,6 +259,23 @@ html.embed .wrap{padding-top:18px}
           <button class="btn" onclick="sendMail(false)">Send to this player</button>
           <button class="btn purple" onclick="sendMail(true)">Send to everyone</button>
         </div>
+        <h3 style="margin-top:26px">🎟️ Gift codes</h3>
+        <p class="hint">Make a code and share it (Discord, the website). Players type it in the game: <b>Settings</b> (gear icon on Home) &gt; <b>Invitation Code</b> &gt; <b>Claim Award</b>. Each player can use a code once; the gold and silver arrive at once. Owner only.</p>
+        <div class="row">
+          <input class="in" id="gc-code" placeholder="Code (e.g. WELCOME2026)" maxlength="20" style="flex:1;min-width:180px;text-transform:uppercase">
+          <input class="in" id="gc-title" placeholder="Mail title (e.g. Welcome gift)" maxlength="40" style="flex:1;min-width:180px">
+        </div>
+        <div class="row">
+          <label class="hint" style="margin:0">💰 Gold <input type="number" id="gc-gold" value="0" min="0" style="width:100px"></label>
+          <label class="hint" style="margin:0">🪙 Silver <input type="number" id="gc-silver" value="0" min="0" style="width:110px"></label>
+          <label class="hint" style="margin:0">🏆 Arena reputation <input type="number" id="gc-renown" value="0" min="0" style="width:100px"></label>
+        </div>
+        <div class="row">
+          <label class="hint" style="margin:0">👥 How many players (0 = everyone) <input type="number" id="gc-max" value="0" min="0" style="width:90px"></label>
+          <label class="hint" style="margin:0">⏳ Days it works (0 = forever) <input type="number" id="gc-days" value="0" min="0" style="width:80px"></label>
+          <button class="btn" onclick="addCode()">Make code</button>
+        </div>
+        <div id="gc-list" class="hint" style="margin-top:10px"></div>
       </section>
 
       <section class="panel view" id="v-give">
@@ -456,6 +473,24 @@ async function sendMail(all) {
   const r = await api('sendmail', { uid: sel, all, title: $('m-title').value, content: $('m-text').value, gold: +$('m-gold').value || 0, silver: +$('m-silver').value || 0, renown: +$('m-renown').value || 0 });
   toast(r.ok ? 'Sent to <b>' + r.sent + '</b> player' + (r.sent === 1 ? '' : 's') : r.error, r.ok);
 }
+// gift codes (giftcode.js, owner only)
+const gcText = (g) => [g.gold && g.gold + ' gold', g.silver && g.silver + ' silver', g.renown && g.renown + ' reputation'].filter(Boolean).join(' + ');
+function showCodes(list) {
+  $('gc-list').innerHTML = !list.length ? 'No codes yet.' : '<table style="width:100%;border-collapse:collapse">' + list.map((g) => '<tr style="border-top:1px solid var(--line)">'
+    + '<td style="padding:6px 4px"><b>' + esc(g.code) + '</b><br><small>' + esc(g.title || '') + '</small></td><td>' + esc(gcText(g)) + '</td>'
+    + '<td>used ' + g.used + (g.max_uses ? ' / ' + g.max_uses : '') + '</td>'
+    + '<td>' + (g.expires ? (g.expires * 1000 < Date.now() ? 'expired' : 'until ' + new Date(g.expires * 1000).toLocaleDateString()) : 'no end') + '</td>'
+    + '<td style="text-align:right"><button class="btn ghost sm" data-del="' + esc(g.code) + '">Delete</button></td></tr>').join('') + '</table>';
+}
+async function loadCodes() { const r = await api('giftcodes', { op: 'list' }).catch(() => ({})); if (r.ok) showCodes(r.codes); else $('gc-list').textContent = r.error || 'Gift codes: owner only.'; }
+async function addCode() {
+  const r = await api('giftcodes', { op: 'add', code: $('gc-code').value, title: $('gc-title').value, gold: +$('gc-gold').value || 0, silver: +$('gc-silver').value || 0, renown: +$('gc-renown').value || 0, maxUses: +$('gc-max').value || 0, days: +$('gc-days').value || 0 });
+  toast(r.ok ? 'Code <b>' + esc(r.added) + '</b> made: share it!' : r.error, r.ok); if (r.ok) { $('gc-code').value = ''; showCodes(r.codes); }
+}
+$('gc-list').onclick = async (e) => {
+  const b = e.target.closest('[data-del]'); if (!b || !confirm('Delete code ' + b.dataset.del + '? Players can no longer use it.')) return;
+  const r = await api('giftcodes', { op: 'del', code: b.dataset.del }); toast(r.ok ? 'Deleted' : r.error, r.ok); if (r.ok) showCodes(r.codes);
+};
 async function give(field, amount) {
   if (!sel) return toast('Pick a player first', false);
   const r = await api('give', { uid: sel, field, amount });
@@ -721,6 +756,7 @@ document.querySelector('.tabs').onclick = (e) => {
   if (b.dataset.v === 'inv') loadInv();
   if (b.dataset.v === 'team') loadTeam();
   if (b.dataset.v === 'login') loadLogin();
+  if (b.dataset.v === 'mail') loadCodes();
 };
 // drifting leaves
 for (let i = 0; i < 14; i++) { const l = document.createElement('div'); l.className = 'leaf'; l.textContent = ['🍃', '🍥', '✦'][i % 3]; l.style.left = Math.random() * 100 + 'vw'; l.style.animationDuration = 14 + Math.random() * 18 + 's'; l.style.animationDelay = -Math.random() * 30 + 's'; document.querySelector('.bg').appendChild(l); }
