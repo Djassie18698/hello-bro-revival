@@ -298,6 +298,8 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 
 | 🧪 | **Gift codes** (24 Nov, owner: "Can we integrate this?" after player REDRA asked about the Invitation Code box in Settings). The owner makes codes in the control panel (item page > 📬 Award Center > 🎟️ Gift codes: code, gold / silver / arena reputation, how many players, how many days, and since 24 Nov a card pack: random 5-star / 4-star / god shinobi, 5-star equipment or ninjutsu); players type one in Settings > Invitation Code > Claim Award and get the reward at once, once per player. The game's own tips for a wrong code, a used code and too many tries. Live on ninjaonline (8ccd6c1); first code REBORN5 (random 5-star shinobi, 7 days) announced with @everyone in #updates + #announcement. Checked on a copy of the live save (card in the reward reply, second try 280001); not yet tried on a phone |
 
+| ✅ | **Element Change Pills** (25 Nov, owner: "make this work" after player Beerus asked "when can we get working Element Change Pills"). Checked on the Claude emulator: they already worked: Backpack > a card's WuXing conversion > Change (Kaguya Fire -> Water) and Shop > Tool > Element Change Pill > USE > Choose (Santa of the Six Paths Fire -> Wind), 12 pills + 2 000 silver each; Arena > Exchange gives 5 pills for 15 000 reputation, twice a day (original). Players did not know where to get them (the Shop says "Currently not for sale", like the original): how-to-play chapter 3 now explains it; smoke.js checks the exchange and the change |
+
 ## Still to build
 
 | | What |

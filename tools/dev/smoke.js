@@ -1075,6 +1075,20 @@ for (const pick of [55, 56, 57]) {
     const one = boost([1, 2067]), three = boost([1, 1, 1, 2067]);
     if (!game.RULES.leaderOnce || !(one > 0) || three !== one) { bad++; console.log('COPIES STACK: whole-team chain with 1 copy', one, 'with 3 copies', three, 'leaderOnce', game.RULES.leaderOnce); }
   }
+  // Element Change Pills (item 33; player Beerus 24 Nov 2026 "when can we get working Element Change Pills"): the Arena exchange row 4
+  // gives 5 pills for 15 000 reputation, and a change takes the pills + 2000 silver and gives a different element
+  {
+    const game = require('../../server/game'), handlers = require('../../server/handlers');
+    db.prepare('UPDATE players SET coin=coin+10000 WHERE uid=77').run();
+    game.propAdd(db, 77, 1, 9996, 15000);
+    const pills = () => game.propCounts(db, 77, 1)[33] || 0, p0 = pills();
+    const ex = handlers.rl_x_sport_ext({ db, params: { Uid: '77', Session: 'x', ServerID: '1', GroupID: '2', Cmd: '2', Exchg: '4' } });
+    game.propAdd(db, 77, 1, 33, 20);
+    const card = db.prepare('SELECT seq, attri FROM cards WHERE uid=77 AND type=1 LIMIT 1').get();
+    const pl = db.prepare('SELECT * FROM players WHERE uid=77').get(), price = game.elementPrice(db, pl, card.seq), r = game.elementChange(db, pl, card.seq);
+    const after = db.prepare('SELECT attri FROM cards WHERE seq=?').get(card.seq).attri;
+    if (!/<id>33<\/id><num>5<\/num>/.test(ex) || r.error || after === (card.attri || 1) || pills() !== p0 + 5 + 20 - price.pills) { bad++; console.log('ELEMENT CHANGE:', ex.slice(0, 120), JSON.stringify(r), card.attri, '->', after, 'pills', p0, pills()); }
+  }
   // Backpack limit (owner, 22 Nov 2026; game.BAG_MAX): a full bag refuses recruits before any gold is taken (code 20004 "Bagpack is full"),
   // and fight / event drops stop giving shinobi cards. Zeraora's 87 000 cards made the Level Up screen load for 6 minutes.
   {
