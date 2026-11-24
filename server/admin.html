@@ -260,7 +260,7 @@ html.embed .wrap{padding-top:18px}
           <button class="btn purple" onclick="sendMail(true)">Send to everyone</button>
         </div>
         <h3 style="margin-top:26px">🎟️ Gift codes</h3>
-        <p class="hint">Make a code and share it (Discord, the website). Players type it in the game: <b>Settings</b> (gear icon on Home) &gt; <b>Invitation Code</b> &gt; <b>Claim Award</b>. Each player can use a code once; the gold and silver arrive at once. Owner only.</p>
+        <p class="hint">Make a code and share it (Discord, the website). Players type it in the game: <b>Settings</b> (gear icon on Home) &gt; <b>Invitation Code</b> &gt; <b>Claim Award</b>. Each player can use a code once; everything arrives at once. Owner only.</p>
         <div class="row">
           <input class="in" id="gc-code" placeholder="Code (e.g. WELCOME2026)" maxlength="20" style="flex:1;min-width:180px;text-transform:uppercase">
           <input class="in" id="gc-title" placeholder="Mail title (e.g. Welcome gift)" maxlength="40" style="flex:1;min-width:180px">
@@ -269,6 +269,7 @@ html.embed .wrap{padding-top:18px}
           <label class="hint" style="margin:0">💰 Gold <input type="number" id="gc-gold" value="0" min="0" style="width:100px"></label>
           <label class="hint" style="margin:0">🪙 Silver <input type="number" id="gc-silver" value="0" min="0" style="width:110px"></label>
           <label class="hint" style="margin:0">🏆 Arena reputation <input type="number" id="gc-renown" value="0" min="0" style="width:100px"></label>
+          <label class="hint" style="margin:0">🃏 Card <select id="gc-drop" class="in" style="width:auto"><option value="0">none</option><option value="11">Random 5-star shinobi</option><option value="10">Random 4-star shinobi</option><option value="1800">Random god shinobi (6-star)</option><option value="13">Random 5-star equipment</option><option value="14">Random 5-star ninjutsu</option></select></label>
         </div>
         <div class="row">
           <label class="hint" style="margin:0">👥 How many players (0 = everyone) <input type="number" id="gc-max" value="0" min="0" style="width:90px"></label>
@@ -474,7 +475,8 @@ async function sendMail(all) {
   toast(r.ok ? 'Sent to <b>' + r.sent + '</b> player' + (r.sent === 1 ? '' : 's') : r.error, r.ok);
 }
 // gift codes (giftcode.js, owner only)
-const gcText = (g) => [g.gold && g.gold + ' gold', g.silver && g.silver + ' silver', g.renown && g.renown + ' reputation'].filter(Boolean).join(' + ');
+const GC_PACKS = { 11: 'random 5-star shinobi', 10: 'random 4-star shinobi', 1800: 'random god shinobi', 13: 'random 5-star equipment', 14: 'random 5-star ninjutsu' };
+const gcText = (g) => [g.drop_id && GC_PACKS[g.drop_id], g.gold && g.gold + ' gold', g.silver && g.silver + ' silver', g.renown && g.renown + ' reputation'].filter(Boolean).join(' + ');
 function showCodes(list) {
   $('gc-list').innerHTML = !list.length ? 'No codes yet.' : '<table style="width:100%;border-collapse:collapse">' + list.map((g) => '<tr style="border-top:1px solid var(--line)">'
     + '<td style="padding:6px 4px"><b>' + esc(g.code) + '</b><br><small>' + esc(g.title || '') + '</small></td><td>' + esc(gcText(g)) + '</td>'
@@ -484,7 +486,7 @@ function showCodes(list) {
 }
 async function loadCodes() { const r = await api('giftcodes', { op: 'list' }).catch(() => ({})); if (r.ok) showCodes(r.codes); else $('gc-list').textContent = r.error || 'Gift codes: owner only.'; }
 async function addCode() {
-  const r = await api('giftcodes', { op: 'add', code: $('gc-code').value, title: $('gc-title').value, gold: +$('gc-gold').value || 0, silver: +$('gc-silver').value || 0, renown: +$('gc-renown').value || 0, maxUses: +$('gc-max').value || 0, days: +$('gc-days').value || 0 });
+  const r = await api('giftcodes', { op: 'add', code: $('gc-code').value, title: $('gc-title').value, gold: +$('gc-gold').value || 0, silver: +$('gc-silver').value || 0, renown: +$('gc-renown').value || 0, drop: +$('gc-drop').value || 0, maxUses: +$('gc-max').value || 0, days: +$('gc-days').value || 0 });
   toast(r.ok ? 'Code <b>' + esc(r.added) + '</b> made: share it!' : r.error, r.ok); if (r.ok) { $('gc-code').value = ''; showCodes(r.codes); }
 }
 $('gc-list').onclick = async (e) => {

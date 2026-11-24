@@ -5,15 +5,19 @@
 // that script whose getAward stops before sending: the game itself sends it.)
 //
 // The owner makes codes in the control panel (Award Center tab > 🎟️ Gift codes, owner only): the code (letters and digits, 3-20, any case),
-// what it gives (gold / silver / arena reputation), how many players may use it (0 = everyone), until when. Each player uses a code once;
-// the gold and silver arrive at once and the game shows them (reward window + "got gold" tips).
+// what it gives (gold / silver / arena reputation and/or one of the game's card packs, PACKS), how many players may use it (0 = everyone),
+// until when. Each player uses a code once; everything arrives at once and the game shows it (reward window with the card + "got gold" tips).
+// A shinobi pack needs room in the backpack (game.BAG_MAX: tip 20004, the code stays unused).
 'use strict';
 
 function ensure(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, title TEXT, gold INTEGER DEFAULT 0, silver INTEGER DEFAULT 0,
     renown INTEGER DEFAULT 0, max_uses INTEGER DEFAULT 0, used INTEGER DEFAULT 0, expires INTEGER DEFAULT 0, created INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS gift_code_uses (code TEXT, uid INTEGER, server_id INTEGER, ts INTEGER, PRIMARY KEY(code, uid, server_id));`);
+  try { db.exec('ALTER TABLE gift_codes ADD COLUMN drop_id INTEGER DEFAULT 0'); } catch (e) { /* already there */ }
 }
+// the card packs a code can give: the game's own random packs (dropinfo; game.rollPack picks the card)
+const PACKS = { 11: 'Random 5-star shinobi', 10: 'Random 4-star shinobi', 1800: 'Random god shinobi (6-star)', 13: 'Random 5-star equipment', 14: 'Random 5-star ninjutsu' };
 const norm = (c) => String(c || '').trim().toUpperCase();
 const VALID = /^[A-Z0-9]{3,20}$/; // the game's box takes at most 20 characters (setMaxLength(20))
 const now = () => Math.floor(Date.now() / 1000);
@@ -38,11 +42,15 @@ function redeem(db, pl, raw) {
   if (db.prepare('SELECT 1 FROM gift_code_uses WHERE code=? AND uid=? AND server_id=?').get(c, pl.uid, pl.server_id)) return { code: 280001 };
   if (g.max_uses && g.used >= g.max_uses) return { code: 280001 };
   const game = require('./game');
+  if (g.drop_id && game.bagRoom(db, pl.uid, pl.server_id) < game.dropShinobi(g.drop_id)) return { code: 20004 }; // "Bagpack is full"
   db.prepare('UPDATE players SET gold=gold+?, coin=coin+? WHERE uid=? AND server_id=?').run(g.gold, g.silver, pl.uid, pl.server_id);
   if (g.renown) game.propAdd(db, pl.uid, pl.server_id, 9996, g.renown); // arena reputation
   db.prepare('INSERT INTO gift_code_uses(code, uid, server_id, ts) VALUES(?,?,?,?)').run(c, pl.uid, pl.server_id, now());
   db.prepare('UPDATE gift_codes SET used=used+1 WHERE code=?').run(c);
-  return { ok: true, xml: game.awardFull({ cash: g.gold, coin: g.silver }) };
+  const awards = [];
+  if (g.drop_id) awards.push(game.grantDrop(db, pl, g.drop_id)); // first: its dropid makes the game read the card list
+  if (g.gold || g.silver || !awards.length) awards.push(game.awardFull({ cash: g.gold, coin: g.silver }));
+  return { ok: true, xml: awards.length > 1 ? game.mergeAwards(awards.filter(Boolean)) : awards[0] };
 }
 
 // control panel
@@ -55,11 +63,13 @@ function add(db, b) {
   const c = norm(b.code);
   if (!VALID.test(c)) return { error: 'a code is 3 to 20 letters or digits, no spaces' };
   const gold = Math.max(0, Math.floor(Number(b.gold) || 0)), silver = Math.max(0, Math.floor(Number(b.silver) || 0)), renown = Math.max(0, Math.floor(Number(b.renown) || 0));
-  if (!gold && !silver && !renown) return { error: 'add gold, silver or arena reputation' };
+  const drop = Math.floor(Number(b.drop) || 0);
+  if (drop && !PACKS[drop]) return { error: 'unknown card pack' };
+  if (!gold && !silver && !renown && !drop) return { error: 'add gold, silver, arena reputation or a card pack' };
   if (db.prepare('SELECT 1 FROM gift_codes WHERE code=?').get(c)) return { error: 'that code already exists' };
   const days = Number(b.days) || 0;
-  db.prepare('INSERT INTO gift_codes(code, title, gold, silver, renown, max_uses, expires, created) VALUES(?,?,?,?,?,?,?,?)')
-    .run(c, String(b.title || '').slice(0, 40), gold, silver, renown, Math.max(0, Math.floor(Number(b.maxUses) || 0)), days > 0 ? now() + Math.round(days * 86400) : 0, now());
+  db.prepare('INSERT INTO gift_codes(code, title, gold, silver, renown, drop_id, max_uses, expires, created) VALUES(?,?,?,?,?,?,?,?,?)')
+    .run(c, String(b.title || '').slice(0, 40), gold, silver, renown, drop, Math.max(0, Math.floor(Number(b.maxUses) || 0)), days > 0 ? now() + Math.round(days * 86400) : 0, now());
   return { ok: true, code: c };
 }
 function remove(db, code) {
@@ -68,4 +78,4 @@ function remove(db, code) {
   return r.changes ? { ok: true } : { error: 'no such code' };
 }
 
-module.exports = { redeem, list, add, remove, ensure };
+module.exports = { redeem, list, add, remove, ensure, PACKS };
