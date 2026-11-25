@@ -83,6 +83,10 @@ const STARTER_JUTSU = { 55: 12, 57: 54, 56: 14 }; // Neji Gentle Fist, Shikamaru
 // The 34 special ninjutsu (ids 56-89, m_rate 1.0, damage 10-40) count with the normal 15 % (owner, 7 Nov 2026): at 100 % each read as
 // +20 % team attack (four on every ninja doubled a team) and fired on every hit in fights (+20 % of the ninja's chakra each time).
 const jutsuRate = (r) => { const v = Number(r && r[4]) || 0; return v >= 1 ? 0.15 : v; };
+// The ninjutsu a random pack or pull can give (ours: the original lists are lost): m_level 1 cards of the wanted stars, WITHOUT the 34
+// specials. A special shares its name and picture with a real ninjutsu (The Six Paths Rinnegan 89 / 52) but has 10-40 damage, no set and
+// is named by no chain, so players took it for a broken card (xvon11, 25 Nov 2026; owner: packs stop giving them, held ones stay).
+const jutsuPool = (stars) => table('ninjutsuinfo').rows.filter((x) => stars.includes(x[5]) && x[6] === 1 && Number(x[4]) < 1);
 function ninjutsuBonus(st, id) {
   const r = table('ninjutsuinfo').rows.find((x) => x[0] === id);
   const pct = r ? jutsuRate(r) * 0.2 : 0;
@@ -483,7 +487,7 @@ function rollPack(r) {
   // chances were server-side and are lost; (ours): mostly 2-3 star gear or ninjutsu (397) / 3-star gear (27), rarely 4, very rarely 5 stars.
   if (r[0] === 397 || r[0] === 27) {
     const x = Math.random() * 100, st = r[0] === 397 ? (x < 60 ? 2 : x < 95 ? 3 : 4) : (x < 80 ? 3 : x < 98 ? 4 : 5);
-    if (r[0] === 397 && Math.random() < 0.3) { const pool = table('ninjutsuinfo').rows.filter((q) => q[5] === st && q[6] === 1); if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] }; }
+    if (r[0] === 397 && Math.random() < 0.3) { const pool = jutsuPool([st]); if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] }; }
     return { equip: randomEquip(Math.floor(Math.random() * 3), st, st) };
   }
   const gearSlot = /Weapon/.test(t) ? 0 : /Armou?r/.test(t) ? 1 : /Trinket|Accessor|Ornament/.test(t) ? 2 : -1; // "One, Two-Star Weapon Card" etc.
@@ -494,7 +498,7 @@ function rollPack(r) {
   if (/Gold/.test(t) && Math.random() < 0.3) return { cash: Number((t.match(/(\d+) Gold/) || [0, 300])[1]) };
   if (/Ninj[ui]tsu/i.test(t)) { // a real ninjutsu card of the star the pack names (was a 30000 silver placeholder)
     const want = /Five-Star/.test(t) ? [5] : /Four-Star/.test(t) ? [4] : /Three-Star/.test(t) ? [3] : /One,\s*Two/.test(t) ? [1, 2] : [3, 4];
-    const pool = table('ninjutsuinfo').rows.filter((x) => want.includes(x[5]) && x[6] === 1);
+    const pool = jutsuPool(want);
     if (pool.length) return { ninjutsu: pool[Math.floor(Math.random() * pool.length)][0] };
     return { coin: 30000 };
   }
@@ -1104,7 +1108,7 @@ function propUse(db, pl, goodsId) {
     const drop = table('dropinfo').rows.find((x) => x[0] === row[9]) || []; // [9] = the drop: a fixed card (The Fourth Sage 531, Sage Naruto 337 ...) or a random pack (10-15)
     const roll = drop[12] !== 1 && drop[3] > 0 ? { ninja: drop[3] }
       : /Shinobi/.test(row[2]) ? { ninja: pick(pools()[star]) } : /Equipment/.test(row[2]) ? { equip: randomEquip(Math.floor(Math.random() * 3), star, star) }
-      : { ninjutsu: pick(table('ninjutsuinfo').rows.filter((x) => x[5] === star && x[6] === 1))[0] };
+      : { ninjutsu: pick(jutsuPool([star]))[0] };
     if (roll.ninja && bagRoom(db, pl.uid, pl.server_id) < 1) return { error: BAG_FULL };
     propAdd(db, pl.uid, pl.server_id, goodsId, -need);
     let card = null, nseq = 0; // CItemView reads the new card from <propuse> attributes: ninjaid / equipid / skillid + their bag ids
@@ -2249,4 +2253,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { BAG_MAX, BAG_FULL, bagRoom, shinobiCount, dropShinobi, loginPackDays, resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, sealEffect, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { BAG_MAX, BAG_FULL, bagRoom, shinobiCount, dropShinobi, loginPackDays, resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, sealEffect, setBonus, skillSets, ninjutsuBonus, jutsuPool, rollPack, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

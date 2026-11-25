@@ -1047,6 +1047,15 @@ for (const pick of [55, 56, 57]) {
     const g = require('../../server/game'), st = { al: 1000, ah: 1000, dl: 0, dh: 0, cl: 0, ch: 0 };
     if (g.ninjutsuBonus(st, 86).al !== g.ninjutsuBonus(st, 52).al || g.ninjutsuBonus(st, 52).al !== 1030) { bad++; console.log('SPECIAL NINJUTSU bonus', g.ninjutsuBonus(st, 86).al, 'vs normal', g.ninjutsuBonus(st, 52).al, '(want both 1030)'); }
   }
+  // random ninjutsu packs never give a special look-alike (ids 56-89, m_rate 1.0): xvon11, 25 Nov 2026, owner's choice
+  {
+    const g = require('../../server/game'), rate = (id) => Number(g.table('ninjutsuinfo').rows.find((q) => q[0] === id)[4]);
+    for (const star of [1, 2, 3, 4, 5]) if (!g.jutsuPool([star]).length || g.jutsuPool([star]).some((q) => Number(q[4]) >= 1)) { bad++; console.log('NINJUTSU POOL: star', star, 'is empty or holds a special'); }
+    const packs = g.table('dropinfo').rows.filter((q) => q[12] === 1 && /Ninj[ui]tsu/i.test(String(q[2])) && /Star/.test(String(q[2])));
+    let got = 0, special = 0;
+    for (const p of packs) for (let i = 0; i < 200; i++) { const r = g.rollPack(p); if (r && r.ninjutsu) { got++; if (rate(r.ninjutsu) >= 1) special++; } }
+    if (!got || special) { bad++; console.log('NINJUTSU PACKS:', special, 'special look-alikes in', got, 'rolls of', packs.length, 'packs (want 0, and some rolls)'); }
+  }
   // Eight Gates percent = the photos: LV100 +81 % (photo 0924), LV150 +140.5 % (photo 0334); the plain curve gave 165 % at LV150
   {
     const g = require('../../server/game');
