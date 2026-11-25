@@ -1519,21 +1519,27 @@ function activeSuits(db, uid, sid) {
   }
   return Object.values(best);
 }
-// Seal (markinfo col 7, e.g. "ATK +35%"): multiplies that stat of the ninja wearing it.
-// The text can name several stats: "DEF and ATK +40%", "DEF ATK +60% and skill +3%", "DEF ATK Cha +80% ..." -> every named stat gets the %
-// (only the stat right before the number got it until 3 Nov 2026, Discord report). "skill +3%" counts like a ninjutsu's chance (x 20 % attack, ours).
-function sealBonus(st, markId) {
+// Seal: a percentage on the stats of the ninja wearing it. ORIGINAL since 25 Nov 2026 (owner: "do as original"; report by Zeraora:
+// levelling a seal changed nothing). markinfo [9]-[28] effectval<e>_<s> = the bonus at seal level 1, [29]-[48] effectval_up<e>_<s> = what
+// every further level adds (max level 50, markupgrade); e = the wearer's element 1-5 (cards.attri: water, fire, wind, earth, thunder;
+// CMarkDetailView::SetCamp(attri - 1) picks the row the seal screen lights up), s = 1 attack, 2 defence, 3 chakra, 4 ninjutsu chance.
+// Photo 1138: a level-2 Chōmei Seal shows "Shinobi attack increase: 4.33%" = 0.04 + 1 x 0.0033. The text in [7] ("DEF ATK Cha +80%")
+// is the best element at level 50; until 25 Nov every seal gave that text value at any level, on any element.
+// The ninjutsu chance counts like a ninjutsu's chance (x 20 % attack, ours).
+function sealEffect(markId, level, attri) {
   const m = table('markinfo').rows.find((r) => r[0] === markId);
-  const mm = m && /^([A-Za-z ]*?)\s*\+(\d+)%/.exec(String(m[7]).trim());
-  if (!mm) return st;
-  const pct = Number(mm[2]) / 100, keys = [];
-  if (/\bATK\b/i.test(mm[1])) keys.push('al', 'ah');
-  if (/\bDEF\b/i.test(mm[1])) keys.push('dl', 'dh');
-  if (/\bCHA/i.test(mm[1])) keys.push('cl', 'ch');
-  const o = { ...st };
-  for (const k of keys) o[k] = Math.round(o[k] * (1 + pct));
-  const skill = /skill\s*\+(\d+)%/i.exec(String(m[7]));
-  if (skill) { const c = Number(skill[1]) / 100 * 0.2; o.al = Math.round(o.al * (1 + c)); o.ah = Math.round(o.ah * (1 + c)); }
+  if (!m) return null;
+  const e = attri >= 1 && attri <= 5 ? attri : 1, lv = Math.max(0, Math.min(cardMaxLevel(5), Math.floor(Number(level) || 1)) - 1);
+  const v = (s) => (Number(m[9 + (e - 1) * 4 + s]) || 0) + lv * (Number(m[29 + (e - 1) * 4 + s]) || 0);
+  return { atk: v(0), def: v(1), cha: v(2), skill: v(3) };
+}
+function sealBonus(st, markId, level, attri) {
+  const f = sealEffect(markId, level, attri);
+  if (!f) return st;
+  const o = { ...st }, atk = (1 + f.atk) * (1 + f.skill * 0.2);
+  o.al = Math.round(o.al * atk); o.ah = Math.round(o.ah * atk);
+  o.dl = Math.round(o.dl * (1 + f.def)); o.dh = Math.round(o.dh * (1 + f.def));
+  o.cl = Math.round(o.cl * (1 + f.cha)); o.ch = Math.round(o.ch * (1 + f.cha));
   return o;
 }
 let matchIndex = null;
@@ -1668,7 +1674,7 @@ function teamSlots(team, eqRows, owned, cache) {
     let st = ninjaStats(c);
     const mine = eqRows.filter((x) => x.slot === i + 1);
     for (const e of mine) {
-      if (e.type === 5) { st = sealBonus(st, e.ninja_id); continue; } // tailed-beast seal: percentage bonus
+      if (e.type === 5) { st = sealBonus(st, e.ninja_id, e.level, c.attri); continue; } // tailed-beast seal: percentage bonus
       if (e.type === 6) { st = ninjutsuBonus(st, e.ninja_id); continue; } // ninjutsu: chance of an extra hit
       st = addStats(st, equipStats(e));
     }
@@ -2243,4 +2249,4 @@ function bossNamedDrop(row) {
   }
   return bossDrops.get(row[0]) || 0;
 }
-module.exports = { BAG_MAX, BAG_FULL, bagRoom, shinobiCount, dropShinobi, loginPackDays, resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };
+module.exports = { BAG_MAX, BAG_FULL, bagRoom, shinobiCount, dropShinobi, loginPackDays, resetUses, godOf, jutsuRate, RULES, teamSlots, teamTotals, BOSS_NAMED_CHANCE, bossNamedDrop, cardMaxLevel, COST, TEN_COST, rollOne, payHeapState, TEAM2_LEVEL, lineup, inLineup, activateTeam, teamReplyXml, arenaEnsure, vipRow, buffOn, BUFF_EXP, useLimit, meritLevel, foeAttri, elementBackfill, foeTeam, teamSizeAt, GOD_COST, packSilver, elementPrice, elementChange, inherit, inheritInfoXml, shopGold, secretRefresh, arenaReward, benchFight, stageForDefence, equipStats, sealBonus, sealEffect, setBonus, skillSets, ninjutsuBonus, addStats, chainPartsOf: (r) => partsOf(r), chainFits: (part, id) => fits(part, id), chainKnown: (part) => isKnown(part), matchRows, towerRow, towerFoes, unlockAll, growStarList, GROW_MAX, GROW_EXTRA, GROW_EXTRA_MAX, energyTick, stageTried, stageFoes, orderUsedToday, ORDER_DAILY, spState, spUse, clearsNeeded, payHeapXml, payHeapClaim, actEnsure, recruitState, FREE_EVERY, BOSS_COST, chapterParts, stagePart, globalStage, partEntry, maxTeam, stageRow, stageState, stageCleared, chapterStages, furthestChapter, roundInfoXml, teamSwap, grantDrop, mergeChips, mergeAwards, ninjaStats, CHIP_BASE, chipCount, chipbagXml, godSynth, potentialXml, potentialRoll, potentialSave, newlife, NEWLIFE_MAX, NEWLIFE_COST, arenaListXml, arenaRankXml, arenaFight, arenaClearCd, gateXml, gateOpen, gateLevel, gateBonus, friendsXml, sageGrow, giveEquip, teamStats, awardXml, secretXml, secretBuy, secretCost, soulOf, equip, strengthen, packBuy, packMailDrop, propUse, propCounts, propAdd, shopBuy, actXml, actClaim, sparFight, sparTooOften, rivalsXml, rivals, bumpTask, dailyXml, dailyClaim, awardFull, addExp, battleXml, getStage, setStage, pull, pullXml, table, ninjas, ensure, giveCard, ensureStarterTeam, stateXml, cardXml };

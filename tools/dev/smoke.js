@@ -192,10 +192,22 @@ for (const name of Object.keys(handlers)) for (const c of new Set([0, ...(cmds[n
 {
   const ck = (ok, what) => { if (!ok) { bad++; console.log('DISCORD 3 NOV', what); } }, game = require('../../server/game');
   const b = { al: 1000, ah: 1000, dl: 1000, dh: 1000, cl: 1000, ch: 1000 };
-  const seal = (name) => game.sealBonus(b, game.table('markinfo').rows.find((r) => r[2] === name)[0]);
-  const s = seal('Saiken Seal'), t = seal('Ten-Tails Seal');
-  ck(s.al === 1400 && s.dl === 1400 && s.cl === 1000, 'Saiken (DEF and ATK +40%): ' + JSON.stringify(s));
-  ck(t.al > 1800 && t.dl === 1800 && t.cl === 1800, 'Ten-Tails (DEF ATK Cha +80%): ' + JSON.stringify(t));
+  // 25 Nov 2026 (Zeraora: levelling a seal changed nothing; owner: like the original): the bonus follows the seal's level and the
+  // wearer's element (markinfo effectval + (level - 1) x effectval_up); the text value is the best element at level 50
+  const seal = (name, level, attri) => game.sealBonus(b, game.table('markinfo').rows.find((r) => r[2] === name)[0], level, attri);
+  const s = seal('Saiken Seal', 50, 2), t = seal('Ten-Tails Seal', 50, 1), t1 = seal('Ten-Tails Seal', 1, 1), t4 = seal('Ten-Tails Seal', 50, 4), t5 = seal('Ten-Tails Seal', 50, 5);
+  const cho = game.sealEffect(7, 2, 1); // photo 1138: Chōmei Seal level 2 = attack 4.33 %, defence 4.33 %, chakra 0, ninjutsu 0.22 %
+  ck(s.al === 1399 && s.dl === 1399 && s.cl === 1000, 'Saiken level 50 on fire (DEF and ATK +40%): ' + JSON.stringify(s));
+  ck(t.al > 1800 && t.al < 1840 && t.dl === 1600 && t.cl === 1600, 'Ten-Tails level 50 on water (+80% attack): ' + JSON.stringify(t));
+  ck(t1.al > 1160 && t1.al < 1170 && t1.dl === 1120 && t1.cl === 1120, 'Ten-Tails level 1 on water (+16% attack): ' + JSON.stringify(t1));
+  ck(t4.dl === 1802 && t4.al < t.al && t5.al < t4.al && t5.dl === 1300, 'Ten-Tails level 50 on earth / thunder: ' + JSON.stringify([t4, t5]));
+  ck(Math.abs(cho.atk - 0.0433) < 1e-9 && Math.abs(cho.def - 0.0433) < 1e-9 && cho.cha === 0 && Math.abs(cho.skill - 0.0022) < 1e-9, 'Chōmei level 2 like photo 1138: ' + JSON.stringify(cho));
+  ck(JSON.stringify(seal('Ten-Tails Seal', 999, 0)) === JSON.stringify(t) && JSON.stringify(seal('Ten-Tails Seal', undefined, undefined)) === JSON.stringify(t1), 'seal level above 50 / no element');
+  { // through the team math: the same seal on the same ninja is worth more at level 50 than at level 1
+    const nin = { seq: 1, ninja_id: 2106, level: 50, breaklvl: 0, starlevel: 0, attri: 1, newlife: 0 };
+    const worn = (level) => game.teamSlots([nin], [{ slot: 1, kind: 4, seq: 2, ninja_id: 10, type: 5, level, exp: 0, starlevel: 0, newlife: 0 }], null)[0].al;
+    ck(worn(50) > worn(25) && worn(25) > worn(1) && worn(1) > game.teamSlots([nin], [], null)[0].al, 'a levelled seal raises the team attack: ' + [worn(1), worn(25), worn(50)].join());
+  }
   // game.table() keeps tables in memory: re-reading the file on every call froze the cloud server for 10 minutes on "Best gear"
   ck(game.table('ninjutsuinfo') === game.table('ninjutsuinfo'), 'game.table() reads the file again on every call');
   const armed = game.table('skill_suit_info').rows.find((r) => r[2] === 'Armed');

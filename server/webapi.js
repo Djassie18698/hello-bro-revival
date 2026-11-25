@@ -79,7 +79,7 @@ function breakdown(db, uid, sid) {
     ['rebirth', 'breakthrough', 'growth', 'training'].forEach((part, n) => { const next = game.ninjaStats(steps[n + 1]); put(part, st, next); st = next; });
     const mine = eqRows.filter((x) => x.slot === i + 1);
     for (const e of mine) { // teamSlots' order and maths
-      const next = e.type === 5 ? game.sealBonus(st, e.ninja_id) : e.type === 6 ? game.ninjutsuBonus(st, e.ninja_id) : game.addStats(st, game.equipStats(e));
+      const next = e.type === 5 ? game.sealBonus(st, e.ninja_id, e.level, c.attri) : e.type === 6 ? game.ninjutsuBonus(st, e.ninja_id) : game.addStats(st, game.equipStats(e));
       put(e.type === 5 ? 'seals' : e.type === 6 ? 'ninjutsu' : 'gear', st, next); st = next;
     }
     const next = game.setBonus(st, game.skillSets(mine)); put('sets', st, next); st = next;
