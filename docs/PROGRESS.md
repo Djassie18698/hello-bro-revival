@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 22 | 17 | 4 | 5 |
+| Discord reports | 22 | 17 | 5 | 5 |
 
 ## Bug list 1
 
@@ -150,6 +150,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Akatsuki Shop "Five-Star God Shinobi Card" gave a normal 5-star or even a 3-star card (xvon11, 22 Nov) | The server did not know this pack text, so it used the catch-all rule (mostly 3-star). Now it always gives a god card (the classic god cards, equal chances; ours). Checked on a test save 23 Nov: the plain "Five-Star Shinobi Card" now always gives a 5-star card (owner's choice; was 35 % 5-star). |
 | 🧪 | Spar and Plunder rival lists: the portrait was not the rival's team leader and the frames all looked alike (NoSuy, 23 Nov) | The server showed the rival's card with the highest Sage growth of any kind, with a fixed 3-star rarity and the rebirths of that card. Now the first card of the team, with its own rarity and rebirths (Friends and Arena lists too). Checked on a test save |
 | ⏳ | The Six Paths Rinnegan "without the set" does not light up Sage of the Six Paths (God)'s chain 4 (xvon11, 25 Nov) | The game data has two cards for 34 ninjutsu: the real one (id 52: 150 attack, Six Paths set, named by the chain) and a weak look-alike (id 89: 40 attack, no set, in no chain). The chain follows the data; but our random ninjutsu packs give the look-alikes too (12 of the 30 five-star ones). Asked the owner: packs stop giving them / also swap the ones players hold / let them light the chain / leave it |
+| ⏳ | Levelling up a tailed-beast seal (Ten-Tails Seal) does not raise the stats (Zeraora, 25 Nov) | True: the server gives a seal its full text bonus ("+80 %") at any level. The original grew it with the seal's level (1-50) and by the wearer's element (the game's seal table; photo 1138: level-2 Chōmei Seal = attack +4.33 %). Changing it lowers almost everyone's power, so the owner was asked: original / by level only / leave it |
 
 ## Built on request (chat)
 
