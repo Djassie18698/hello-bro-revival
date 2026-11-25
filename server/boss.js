@@ -139,6 +139,7 @@ function exchange(db, pl, id) {
   if (!row) return { error: 'bad item' };
   const rep = game.propCounts(db, pl.uid, pl.server_id)[9995] || 0;
   if (rep < row[3]) return { error: 'not enough reputation' };
+  if (game.dropShinobi(row[4]) && game.bagRoom(db, pl.uid, pl.server_id) < game.dropShinobi(row[4])) return { error: game.BAG_FULL }; // full backpack: nothing taken
   game.propAdd(db, pl.uid, pl.server_id, 9995, -row[3]);
   return { xml: game.grantDrop(db, pl, row[4]) };
 }

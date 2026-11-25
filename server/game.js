@@ -521,6 +521,7 @@ function mergeChips(db, pl, pieceId) {
   const r = table('piece_info').rows.find((x) => x[0] === pieceId);
   if (!r) return { error: 'no such fragment' };
   if (chipCount(db, pl.uid, pl.server_id, pieceId) < r[7]) return { error: 'not enough fragments' };
+  if (dropShinobi(r[8]) && bagRoom(db, pl.uid, pl.server_id) < dropShinobi(r[8])) return { error: BAG_FULL }; // full backpack: the fragments stay
   propAdd(db, pl.uid, pl.server_id, CHIP_BASE + pieceId, -r[7]);
   return { xml: grantDrop(db, pl, r[8]) };
 }
@@ -1461,6 +1462,7 @@ function secretBuy(db, pl, rowId) {
   if (!r) return { error: 'not in shop' };
   if (secretBought(db, pl).has(r[0])) return { error: 'already bought' };
   const cost = secretCost(r);
+  if (dropShinobi(r[10]) && bagRoom(db, pl.uid, pl.server_id) < dropShinobi(r[10])) return { error: BAG_FULL }; // full backpack: nothing taken
   if (r[7] === 1) { if (soulOf(db, pl) < cost) return { error: 'not enough souls' }; propAdd(db, pl.uid, pl.server_id, SOUL, -cost); }
   else { if (pl.gold < cost) return { error: 'not enough gold' }; db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(cost, pl.uid, pl.server_id); }
   db.prepare('INSERT INTO secret_bought VALUES(?,?,?,?)').run(pl.uid, pl.server_id, secretBoard(db, pl), r[0]);

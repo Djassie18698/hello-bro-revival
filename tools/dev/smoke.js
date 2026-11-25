@@ -1128,6 +1128,31 @@ for (const pick of [55, 56, 57]) {
       }
     } finally { if (old === undefined) delete process.env.HB_BAG_MAX; else process.env.HB_BAG_MAX = old; }
   }
+  // Akatsuki mall with a full backpack (xvon11, 25 Nov 2026): a shinobi card good is refused ("Bagpack is full") BEFORE the contribution and
+  // the gold are taken; before, both were taken, no card came and the Rewards screen showed an empty "Sample Text" card
+  {
+    const game = require('../../server/game'), guild = require('../../server/guild');
+    const p = () => db.prepare('SELECT * FROM players WHERE uid=77').get();
+    if (!guild.myGroup(db, 77, 1)) guild.create(db, p(), 'SmokeMall', '');
+    const g = guild.myGroup(db, 77, 1), realNow = Date.now, oldMax = process.env.HB_BAG_MAX;
+    try {
+      let t = realNow(), idx = 0;
+      Date.now = () => t;
+      for (let i = 0; i < 200; i++, t += 1800e3) { idx = guild.mallGoods(g).findIndex((x) => x[0] === 1800) + 1; if (idx) break; } // a 30-minute window that sells the god card
+      db.exec('CREATE TABLE IF NOT EXISTS group_construct (group_id INTEGER, cid INTEGER, level INTEGER, PRIMARY KEY(group_id, cid))');
+      for (let cid = 0; cid < 6; cid++) db.prepare('INSERT OR REPLACE INTO group_construct VALUES (?,?,?)').run(g.id, cid, 5);
+      db.prepare('UPDATE group_members SET score=50000 WHERE uid=77 AND server_id=1').run();
+      db.prepare('UPDATE players SET gold=100000 WHERE uid=77').run();
+      const had = game.shinobiCount(db, 77, 1), score = () => db.prepare('SELECT score FROM group_members WHERE uid=77 AND server_id=1').get().score;
+      process.env.HB_BAG_MAX = String(had);
+      const full = guild.shopBuy(db, p(), idx), goldFull = p().gold, scoreFull = score();
+      process.env.HB_BAG_MAX = String(had + 1);
+      const ok = guild.shopBuy(db, p(), idx);
+      if (!idx || full.error !== game.BAG_FULL || goldFull !== 100000 || scoreFull !== 50000 || ok.error || !/<cardlist><card>/.test(ok.xml || '') || p().gold !== 98200 || score() !== 47000 || game.shinobiCount(db, 77, 1) !== had + 1) {
+        bad++; console.log('MALL FULL BAG:', JSON.stringify({ idx, full, goldFull, scoreFull, ok: String(ok.xml || ok.error).slice(0, 80), gold: p().gold, score: score() }));
+      }
+    } finally { Date.now = realNow; if (oldMax === undefined) delete process.env.HB_BAG_MAX; else process.env.HB_BAG_MAX = oldMax; }
+  }
   // Best team (admin page, 7 Nov 2026): the search runs in its own thread on the save file; the plan fits the team size, never lowers the
   // goal stat, may use copies, and the split team math (teamSlots + teamTotals) still gives what teamStats gives
   {

@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 23 | 19 | 3 | 5 |
+| Discord reports | 23 | 20 | 3 | 5 |
 
 ## Bug list 1
 
@@ -152,6 +152,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | The Six Paths Rinnegan "without the set" does not light up Sage of the Six Paths (God)'s chain 4 (xvon11, 25 Nov) | The game data has two cards for 34 ninjutsu: the real one (id 52: 150 attack, Six Paths set, named by the chain) and a weak look-alike (id 89: 40 attack, no set, in no chain). The chain follows the data. Owner chose: **packs stop giving the look-alikes** (random ninjutsu packs, drop 397 and ninjutsu fragments now only give the 57 real ninjutsu, ours); look-alikes players already hold stay as they are. Checked on a test save (smoke.js NINJUTSU PACKS) |
 | 🧪 | Levelling up a tailed-beast seal (Ten-Tails Seal) did not raise the stats (Zeraora, 25 Nov) | The server gave a seal its full text bonus ("+80 %") at any level. Owner: "do as original". Now like the game's own seal table and seal screen: the bonus grows with the seal's level (1-50) and depends on the wearer's element (Ten-Tails: level 1 = +6 to +16 %, level 50 = +80 % attack on Water, +80 % defence on Earth, +30 to +40 % on the others; photo 1138 matches). Almost everyone's power drops when it goes live. Checked on a test save |
 | ✅ | "I lose 50 gold every day without spending it" (Koolmanm598, 25 Nov) | Not a bug: the 50 gold is the Country War Auto-Attack (original price, 50 gold for the rest of that day), bought on each of those days. Every 50-gold spend in the save falls on a day with Auto-Attack on, minutes before its first auto fight. Player told where it goes and that it is optional |
+| 🧪 | Akatsuki mall: the Five-Star God Shinobi Card and the Five-Star Shinobi Card showed an empty reward card with "Sample Text" (xvon11, 25 Nov) | His backpack was full (5 000 shinobi cards, the limit since 22 Nov). The mall still took the contribution and the gold, gave no card, and the game drew an empty card. Now the mall says "Bagpack is full" and takes nothing. The same gap is closed in the boss shop, the secret shop and putting fragments together. Checked on a test save, not in the game. The owner is asked whether he gets the two cards he paid for |
 
 ## Built on request (chat)
 

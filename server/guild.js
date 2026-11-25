@@ -301,6 +301,9 @@ function shopBuy(db, pl, idx) {
   if (mallBought(db, pl).has(idx)) return { error: 'already bought' };
   if (memberScore(db, pl.uid, pl.server_id) < it[2]) return { error: 'not enough contribution' };
   if (pl.gold < it[3]) return { code: 10006 };
+  // a full backpack (game.BAG_MAX): refuse before anything is taken. xvon11, 25 Nov 2026: both shinobi card goods took the contribution and
+  // the gold, gave nothing, and the Rewards screen showed an empty card ("Sample Text")
+  { const game = require('./game'); if (game.dropShinobi(it[0]) && game.bagRoom(db, pl.uid, pl.server_id) < game.dropShinobi(it[0])) return { error: game.BAG_FULL }; }
   db.prepare('UPDATE group_members SET score=score-? WHERE uid=? AND server_id=?').run(it[2], pl.uid, pl.server_id);
   if (it[3]) db.prepare('UPDATE players SET gold=gold-? WHERE uid=? AND server_id=?').run(it[3], pl.uid, pl.server_id);
   db.prepare('INSERT INTO group_mall_buy VALUES (?,?,?,?)').run(pl.uid, pl.server_id, mallWindow(), idx);
@@ -375,4 +378,4 @@ function donateCards(db, pl, kind, bagJson) {
   db.prepare('UPDATE groups SET score=score+? WHERE id=?').run(fund, g.id);
   return {};
 }
-module.exports = { MALL, rejoinWait, REJOIN_WAIT, expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };
+module.exports = { MALL, mallGoods, rejoinWait, REJOIN_WAIT, expel, setPositions, settingsXml, saveSettings, constructXml, constructUp, contriXml, donate, cardListXml, donateCards, rankXml, hallXml, checkin, shopXml, shopBuy, CREATE_COST, ensure, status, listXml, detailXml, create, join, quit, buildingsXml, adminXml, myGroup };
