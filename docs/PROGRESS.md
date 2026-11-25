@@ -15,7 +15,7 @@ Bug lists: [#2 List 1](https://github.com/Djassie18698/hello-bro-revival/issues/
 | Bug list 3 | 9 | 0 | 0 | 0 |
 | Bug list 4 | 14 | 0 | 0 | 0 |
 | Bug list 5 | 3 | 0 | 0 | 1 |
-| Discord reports | 22 | 18 | 4 | 5 |
+| Discord reports | 23 | 18 | 4 | 5 |
 
 ## Bug list 1
 
@@ -151,6 +151,7 @@ Reports from Discord #bugs-and-issues (log with message ids: docs/DISCORD-REPORT
 | 🧪 | Spar and Plunder rival lists: the portrait was not the rival's team leader and the frames all looked alike (NoSuy, 23 Nov) | The server showed the rival's card with the highest Sage growth of any kind, with a fixed 3-star rarity and the rebirths of that card. Now the first card of the team, with its own rarity and rebirths (Friends and Arena lists too). Checked on a test save |
 | ⏳ | The Six Paths Rinnegan "without the set" does not light up Sage of the Six Paths (God)'s chain 4 (xvon11, 25 Nov) | The game data has two cards for 34 ninjutsu: the real one (id 52: 150 attack, Six Paths set, named by the chain) and a weak look-alike (id 89: 40 attack, no set, in no chain). The chain follows the data; but our random ninjutsu packs give the look-alikes too (12 of the 30 five-star ones). Asked the owner: packs stop giving them / also swap the ones players hold / let them light the chain / leave it |
 | 🧪 | Levelling up a tailed-beast seal (Ten-Tails Seal) did not raise the stats (Zeraora, 25 Nov) | The server gave a seal its full text bonus ("+80 %") at any level. Owner: "do as original". Now like the game's own seal table and seal screen: the bonus grows with the seal's level (1-50) and depends on the wearer's element (Ten-Tails: level 1 = +6 to +16 %, level 50 = +80 % attack on Water, +80 % defence on Earth, +30 to +40 % on the others; photo 1138 matches). Almost everyone's power drops when it goes live. Checked on a test save |
+| ✅ | "I lose 50 gold every day without spending it" (Koolmanm598, 25 Nov) | Not a bug: the 50 gold is the Country War Auto-Attack (original price, 50 gold for the rest of that day), bought on each of those days. Every 50-gold spend in the save falls on a day with Auto-Attack on, minutes before its first auto fight. Player told where it goes and that it is optional |
 
 ## Built on request (chat)
 
